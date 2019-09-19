@@ -23,15 +23,15 @@ func main() {
 	logrus.Infof("Version: %v", version)
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
-
-	tracer, closer := tools.InitJaeger("nsmd-k8s")
-	opentracing.SetGlobalTracer(tracer)
-	defer func() {
-		if err := closer.Close(); err != nil {
-			logrus.Errorf("An error during closing: %v", err)
-		}
-	}()
-
+	if tools.IsOpentracingEnabled() {
+		tracer, closer := tools.InitJaeger("nsmd-k8s")
+		opentracing.SetGlobalTracer(tracer)
+		defer func() {
+			if err := closer.Close(); err != nil {
+				logrus.Errorf("An error during closing: %v", err)
+			}
+		}()
+	}
 	address := os.Getenv("NSMD_K8S_ADDRESS")
 	if strings.TrimSpace(address) == "" {
 		address = "0.0.0.0:5000"

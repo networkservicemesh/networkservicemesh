@@ -16,7 +16,6 @@
 package common
 
 import (
-	"strconv"
 	"strings"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
@@ -80,7 +79,7 @@ func (configuration *NSConfiguration) CompleteNSConfiguration() {
 		configuration.OutgoingNscLabels = getEnv(outgoingNscLabelsEnv, "Outgoing labels", false)
 	}
 
-	configuration.TracerEnabled, _ = strconv.ParseBool(getEnv(tracerEnabled, "Tracer enabled", false))
+	configuration.TracerEnabled = tools.IsOpentracingEnabled()
 
 	if configuration.MechanismType == "" {
 		configuration.MechanismType = getEnv(mechanismTypeEnv, "Outgoing mechanism type", false)

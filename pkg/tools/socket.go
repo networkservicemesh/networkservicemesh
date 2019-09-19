@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	opentracingEnv     = "OPEN_TRACING"
+	opentracingEnv     = "TRACER_ENABLED"
 	opentracingDefault = true
 	insecureEnv        = "INSECURE"
 	insecureDefault    = true

@@ -22,15 +22,15 @@ func main() {
 
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
-
-	tracer, closer := tools.InitJaeger("proxy-nsmd-k8s")
-	opentracing.SetGlobalTracer(tracer)
-	defer func() {
-		if err := closer.Close(); err != nil {
-			logrus.Errorf("Failed to close tracer: %v", err)
-		}
-	}()
-
+	if tools.IsOpentracingEnabled() {
+		tracer, closer := tools.InitJaeger("proxy-nsmd-k8s")
+		opentracing.SetGlobalTracer(tracer)
+		defer func() {
+			if err := closer.Close(); err != nil {
+				logrus.Errorf("Failed to close tracer: %v", err)
+			}
+		}()
+	}
 	address := os.Getenv("PROXY_NSMD_K8S_ADDRESS")
 	if strings.TrimSpace(address) == "" {
 		address = "0.0.0.0:5005"
