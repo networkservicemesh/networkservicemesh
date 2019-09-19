@@ -21,11 +21,13 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"os"
 	"regexp"
 	"strings"
 	"sync"
 	"testing"
 
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -207,4 +209,20 @@ func MatchRetestPattern(patterns []string, line string) bool {
 		}
 	}
 	return false
+}
+
+// CheckEnvironmentVariables checks that variables are not empty
+func CheckEnvironmentVariables(varNames []string) error {
+	empties := []string{}
+	for _, envVar := range varNames {
+		envValue := os.Getenv(envVar)
+		if envValue == "" {
+			empties = append(empties, envVar)
+		}
+	}
+	if len(empties) > 0 {
+		return errors.Errorf("required variable(s) missing/empty: %v", strings.Join(empties, ", "))
+	}
+
+	return nil
 }

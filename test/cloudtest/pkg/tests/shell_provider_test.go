@@ -165,7 +165,7 @@ func TestRequireEnvVars(t *testing.T) {
 	report, err := commands.PerformTesting(testConfig, &testValidationFactory{}, &commands.Arguments{})
 	logrus.Error(err.Error())
 	g.Expect(err.Error()).To(Equal(
-		"Failed to create cluster instance. Error environment variable are not specified  Required variables: [KUBECONFIG QWE]"))
+		"Failed to create cluster instance. Error required variable(s) missing/empty: KUBECONFIG, QWE"))
 
 	g.Expect(report).To(BeNil())
 	// Do assertions

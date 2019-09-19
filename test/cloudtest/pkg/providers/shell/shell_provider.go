@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
-	"os"
 	"path"
 	"strings"
 	"sync"
@@ -360,11 +359,8 @@ func (p *shellProvider) ValidateConfig(config *config.ClusterProviderConfig) err
 		return errors.New("invalid shutdown script location")
 	}
 
-	for _, envVar := range config.EnvCheck {
-		envValue := os.Getenv(envVar)
-		if envValue == "" {
-			return errors.Errorf("environment variable are not specified %s Required variables: %v", envValue, config.EnvCheck)
-		}
+	if err := utils.CheckEnvironmentVariables(config.EnvCheck); err != nil {
+		return err
 	}
 
 	return nil

@@ -691,21 +691,8 @@ func (p *packetProvider) ValidateConfig(config *config.ClusterProviderConfig) er
 		return errors.New("invalid start script")
 	}
 
-	for _, envVar := range config.EnvCheck {
-		envValue := os.Getenv(envVar)
-		if envValue == "" {
-			return errors.Errorf("environment variable are not specified %s Required variables: %v", envValue, config.EnvCheck)
-		}
-	}
-
-	envValue := os.Getenv("PACKET_AUTH_TOKEN")
-	if envValue == "" {
-		return errors.New("environment variable are not specified PACKET_AUTH_TOKEN")
-	}
-
-	envValue = os.Getenv("PACKET_PROJECT_ID")
-	if envValue == "" {
-		return errors.New("environment variable are not specified PACKET_AUTH_TOKEN")
+	if err := utils.CheckEnvironmentVariables(append(config.EnvCheck, "PACKET_AUTH_TOKEN", "PACKET_PROJECT_ID")); err != nil {
+		return err
 	}
 
 	return nil
