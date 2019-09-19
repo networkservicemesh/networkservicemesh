@@ -125,6 +125,9 @@ k8s-build: $(addsuffix -build,$(addprefix k8s-,$(DEPLOYS)))
 .PHONY: k8s-nsm-coredns-save
 k8s-nsm-coredns-save:  $(addsuffix -save,$(addprefix ${CONTAINER_BUILD_PREFIX}-,nsm-coredns))
 
+.PHONY: k8s-nsm-coredns-build
+k8s-nsm-coredns-build:  $(addsuffix -build,$(addprefix ${CONTAINER_BUILD_PREFIX}-,nsm-coredns))
+
 .PHONY: k8s-jaeger-build
 k8s-jaeger-build:
 
