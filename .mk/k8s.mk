@@ -16,7 +16,7 @@ K8S_CONF_DIR = k8s/conf
 
 # Deployments - common
 DEPLOY_TRACING = jaeger
-DEPLOY_WEBHOOK = admission-webhook
+DEPLOY_WEBHOOK = admission-webhook nsm-coredns nsm-monitor
 DEPLOY_MONITOR = crossconnect-monitor skydive
 DEPLOY_ICMP_KERNEL = icmp-responder-nse nsc
 DEPLOY_ICMP = $(DEPLOY_ICMP_KERNEL)
@@ -92,88 +92,6 @@ kubectl = kubectl -n ${NSM_NAMESPACE}
 
 export ORG=$(CONTAINER_REPO)
 
-.PHONY: k8s-deploy
-k8s-deploy: k8s-delete $(addsuffix -deploy,$(addprefix k8s-,$(DEPLOYS)))
-
-.PHONY: k8s-infra-deploy
-k8s-infra-deploy: k8s-infra-delete $(addsuffix -deploy,$(addprefix k8s-,$(DEPLOY_INFRA)))
-
-.PHONY: k8s-icmp-deploy
-k8s-icmp-deploy: k8s-icmp-delete $(addsuffix -deploy,$(addprefix k8s-,$(DEPLOY_ICMP)))
-
-.PHONY: k8s-vpn-deploy
-k8s-vpn-deploy: k8s-vpn-delete $(addsuffix -deploy,$(addprefix k8s-,$(DEPLOY_VPN)))
-
-.PHONY: k8s-redeploy
-k8s-redeploy: k8s-delete $(addsuffix -deployonly,$(addprefix k8s-,$(DEPLOYS)))
-
-.PHONY: k8s-deployonly
-k8s-deployonly: $(addsuffix -deployonly,$(addprefix k8s-,$(DEPLOYS)))
-
-.PHONY: k8s-jaeger-deploy
-k8s-jaeger-deploy:  k8s-start k8s-config k8s-jaeger-delete
-	@until ! $$($(kubectl) get pods | grep -q ^jaeger ); do echo "Wait for jaeger to terminate"; sleep 1; done
-	@sed "s;\(image:[ \t]*\)\(networkservicemesh\)\(/[^:]*\).*;\1${CONTAINER_REPO}\3$${COMMIT/$${COMMIT}/:$${COMMIT}};" ${K8S_CONF_DIR}/jaeger.yaml | $(kubectl) apply -f -
-
-.PHONY: k8s-admission-webhook-deploy
-k8s-admission-webhook-deploy:  k8s-start k8s-config k8s-admission-webhook-delete k8s-admission-webhook-load-images k8s-admission-webhook-create-cert
-	@until ! $$($(kubectl) get pods | grep -q ^admission-webhook ); do echo "Wait for admission-webhook to terminate"; sleep 1; done
-	@sed "s;\(image:[ \t]*\)\(networkservicemesh\)\(/[^:]*\).*;\1${CONTAINER_REPO}\3$${COMMIT/$${COMMIT}/:$${COMMIT}};" ${K8S_CONF_DIR}/admission-webhook.yaml \
-		| sed "N; s/\(name:[ \t]*TAG\n[ \t]*value:[ \t]*\).*/\1\"${COMMIT}\"/" \
-		| sed 's;value: "networkservicemesh";value: "${CONTAINER_REPO}";' \
-		| sed 's;value: "latest";value: "${CONTAINER_TAG}";' \
-		| $(kubectl) apply -f -
-	@echo "Installing webhook..."
-	@cat ./k8s/conf/admission-webhook-cfg.yaml | ./scripts/webhook-patch-ca-bundle.sh | $(kubectl) apply -f -
-
-.PHONY: k8s-vpn-gateway-nse-deploy
-k8s-vpn-gateway-nse-deploy: k8s-start k8s-config k8s-%-delete k8s-%-load-images
-	@until ! $$($(kubectl) get pods | grep -q ^vpn-gateway-nse ); do echo "Wait for vpn-gateway-nse to terminate"; sleep 1; done
-	@sed "s;\(image:[ \t]*\)\(networkservicemesh\)\(/test-common[^:]*\).*;\1${CONTAINER_REPO}\3$${COMMIT/$${COMMIT}/:$${COMMIT}};" ${K8S_CONF_DIR}/vpn-gateway-nse.yaml | $(kubectl) apply -f -
-
-.PHONY: k8s-%-deploy
-k8s-%-deploy:  k8s-start k8s-config k8s-%-delete k8s-%-load-images
-	@until ! $$($(kubectl) get pods | grep -q ^$* ); do echo "Wait for $* to terminate"; sleep 1; done
-	@sed "s;\(image:[ \t]*\)\(networkservicemesh\)\(/[^:]*\).*;\1${CONTAINER_REPO}\3$${COMMIT/$${COMMIT}/:$${COMMIT}};" ${K8S_CONF_DIR}/$*.yaml | $(kubectl) apply -f -
-
-.PHONY: k8s-%-deployonly
-k8s-%-deployonly:
-	@until ! $$($(kubectl) get pods | grep -q ^$* ); do echo "Wait for $* to terminate"; sleep 1; done
-	@sed "s;\(image:[ \t]*\)\(networkservicemesh\)\(/[^:]*\).*;\1${CONTAINER_REPO}\3$${COMMIT/$${COMMIT}/:$${COMMIT}};" ${K8S_CONF_DIR}/$*.yaml | $(kubectl) apply -f -
-
-.PHONY: k8s-delete
-k8s-delete: $(addsuffix -delete,$(addprefix k8s-,$(DEPLOYS)))
-
-.PHONY: k8s-infra-delete
-k8s-infra-delete: $(addsuffix -delete,$(addprefix k8s-,$(DEPLOY_INFRA)))
-
-.PHONY: k8s-icmp-delete
-k8s-icmp-delete: $(addsuffix -delete,$(addprefix k8s-,$(DEPLOY_ICMP)))
-
-.PHONY: k8s-vpn-delete
-k8s-vpn-delete: $(addsuffix -delete,$(addprefix k8s-,$(DEPLOY_VPN)))
-
-.PHONY: k8s-admission-webhook-delete
-k8s-admission-webhook-delete:
-	@echo "Uninstalling webhook..."
-	@cat ./k8s/conf/admission-webhook-cfg.yaml | ./scripts/webhook-patch-ca-bundle.sh | $(kubectl) delete -f - > /dev/null 2>&1 || echo "admission-webhook-cfg does not exist and thus cannot be deleted"
-	@echo "Deleting ${K8S_CONF_DIR}/admission-webhook.yaml"
-	@$(kubectl) delete -f ${K8S_CONF_DIR}/admission-webhook.yaml > /dev/null 2>&1 || echo "admission-webhook does not exist and thus cannot be deleted"
-	@echo "Deleting nsm-admission-webhook-certs secret..."
-	@$(kubectl) delete secret nsm-admission-webhook-certs > /dev/null 2>&1 || echo "nsm-admission-webhook-certs does not exist and thus cannot be deleted"
-
-.PHONY: k8s-%-delete
-k8s-%-delete:
-	@echo "Deleting ${K8S_CONF_DIR}/$*.yaml"
-	@$(kubectl) delete -f ${K8S_CONF_DIR}/$*.yaml > /dev/null 2>&1 || echo "$* does not exist and thus cannot be deleted"
-
-.PHONY: k8s-icmp-responder-nse-delete
-k8s-icmp-responder-nse-delete:
-	@echo "Deleting ${K8S_CONF_DIR}/icmp-responder-nse.yaml"
-	@$(kubectl) delete -f ${K8S_CONF_DIR}/icmp-responder-nse.yaml > /dev/null 2>&1 || echo "icmp-responder-nse does not exist and thus cannot be deleted"
-	@echo "Deleting networkservice icmp-responder"
-	@$(kubectl) delete networkservice icmp-responder > /dev/null 2>&1 || echo "icmp-responder does not exist and thus cannot be deleted"
-
 .PHONY: k8s-load-images
 k8s-load-images: $(addsuffix -load-images,$(addprefix k8s-,$(DEPLOYS)))
 
@@ -218,13 +136,6 @@ k8s-jaeger-load-images:
 
 .PHONY: k8s-save
 k8s-save: $(addsuffix -save,$(addprefix k8s-,$(DEPLOYS)))
-
-.PHONY: k8s-save-deploy
-k8s-save-deploy: k8s-delete $(addsuffix -save-deploy,$(addprefix k8s-,$(DEPLOYS)))
-
-.PHONY: k8s-%-save-deploy
-k8s-%-save-deploy:  k8s-start k8s-config k8s-%-save  k8s-%-load-images
-	sed "s;\(image:[ \t]*networkservicemesh/[^:]*\).*;\1$${COMMIT/$${COMMIT}/:$${COMMIT}};" ${K8S_CONF_DIR}/$*.yaml | $(kubectl) apply -f -
 
 NSMGR_CONTAINERS = nsmd nsmdp nsmd-k8s
 .PHONY: k8s-nsmgr-build
@@ -387,11 +298,6 @@ k8s-admission-webhook-load-images:  k8s-start $(addsuffix -load-images,$(addpref
 .PHONY: k8s-admission-webhook-create-cert
 k8s-admission-webhook-create-cert:
 	@NSM_NAMESPACE=${NSM_NAMESPACE} ./scripts/webhook-create-cert.sh
-
-.PHONY: k8s-admission-webhook-delete-cert
-k8s-admission-webhook-delete-cert:
-	@echo "Deleting nsm-admission-webhook-certs secret..."
-	@$(kubectl) delete secret nsm-admission-webhook-certs > /dev/null 2>&1 || echo "nsm-admission-webhook-certs does not exist and thus cannot be deleted"
 
 .PHONY: k8s-skydive-build
 k8s-skydive-build:
