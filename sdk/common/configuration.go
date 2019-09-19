@@ -27,7 +27,6 @@ const (
 	advertiseNseLabelsEnv = "ADVERTISE_NSE_LABELS"
 	outgoingNscNameEnv    = "OUTGOING_NSC_NAME"
 	outgoingNscLabelsEnv  = "OUTGOING_NSC_LABELS"
-	tracerEnabled         = "TRACER_ENABLED"
 	mechanismTypeEnv      = "MECHANISM_TYPE"
 	ipAddressEnv          = "IP_ADDRESS"
 	routesEnv             = "ROUTES"
