@@ -81,9 +81,11 @@ func main() {
 				monitorServer := endpoint.MonitorServer(ctx)
 				logrus.Infof("Delaying 5 seconds before send update event.")
 				go func() {
-					<-time.After(5 * time.Second)
-					updateConnections(monitorServer)
-					logrus.Infof("Update event sended.")
+					for i := 0; i < 10; i++ {
+						updateConnections(monitorServer)
+						logrus.Infof("Update event %v sended.", i)
+						<-time.After(5 * time.Second)
+					}
 				}()
 				return nil
 			}))
