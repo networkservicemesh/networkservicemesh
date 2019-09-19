@@ -85,7 +85,7 @@ You can remove the effects of helm-install-% with:
 make helm-delete-%
 ```
 
-As in the case with `save` and `build`, you can always do this for a particular component, like ```make helm-install-nsc``` or ```make helm-delete-nsc```.
+As in the case with `save` and `build`, you can always do this for a particular component, like ```make helm-install-%``` or ```make helm-delete-%```.
 
 ## Having more control over the deployment
 
@@ -119,8 +119,6 @@ helm-install-nsm
 ``` 
 and 
 ```bash
-make k8s-save
-make k8s-load-images
 helm-delete-nsm
 ```
 
