@@ -8,7 +8,9 @@ deb http://apt.kubernetes.io/ kubernetes-xenial main
 EOF
 
 apt-get update
-apt-get install -y kubernetes-cni kubelet kubeadm kubectl
+echo KUBERNETES_VERSION: "${KUBERNETES_VERSION}"
+apt-get install -qy kubelet="${KUBERNETES_VERSION}" kubectl="${KUBERNETES_VERSION}" kubeadm="${KUBERNETES_VERSION}"
+
 
 # kubelet requires swap off
 swapoff -a

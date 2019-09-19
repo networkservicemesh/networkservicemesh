@@ -9,7 +9,8 @@ echo This VM has IP address "$IPADDR"
 
 # Set up Kubernetes
 NODENAME=$(hostname -s)
-kubeadm init --apiserver-cert-extra-sans="$IPADDR" --apiserver-advertise-address="$IPADDR" --node-name "$NODENAME" --pod-network-cidr="10.32.0.0/12"
+echo KUBERNETES_INIT_VERSION: "${KUBERNETES_INIT_VERSION}"
+kubeadm init --kubernetes-version "${KUBERNETES_INIT_VERSION}" --apiserver-cert-extra-sans="$IPADDR" --apiserver-advertise-address="$IPADDR" --node-name "$NODENAME" --pod-network-cidr="10.32.0.0/12"
 
 echo "KUBELET_EXTRA_ARGS= --node-ip=${IPADDR}" > /etc/default/kubelet
 service kubelet restart
