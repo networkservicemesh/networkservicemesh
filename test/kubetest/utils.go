@@ -275,6 +275,23 @@ func RunProxyNSMgrService(k8s *K8s) func() {
 	}
 }
 
+func DeployNSMRS(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
+	return deployNSMRS(k8s, nodeName(node), name, timeout,
+		pods.NSMRSPod(name, node),
+	)
+}
+
+func deployNSMRS(k8s *K8s, nodeName, name string, timeout time.Duration, template *v1.Pod) *v1.Pod {
+	startTime := time.Now()
+
+	logrus.Infof("Starting NSM Service Registry Server on node: %s", nodeName)
+	nsmrs := k8s.CreatePod(template)
+	k8s.g.Expect(nsmrs.Name).To(Equal(name))
+
+	logrus.Printf("NSM Service Registry Server %v started done: %v", name, time.Since(startTime))
+	return nsmrs
+}
+
 // DeployICMP deploys 'icmp-responder-nse' pod with '-routes' flag set
 func DeployICMP(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
 	flags := flags.ICMPResponderFlags{

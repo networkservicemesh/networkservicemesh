@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	RegistryAPIAddressEnv      = "NSMD_API_ADDRESS"
-	RegistryAPIAddressDefaults = ":5000"
+	RegistryAPIAddressEnv      = "NSMRS_API_ADDRESS"
+	RegistryAPIAddressDefaults = ":5006"
 )
 
 var version string
