@@ -1,22 +1,21 @@
-package tests
+package nsmmonitor
 
 import (
 	"context"
 	"testing"
 	"time"
 
-	nsm_monitor "github.com/networkservicemesh/networkservicemesh/side-cars/pkg/nsm-monitor"
-
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsmdapi"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/tests"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 )
 
 type nsmHelper struct {
-	nsm_monitor.EmptyNSMMonitorHandler
+	EmptyNSMMonitorHandler
 	response  *nsmdapi.ClientConnectionReply
 	connected chan bool
 	healing   chan bool
@@ -40,32 +39,31 @@ func (h *nsmHelper) GetConfiguration() *common.NSConfiguration {
 		NsmClientSocket: h.response.HostBasedir + "/" + h.response.Workspace + "/" + h.response.NsmClientSocket,
 		NsmServerSocket: h.response.HostBasedir + "/" + h.response.Workspace + "/" + h.response.NsmServerSocket,
 		Workspace:       h.response.HostBasedir + "/" + h.response.Workspace,
-		TracerEnabled:   false,
 	}
 }
 
 func TestNSMMonitorInit(t *testing.T) {
 	g := NewWithT(t)
 
-	storage := newSharedStorage()
-	srv := newNSMDFullServer(Master, storage)
+	storage := tests.NewSharedStorage()
+	srv := tests.NewNSMDFullServer(tests.Master, storage)
 	defer srv.Stop()
-	srv.addFakeDataplane("test_data_plane", "tcp:some_addr")
+	srv.AddFakeDataplane("test_data_plane", "tcp:some_addr")
 
-	srv.testModel.AddEndpoint(srv.registerFakeEndpoint("golden_network", "test", Master))
+	srv.TestModel.AddEndpoint(srv.RegisterFakeEndpoint("golden_network", "test", tests.Master))
 
-	monitorApp := nsm_monitor.NewNSMMonitorApp()
+	monitorApp := NewNSMMonitorApp()
 
-	response := srv.requestNSM("nsm")
+	response := srv.RequestNSM("nsm")
 	// Now we could try to connect via Client API
-	nsmClient, conn := srv.createNSClient(response)
+	nsmClient, conn := srv.CreateNSClient(response)
 	defer func() {
 		err := conn.Close()
 		if err != nil {
 			logrus.Error(err.Error())
 		}
 	}()
-	request := createRequest()
+	request := tests.CreateRequest()
 
 	nsmResponse, err := nsmClient.Request(context.Background(), request)
 	g.Expect(err).To(BeNil())

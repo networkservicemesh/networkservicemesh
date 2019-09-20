@@ -1,13 +1,16 @@
 module github.com/networkservicemesh/networkservicemesh/side-cars
 
 require (
-	github.com/networkservicemesh/networkservicemesh/controlplane v0.1.0
-	github.com/networkservicemesh/networkservicemesh/controlplane/api v0.1.0
-	github.com/networkservicemesh/networkservicemesh/k8s/api v0.1.0
-	github.com/networkservicemesh/networkservicemesh/pkg v0.1.0
-	github.com/networkservicemesh/networkservicemesh/sdk v0.1.0
-	github.com/networkservicemesh/networkservicemesh/utils v0.1.0
+	github.com/ligato/cn-infra v2.2.0+incompatible // indirect
+	github.com/networkservicemesh/networkservicemesh/controlplane v0.2.0
+	github.com/networkservicemesh/networkservicemesh/controlplane/api v0.2.0
+	github.com/networkservicemesh/networkservicemesh/k8s/api v0.2.0
+	github.com/networkservicemesh/networkservicemesh/pkg v0.2.0
+	github.com/networkservicemesh/networkservicemesh/sdk v0.2.0
+	github.com/networkservicemesh/networkservicemesh/utils v0.2.0
+	github.com/onsi/gomega v1.7.0
 	github.com/opentracing/opentracing-go v1.1.0
+	github.com/satori/go.uuid v1.2.0 // indirect
 	github.com/sirupsen/logrus v1.4.2
 )
 

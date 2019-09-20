@@ -14,11 +14,11 @@ import (
 func TestRestoreConnectionState(t *testing.T) {
 	g := NewWithT(t)
 
-	storage := newSharedStorage()
-	srv := newNSMDFullServer(Master, storage)
+	storage := NewSharedStorage()
+	srv := NewNSMDFullServer(Master, storage)
 	defer srv.Stop()
 
-	srv.addFakeDataplane("dp1", "tcp:some_address")
+	srv.AddFakeDataplane("dp1", "tcp:some_address")
 
 	g.Expect(srv.nsmServer.Manager().WaitForDataplane(context.Background(), 1*time.Millisecond).Error()).To(Equal("Failed to wait for NSMD stare restore... timeout 1ms happened"))
 
@@ -30,11 +30,11 @@ func TestRestoreConnectionState(t *testing.T) {
 func TestRestoreConnectionStateWrongDst(t *testing.T) {
 	g := NewWithT(t)
 
-	storage := newSharedStorage()
-	srv := newNSMDFullServer(Master, storage)
+	storage := NewSharedStorage()
+	srv := NewNSMDFullServer(Master, storage)
 	defer srv.Stop()
 
-	srv.addFakeDataplane("dp1", "tcp:some_address")
+	srv.AddFakeDataplane("dp1", "tcp:some_address")
 	srv.registerFakeEndpointWithName("ns1", "IP", Worker, "ep2")
 
 	requestConnection := &connection.Connection{
@@ -65,5 +65,5 @@ func TestRestoreConnectionStateWrongDst(t *testing.T) {
 	}
 	srv.nsmServer.Manager().RestoreConnections(xcons, "dp1")
 	g.Expect(srv.nsmServer.Manager().WaitForDataplane(context.Background(), 1*time.Second)).To(BeNil())
-	g.Expect(len(srv.testModel.GetAllClientConnections())).To(Equal(0))
+	g.Expect(len(srv.TestModel.GetAllClientConnections())).To(Equal(0))
 }

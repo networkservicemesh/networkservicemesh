@@ -61,14 +61,15 @@ func main() {
 	logrus.Infof("Version: %v", version)
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
-
-	tracer, closer := tools.InitJaeger("nsc")
-	opentracing.SetGlobalTracer(tracer)
-	defer func() {
-		if err := closer.Close(); err != nil {
-			logrus.Errorf("An error during cloasing: %v", err)
-		}
-	}()
+	if tools.IsOpentracingEnabled() {
+		tracer, closer := tools.InitJaeger("nsc")
+		opentracing.SetGlobalTracer(tracer)
+		defer func() {
+			if err := closer.Close(); err != nil {
+				logrus.Errorf("An error during cloasing: %v", err)
+			}
+		}()
+	}
 	workspace, ok := os.LookupEnv(nsmd.WorkspaceEnv)
 	if !ok {
 		logrus.Fatalf("Failed getting %s", nsmd.WorkspaceEnv)

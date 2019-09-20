@@ -1,7 +1,8 @@
-ARG GO_VERSION
-FROM golang:${GO_VERSION}-alpine as build
 ARG VENDORING
 ARG GOPROXY
+ARG GO_VERSION
+
+FROM golang:${GO_VERSION}-alpine as build
 
 ENV GOPROXY=${GOPROXY}
 ENV PACKAGEPATH=github.com/networkservicemesh/networkservicemesh/test
@@ -45,4 +46,3 @@ ARG VENDORING
 RUN CGO_ENABLED=0 GOOS=linux go build ${VENDORING} -ldflags "-extldflags '-static' -X  main.version=${VERSION}"  -o /go/bin/monitoring-dns-nsc ./applications/cmd/monitoring-dns-nsc
 FROM runtime-3 as runtime-4
 COPY --from=build-4 /go/bin/monitoring-dns-nsc /bin/monitoring-dns-nsc
-

@@ -3,8 +3,8 @@ module github.com/networkservicemesh/networkservicemesh/controlplane/api
 require (
 	github.com/gogo/protobuf v1.2.2-0.20190723190241-65acae22fc9d
 	github.com/golang/protobuf v1.3.2
-	github.com/networkservicemesh/networkservicemesh/pkg v0.1.0
-	github.com/networkservicemesh/networkservicemesh/utils v0.1.0
+	github.com/networkservicemesh/networkservicemesh/pkg v0.2.0
+	github.com/networkservicemesh/networkservicemesh/utils v0.2.0
 	github.com/sirupsen/logrus v1.4.2
 	golang.org/x/net v0.0.0-20190812203447-cdfb69ac37fc
 	google.golang.org/grpc v1.23.1

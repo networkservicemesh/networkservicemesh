@@ -1,9 +1,9 @@
-ARG GO_VERSION
-FROM golang:${GO_VERSION}-alpine as build
-
 ARG VENDORING
 ARG VERSION=unspecified
 ARG GOPROXY
+ARG GO_VERSION
+
+FROM golang:${GO_VERSION}-alpine as build
 
 RUN apk update && apk add --no-cache git ca-certificates tzdata && update-ca-certificates
 

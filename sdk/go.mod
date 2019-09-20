@@ -6,10 +6,10 @@ require (
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/ligato/vpp-agent v2.1.1+incompatible
 	github.com/mesos/mesos-go v0.0.9
-	github.com/networkservicemesh/networkservicemesh/controlplane v0.1.0
-	github.com/networkservicemesh/networkservicemesh/controlplane/api v0.1.0
-	github.com/networkservicemesh/networkservicemesh/pkg v0.1.0
-	github.com/networkservicemesh/networkservicemesh/utils v0.1.0
+	github.com/networkservicemesh/networkservicemesh/controlplane v0.2.0
+	github.com/networkservicemesh/networkservicemesh/controlplane/api v0.2.0
+	github.com/networkservicemesh/networkservicemesh/pkg v0.2.0
+	github.com/networkservicemesh/networkservicemesh/utils v0.2.0
 	github.com/onsi/gomega v1.7.0
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/pkg/errors v0.8.1
@@ -17,6 +17,8 @@ require (
 	github.com/teris-io/shortid v0.0.0-20171029131806-771a37caa5cf
 	google.golang.org/grpc v1.23.1
 )
+
+replace github.com/satori/go.uuid => github.com/satori/go.uuid v1.2.1-0.20181028125025-b2ce2384e17b
 
 replace (
 	github.com/networkservicemesh/networkservicemesh => ../

@@ -250,6 +250,15 @@ func ParseAnnotationValue(value string) ([]*NSUrl, error) {
 	return result, nil
 }
 
+// IsOpentracingEnabled returns true if opentracing enabled
+func IsOpentracingEnabled() bool {
+	val, err := ReadEnvBool(opentracingEnv, opentracingDefault)
+	if err == nil {
+		return val
+	}
+	return opentracingDefault
+}
+
 // ReadEnvBool reads environment variable and treat it as bool
 func ReadEnvBool(env string, value bool) (bool, error) {
 	str := os.Getenv(env)

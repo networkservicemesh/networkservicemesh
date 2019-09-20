@@ -51,25 +51,25 @@ func TestSelectDataplane(t *testing.T) {
 			},
 		})
 
-	storage := newSharedStorage()
-	srv := newNSMDFullServer(Master, storage)
-	srv2 := newNSMDFullServer(Worker, storage)
+	storage := NewSharedStorage()
+	srv := NewNSMDFullServer(Master, storage)
+	srv2 := NewNSMDFullServer(Worker, storage)
 	defer srv.Stop()
 	defer srv2.Stop()
-	srv.testModel.AddDataplane(testDataplane1)
-	srv2.testModel.AddDataplane(testDataplane2)
-	srv.testModel.AddDataplane(testDataplane1_1)
+	srv.TestModel.AddDataplane(testDataplane1)
+	srv2.TestModel.AddDataplane(testDataplane2)
+	srv.TestModel.AddDataplane(testDataplane1_1)
 
 	// Register in both
-	nseReg := srv2.registerFakeEndpoint("golden_network", "test", Worker)
+	nseReg := srv2.RegisterFakeEndpoint("golden_network", "test", Worker)
 	// Add to local endpoints for Server2
-	srv2.testModel.AddEndpoint(nseReg)
+	srv2.TestModel.AddEndpoint(nseReg)
 
 	l1 := newTestConnectionModelListener()
 	l2 := newTestConnectionModelListener()
 
-	srv.testModel.AddListener(l1)
-	srv2.testModel.AddListener(l2)
+	srv.TestModel.AddListener(l1)
+	srv2.TestModel.AddListener(l2)
 
 	// Now we could try to connect via Client API
 	nsmClient, conn := srv.requestNSMConnection("nsm-1")

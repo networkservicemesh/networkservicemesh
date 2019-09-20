@@ -20,8 +20,8 @@ const (
 	// InsecureEnv environment variable, if "true" NSM will work in insecure mode
 	InsecureEnv = "INSECURE"
 
-	opentracingEnv     = "OPEN_TRACING"
-	opentracingDefault = true
+	opentracingEnv     = "TRACER_ENABLED"
+	opentracingDefault = false
 	insecureDefault    = false
 	dialTimeoutDefault = 5 * time.Second
 )

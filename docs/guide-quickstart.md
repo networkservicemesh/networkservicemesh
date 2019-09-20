@@ -53,7 +53,9 @@ source scripts/vagrant/env.sh
 The core Network Service Mesh infrastructure is deployed with the following command:
 
 ```bash
-make k8s-infra-deploy
+make k8s-save
+make k8s-load-images
+make helm-install-nsm
 ```
 
 ### Verify the services are up and running
@@ -81,13 +83,15 @@ Now that we have the NSM infrastructure deployed, we can proceed with deploying 
 * The basic ICMP example is deployed like this:
 
 ```bash
-make k8s-icmp-deploy
+make helm-install-nsm
+make helm-install-icmp-responder
 ```
 
 * The VPN service composition example is deployed with:
 
 ```bash
-make k8s-vpn-deploy
+make helm-install-nsm
+make helm-install-vpn
 ```
 
 ## Verify deploying the examples

@@ -38,14 +38,15 @@ func main() {
 
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
-
-	tracer, closer := tools.InitJaeger("proxy-nsmd")
-	opentracing.SetGlobalTracer(tracer)
-	defer func() {
-		if err := closer.Close(); err != nil {
-			logrus.Errorf("Failed to close tracer: %v", err)
-		}
-	}()
+	if tools.IsOpentracingEnabled() {
+		tracer, closer := tools.InitJaeger("proxy-nsmd")
+		opentracing.SetGlobalTracer(tracer)
+		defer func() {
+			if err := closer.Close(); err != nil {
+				logrus.Errorf("Failed to close tracer: %v", err)
+			}
+		}()
+	}
 	goals := &proxyNsmdProbeGoals{}
 	nsmdProbes := probes.New("Prxoy NSMD liveness/readiness healthcheck", goals)
 	nsmdProbes.BeginHealthCheck()

@@ -90,7 +90,9 @@ func (h *EmptyNSMMonitorHandler) ProcessHealing(newConn *connection.Connection, 
 func (h *EmptyNSMMonitorHandler) Stopped() {}
 
 //IsEnableJaeger returns false by default
-func (h *EmptyNSMMonitorHandler) IsEnableJaeger() bool { return false }
+func (h *EmptyNSMMonitorHandler) IsEnableJaeger() bool {
+	return tools.IsOpentracingEnabled()
+}
 
 type nsmMonitorApp struct {
 	connections map[string]*connection.Connection

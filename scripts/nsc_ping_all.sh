@@ -71,12 +71,12 @@ for nsc in $(${kubectl} get pods -o=name | grep -E "alpine-nsc|vppagent-nsc" | s
         ${kubectl} get pod "${nsc}" -o wide
         echo "POD ${nsc} Network dump -------------------------------"
         if [[ ${nsc} == vppagent-* ]]; then
-            ${kubectl} exec -ti "${nsc}" -- vppctl show int
-            ${kubectl} exec -ti "${nsc}" -- vppctl show int addr
-            ${kubectl} exec -ti "${nsc}" -- vppctl show memif
+            ${kubectl} exec "${nsc}" -- vppctl show int
+            ${kubectl} exec "${nsc}" -- vppctl show int addr
+            ${kubectl} exec "${nsc}" -- vppctl show memif
         else
-            ${kubectl} exec -ti "${nsc}" -- ip addr
-            ${kubectl} exec -ti "${nsc}" ip route
+            ${kubectl} exec "${nsc}" -- ip addr
+            ${kubectl} exec "${nsc}" ip route
         fi
         echo "+++++++==ERROR==ERROR=============================================================================+++++"
     fi

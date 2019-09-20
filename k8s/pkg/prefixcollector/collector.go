@@ -112,9 +112,15 @@ func monitorReservedSubnets(poolCh chan prefix_pool.PrefixPool, errCh chan<- err
 	var podSubnet, serviceSubnet string
 	for {
 		select {
-		case subnet := <-pw.ResultChan():
+		case subnet, ok := <-pw.ResultChan():
+			if !ok {
+				return
+			}
 			podSubnet = subnet.String()
-		case subnet := <-sw.ResultChan():
+		case subnet, ok := <-sw.ResultChan():
+			if !ok {
+				return
+			}
 			serviceSubnet = subnet.String()
 		}
 		sendPrefixPool(poolCh, podSubnet, serviceSubnet, additionalPrefixes)
