@@ -71,32 +71,6 @@ func (impl *nseWithOptions) Request(ctx context2.Context, in *networkservice.Net
 	return conn, nil
 }
 
-func createRequest() *networkservice.NetworkServiceRequest {
-	request := &networkservice.NetworkServiceRequest{
-		Connection: &connection.Connection{
-			NetworkService: "golden_network",
-			Context: &connectioncontext.ConnectionContext{
-				IpContext: &connectioncontext.IPContext{
-					DstIpRequired: true,
-					SrcIpRequired: true,
-				},
-			},
-			Labels: make(map[string]string),
-		},
-		MechanismPreferences: []*connection.Mechanism{
-			{
-				Type: connection.MechanismType_KERNEL_INTERFACE,
-				Parameters: map[string]string{
-					connection.NetNsInodeKey:    "10",
-					connection.InterfaceNameKey: "icmp-responder1",
-				},
-			},
-		},
-	}
-
-	return request
-}
-
 func (nseWithOptions) Close(ctx context2.Context, in *connection.Connection, opts ...grpc.CallOption) (*empty.Empty, error) {
 	return nil, nil
 }
@@ -106,17 +80,17 @@ func (nseWithOptions) Close(ctx context2.Context, in *connection.Connection, opt
 func TestNSMDRequestClientConnectionRequest(t *testing.T) {
 	g := NewWithT(t)
 
-	storage := newSharedStorage()
-	srv := newNSMDFullServer(Master, storage)
+	storage := NewSharedStorage()
+	srv := NewNSMDFullServer(Master, storage)
 	defer srv.Stop()
-	srv.addFakeDataplane("test_data_plane", "tcp:some_addr")
+	srv.AddFakeDataplane("test_data_plane", "tcp:some_addr")
 
-	srv.testModel.AddEndpoint(srv.registerFakeEndpoint("golden_network", "test", Master))
+	srv.TestModel.AddEndpoint(srv.RegisterFakeEndpoint("golden_network", "test", Master))
 
 	nsmClient, conn := srv.requestNSMConnection("nsm")
 	defer conn.Close()
 
-	request := createRequest()
+	request := CreateRequest()
 
 	nsmResponse, err := nsmClient.Request(context.Background(), request)
 	g.Expect(err).To(BeNil())
@@ -127,8 +101,8 @@ func TestNSMDRequestClientConnectionRequest(t *testing.T) {
 func TestNSENoSrc(t *testing.T) {
 	g := NewWithT(t)
 
-	storage := newSharedStorage()
-	srv := newNSMDFullServer(Master, storage)
+	storage := NewSharedStorage()
+	srv := NewNSMDFullServer(Master, storage)
 	defer srv.Stop()
 
 	srv.serviceRegistry.localTestNSE = &nseWithOptions{
@@ -136,14 +110,14 @@ func TestNSENoSrc(t *testing.T) {
 		//srcIp: "169083138/30",
 		dstIp: "10.20.1.2/30",
 	}
-	srv.addFakeDataplane("test_data_plane", "tcp:some_addr")
+	srv.AddFakeDataplane("test_data_plane", "tcp:some_addr")
 
-	srv.testModel.AddEndpoint(srv.registerFakeEndpoint("golden_network", "test", Master))
+	srv.TestModel.AddEndpoint(srv.RegisterFakeEndpoint("golden_network", "test", Master))
 
 	nsmClient, conn := srv.requestNSMConnection("nsm")
 	defer conn.Close()
 
-	request := createRequest()
+	request := CreateRequest()
 
 	nsmResponse, err := nsmClient.Request(context.Background(), request)
 	println(err.Error())
@@ -154,8 +128,8 @@ func TestNSENoSrc(t *testing.T) {
 func TestNSEIPNeghtbours(t *testing.T) {
 	g := NewWithT(t)
 
-	storage := newSharedStorage()
-	srv := newNSMDFullServer(Master, storage)
+	storage := NewSharedStorage()
+	srv := NewNSMDFullServer(Master, storage)
 	defer srv.Stop()
 	srv.serviceRegistry.localTestNSE = &nseWithOptions{
 		netns:             "12",
@@ -164,13 +138,13 @@ func TestNSEIPNeghtbours(t *testing.T) {
 		need_ip_neighbors: true,
 	}
 
-	srv.addFakeDataplane("test_data_plane", "tcp:some_addr")
-	srv.testModel.AddEndpoint(srv.registerFakeEndpoint("golden_network", "test", Master))
+	srv.AddFakeDataplane("test_data_plane", "tcp:some_addr")
+	srv.TestModel.AddEndpoint(srv.RegisterFakeEndpoint("golden_network", "test", Master))
 
 	nsmClient, conn := srv.requestNSMConnection("nsm")
 	defer conn.Close()
 
-	request := createRequest()
+	request := CreateRequest()
 
 	nsmResponse, err := nsmClient.Request(context.Background(), request)
 	g.Expect(err).To(BeNil())
@@ -188,8 +162,8 @@ func TestNSEIPNeghtbours(t *testing.T) {
 func TestSlowNSE(t *testing.T) {
 	g := NewWithT(t)
 
-	storage := newSharedStorage()
-	srv := newNSMDFullServer(Master, storage)
+	storage := NewSharedStorage()
+	srv := NewNSMDFullServer(Master, storage)
 	defer srv.Stop()
 
 	srv.serviceRegistry.localTestNSE = &nseWithOptions{
@@ -197,14 +171,14 @@ func TestSlowNSE(t *testing.T) {
 		srcIp: "169083138/30",
 		dstIp: "169083137/30",
 	}
-	srv.addFakeDataplane("test_data_plane", "tcp:some_addr")
+	srv.AddFakeDataplane("test_data_plane", "tcp:some_addr")
 
-	srv.testModel.AddEndpoint(srv.registerFakeEndpoint("golden_network", "test", Master))
+	srv.TestModel.AddEndpoint(srv.RegisterFakeEndpoint("golden_network", "test", Master))
 
 	nsmClient, conn := srv.requestNSMConnection("nsm")
 	defer conn.Close()
 
-	request := createRequest()
+	request := CreateRequest()
 
 	request.Connection.Labels = map[string]string{}
 	request.Connection.Labels["nse_sleep"] = "1"
@@ -221,8 +195,8 @@ func TestSlowNSE(t *testing.T) {
 func TestSlowDP(t *testing.T) {
 	g := NewWithT(t)
 
-	storage := newSharedStorage()
-	srv := newNSMDFullServer(Master, storage)
+	storage := NewSharedStorage()
+	srv := NewNSMDFullServer(Master, storage)
 	defer srv.Stop()
 
 	srv.serviceRegistry.localTestNSE = &nseWithOptions{
@@ -230,14 +204,14 @@ func TestSlowDP(t *testing.T) {
 		srcIp: "10.20.1.1/30",
 		dstIp: "10.20.1.2/30",
 	}
-	srv.addFakeDataplane("test_data_plane", "tcp:some_addr")
+	srv.AddFakeDataplane("test_data_plane", "tcp:some_addr")
 
-	srv.testModel.AddEndpoint(srv.registerFakeEndpoint("golden_network", "test", Master))
+	srv.TestModel.AddEndpoint(srv.RegisterFakeEndpoint("golden_network", "test", Master))
 
 	nsmClient, conn := srv.requestNSMConnection("nsm")
 	defer conn.Close()
 
-	request := createRequest()
+	request := CreateRequest()
 
 	request.Connection.Labels = map[string]string{}
 	request.Connection.Labels["dataplane_sleep"] = "1"

@@ -4,12 +4,11 @@ require (
 	github.com/gogo/protobuf v1.2.2-0.20190723190241-65acae22fc9d
 	github.com/golang/protobuf v1.3.2
 	github.com/grpc-ecosystem/grpc-opentracing v0.0.0-20180507213350-8e809c8a8645
-	github.com/networkservicemesh/networkservicemesh/controlplane/api v0.1.0
-	github.com/networkservicemesh/networkservicemesh/dataplane/api v0.1.0
-	github.com/networkservicemesh/networkservicemesh/pkg v0.1.0
-	github.com/networkservicemesh/networkservicemesh/sdk v0.1.0
-	github.com/networkservicemesh/networkservicemesh/side-cars v0.1.0
-	github.com/networkservicemesh/networkservicemesh/utils v0.1.0
+	github.com/networkservicemesh/networkservicemesh/controlplane/api v0.2.0
+	github.com/networkservicemesh/networkservicemesh/dataplane/api v0.2.0
+	github.com/networkservicemesh/networkservicemesh/pkg v0.2.0
+	github.com/networkservicemesh/networkservicemesh/sdk v0.2.0
+	github.com/networkservicemesh/networkservicemesh/utils v0.2.0
 	github.com/onsi/gomega v1.7.0
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/sirupsen/logrus v1.4.2

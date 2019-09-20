@@ -16,7 +16,6 @@
 package common
 
 import (
-	"strconv"
 	"strings"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
@@ -28,7 +27,6 @@ const (
 	advertiseNseLabelsEnv = "ADVERTISE_NSE_LABELS"
 	outgoingNscNameEnv    = "OUTGOING_NSC_NAME"
 	outgoingNscLabelsEnv  = "OUTGOING_NSC_LABELS"
-	tracerEnabled         = "TRACER_ENABLED"
 	mechanismTypeEnv      = "MECHANISM_TYPE"
 	ipAddressEnv          = "IP_ADDRESS"
 	routesEnv             = "ROUTES"
@@ -43,7 +41,6 @@ type NSConfiguration struct {
 	OutgoingNscName    string
 	AdvertiseNseLabels string
 	OutgoingNscLabels  string
-	TracerEnabled      bool
 	MechanismType      string
 	IPAddress          string
 	Routes             []string
@@ -79,8 +76,6 @@ func (configuration *NSConfiguration) CompleteNSConfiguration() {
 	if configuration.OutgoingNscLabels == "" {
 		configuration.OutgoingNscLabels = getEnv(outgoingNscLabelsEnv, "Outgoing labels", false)
 	}
-
-	configuration.TracerEnabled, _ = strconv.ParseBool(getEnv(tracerEnabled, "Tracer enabled", false))
 
 	if configuration.MechanismType == "" {
 		configuration.MechanismType = getEnv(mechanismTypeEnv, "Outgoing mechanism type", false)

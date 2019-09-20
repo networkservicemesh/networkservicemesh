@@ -234,11 +234,11 @@ func (v *VPPAgent) programMgmtInterface() error {
 // Init makes setup for the VPPAgent
 func (v *VPPAgent) Init(common *common.DataplaneConfig) error {
 	v.common = common
-
-	tracer, closer := tools.InitJaeger(v.common.Name)
-	opentracing.SetGlobalTracer(tracer)
-	defer closer.Close()
-
+	if tools.IsOpentracingEnabled() {
+		tracer, closer := tools.InitJaeger(v.common.Name)
+		opentracing.SetGlobalTracer(tracer)
+		defer closer.Close()
+	}
 	err := v.configureVPPAgent()
 	if err != nil {
 		logrus.Errorf("Error configuring the VPP Agent: %s", err)

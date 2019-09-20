@@ -29,10 +29,11 @@ type nsmClientApp struct {
 }
 
 func (c *nsmClientApp) Run() {
-	tracer, closer := tools.InitJaeger("nsm-init")
-	opentracing.SetGlobalTracer(tracer)
-	defer func() { _ = closer.Close() }()
-
+	if tools.IsOpentracingEnabled() {
+		tracer, closer := tools.InitJaeger("nsm-init")
+		opentracing.SetGlobalTracer(tracer)
+		defer func() { _ = closer.Close() }()
+	}
 	span, ctx := opentracing.StartSpanFromContext(context.Background(), "RequestNetworkService")
 	defer span.Finish()
 
