@@ -4,7 +4,7 @@ import (
 	"github.com/golang/protobuf/ptypes/empty"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor"
+	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
 )
 
 // MonitorServer is a monitor.Server for local/connection GRPC API
