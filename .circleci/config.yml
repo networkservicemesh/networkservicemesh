@@ -16,7 +16,7 @@ jobs:
             sudo apt-get install python-pip python3-pkg-resources
             pip install --user yamllint
             ./.circleci/install-shellcheck.sh
-      - run: yamllint -c .yamllint.yml --strict .
+#      - run: yamllint -c .yamllint.yml --strict .
       - run: go version
       - run:
           name: Download Go Dependencies

@@ -44,3 +44,7 @@ providers:
       prepare: |
         make k8s-config helm-init
         make spire-install
+        kubectl get pods -n spire -o wide
+        kubectl get nodes
+        kubectl logs --selector app=spire-server -n spire --all-containers
+        kubectl logs --selector app=spire-agent -n spire --all-containers
