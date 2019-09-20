@@ -13,3 +13,5 @@ replace github.com/networkservicemesh/networkservicemesh/controlplane/api => ../
 replace github.com/networkservicemesh/networkservicemesh/pkg => ../../pkg
 
 replace github.com/networkservicemesh/networkservicemesh/utils => ../../utils
+
+go 1.13

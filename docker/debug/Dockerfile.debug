@@ -1,9 +1,10 @@
-FROM golang:alpine as build
+ARG VERSION=unspecified
+ARG GO_VERSION
+FROM golang:${GO_VERSION}-alpine as build
 
 RUN apk add --update protobuf git bash gcc musl-dev curl
 
 # Compile Delve
-ARG VERSION=unspecified
 RUN echo "Building DLV"
 RUN go get github.com/derekparker/delve/cmd/dlv
 

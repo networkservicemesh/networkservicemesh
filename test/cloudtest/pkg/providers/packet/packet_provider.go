@@ -209,7 +209,7 @@ func (pi *packetInstance) updateKUBEConfig(context context.Context) error {
 		pi.configLocation = pi.shellInterface.GetConfigLocation()
 	}
 	if pi.configLocation == "" {
-		output, err := utils.ExecRead(context, strings.Split(pi.configScript, " "))
+		output, err := utils.ExecRead(context, "", strings.Split(pi.configScript, " "))
 		if err != nil {
 			err = fmt.Errorf("failed to retrieve configuration location %v", err)
 			logrus.Errorf(err.Error())

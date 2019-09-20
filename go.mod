@@ -57,3 +57,5 @@ replace (
 	github.com/networkservicemesh/networkservicemesh/test => ./test
 	github.com/networkservicemesh/networkservicemesh/utils => ./utils
 )
+
+go 1.13

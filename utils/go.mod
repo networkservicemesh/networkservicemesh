@@ -13,3 +13,5 @@ replace (
 	github.com/networkservicemesh/networkservicemesh/pkg => ../pkg
 	github.com/networkservicemesh/networkservicemesh/utils => ./
 )
+
+go 1.13
