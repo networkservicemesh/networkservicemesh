@@ -80,7 +80,7 @@ func serveMetrics(monitor metrics.MetricsMonitor, requestPeriod time.Duration, d
 				logrus.Warn("metrics: failed to collect metrics:", err)
 			}
 			/* Send metrics update */
-			logrus.Info("metrics: sending updates: ", stats)
+			logrus.Debug("metrics: sending updates: ", stats)
 			monitor.HandleMetrics(stats)
 		}
 		/* Wait until next check */
@@ -102,7 +102,7 @@ func collectMetrics(devices *RegisteredDevices) (map[string]*crossconnect.Metric
 				logrus.Warnf("metrics: removing device %s from device list", device.Name)
 				failedDevices[namespace] = append(failedDevices[namespace], device)
 			} else {
-				logrus.Infof("metrics: device %s, metrics - %v", device.Name, metrics)
+				logrus.Infof("metrics: device %s@%s, metrics - %v", device.Name, namespace, metrics)
 				stats[generateMetricsName(device)] = &crossconnect.Metrics{Metrics: metrics}
 			}
 		}

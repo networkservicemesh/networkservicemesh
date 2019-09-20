@@ -81,12 +81,12 @@ func setupLinkInNs(containerNs netns.NsHandle, ifaceName, ifaceIP string, routes
 		logrus.Errorf("common: failed getting host namespace: %v", err)
 		return err
 	}
-	logrus.Info("common: host namespace: ", hostNs)
+	logrus.Debug("common: host namespace: ", hostNs)
 	defer func() {
 		if err = hostNs.Close(); err != nil {
 			logrus.Error("common: failed closing host namespace handle: ", err)
 		}
-		logrus.Info("common: closed host namespace handle: ", hostNs)
+		logrus.Debug("common: closed host namespace handle: ", hostNs)
 	}()
 
 	/* Switch to the desired namespace */
@@ -94,14 +94,14 @@ func setupLinkInNs(containerNs netns.NsHandle, ifaceName, ifaceIP string, routes
 		logrus.Errorf("common: failed switching to desired namespace: %v", err)
 		return err
 	}
-	logrus.Info("common: switched to desired namespace: ", containerNs)
+	logrus.Debug("common: switched to desired namespace: ", containerNs)
 
 	/* Don't forget to switch back to the host namespace */
 	defer func() {
 		if err = netns.Set(hostNs); err != nil {
 			logrus.Errorf("common: failed switching back to host namespace: %v", err)
 		}
-		logrus.Info("common: switched back to host namespace: ", hostNs)
+		logrus.Debug("common: switched back to host namespace: ", hostNs)
 	}()
 
 	/* Get a link for the interface name */

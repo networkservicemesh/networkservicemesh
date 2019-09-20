@@ -39,12 +39,12 @@ func handleRemoteConnection(egress common.EgressInterfaceType, crossConnect *cro
 	if crossConnect.GetRemoteSource().GetMechanism().GetType() == remote.MechanismType_VXLAN &&
 		crossConnect.GetLocalDestination().GetMechanism().GetType() == local.MechanismType_KERNEL_INTERFACE {
 		/* 1. Incoming remote connection */
-		logrus.Info("remote: connection type - incoming - remote source/local destination")
+		logrus.Info("remote: connection type - remote source/local destination - incoming")
 		return handleConnection(egress, crossConnect, connect, cINCOMING)
 	} else if crossConnect.GetLocalSource().GetMechanism().GetType() == local.MechanismType_KERNEL_INTERFACE &&
 		crossConnect.GetRemoteDestination().GetMechanism().GetType() == remote.MechanismType_VXLAN {
 		/* 2. Outgoing remote connection */
-		logrus.Info("remote: connection type - outgoing - local source/remote destination")
+		logrus.Info("remote: connection type - local source/remote destination - outgoing")
 		return handleConnection(egress, crossConnect, connect, cOUTGOING)
 	}
 	logrus.Errorf("remote: invalid connection type")
@@ -84,7 +84,7 @@ func handleConnection(egress common.EgressInterfaceType, crossConnect *crossconn
 
 // createRemoteConnection handler for creating a remote connection
 func createRemoteConnection(nsInode, ifaceName, xconName, ifaceIP string, egressIP, remoteIP net.IP, vni int, routes []*connectioncontext.Route, neighbors []*connectioncontext.IpNeighbor) (map[string]monitoring.Device, error) {
-	logrus.Info("remote: creating connection - ", nsInode, ifaceName, xconName, ifaceIP, vni)
+	logrus.Info("remote: creating connection...")
 
 	/* Lock the OS thread so we don't accidentally switch namespaces */
 	runtime.LockOSThread()
@@ -101,9 +101,9 @@ func createRemoteConnection(nsInode, ifaceName, xconName, ifaceIP string, egress
 		if err = dstHandle.Close(); err != nil {
 			logrus.Error("remote: error when closing destination handle: ", err)
 		}
-		logrus.Info("remote: closed destination handle: ", dstHandle, nsInode)
+		logrus.Debug("remote: closed destination handle: ", dstHandle, nsInode)
 	}()
-	logrus.Info("remote: opened destination handle: ", dstHandle, nsInode)
+	logrus.Debug("remote: opened destination handle: ", dstHandle, nsInode)
 
 	/* Create interface - host namespace */
 	if err = netlink.LinkAdd(newVXLAN(ifaceName, egressIP, remoteIP, vni)); err != nil {
@@ -122,7 +122,7 @@ func createRemoteConnection(nsInode, ifaceName, xconName, ifaceIP string, egress
 
 // deleteRemoteConnection handler for deleting a remote connection
 func deleteRemoteConnection(nsInode, ifaceName, xconName string) (map[string]monitoring.Device, error) {
-	logrus.Info("remote: deleting connection")
+	logrus.Info("remote: deleting connection...")
 
 	/* Lock the OS thread so we don't accidentally switch namespaces */
 	runtime.LockOSThread()
@@ -139,9 +139,9 @@ func deleteRemoteConnection(nsInode, ifaceName, xconName string) (map[string]mon
 		if err = dstHandle.Close(); err != nil {
 			logrus.Error("remote: error when closing destination handle: ", err)
 		}
-		logrus.Info("remote: closed destination handle: ", dstHandle, nsInode)
+		logrus.Debug("remote: closed destination handle: ", dstHandle, nsInode)
 	}()
-	logrus.Info("remote: opened destination handle: ", dstHandle, nsInode)
+	logrus.Debug("remote: opened destination handle: ", dstHandle, nsInode)
 
 	/* Setup interface - extract from destination to host namespace */
 	if err = setupLinkInNs(dstHandle, ifaceName, "", nil, nil, false); err != nil {

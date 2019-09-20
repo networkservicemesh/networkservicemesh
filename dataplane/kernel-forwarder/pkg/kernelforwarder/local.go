@@ -57,7 +57,7 @@ func handleLocalConnection(crossConnect *crossconnect.CrossConnect, connect bool
 
 // createLocalConnection handles creating a local connection
 func createLocalConnection(cfg *connectionConfig) (map[string]monitoring.Device, error) {
-	logrus.Info("local: creating connection")
+	logrus.Info("local: creating connection...")
 	/* Lock the OS thread so we don't accidentally switch namespaces */
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
@@ -73,9 +73,9 @@ func createLocalConnection(cfg *connectionConfig) (map[string]monitoring.Device,
 		if err = srcNsHandle.Close(); err != nil {
 			logrus.Error("local: error when closing source handle: ", err)
 		}
-		logrus.Info("local: closed source handle: ", srcNsHandle, cfg.srcNetNsInode)
+		logrus.Debug("local: closed source handle: ", srcNsHandle, cfg.srcNetNsInode)
 	}()
-	logrus.Info("local: opened source handle: ", srcNsHandle, cfg.srcNetNsInode)
+	logrus.Debug("local: opened source handle: ", srcNsHandle, cfg.srcNetNsInode)
 
 	/* Get namespace handler - destination */
 	dstNsHandle, err := fs.GetNsHandleFromInode(cfg.dstNetNsInode)
@@ -87,10 +87,10 @@ func createLocalConnection(cfg *connectionConfig) (map[string]monitoring.Device,
 		if err = dstNsHandle.Close(); err != nil {
 			logrus.Error("local: error when closing destination handle: ", err)
 		}
-		logrus.Info("local: closed destination handle: ", dstNsHandle, cfg.dstNetNsInode)
+		logrus.Debug("local: closed destination handle: ", dstNsHandle, cfg.dstNetNsInode)
 
 	}()
-	logrus.Info("local: opened destination handle: ", dstNsHandle, cfg.dstNetNsInode)
+	logrus.Debug("local: opened destination handle: ", dstNsHandle, cfg.dstNetNsInode)
 
 	/* Create the VETH pair - host namespace */
 	if err = netlink.LinkAdd(newVETH(cfg.srcName, cfg.dstName)); err != nil {
@@ -118,7 +118,7 @@ func createLocalConnection(cfg *connectionConfig) (map[string]monitoring.Device,
 
 // deleteLocalConnection handles deleting a local connection
 func deleteLocalConnection(cfg *connectionConfig) (map[string]monitoring.Device, error) {
-	logrus.Info("local: deleting connection")
+	logrus.Info("local: deleting connection...")
 	/* Lock the OS thread so we don't accidentally switch namespaces */
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
@@ -134,9 +134,9 @@ func deleteLocalConnection(cfg *connectionConfig) (map[string]monitoring.Device,
 		if err = srcNsHandle.Close(); err != nil {
 			logrus.Error("local: error when closing source handle: ", err)
 		}
-		logrus.Info("local: closed source handle: ", srcNsHandle, cfg.srcNetNsInode)
+		logrus.Debug("local: closed source handle: ", srcNsHandle, cfg.srcNetNsInode)
 	}()
-	logrus.Info("local: opened source handle: ", srcNsHandle, cfg.srcNetNsInode)
+	logrus.Debug("local: opened source handle: ", srcNsHandle, cfg.srcNetNsInode)
 
 	/* Get namespace handler - destination */
 	dstNsHandle, err := fs.GetNsHandleFromInode(cfg.dstNetNsInode)
@@ -148,10 +148,10 @@ func deleteLocalConnection(cfg *connectionConfig) (map[string]monitoring.Device,
 		if err = dstNsHandle.Close(); err != nil {
 			logrus.Error("local: error when closing destination handle: ", err)
 		}
-		logrus.Info("local: closed destination handle: ", dstNsHandle, cfg.dstNetNsInode)
+		logrus.Debug("local: closed destination handle: ", dstNsHandle, cfg.dstNetNsInode)
 
 	}()
-	logrus.Info("local: opened destination handle: ", dstNsHandle, cfg.dstNetNsInode)
+	logrus.Debug("local: opened destination handle: ", dstNsHandle, cfg.dstNetNsInode)
 
 	/* Extract interface - source namespace */
 	if err = setupLinkInNs(srcNsHandle, cfg.srcName, cfg.srcIP, nil, nil, false); err != nil {
