@@ -8,7 +8,7 @@ import (
 	"k8s.io/client-go/rest"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/plugins"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/prefix_pool"
+	"github.com/networkservicemesh/networkservicemesh/sdk/prefix_pool"
 )
 
 type prefixService struct {

@@ -11,7 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/prefix_pool"
+	"github.com/networkservicemesh/networkservicemesh/sdk/prefix_pool"
 )
 
 type SubnetWatcher struct {
