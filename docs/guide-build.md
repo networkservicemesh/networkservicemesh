@@ -115,11 +115,11 @@ Once you have configured your ```kubectl``` to the desired Kubernetes `master` (
 ```bash 
 make k8s-save
 make k8s-load-images
-helm-install-nsm
+make helm-install-nsm
 ``` 
 and 
 ```bash
-helm-delete-nsm
+make helm-delete-nsm
 ```
 
 ### Deploying the ICMP example and testing it
