@@ -87,6 +87,9 @@ endif
 ifeq ($(CONTAINER_TAG),)
 CONTAINER_TAG=latest
 endif
+ifeq ($(SPIRE_ENABLED),)
+SPIRE_ENABLED=false
+endif
 
 kubectl = kubectl -n ${NSM_NAMESPACE}
 
