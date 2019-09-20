@@ -29,9 +29,9 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsmdapi"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
-	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 )
 
 const (
@@ -75,7 +75,7 @@ func (n *nsmClientEndpoints) Allocate(ctx context.Context, reqs *pluginapi.Alloc
 			responses.ContainerResponses = append(responses.ContainerResponses, &pluginapi.ContainerAllocateResponse{
 				Mounts: []*pluginapi.Mount{mount},
 				Envs: map[string]string{
-					nsmd.NsmDevicePluginEnv: "true",
+					nsmd.NsmDevicePluginEnv:   "true",
 					common.NsmServerSocketEnv: mount.ContainerPath + workspace.NsmServerSocket,
 					common.NsmClientSocketEnv: mount.ContainerPath + workspace.NsmClientSocket,
 					common.WorkspaceEnv:       workspace.ClientBaseDir,
