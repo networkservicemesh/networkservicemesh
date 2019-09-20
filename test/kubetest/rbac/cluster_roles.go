@@ -235,6 +235,7 @@ func waitFor(ctx context.Context, exit func() bool) error {
 			select {
 			case <-ctx.Done():
 				err = ctx.Err()
+				return
 			default:
 				if exit() {
 					return
