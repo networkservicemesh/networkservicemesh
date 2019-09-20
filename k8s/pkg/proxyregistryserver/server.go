@@ -19,8 +19,10 @@ func New(clientset *nsmClientset.Clientset, clusterInfoService clusterinfo.Clust
 	server := tools.NewServer(context.Background())
 	cache := registryserver.NewRegistryCache(clientset, &registryserver.ResourceFilterConfig{})
 	discovery := newDiscoveryService(cache, clusterInfoService)
+	nseRegistry := newNseRegistryService(clusterInfoService)
 
 	registry.RegisterNetworkServiceDiscoveryServer(server, discovery)
+	registry.RegisterNetworkServiceRegistryServer(server, nseRegistry)
 	clusterinfo.RegisterClusterInfoServer(server, clusterInfoService)
 
 	if err := cache.Start(); err != nil {

@@ -1,6 +1,9 @@
 package registryserver
 
 import (
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
@@ -89,6 +92,11 @@ func (rs *nseRegistryService) RegisterNSE(ctx context.Context, request *registry
 			return nil, err
 		}
 		request.NetworkServiceManager = mapNsmFromCustomResource(nsm)
+
+		err = forwardRegisterNSE(ctx, request)
+		if err != nil {
+			logrus.Warnf("Cannot forward NSE Registration: %v", err)
+		}
 	}
 	logrus.Infof("Returned from RegisterNSE: time: %v request: %v", time.Since(st), request)
 	return request, nil
@@ -104,4 +112,27 @@ func (rs *nseRegistryService) RemoveNSE(ctx context.Context, request *registry.R
 	}
 	logrus.Infof("RemoveNSE done: time %v", time.Since(st))
 	return &empty.Empty{}, nil
+}
+
+func forwardRegisterNSE(ctx context.Context, request *registry.NSERegistration) error {
+	nsrURL := os.Getenv(ProxyNsmdK8sAddressEnv)
+	if strings.TrimSpace(nsrURL) == "" {
+		nsrURL = ProxyNsmdK8sAddressDefaults
+	}
+
+	remoteRegistry := nsmd.NewServiceRegistryAt(nsrURL)
+	defer remoteRegistry.Stop()
+
+	nseRegistryClient, err := remoteRegistry.NseRegistryClient()
+	if err != nil {
+		return err
+	}
+
+	logrus.Info("Forwarding Register NSE request (%v)", err)
+	_, err = nseRegistryClient.RegisterNSE(ctx, request)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

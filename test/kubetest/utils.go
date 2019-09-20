@@ -245,10 +245,20 @@ func WaitNSMgrDeployed(k8s *K8s, nsmd *v1.Pod, timeout time.Duration) {
 
 // DeployProxyNSMgr - Setup Proxy NSMgr on Cluster
 func DeployProxyNSMgr(k8s *K8s, node *v1.Node, name string, timeout time.Duration) (pnsmd *v1.Pod, err error) {
-	startTime := time.Now()
 	template := pods.ProxyNSMgrPod(name, node, k8s.GetK8sNamespace())
+	return deployProxyNSMgr(k8s, template, node, timeout)
+}
 
-	logrus.Infof("Starting Proxy NSMgr %s on node: %s", name, node.Name)
+// DeployProxyNSMgr - Setup Proxy NSMgr on Cluster
+func DeployProxyNSMgrWithConfig(k8s *K8s, node *v1.Node, name string, timeout time.Duration, config *pods.NSMgrPodConfig) (pnsmd *v1.Pod, err error) {
+	template := pods.ProxyNSMgrPodWithConfig(name, node, config)
+	return deployProxyNSMgr(k8s, template, node, timeout)
+}
+
+func deployProxyNSMgr(k8s *K8s, template *v1.Pod, node *v1.Node, timeout time.Duration) (pnsmd *v1.Pod, err error) {
+	startTime := time.Now()
+
+	logrus.Infof("Starting Proxy NSMgr %s on node: %s", template.Name, node.Name)
 	tempPods, err := k8s.CreatePodsRaw(PodStartTimeout, true, template)
 
 	if err != nil {

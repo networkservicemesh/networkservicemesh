@@ -1,6 +1,7 @@
 package pods
 
 import (
+	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -30,6 +31,7 @@ func ProxyNSMgrPodLiveCheck(name string, node *v1.Node, namespace string) *v1.Po
 
 // ProxyNSMgrPodWithConfig - Proxy NSMgr pod
 func ProxyNSMgrPodWithConfig(name string, node *v1.Node, config *NSMgrPodConfig) *v1.Pod {
+	logrus.Infof("Config (%s %s): %v", name, node.Name, config)
 	pod := &v1.Pod{
 		ObjectMeta: v12.ObjectMeta{
 			Name: name,

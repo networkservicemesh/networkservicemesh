@@ -29,7 +29,9 @@ func New() *grpc.Server {
 
 
 	discovery := newDiscoveryService()
+	registryService := NewNseRegistryService()
 	registry.RegisterNetworkServiceDiscoveryServer(server, discovery)
+	registry.RegisterNetworkServiceRegistryServer(server, registryService)
 
 	return server
 }
