@@ -134,12 +134,12 @@ func getDeviceMetrics(device, nsInode string) (map[string]string, error) {
 		logrus.Errorf("metrics: failed getting host namespace: %v", err)
 		return nil, err
 	}
-	logrus.Info("metrics: host namespace: ", hostNs)
+	logrus.Debug("metrics: host namespace: ", hostNs)
 	defer func() {
 		if err = hostNs.Close(); err != nil {
 			logrus.Error("metrics: failed closing host namespace handle: ", err)
 		}
-		logrus.Info("metrics: closed host namespace handle: ", hostNs)
+		logrus.Debug("metrics: closed host namespace handle: ", hostNs)
 	}()
 
 	/* Get namespace handle - destination */
@@ -153,23 +153,23 @@ func getDeviceMetrics(device, nsInode string) (map[string]string, error) {
 		if err = dstHandle.Close(); err != nil {
 			logrus.Error("metrics: error when closing destination handle: ", err)
 		}
-		logrus.Info("metrics: closed destination handle: ", dstHandle, nsInode)
+		logrus.Debug("metrics: closed destination handle: ", dstHandle, nsInode)
 	}()
-	logrus.Info("metrics: opened destination handle: ", dstHandle, nsInode)
+	logrus.Debug("metrics: opened destination handle: ", dstHandle, nsInode)
 
 	/* Switch to the new namespace */
 	if err = netns.Set(dstHandle); err != nil {
 		logrus.Errorf("metrics: failed switching to destination namespace: %v", err)
 		return nil, err
 	}
-	logrus.Info("metrics: switched to destination namespace: ", dstHandle)
+	logrus.Debug("metrics: switched to destination namespace: ", dstHandle)
 
 	/* Don't forget to switch back to the host namespace */
 	defer func() {
 		if err = netns.Set(hostNs); err != nil {
 			logrus.Errorf("metrics: failed switching back to host namespace: %v", err)
 		}
-		logrus.Info("metrics: switched back to host namespace: ", hostNs)
+		logrus.Debug("metrics: switched back to host namespace: ", hostNs)
 	}()
 
 	/* Get a link for the interface name */
