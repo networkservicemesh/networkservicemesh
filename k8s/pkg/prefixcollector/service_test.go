@@ -10,7 +10,7 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/plugins"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/prefix_pool"
+	"github.com/networkservicemesh/networkservicemesh/sdk/prefix_pool"
 )
 
 func newTestPrefixService(prefixes ...string) (plugins.ConnectionPluginServer, error) {
