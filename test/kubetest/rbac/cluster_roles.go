@@ -77,8 +77,14 @@ func (r *ClusterRoleBinding) Wait(ctx context.Context, client kubernetes.Interfa
 			logrus.Infof("Incomming role binding has incorrect size, %v != %v", r.ClusterRoleBinding, role)
 			return false
 		}
-		if role.Subjects[0].Namespace != r.Subjects[0].Namespace {
+		subject := &role.Subjects[0]
+		if subject.Namespace != r.Subjects[0].Namespace {
 			logrus.Infof("Incomming role binding has wrong subject, %v != %v", r.ClusterRoleBinding.Subjects, role.Subjects)
+			return false
+		}
+
+		if _, err = client.CoreV1().ServiceAccounts(subject.Namespace).Get(subject.Name, metav1.GetOptions{}); err != nil {
+			logrus.Infof("Service account not created, err: %v", err)
 			return false
 		}
 		return true
