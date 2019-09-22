@@ -86,7 +86,7 @@ func (n *nsmClientEndpoints) Allocate(ctx context.Context, reqs *pluginapi.Alloc
 				ReadOnly:      false,
 			}
 			envs := map[string]string{
-				nsmd.NsmDevicePluginEnv: "true",
+				nsmd.NsmDevicePluginEnv:   "true",
 				common.NsmServerSocketEnv: mount.ContainerPath + workspace.NsmServerSocket,
 				common.NsmClientSocketEnv: mount.ContainerPath + workspace.NsmClientSocket,
 				common.WorkspaceEnv:       workspace.ClientBaseDir,

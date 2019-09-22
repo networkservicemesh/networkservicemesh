@@ -1,7 +1,7 @@
 module github.com/networkservicemesh/networkservicemesh/side-cars
 
 require (
-        github.com/ligato/cn-infra v2.2.0+incompatible // indirect
+	github.com/ligato/cn-infra v2.2.0+incompatible // indirect
 	github.com/networkservicemesh/networkservicemesh/controlplane v0.2.0
 	github.com/networkservicemesh/networkservicemesh/controlplane/api v0.2.0
 	github.com/networkservicemesh/networkservicemesh/k8s/api v0.2.0

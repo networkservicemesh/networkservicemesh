@@ -19,6 +19,8 @@ import (
 	"os"
 	"sync"
 
+	"github.com/networkservicemesh/networkservicemesh/sdk/common"
+
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 
