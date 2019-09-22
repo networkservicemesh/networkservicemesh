@@ -34,7 +34,7 @@ jobs:
       - run: sudo ./scripts/install-protoc.sh
       - run: ./scripts/for-each-module.sh "go generate ./..."
       - run: make vet check
-      - run: ./scripts/for-each-module.sh "go build ./..."
+      - run: ./scripts/for-each-module.sh "go build -i ./..."
       - run: ./scripts/check_dependencies.sh
       - run:
           name: Integration tests
@@ -136,7 +136,7 @@ jobs:
               export STORE_LOGS_IN_ANY_CASES=true
             fi
             pushd test
-            CGO_ENABLED=0 GOOS=linux go build -o ../cloudtest ./cloudtest/cmd/cloudtest
+            CGO_ENABLED=0 GOOS=linux go build -i -o ../cloudtest ./cloudtest/cmd/cloudtest
             popd
             ./cloudtest
           no_output_timeout: 40m
