@@ -2,7 +2,7 @@
 
 APP=$1
 ORG=$2
-BIN_DIR="./build/dist/${APP}/"
+BIN_DIR="$(pwd)/build/dist/${APP}/"
 
 # Include function to map apps
 # shellcheck disable=SC1091
