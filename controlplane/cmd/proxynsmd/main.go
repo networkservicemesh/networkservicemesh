@@ -19,6 +19,7 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
+	proxynetworkserviceserver "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/remote/proxy_network_service_server"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
