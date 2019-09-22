@@ -10,9 +10,6 @@ export GOARCH=amd64
 export GREEN='\033[0;32m'
 export NC='\033[0m' # No Color
 
-GO_VERSION=1.13
-GOPROXY=https://proxy.golang.org
-
 mkdir -p "${BIN_DIR}"
 
 function appToSrc {
@@ -71,13 +68,14 @@ function srcWdir {
 function compileApp {
     src=$(appToSrc "$1")
     echo "Compile ${src}"
-    pushd $(srcWdir "$1")
+    rootDir=$(srcWdir "$1")
+    pushd "${rootDir}" || exit 1
     if ! go build -i -ldflags "-extldflags '-static' -X  main.version=${VERSION}" -o "${BIN_DIR}/$1" "${src}"
     then
         echo "Failed to compile $1";
         exit $?;
     fi
-    popd
+    popd || exit 1
 }
 
 function getElapsed {
