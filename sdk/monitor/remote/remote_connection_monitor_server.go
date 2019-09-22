@@ -2,8 +2,8 @@ package remote
 
 import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/services"
+	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
 )
 
 // MonitorServer is a monitor.Server for remote/connection GRPC API

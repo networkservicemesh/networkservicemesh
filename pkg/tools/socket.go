@@ -22,7 +22,7 @@ const (
 
 	opentracingEnv     = "TRACER_ENABLED"
 	opentracingDefault = false
-	insecureDefault    = false
+	insecureDefault    = true
 	dialTimeoutDefault = 5 * time.Second
 )
 

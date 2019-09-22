@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor"
+	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
 )
 
 // Event is a monitor.Event for crossconnect GRPC API

@@ -1,7 +1,7 @@
 module github.com/networkservicemesh/networkservicemesh/controllers/sriov-controller
 
 require (
-	github.com/ghodss/yaml v1.0.0
+	github.com/ghodss/yaml v0.0.0-20180820084758-c7ce16629ff4
 	github.com/networkservicemesh/networkservicemesh/pkg v0.2.0
 	github.com/sirupsen/logrus v1.4.2
 	golang.org/x/net v0.0.0-20190912160710-24e19bdeb0f2

@@ -23,7 +23,6 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/client"
 )
@@ -70,9 +69,9 @@ func main() {
 			}
 		}()
 	}
-	workspace, ok := os.LookupEnv(nsmd.WorkspaceEnv)
+	workspace, ok := os.LookupEnv(common.WorkspaceEnv)
 	if !ok {
-		logrus.Fatalf("Failed getting %s", nsmd.WorkspaceEnv)
+		logrus.Fatalf("Failed getting %s", common.WorkspaceEnv)
 	}
 
 	backend := &nsClientBackend{

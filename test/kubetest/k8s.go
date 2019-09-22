@@ -40,6 +40,7 @@ const (
 	podDeleteTimeout = 15 * time.Second
 	podExecTimeout   = 1 * time.Minute
 	podGetLogTimeout = 1 * time.Minute
+	roleWaitTimeout  = 1 * time.Minute
 )
 
 const (
@@ -1087,17 +1088,22 @@ func (k8s *K8s) GetK8sNamespace() string {
 
 // CreateRoles create roles
 func (k8s *K8s) CreateRoles(rolesList ...string) ([]nsmrbac.Role, error) {
+	timeout := time.Duration(len(rolesList)) * roleWaitTimeout
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
 	createdRoles := []nsmrbac.Role{}
 	for _, kind := range rolesList {
 		role := nsmrbac.Roles[kind](nsmrbac.RoleNames[kind], k8s.GetK8sNamespace())
-		err := role.Create(k8s.clientset)
-		if err != nil {
+		if err := role.Create(k8s.clientset); err != nil {
 			logrus.Errorf("failed creating role: %v %v", role, err)
 			return createdRoles, err
-		} else {
-			logrus.Infof("role is created: %v", role)
-			createdRoles = append(createdRoles, role)
 		}
+		if err := role.Wait(ctx, k8s.clientset); err != nil {
+			logrus.Errorf("failed waiting role: %v %v", role, err)
+			return createdRoles, err
+		}
+		logrus.Infof("role is created: %v", role)
+		createdRoles = append(createdRoles, role)
 	}
 	return createdRoles, nil
 }

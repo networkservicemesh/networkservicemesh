@@ -3,7 +3,7 @@ package endpoint
 import (
 	"context"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/local"
+	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/local"
 
 	"github.com/sirupsen/logrus"
 
