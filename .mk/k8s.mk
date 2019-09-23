@@ -239,6 +239,12 @@ k8s-nsm-monitor-build: ${CONTAINER_BUILD_PREFIX}-nsm-monitor-build
 .PHONY: k8s-nsm-monitor-save
 k8s-nsm-monitor-save: ${CONTAINER_BUILD_PREFIX}-nsm-monitor-save
 
+.PHONY: k8s-nsm-init-build
+k8s-nsm-init-build: ${CONTAINER_BUILD_PREFIX}-nsm-init-build
+
+.PHONY: k8s-nsm-init-save
+k8s-nsm-init-save: ${CONTAINER_BUILD_PREFIX}-nsm-init-save
+
 .PHONY: k8s-icmp-responder-nse-build
 k8s-icmp-responder-nse-build: ${CONTAINER_BUILD_PREFIX}-test-common-build
 
