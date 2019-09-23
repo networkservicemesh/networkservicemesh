@@ -16,4 +16,8 @@ message PluginInfo {
 
 service PluginRegistry {
     rpc Register (PluginInfo) returns (google.protobuf.Empty);
+    // RequestLiveness is a stream initiated by NSM to inform the client that NSM is still alive and
+    // no re-registration is required. Detection a failure on this "channel" will mean
+    // that NSM is gone and the client needs to start re-registration logic.
+    rpc RequestLiveness (stream google.protobuf.Empty) returns (stream google.protobuf.Empty);
 }

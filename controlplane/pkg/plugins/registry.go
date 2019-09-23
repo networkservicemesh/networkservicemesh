@@ -10,6 +10,7 @@ import (
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/status"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/plugins"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
@@ -17,6 +18,7 @@ import (
 
 const (
 	pluginCallTimeout = 100 * time.Second
+	livenessInterval  = 5 * time.Second
 )
 
 // PluginRegistry stores a plugin manager for each plugin type
@@ -129,4 +131,15 @@ func (pr *pluginRegistry) createConnection(name, endpoint string) (*grpc.ClientC
 
 func (pr *pluginRegistry) GetConnectionPluginManager() ConnectionPluginManager {
 	return pr.connectionPluginManager
+}
+
+func (pr *pluginRegistry) RequestLiveness(liveness plugins.PluginRegistry_RequestLivenessServer) error {
+	logrus.Infof("Liveness request received on Plugin Registry")
+	for {
+		if err := liveness.SendMsg(&empty.Empty{}); err != nil {
+			logrus.Errorf("error %s, grpc code: %+v on liveness grpc channel", err.Error(), status.Convert(err).Code())
+			return err
+		}
+		<-time.After(livenessInterval)
+	}
 }
