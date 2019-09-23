@@ -12,6 +12,7 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/plugins"
+	"github.com/networkservicemesh/networkservicemesh/pkg/livemonitor"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
@@ -65,6 +66,8 @@ func (pr *pluginRegistry) Start(ctx context.Context) error {
 			logrus.Fatalf("Failed to serve: %v", err)
 		}
 	}()
+
+	livemonitor.RegisterLivenessMonitorServer(server, livemonitor.NewServer())
 
 	return nil
 }

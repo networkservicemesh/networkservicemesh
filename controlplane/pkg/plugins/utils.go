@@ -8,14 +8,24 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc/status"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/plugins"
+	"github.com/networkservicemesh/networkservicemesh/pkg/livemonitor"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
 const (
 	registrationTimeout = 100 * time.Second
 )
+
+type registrationMonitor struct {
+	clientName     string
+	livenessClient livemonitor.Client
+	ctx            context.Context
+	register       func() error
+	onDone         func()
+}
 
 // StartPlugin creates an instance of a plugin and registers it
 func StartPlugin(name, registry string, services map[plugins.PluginCapability]interface{}) error {
@@ -34,11 +44,13 @@ func StartPlugin(name, registry string, services map[plugins.PluginCapability]in
 		return err
 	}
 
-	if err := registerPlugin(name, endpoint, registry, capabilities); err != nil {
-		return err
+	regmon := &registrationMonitor{
+		clientName: name,
+		ctx:        context.Background(),
 	}
+	regmon.register = func() error { return regmon.registerPlugin(name, endpoint, registry, capabilities) }
 
-	return nil
+	return regmon.register()
 }
 
 func createPlugin(name, endpoint string, services map[plugins.PluginCapability]interface{}) error {
@@ -71,16 +83,24 @@ func createPlugin(name, endpoint string, services map[plugins.PluginCapability]i
 	return nil
 }
 
-func registerPlugin(name, endpoint, registry string, capabilities []plugins.PluginCapability) error {
+func (rm *registrationMonitor) registerPlugin(name, endpoint, registry string, capabilities []plugins.PluginCapability) error {
 	_ = tools.WaitForPortAvailable(context.Background(), "unix", registry, 100*time.Millisecond)
 	conn, err := tools.DialUnix(registry)
 	if err != nil {
 		return fmt.Errorf("cannot connect to the Plugin Registry: %v", err)
 	}
-	defer func() {
+
+	cleanup := func() {
 		err = conn.Close()
 		if err != nil {
 			logrus.Fatalf("Cannot close the connection to the Plugin Registry: %v", err)
+		}
+	}
+	defer func() {
+		if err != nil {
+			cleanup()
+		} else {
+			rm.onDone = cleanup
 		}
 	}()
 
@@ -94,6 +114,41 @@ func registerPlugin(name, endpoint, registry string, capabilities []plugins.Plug
 		Endpoint:     endpoint,
 		Capabilities: capabilities,
 	})
+	if err != nil {
+		logrus.Errorf("%s: failed to register plugin: %s, grpc code: %+v", name, err, status.Convert(err).Code())
+		return err
+	}
+
+	logrus.Infof("%s: starting NSM liveness monitoring", rm.clientName)
+	rm.livenessClient, err = livemonitor.NewClient(conn)
+	if err != nil {
+		logrus.Errorf("%s: failed to get NSM liveness channel: %s, grpc code: %+v", name, err, status.Convert(err).Code())
+		return err
+	}
+
+	go rm.monitor()
 
 	return err
+}
+
+func (rm *registrationMonitor) monitor() {
+	for {
+		select {
+		case <-rm.livenessClient.Context().Done():
+			logrus.Infof("%s: finishing NSM liveness monitoring", rm.clientName)
+			if rm.onDone != nil {
+				rm.onDone()
+			}
+			return
+		case _, ok := <-rm.livenessClient.ErrorChannel():
+			if !ok {
+				logrus.Errorf("%s: failed to read liveness channel", rm.clientName)
+				logrus.Infof("%s: starting re-registration procedure...", rm.clientName)
+				if rm.register() == nil {
+					logrus.Infof("%s: successfully re-registered plugin", rm.clientName)
+				}
+				return
+			}
+		}
+	}
 }
