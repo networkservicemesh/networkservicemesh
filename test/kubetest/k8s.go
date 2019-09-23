@@ -1037,6 +1037,16 @@ func (k8s *K8s) CreateServiceAccounts() ([]*v1.ServiceAccount, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		for len(sa.Secrets) == 0 {
+			sa, err = k8s.clientset.CoreV1().ServiceAccounts(k8s.namespace).Get(n, metaV1.GetOptions{})
+			if err != nil {
+				return nil, err
+			}
+			logrus.Info(sa)
+			<-time.After(300 * time.Millisecond)
+		}
+
 		rv = append(rv, sa)
 	}
 
