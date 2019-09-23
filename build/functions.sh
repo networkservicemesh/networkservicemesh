@@ -69,7 +69,7 @@ function compileApp {
     src=$(appToSrc "$1")
     echo "Compile ${src}"
     rootDir=$(srcWdir "$1")
-    pushd "${rootDir}" || exit 1
+    pushd "${rootDir}" 1> /dev/null || exit 1
     if ! go build -i -ldflags "-extldflags '-static' -X  main.version=${VERSION}" -o "${BIN_DIR}/$1" "${src}"
     then
         echo "Failed to compile $1";

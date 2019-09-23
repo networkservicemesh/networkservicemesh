@@ -19,7 +19,7 @@ BUILD_CONTAINERS+=nsm-init nsm-monitor nsm-coredns
 BUILD_CONTAINERS+=test-common
 BUILD_CONTAINERS+=nsm-coredns
 BUILD_CONTAINERS+=admission-webhook
-BUILD_CONTAINERS+=proxy-nsmgr
+BUILD_CONTAINERS+=proxy-nsmd proxy-nsmd-k8s proxy-xcon-monitor
 
 # Set the configured forwarding plane
 ifeq (${FORWARDING_PLANE}, vpp)
