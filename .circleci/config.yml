@@ -35,7 +35,6 @@ jobs:
       - run: ./scripts/for-each-module.sh "go generate ./..."
       - run: make vet check
       - run: sudo sudo chmod -R guo+w /usr/local/go/pkg
-      - run: ./scripts/for-each-module.sh "go build -i ./..."
       - run: ./scripts/check_dependencies.sh
       - run:
           name: Integration tests
