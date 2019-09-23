@@ -273,6 +273,38 @@ type K8s struct {
 	g                  *WithT
 }
 
+func (k8s *K8s) reportSpans() {
+	if os.Getenv("TRACER_ENABLED") == "true" {
+		logrus.Infof("Finding spans")
+		// We need to find all Reporting span and print uniq to console for analysis.
+		pods := k8s.ListPods()
+		spans := map[string]string{}
+		for i := 0; i < len(pods); i++ {
+			for _, c := range pods[i].Spec.Containers {
+				content, err := k8s.GetLogs(&pods[i], c.Name)
+				if err == nil {
+					lines := strings.Split(content, "\n")
+					for _, l := range lines {
+						pos := strings.Index(l, " Reporting span ")
+						if pos > 0 {
+							value := l[pos:len(l)]
+							pos = strings.Index(value, ":")
+							value = value[0: pos]
+							if value != "" {
+								spans[fmt.Sprintf("%v from %v", value, c.Name)] = l
+							}
+						}
+					}
+				}
+			}
+		}
+		for k, _ := range spans {
+			logrus.Infof("Span %v", k)
+		}
+	}
+
+}
+
 // ExtK8s - K8s ClientSet with nodes config
 type ExtK8s struct {
 	K8s        *K8s
