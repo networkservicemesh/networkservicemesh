@@ -183,10 +183,9 @@ func TestSlowNSE(t *testing.T) {
 	request.Connection.Labels = map[string]string{}
 	request.Connection.Labels["nse_sleep"] = "1"
 
-	ctx, canceOp := context.WithTimeout(context.Background(), 300*time.Millisecond)
+	ctx, canceOp := context.WithTimeout(context.Background(), 30*time.Millisecond)
 	defer canceOp()
 	nsmResponse, err := nsmClient.Request(ctx, request)
-	<-time.After(1 * time.Second)
 	println(err.Error())
 	g.Expect(strings.Contains(err.Error(), "rpc error: code = DeadlineExceeded desc = context deadline exceeded")).To(Equal(true))
 	g.Expect(nsmResponse).To(BeNil())
@@ -216,10 +215,9 @@ func TestSlowDP(t *testing.T) {
 	request.Connection.Labels = map[string]string{}
 	request.Connection.Labels["dataplane_sleep"] = "1"
 
-	ctx, cancelOp := context.WithTimeout(context.Background(), 300*time.Millisecond)
+	ctx, cancelOp := context.WithTimeout(context.Background(), 30*time.Millisecond)
 	defer cancelOp()
 	nsmResponse, err := nsmClient.Request(ctx, request)
-	<-time.After(1 * time.Second)
 	println(err.Error())
 	g.Expect(strings.Contains(err.Error(), "rpc error: code = DeadlineExceeded desc = context deadline exceeded")).To(Equal(true))
 	g.Expect(nsmResponse).To(BeNil())

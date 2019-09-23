@@ -12,6 +12,8 @@ import (
 
 	"github.com/opentracing/opentracing-go"
 
+	remote_server "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/remote"
+
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
@@ -22,11 +24,10 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsmdapi"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
+	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/remote"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nseregistry"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/remote/network_service_server"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/services"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
@@ -67,6 +68,7 @@ type nsmServer struct {
 	xconManager             *services.ClientConnectionManager
 	crossConnectMonitor     monitor_crossconnect.MonitorServer
 	remoteConnectionMonitor remote.MonitorServer
+	remoteServer            remote_networkservice.NetworkServiceServer
 }
 
 func (nsm *nsmServer) XconManager() *services.ClientConnectionManager {
@@ -392,8 +394,8 @@ func (nsm *nsmServer) Stop() {
 
 // StartNSMServer registers and starts gRPC server which is listening for
 // Network Service requests.
-func StartNSMServer(ctx context.Context, model model.Model, manager nsm.NetworkServiceManager, serviceRegistry serviceregistry.ServiceRegistry, apiRegistry serviceregistry.ApiRegistry) (NSMServer, error) {
-	if opentracing.GlobalTracer() != nil {
+func StartNSMServer(ctx context.Context, model model.Model, manager nsm.NetworkServiceManager, apiRegistry serviceregistry.ApiRegistry) (NSMServer, error) {
+	if opentracing.IsGlobalTracerRegistered() {
 		span, _ := opentracing.StartSpanFromContext(ctx, "nsm.server.start")
 		defer span.Finish()
 	}
@@ -403,12 +405,12 @@ func StartNSMServer(ctx context.Context, model model.Model, manager nsm.NetworkS
 		return nil, err
 	}
 
-	locationProvider := serviceRegistry.NewWorkspaceProvider()
+	locationProvider := manager.ServiceRegistry().NewWorkspaceProvider()
 
 	nsm := &nsmServer{
 		workspaces:       make(map[string]*Workspace),
 		model:            model,
-		serviceRegistry:  serviceRegistry,
+		serviceRegistry:  manager.ServiceRegistry(),
 		manager:          manager,
 		locationProvider: locationProvider,
 		localRegistry:    nseregistry.NewNSERegistry(locationProvider.NsmNSERegistryFile()),
@@ -428,14 +430,14 @@ func StartNSMServer(ctx context.Context, model model.Model, manager nsm.NetworkS
 			logrus.Fatalf("Failed to start NSM grpc server")
 		}
 	}()
-	endpoints, err := setLocalNSM(model, serviceRegistry)
+	endpoints, err := setLocalNSM(model, nsm.serviceRegistry)
 	if err != nil {
 		logrus.Errorf("failed to set local NSM %+v", err)
 		return nil, err
 	}
 
 	// Check if the socket of NSM server is operation
-	_, conn, err := serviceRegistry.NSMDApiClient()
+	_, conn, err := nsm.serviceRegistry.NSMDApiClient()
 	if err != nil {
 		nsm.Stop()
 		return nil, err
@@ -443,10 +445,15 @@ func StartNSMServer(ctx context.Context, model model.Model, manager nsm.NetworkS
 	_ = conn.Close()
 	logrus.Infof("NSM gRPC socket: %s is operational", nsm.registerSock.Addr().String())
 
+	// Restore monitors
+	nsm.initMonitorServers()
+
+	nsm.remoteServer = remote_server.NewRemoteNetworkServiceServer(nsm.manager, nsm.remoteConnectionMonitor)
+	nsm.manager.SetRemoteServer(nsm.remoteServer)
+
 	// Restore existing clients in case of NSMd restart.
 	nsm.restore(endpoints)
 
-	nsm.initMonitorServers()
 	return nsm, nil
 }
 
@@ -500,10 +507,7 @@ func (nsm *nsmServer) StartAPIServerAt(ctx context.Context, sock net.Listener, p
 	probes.Append(health.NewGrpcHealth(grpcServer, sock.Addr(), time.Minute))
 
 	// Register Remote NetworkServiceManager
-	remoteServer := network_service_server.NewRemoteNetworkServiceServer(nsm.model, nsm.manager, nsm.serviceRegistry, nsm.remoteConnectionMonitor)
-	networkservice.RegisterNetworkServiceServer(grpcServer, remoteServer)
-
-	// TODO: Add more public API services here.
+	remote_networkservice.RegisterNetworkServiceServer(grpcServer, nsm.remoteServer)
 
 	go func() {
 		if err := grpcServer.Serve(sock); err != nil {

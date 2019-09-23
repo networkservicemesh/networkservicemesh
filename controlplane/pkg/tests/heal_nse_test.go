@@ -34,8 +34,8 @@ func TestHealRemoteNSE(t *testing.T) {
 	srv2.TestModel.AddEndpoint(nseReg)
 	srv2.TestModel.AddEndpoint(nseReg2)
 
-	l1 := newTestConnectionModelListener()
-	l2 := newTestConnectionModelListener()
+	l1 := newTestConnectionModelListener(Master)
+	l2 := newTestConnectionModelListener(Worker)
 
 	srv.TestModel.AddListener(l1)
 	srv2.TestModel.AddListener(l2)
@@ -99,9 +99,9 @@ func TestHealRemoteNSE(t *testing.T) {
 
 	// First update, is delete
 	// Second update is update
-	l1.WaitUpdate(7, timeout, t)
+	l1.WaitUpdate(4, timeout, t)
 
 	clientConnection1_1 := srv.TestModel.GetClientConnection(nsmResponse.GetId())
 	g.Expect(clientConnection1_1.GetID()).To(Equal("1"))
-	g.Expect(clientConnection1_1.Xcon.GetRemoteDestination().GetId()).To(Equal("3"))
+	g.Expect(clientConnection1_1.Xcon.GetRemoteDestination().GetId()).To(Equal("4"))
 }

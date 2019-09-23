@@ -18,20 +18,13 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 )
 
-type networkServiceEndpointManager interface {
-	getEndpoint(ctx context.Context, requestConnection connection.Connection, ignoreEndpoints map[string]*registry.NSERegistration) (*registry.NSERegistration, error)
-	createNSEClient(ctx context.Context, endpoint *registry.NSERegistration) (nsm.NetworkServiceClient, error)
-	isLocalEndpoint(endpoint *registry.NSERegistration) bool
-	checkUpdateNSE(ctx context.Context, reg *registry.NSERegistration) bool
-}
-
 type nseManager struct {
 	serviceRegistry serviceregistry.ServiceRegistry
 	model           model.Model
 	properties      *nsm.Properties
 }
 
-func (nsem *nseManager) getEndpoint(ctx context.Context, requestConnection connection.Connection, ignoreEndpoints map[string]*registry.NSERegistration) (*registry.NSERegistration, error) {
+func (nsem *nseManager) GetEndpoint(ctx context.Context, requestConnection connection.Connection, ignoreEndpoints map[string]*registry.NSERegistration) (*registry.NSERegistration, error) {
 
 	// Handle case we are remote NSM and asked for particular endpoint to connect to.
 	targetEndpoint := requestConnection.GetNetworkServiceEndpointName()
@@ -81,7 +74,7 @@ func (nsem *nseManager) getEndpoint(ctx context.Context, requestConnection conne
 /**
 ctx - we assume it is big enought to perform connection.
 */
-func (nsem *nseManager) createNSEClient(ctx context.Context, endpoint *registry.NSERegistration) (nsm.NetworkServiceClient, error) {
+func (nsem *nseManager) CreateNSEClient(ctx context.Context, endpoint *registry.NSERegistration) (nsm.NetworkServiceClient, error) {
 
 	var span opentracing.Span
 	if opentracing.GlobalTracer() != nil {
@@ -90,7 +83,7 @@ func (nsem *nseManager) createNSEClient(ctx context.Context, endpoint *registry.
 	}
 
 	logger := common.LogFromSpan(span)
-	if nsem.isLocalEndpoint(endpoint) {
+	if nsem.IsLocalEndpoint(endpoint) {
 		modelEp := nsem.model.GetEndpoint(endpoint.GetNetworkServiceEndpoint().GetName())
 		if modelEp == nil {
 			return nil, fmt.Errorf("Endpoint not found: %v", endpoint)
@@ -113,15 +106,15 @@ func (nsem *nseManager) createNSEClient(ctx context.Context, endpoint *registry.
 	}
 }
 
-func (nsem *nseManager) isLocalEndpoint(endpoint *registry.NSERegistration) bool {
+func (nsem *nseManager) IsLocalEndpoint(endpoint *registry.NSERegistration) bool {
 	return nsem.model.GetNsm().GetName() == endpoint.GetNetworkServiceEndpoint().GetNetworkServiceManagerName()
 }
 
-func (nsem *nseManager) checkUpdateNSE(ctx context.Context, reg *registry.NSERegistration) bool {
+func (nsem *nseManager) CheckUpdateNSE(ctx context.Context, reg *registry.NSERegistration) bool {
 	pingCtx, pingCancel := context.WithTimeout(ctx, nsem.properties.HealRequestConnectCheckTimeout)
 	defer pingCancel()
 
-	client, err := nsem.createNSEClient(pingCtx, reg)
+	client, err := nsem.CreateNSEClient(pingCtx, reg)
 	if err == nil && client != nil {
 		_ = client.Cleanup()
 		return true

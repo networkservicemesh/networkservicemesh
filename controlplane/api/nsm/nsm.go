@@ -3,8 +3,15 @@ package nsm
 import (
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/plugins"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
+
+	local_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
+	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
 
 	"golang.org/x/net/context"
 
@@ -43,14 +50,33 @@ const (
 	HealStateDstNmgrDown HealState = 5
 )
 
-// NetworkServiceManager - interface for connection between NSMs
+// NetworkServiceRequestManager - allow to provide local and remote service interfaces.
+type NetworkServiceRequestManager interface {
+	LocalManager() local_networkservice.NetworkServiceServer
+	RemoteManager() remote_networkservice.NetworkServiceServer
+}
 type NetworkServiceManager interface {
-	Request(ctx context.Context, request networkservice.Request) (connection.Connection, error)
-	Close(ctx context.Context, clientConnection ClientConnection) error
-	Heal(clientConnection ClientConnection, healState HealState)
 	RestoreConnections(xcons []*crossconnect.CrossConnect, dataplane string)
 	GetHealProperties() *Properties
 	WaitForDataplane(ctx context.Context, duration time.Duration) error
-	RemoteConnectionLost(clientConnection ClientConnection)
+	RemoteConnectionLost(ctx context.Context, clientConnection ClientConnection)
 	NotifyRenamedEndpoint(nseOldName, nseNewName string)
+	// Getters
+	ServiceRegistry() serviceregistry.ServiceRegistry
+	NseManager() NetworkServiceEndpointManager
+	PluginRegistry() plugins.PluginRegistry
+	Model() model.Model
+
+	SetRemoteServer(server remote_networkservice.NetworkServiceServer)
+
+	CloseConnection(ctx context.Context, clientConnection ClientConnection) error
+	Heal(clientConnection ClientConnection, state HealState)
+}
+
+//NetworkServiceEndpointManager - manages endpoints, TODO: Will be removed in next PRs.
+type NetworkServiceEndpointManager interface {
+	GetEndpoint(ctx context.Context, requestConnection connection.Connection, ignoreEndpoints map[string]*registry.NSERegistration) (*registry.NSERegistration, error)
+	CreateNSEClient(ctx context.Context, endpoint *registry.NSERegistration) (NetworkServiceClient, error)
+	IsLocalEndpoint(endpoint *registry.NSERegistration) bool
+	CheckUpdateNSE(ctx context.Context, reg *registry.NSERegistration) bool
 }

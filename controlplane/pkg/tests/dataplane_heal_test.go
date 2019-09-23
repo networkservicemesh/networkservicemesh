@@ -32,8 +32,8 @@ func TestHealLocalDataplane(t *testing.T) {
 	// Add to local endpoints for Server2
 	srv2.TestModel.AddEndpoint(nseReg)
 
-	l1 := newTestConnectionModelListener()
-	l2 := newTestConnectionModelListener()
+	l1 := newTestConnectionModelListener(Master)
+	l2 := newTestConnectionModelListener(Worker)
 
 	srv.TestModel.AddListener(l1)
 	srv2.TestModel.AddListener(l2)
@@ -88,14 +88,15 @@ func TestHealLocalDataplane(t *testing.T) {
 		t.Fatal("Err must be nil")
 	}
 
-	// Simlate dataplane dead
+	// Simulate dataplane dead
 	srv.TestModel.AddDataplane(testDataplane1_1)
 	srv.TestModel.DeleteDataplane(testDataplane1.RegisteredName)
 
+	//<- time.After(1000*time.Second)
 	// We need to inform cross connection monitor about this connection, since dataplane is fake one.
 	// First update is with down state
 	// But we want to wait for Up state
-	l1.WaitUpdate(8, timeout, t)
+	l1.WaitUpdate(5, timeout, t)
 	// We need to inform cross connection monitor about this connection, since dataplane is fake one.
 
 	clientConnection1_1 := srv.TestModel.GetClientConnection(nsmResponse.GetId())

@@ -69,7 +69,7 @@ func main() {
 	var srvErr error
 	// Start NSMD server first, load local NSE/client registry and only then start dataplane/wait for it and recover active connections.
 
-	if server, srvErr = nsmd.StartNSMServer(ctx, model, manager, serviceRegistry, apiRegistry); srvErr != nil {
+	if server, srvErr = nsmd.StartNSMServer(ctx, model, manager, apiRegistry); srvErr != nil {
 		logrus.Errorf("error starting nsmd service: %+v", srvErr)
 		return
 	}
@@ -83,7 +83,7 @@ func main() {
 	nsmdGoals.SetNsmServerReady()
 
 	// Register CrossConnect monitorCrossConnectServer client as ModelListener
-	monitorCrossConnectClient := nsmd.NewMonitorCrossConnectClient(server, server.XconManager(), server)
+	monitorCrossConnectClient := nsmd.NewMonitorCrossConnectClient(model, server, server.XconManager(), server)
 	model.AddListener(monitorCrossConnectClient)
 
 	// Starting dataplane

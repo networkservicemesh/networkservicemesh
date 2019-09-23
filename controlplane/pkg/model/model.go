@@ -36,6 +36,7 @@ type Model interface {
 
 	AddListener(listener Listener)
 	RemoveListener(listener Listener)
+	ListenerCount() int
 
 	SetNsm(nsm *registry.NetworkServiceManager)
 	GetNsm() *registry.NetworkServiceManager
@@ -103,6 +104,10 @@ func (m *model) RemoveListener(listener Listener) {
 	}
 	deleter()
 	delete(m.listeners, listener)
+}
+
+func (m *model) ListenerCount() int {
+	return len(m.listeners)
 }
 
 // NewModel returns new instance of Model

@@ -88,7 +88,7 @@ func NewWorkSpace(nsm *nsmServer, name string, restore bool) (*Workspace, error)
 	w.monitorConnectionServer = local.NewMonitorServer()
 
 	logrus.Infof("Creating new NetworkServiceServer")
-	w.networkServiceServer = NewNetworkServiceServer(nsm.model, w, nsm.manager, nsm.serviceRegistry)
+	w.networkServiceServer = NewNetworkServiceServer(nsm.model, w, nsm.manager)
 
 	logrus.Infof("Creating new GRPC MonitorServer")
 	w.grpcServer = tools.NewServer()

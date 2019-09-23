@@ -9,6 +9,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
+
 	"github.com/opentracing/opentracing-go"
 
 	"github.com/sirupsen/logrus"
@@ -209,9 +211,10 @@ func NewServiceRegistryAt(nsmAddress string) serviceregistry.ServiceRegistry {
 }
 
 func (impl *nsmdServiceRegistry) WaitForDataplaneAvailable(ctx context.Context, mdl model.Model, timeout time.Duration) error {
-	logrus.Info("Waiting for dataplane available...")
+	logger := common.Log(ctx)
+	logger.Info("Waiting for dataplane available...")
 
-	if opentracing.GlobalTracer() != nil {
+	if opentracing.IsGlobalTracerRegistered() {
 		span, _ := opentracing.StartSpanFromContext(ctx, "wait-dataplane")
 		defer span.Finish()
 	}

@@ -65,8 +65,8 @@ func TestSelectDataplane(t *testing.T) {
 	// Add to local endpoints for Server2
 	srv2.TestModel.AddEndpoint(nseReg)
 
-	l1 := newTestConnectionModelListener()
-	l2 := newTestConnectionModelListener()
+	l1 := newTestConnectionModelListener(Master)
+	l2 := newTestConnectionModelListener(Worker)
 
 	srv.TestModel.AddListener(l1)
 	srv2.TestModel.AddListener(l2)

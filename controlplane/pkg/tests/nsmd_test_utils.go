@@ -67,10 +67,12 @@ type nsmdTestServiceDiscovery struct {
 }
 
 func (impl *nsmdTestServiceDiscovery) RegisterNSE(ctx context.Context, in *registry.NSERegistration, opts ...grpc.CallOption) (*registry.NSERegistration, error) {
-	logrus.Infof("Register NSE: %v", in)
+	logrus.Infof("Test Register NSE: %v", in)
 
 	if in.GetNetworkService() != nil {
+		impl.storage.Lock()
 		impl.storage.services[in.GetNetworkService().GetName()] = in.GetNetworkService()
+		impl.storage.Unlock()
 	}
 	if in.GetNetworkServiceManager() != nil {
 		in.NetworkServiceManager.Name = impl.nsmgrName
@@ -567,13 +569,13 @@ func newNSMDFullServerAt(ctx context.Context, nsmgrName string, storage *sharedS
 	}
 
 	// Lets start NSMD NSE registry service
-	nsmServer, err := nsmd.StartNSMServer(ctx, srv.TestModel, srv.manager, srv.serviceRegistry, srv.apiRegistry)
+	nsmServer, err := nsmd.StartNSMServer(ctx, srv.TestModel, srv.manager, srv.apiRegistry)
 	srv.nsmServer = nsmServer
 	if err != nil {
 		panic(err)
 	}
 
-	monitorCrossConnectClient := nsmd.NewMonitorCrossConnectClient(nsmServer, nsmServer.XconManager(), srv.nsmServer)
+	monitorCrossConnectClient := nsmd.NewMonitorCrossConnectClient(srv.TestModel, nsmServer, nsmServer.XconManager(), srv.nsmServer)
 	srv.TestModel.AddListener(monitorCrossConnectClient)
 	probes := probes.New("Test probes", nil)
 

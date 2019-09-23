@@ -6,6 +6,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/protobuf/ptypes/empty"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
+
 	"github.com/gogo/protobuf/proto"
 	. "github.com/onsi/gomega"
 	net_context "golang.org/x/net/context"
@@ -41,11 +45,45 @@ const (
 type healTestData struct {
 	model model.Model
 
-	serviceRegistry   *serviceRegistryStub
-	connectionManager *connectionManagerStub
-	nseManager        *nseManagerStub
+	serviceRegistry *serviceRegistryStub
+	nseManager      *nseManagerStub
 
-	healProcessor *healProcessor
+	healProcessor     *healProcessor
+	connectionManager *connectionManagerStub
+}
+
+type localManagerManagerStub struct {
+	connectionManager *connectionManagerStub
+}
+
+func (mgr *localManagerManagerStub) Request(ctx context.Context, request *local_networkservice.NetworkServiceRequest) (*local_connection.Connection, error) {
+	conn, err := mgr.connectionManager.request(ctx, request, mgr.connectionManager.model.GetClientConnection(request.GetConnection().GetId()))
+	if err == nil {
+		return conn.(*local_connection.Connection), nil
+	}
+	return nil, err
+}
+
+func (mgr *localManagerManagerStub) Close(ctx context.Context, connection *local_connection.Connection) (*empty.Empty, error) {
+	err := mgr.connectionManager.Close(ctx, mgr.connectionManager.model.GetClientConnection(connection.GetId()))
+	return &empty.Empty{}, err
+}
+
+type remoteManagerManagerStub struct {
+	connectionManager *connectionManagerStub
+}
+
+func (mgr *remoteManagerManagerStub) Request(ctx context.Context, request *remote_networkservice.NetworkServiceRequest) (*remote_connection.Connection, error) {
+	conn, err := mgr.connectionManager.request(ctx, request, mgr.connectionManager.model.GetClientConnection(request.GetConnection().GetId()))
+	if err != nil {
+		return conn.(*remote_connection.Connection), nil
+	}
+	return nil, err
+}
+
+func (mgr *remoteManagerManagerStub) Close(ctx context.Context, connection *remote_connection.Connection) (*empty.Empty, error) {
+	err := mgr.connectionManager.Close(ctx, mgr.connectionManager.model.GetClientConnection(connection.GetId()))
+	return &empty.Empty{}, err
 }
 
 func newHealTestData() *healTestData {
@@ -74,9 +112,8 @@ func newHealTestData() *healTestData {
 		properties: &nsm.Properties{
 			HealEnabled: true,
 		},
-
-		conManager: data.connectionManager,
 		nseManager: data.nseManager,
+		manager:    data.connectionManager,
 	}
 
 	data.model.SetNsm(&registry.NetworkServiceManager{
@@ -104,7 +141,7 @@ func TestHealDstDown_RemoteClientLocalEndpoint(t *testing.T) {
 	connection := data.createClientConnection("id", xcon, nse1, remoteNSMName, dataplane1Name, request)
 	data.model.AddClientConnection(connection)
 
-	healed := data.healProcessor.healDstDown("", data.cloneClientConnection(connection))
+	healed := data.healProcessor.healDstDown(context.Background(), data.cloneClientConnection(connection))
 	g.Expect(healed).To(BeFalse())
 
 	test_utils.NewModelVerifier(data.model).
@@ -131,8 +168,9 @@ func TestHealDstDown_LocalClientLocalEndpoint(t *testing.T) {
 	data.model.AddClientConnection(connection)
 
 	data.serviceRegistry.discoveryClient.response = data.createFindNetworkServiceResponse(nse2)
+	data.connectionManager.nse = nse2
 
-	healed := data.healProcessor.healDstDown("", data.cloneClientConnection(connection))
+	healed := data.healProcessor.healDstDown(context.Background(), data.cloneClientConnection(connection))
 	g.Expect(healed).To(BeTrue())
 
 	test_utils.NewModelVerifier(data.model).
@@ -157,7 +195,7 @@ func TestHealDstDown_LocalClientLocalEndpoint_NoNSEFound(t *testing.T) {
 	connection := data.createClientConnection("id", xcon, nse1, localNSMName, dataplane1Name, request)
 	data.model.AddClientConnection(connection)
 
-	healed := data.healProcessor.healDstDown("", data.cloneClientConnection(connection))
+	healed := data.healProcessor.healDstDown(context.Background(), data.cloneClientConnection(connection))
 	g.Expect(healed).To(BeFalse())
 
 	test_utils.NewModelVerifier(data.model).
@@ -183,7 +221,7 @@ func TestHealDstDown_LocalClientLocalEndpoint_RequestFailed(t *testing.T) {
 
 	data.connectionManager.requestError = fmt.Errorf("request error")
 
-	healed := data.healProcessor.healDstDown("", data.cloneClientConnection(connection))
+	healed := data.healProcessor.healDstDown(context.Background(), data.cloneClientConnection(connection))
 	g.Expect(healed).To(BeFalse())
 
 	test_utils.NewModelVerifier(data.model).
@@ -202,14 +240,14 @@ func TestHealDstDown_LocalClientRemoteEndpoint(t *testing.T) {
 	data.nseManager.nses = append(data.nseManager.nses, nse2)
 
 	xcon := data.createCrossConnection(false, true, "src", "dst")
-	request := data.createRequest(true)
+	request := data.createRequest(false)
 	connection := data.createClientConnection("id", xcon, nse1, remoteNSMName, dataplane1Name, request)
 	data.model.AddClientConnection(connection)
 
 	data.serviceRegistry.discoveryClient.response = data.createFindNetworkServiceResponse(nse2)
 	data.connectionManager.nse = nse2
 
-	healed := data.healProcessor.healDstDown("", data.cloneClientConnection(connection))
+	healed := data.healProcessor.healDstDown(context.Background(), data.cloneClientConnection(connection))
 	g.Expect(healed).To(BeTrue())
 
 	g.Expect(data.nseManager.nseClients[nse1Name].cleanedUp).To(BeTrue())
@@ -230,11 +268,11 @@ func TestHealDstDown_LocalClientRemoteEndpoint_NoNSEFound(t *testing.T) {
 	nse1 := data.createEndpoint(nse1Name, remoteNSMName)
 
 	xcon := data.createCrossConnection(false, true, "src", "dst")
-	request := data.createRequest(true)
+	request := data.createRequest(false)
 	connection := data.createClientConnection("id", xcon, nse1, remoteNSMName, dataplane1Name, request)
 	data.model.AddClientConnection(connection)
 
-	healed := data.healProcessor.healDstDown("", data.cloneClientConnection(connection))
+	healed := data.healProcessor.healDstDown(context.Background(), data.cloneClientConnection(connection))
 	g.Expect(healed).To(BeFalse())
 
 	g.Expect(data.nseManager.nseClients[nse1Name].cleanedUp).To(BeTrue())
@@ -282,26 +320,42 @@ type connectionManagerStub struct {
 	closeError error
 }
 
+func (stub *connectionManagerStub) LocalManager() local_networkservice.NetworkServiceServer {
+	return &localManagerManagerStub{
+		connectionManager: stub,
+	}
+}
+
+func (stub *connectionManagerStub) RemoteManager() remote_networkservice.NetworkServiceServer {
+	return &remoteManagerManagerStub{
+		connectionManager: stub,
+	}
+}
+
 func (stub *connectionManagerStub) request(ctx context.Context, request networkservice.Request, existingConnection *model.ClientConnection) (connection.Connection, error) {
 	if stub.requestError != nil {
 		return nil, stub.requestError
 	}
 
 	nsmConnection := request.GetRequestConnection().Clone()
-	var dstId string
-	if conn := existingConnection.Xcon.GetLocalDestination(); conn != nil {
-		dstId = conn.GetId()
-	}
-	if conn := existingConnection.Xcon.GetRemoteDestination(); conn != nil {
-		dstId = conn.GetId()
+	endpointId := ""
+	if existingConnection.Endpoint != nil {
+		endpointId = existingConnection.Endpoint.NetworkServiceEndpoint.Name
 	}
 
-	if dstId == "-" {
+	// Update Endpoint, if less what expected
+	ignoreEndpoints := common.IgnoredEndpoints(ctx)
+
+	if ignoreEndpoints[endpointId] != nil {
 		if stub.nse != nil {
 			existingConnection.Endpoint = stub.nse
 		} else {
 			stub.model.DeleteClientConnection(existingConnection.GetID())
 			return nil, fmt.Errorf("no NSE available")
+		}
+	} else {
+		if stub.nse != nil {
+			existingConnection.Endpoint = stub.nse
 		}
 	}
 
@@ -350,11 +404,11 @@ type nseManagerStub struct {
 	nses []*registry.NSERegistration
 }
 
-func (stub *nseManagerStub) getEndpoint(ctx context.Context, requestConnection connection.Connection, ignoreEndpoints map[string]*registry.NSERegistration) (*registry.NSERegistration, error) {
+func (stub *nseManagerStub) GetEndpoint(ctx context.Context, requestConnection connection.Connection, ignoreEndpoints map[string]*registry.NSERegistration) (*registry.NSERegistration, error) {
 	panic("implement me")
 }
 
-func (stub *nseManagerStub) createNSEClient(ctx context.Context, endpoint *registry.NSERegistration) (nsm.NetworkServiceClient, error) {
+func (stub *nseManagerStub) CreateNSEClient(ctx context.Context, endpoint *registry.NSERegistration) (nsm.NetworkServiceClient, error) {
 	if stub.clientError != nil {
 		return nil, stub.clientError
 	}
@@ -367,11 +421,11 @@ func (stub *nseManagerStub) createNSEClient(ctx context.Context, endpoint *regis
 	return nseClient, nil
 }
 
-func (stub *nseManagerStub) isLocalEndpoint(endpoint *registry.NSERegistration) bool {
+func (stub *nseManagerStub) IsLocalEndpoint(endpoint *registry.NSERegistration) bool {
 	return stub.model.GetNsm().GetName() == endpoint.GetNetworkServiceEndpoint().GetNetworkServiceManagerName()
 }
 
-func (stub *nseManagerStub) checkUpdateNSE(ctx context.Context, reg *registry.NSERegistration) bool {
+func (stub *nseManagerStub) CheckUpdateNSE(ctx context.Context, reg *registry.NSERegistration) bool {
 	for _, nse := range stub.nses {
 		if nse.GetNetworkServiceEndpoint().GetName() == reg.GetNetworkServiceEndpoint().GetName() {
 			return true
@@ -453,6 +507,12 @@ func (data *healTestData) cloneClientConnection(connection *model.ClientConnecti
 	nsm := connection.RemoteNsm.GetName()
 	dataplane := connection.DataplaneRegisteredName
 	request := data.createRequest(connection.Request.IsRemote())
+
+	if request.IsRemote() {
+		request.(*remote_networkservice.NetworkServiceRequest).Connection.Id = id
+	} else {
+		request.(*local_networkservice.NetworkServiceRequest).Connection.Id = id
+	}
 
 	return data.createClientConnection(id, xcon, nse, nsm, dataplane, request)
 }
