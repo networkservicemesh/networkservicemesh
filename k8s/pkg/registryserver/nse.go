@@ -93,7 +93,7 @@ func (rs *nseRegistryService) RegisterNSE(ctx context.Context, request *registry
 		}
 		request.NetworkServiceManager = mapNsmFromCustomResource(nsm)
 
-		err = forwardRegisterNSE(ctx, request)
+		err = rs.forwardRegisterNSE(ctx, request)
 		if err != nil {
 			logrus.Warnf("Cannot forward NSE Registration: %v", err)
 		}
@@ -114,7 +114,7 @@ func (rs *nseRegistryService) RemoveNSE(ctx context.Context, request *registry.R
 	return &empty.Empty{}, nil
 }
 
-func forwardRegisterNSE(ctx context.Context, request *registry.NSERegistration) error {
+func (rs *nseRegistryService) forwardRegisterNSE(ctx context.Context, request *registry.NSERegistration) error {
 	nsrURL := os.Getenv(ProxyNsmdK8sAddressEnv)
 	if strings.TrimSpace(nsrURL) == "" {
 		nsrURL = ProxyNsmdK8sAddressDefaults
@@ -126,6 +126,31 @@ func forwardRegisterNSE(ctx context.Context, request *registry.NSERegistration) 
 	nseRegistryClient, err := remoteRegistry.NseRegistryClient()
 	if err != nil {
 		return err
+	}
+
+	service, err := rs.cache.GetNetworkService(request.NetworkService.Name)
+	if err != nil {
+		return err
+	}
+
+	request.NetworkService.Payload = service.Spec.Payload
+
+	for _, m := range service.Spec.Matches {
+		var routes []*registry.Destination
+
+		for _, r := range m.Routes {
+			destination := &registry.Destination{
+				DestinationSelector: r.DestinationSelector,
+				Weight:              r.Weight,
+			}
+			routes = append(routes, destination)
+		}
+
+		match := &registry.Match{
+			SourceSelector: m.SourceSelector,
+			Routes:         routes,
+		}
+		request.NetworkService.Matches = append(request.NetworkService.Matches, match)
 	}
 
 	logrus.Info("Forwarding Register NSE request (%v)", err)

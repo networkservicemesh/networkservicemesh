@@ -28,8 +28,9 @@ func New() *grpc.Server {
 			otgrpc.OpenTracingStreamServerInterceptor(tracer)))
 
 
-	discovery := newDiscoveryService()
-	registryService := NewNseRegistryService()
+	cache := NewNSERegistryCache()
+	discovery := newDiscoveryService(cache)
+	registryService := NewNseRegistryService(cache)
 	registry.RegisterNetworkServiceDiscoveryServer(server, discovery)
 	registry.RegisterNetworkServiceRegistryServer(server, registryService)
 

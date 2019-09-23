@@ -2,9 +2,11 @@ package main
 
 import (
 	"github.com/networkservicemesh/networkservicemesh/applications/nsmrs/pkg/serviceregistryserver"
+	"math/rand"
 	"net"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/opentracing/opentracing-go"
@@ -21,6 +23,8 @@ var version string
 func main() {
 	logrus.Info("Starting kube-api-server...")
 	logrus.Infof("Version: %v", version)
+
+	rand.Seed(time.Now().Unix())
 
 	c := tools.NewOSSignalChannel()
 

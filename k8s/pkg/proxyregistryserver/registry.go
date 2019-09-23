@@ -49,6 +49,11 @@ func (rs *nseRegistryService) RegisterNSE(ctx context.Context, request *registry
 	if externalIP == "" {
 		externalIP = nodeConfiguration.InternalIP
 	}
+	// Swapping IP address to external (keep port)
+	url := request.NetworkServiceManager.Url
+	if idx := strings.Index(url, ":"); idx > -1 {
+		externalIP += url[idx:]
+	}
 	request.NetworkServiceManager.Url = externalIP
 
 	logrus.Infof("%s: Prepared forwarding RegisterNSE request: %v", NSRegistryForwarderLogPrefix, request)

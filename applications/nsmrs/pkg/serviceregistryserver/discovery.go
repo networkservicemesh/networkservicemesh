@@ -8,16 +8,39 @@ import (
 )
 
 type discoveryService struct {
-
+	cache NSERegistryCache
 }
 
-func newDiscoveryService() *discoveryService {
+func newDiscoveryService(cache NSERegistryCache) *discoveryService {
 	return &discoveryService{
-
+		cache: cache,
 	}
 }
 
 func (d *discoveryService) FindNetworkService(ctx context.Context, request *registry.FindNetworkServiceRequest) (*registry.FindNetworkServiceResponse, error) {
-	logrus.Errorf("Not implemented")
-	return nil, fmt.Errorf("not implemented")
+	networkServiceEnpoints := d.cache.GetEndpointsByNs(request.NetworkServiceName)
+	if networkServiceEnpoints == nil || len(networkServiceEnpoints) == 0 {
+		err := fmt.Errorf("no NetworkService with name: %v", request.NetworkServiceName)
+		logrus.Errorf("Cannot file Network Service: %v", err)
+		return nil, err
+	}
+
+	response := &registry.FindNetworkServiceResponse{
+		NetworkService: &registry.NetworkService{
+			Name: request.NetworkServiceName,
+		},
+		NetworkServiceManagers: make(map[string]*registry.NetworkServiceManager),
+	}
+
+	for _, endpoint := range networkServiceEnpoints {
+		response.NetworkServiceManagers[endpoint.NetworkServiceManager.Name] = endpoint.NetworkServiceManager
+		response.NetworkServiceEndpoints = append(response.NetworkServiceEndpoints, endpoint.NetworkServiceEndpoint)
+		response.NetworkService.Matches = endpoint.NetworkService.Matches
+		response.NetworkService.Payload = endpoint.NetworkService.Payload
+		response.Payload = endpoint.NetworkService.Payload
+	}
+
+	logrus.Infof("FindNetworkService done: %v", response)
+
+	return response, nil
 }

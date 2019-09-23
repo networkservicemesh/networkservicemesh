@@ -30,8 +30,8 @@ func testFloatingInterdomain(t *testing.T, clustersCount int) {
 		k8s, err := kubetest.NewK8sForConfig(g, true, kubeconfig)
 		g.Expect(err).To(BeNil())
 
-		//defer k8s.Cleanup()
-		//defer kubetest.MakeLogsSnapshot(k8s, t)
+		defer k8s.Cleanup()
+		defer kubetest.MakeLogsSnapshot(k8s, t)
 
 		k8ss = append(k8ss, &kubetest.ExtK8s{
 			K8s:        k8s,
@@ -40,7 +40,7 @@ func testFloatingInterdomain(t *testing.T, clustersCount int) {
 	}
 
 	nsmrsNode := &k8ss[clustersCount-1].K8s.GetNodesWait(2, defaultTimeout)[1]
-	kubetest.DeployNSMRS(k8ss[clustersCount - 1].K8s, nsmrsNode, "nsmrs", defaultTimeout)
+	nsmrsPod := kubetest.DeployNSMRS(k8ss[clustersCount - 1].K8s, nsmrsNode, "nsmrs", defaultTimeout)
 
 	nsmrsExternalIP, err := kubetest.GetNodeExternalIP(nsmrsNode)
 	if err != nil {
@@ -75,8 +75,8 @@ func testFloatingInterdomain(t *testing.T, clustersCount int) {
 		defer serviceCleanup()
 	}
 
-	//<- time.After(1 * time.Minute)
 	_ = kubetest.DeployICMP(k8ss[clustersCount-1].K8s, k8ss[clustersCount-1].NodesSetup[0].Node, "icmp-responder-nse-1", defaultTimeout)
+	k8ss[clustersCount-1].K8s.WaitLogsContains(nsmrsPod, "nsmrs", "Returned from RegisterNSE", defaultTimeout)
 
 	nscPodNode := kubetest.DeployNSCWithEnv(k8ss[0].K8s, k8ss[0].NodesSetup[0].Node, "nsc-1", defaultTimeout, map[string]string{
 		"OUTGOING_NSC_LABELS": "app=icmp",
@@ -84,6 +84,4 @@ func testFloatingInterdomain(t *testing.T, clustersCount int) {
 	})
 
 	kubetest.CheckNSC(k8ss[0].K8s, nscPodNode)
-
-	//<- time.After(1 * time.Minute)
 }
