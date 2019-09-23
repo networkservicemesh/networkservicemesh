@@ -47,6 +47,10 @@ func createDNSPatch(tuple *podSpecAndMeta, annotationValue string) (patch []patc
 					Limits: corev1.ResourceList{
 						"networkservicemesh.io/socket": resource.MustParse("1"),
 					},
+					{
+						Name:  nsmcorednsenv.DefaultDNSServerIPList.Name(),
+						Value: nsmcorednsenv.DefaultDNSServerIPList.GetStringOrDefault("10.96.0.10"),
+					},
 				},
 			},
 		})...)
