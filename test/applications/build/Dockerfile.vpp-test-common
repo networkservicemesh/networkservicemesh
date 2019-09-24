@@ -16,7 +16,7 @@ WORKDIR /root/networkservicemesh/test
 RUN VENDORING=${VENDORING} ../scripts/go-mod-download.sh
 
 FROM ${VPP_AGENT} as runtime
-RUN rm /opt/vpp-agent/dev/etcd.conf; echo "disabled: true" > /opt/vpp-agent/dev/linux-plugin.conf
+RUN rm /opt/vpp-agent/dev/etcd.conf; echo "disabled: true" > /opt/vpp-agent/dev/linux-plugin.conf;echo "disabled: true" > /opt/vpp-agent/dev/telemetry.conf
 COPY dataplane/vppagent/conf/vpp/startup.conf /etc/vpp/vpp.conf
 COPY test/applications/vpp-conf/supervisord.conf /etc/supervisord/supervisord.conf
 COPY test/applications/vpp-conf/run.sh /bin/vpp-run.sh
@@ -30,7 +30,7 @@ ARG VENDORING
 RUN CGO_ENABLED=0 GOOS=linux go build ${VENDORING} -ldflags "-extldflags '-static' -X  main.version=${VERSION}" -o /go/bin/vppagent-nsc ./applications/cmd/vppagent-nsc
 FROM runtime as runtime-1
 COPY --from=build-1 /go/bin/vppagent-nsc /bin/vppagent-nsc
-RUN mkdir /tmp/vpp/vppagent-nsc/; echo 'Endpoint: "0.0.0.0:9113"' > /tmp/vpp/vppagent-nsc/grpc.conf
+RUN mkdir /tmp/vpp/vppagent-nsc/; echo 'Endpoint: "0.0.0.0:9113"' > /tmp/vpp/vppagent-nsc/grpc.conf;echo "disabled: true" > /opt/vpp-agent/dev/telemetry.conf
 
 # 2. vppagent-icmp-responder-nse
 FROM build-1 as build-2
@@ -39,7 +39,7 @@ ARG VENDORING
 RUN CGO_ENABLED=0 GOOS=linux go build ${VENDORING} -ldflags "-extldflags '-static' -X  main.version=${VERSION}" -o /go/bin/vppagent-icmp-responder-nse ./applications/cmd/vppagent-icmp-responder-nse
 FROM runtime-1 as runtime-2
 COPY --from=build-2 /go/bin/vppagent-icmp-responder-nse /bin/vppagent-icmp-responder-nse
-RUN mkdir /tmp/vpp/vppagent-icmp-responder-nse/; echo 'Endpoint: "0.0.0.0:9112"' > /tmp/vpp/vppagent-icmp-responder-nse/grpc.conf
+RUN mkdir /tmp/vpp/vppagent-icmp-responder-nse/; echo 'Endpoint: "0.0.0.0:9112"' > /tmp/vpp/vppagent-icmp-responder-nse/grpc.conf;echo "disabled: true" > /opt/vpp-agent/dev/telemetry.conf
 
 # 3. vppagent-firewall-nse
 FROM build-2 as build-3
@@ -48,4 +48,4 @@ ARG VENDORING
 RUN CGO_ENABLED=0 GOOS=linux go build ${VENDORING} -ldflags "-extldflags '-static' -X  main.version=${VERSION}" -o /go/bin/vppagent-firewall-nse ./applications/cmd/vppagent-firewall-nse
 FROM runtime-2 as runtime-3
 COPY --from=build-3 /go/bin/vppagent-firewall-nse /bin/vppagent-firewall-nse
-RUN mkdir /tmp/vpp/vppagent-firewall-nse/; echo 'Endpoint: "0.0.0.0:9112"' > /tmp/vpp/vppagent-firewall-nse/grpc.conf
+RUN mkdir /tmp/vpp/vppagent-firewall-nse/; echo 'Endpoint: "0.0.0.0:9112"' > /tmp/vpp/vppagent-firewall-nse/grpc.conf;echo "disabled: true" > /opt/vpp-agent/dev/telemetry.conf
