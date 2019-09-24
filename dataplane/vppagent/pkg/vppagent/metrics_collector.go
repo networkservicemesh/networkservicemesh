@@ -3,9 +3,10 @@ package vppagent
 import (
 	"context"
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"io"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 
 	"github.com/gogo/protobuf/proto"
 	rpc "github.com/ligato/vpp-agent/api/configurator"

@@ -23,12 +23,8 @@ import (
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/ligato/vpp-agent/api/configurator"
 	"github.com/ligato/vpp-agent/api/models/vpp"
-	"github.com/ligato/vpp-agent/api/models/vpp/acl"
-	"github.com/ligato/vpp-agent/api/models/vpp/interfaces"
-	"github.com/ligato/vpp-agent/api/models/vpp/l3"
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/status"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"

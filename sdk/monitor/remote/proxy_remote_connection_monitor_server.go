@@ -3,12 +3,12 @@ package remote
 import (
 	"context"
 	"fmt"
+
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 
 	"github.com/networkservicemesh/networkservicemesh/utils/interdomain"
 
 	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"

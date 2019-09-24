@@ -26,7 +26,6 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
-	"google.golang.org/grpc"
 	pluginapi "k8s.io/kubernetes/pkg/kubelet/apis/deviceplugin/v1beta1"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsmdapi"
