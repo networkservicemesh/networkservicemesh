@@ -1,4 +1,5 @@
-FROM golang:alpine as build
+ARG GO_VERSION
+FROM golang:${GO_VERSION}-alpine as build
 ARG VERSION=unspecified
 ENV PACKAGEPATH=github.com/networkservicemesh/networkservicemesh/test
 COPY [".","/go/src/${PACKAGEPATH}"]

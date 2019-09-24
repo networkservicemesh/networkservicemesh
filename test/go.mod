@@ -6,7 +6,6 @@ require (
 	github.com/gogo/protobuf v1.2.2-0.20190723190241-65acae22fc9d
 	github.com/golang/protobuf v1.3.2
 	github.com/google/uuid v1.1.1
-	github.com/ligato/cn-infra v2.0.0+incompatible
 	github.com/ligato/vpp-agent v2.1.1+incompatible
 	github.com/networkservicemesh/networkservicemesh/controlplane v0.2.0
 	github.com/networkservicemesh/networkservicemesh/controlplane/api v0.2.0
@@ -33,6 +32,7 @@ require (
 )
 
 replace (
+	// ./scripts/switch_k8s_version.sh to change k8s version
 	gonum.org/v1/gonum => github.com/gonum/gonum v0.0.0-20190331200053-3d26580ed485
 	gonum.org/v1/netlib => github.com/gonum/netlib v0.0.0-20190331212654-76723241ea4e
 	k8s.io/api => k8s.io/api v0.0.0-20190819141258-3544db3b9e44
@@ -75,3 +75,5 @@ replace (
 	github.com/networkservicemesh/networkservicemesh/test => ../test
 	github.com/networkservicemesh/networkservicemesh/utils => ../utils
 )
+
+go 1.13

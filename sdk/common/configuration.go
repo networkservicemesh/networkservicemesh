@@ -18,7 +18,6 @@ package common
 import (
 	"strings"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
@@ -50,15 +49,15 @@ type NSConfiguration struct {
 func (configuration *NSConfiguration) CompleteNSConfiguration() {
 
 	if configuration.NsmServerSocket == "" {
-		configuration.NsmServerSocket = getEnv(nsmd.NsmServerSocketEnv, "nsmServerSocket", true)
+		configuration.NsmServerSocket = getEnv(NsmServerSocketEnv, "nsmServerSocket", true)
 	}
 
 	if configuration.NsmClientSocket == "" {
-		configuration.NsmClientSocket = getEnv(nsmd.NsmClientSocketEnv, "nsmClientSocket", true)
+		configuration.NsmClientSocket = getEnv(NsmClientSocketEnv, "nsmClientSocket", true)
 	}
 
 	if configuration.Workspace == "" {
-		configuration.Workspace = getEnv(nsmd.WorkspaceEnv, "workspace", true)
+		configuration.Workspace = getEnv(WorkspaceEnv, "workspace", true)
 	}
 
 	if configuration.AdvertiseNseName == "" {

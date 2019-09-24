@@ -1,4 +1,4 @@
-package nsmd
+package common
 
 const (
 	// NsmServerSocketEnv is the name of the env variable to define NSM server socket
