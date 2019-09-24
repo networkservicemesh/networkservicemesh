@@ -9,8 +9,6 @@ ENV GOPROXY=${GOPROXY}
 ENV PACKAGEPATH=github.com/networkservicemesh/networkservicemesh/test
 ENV GO111MODULE=on
 
-RUN apk --no-cache add git
-
 RUN mkdir /root/networkservicemesh
 ADD [".","/root/networkservicemesh"]
 
