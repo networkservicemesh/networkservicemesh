@@ -35,6 +35,7 @@ data:
         }
       }
     }
+# Issue https://github.com/networkservicemesh/networkservicemesh/issues/1661
   bootstrap.crt: |
     -----BEGIN CERTIFICATE-----
     MIIBzDCCAVOgAwIBAgIJAJM4DhRH0vmuMAoGCCqGSM49BAMEMB4xCzAJBgNVBAYT

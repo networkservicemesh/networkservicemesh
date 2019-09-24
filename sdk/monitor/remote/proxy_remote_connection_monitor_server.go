@@ -3,6 +3,7 @@ package remote
 import (
 	"context"
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 
 	"github.com/networkservicemesh/networkservicemesh/utils/interdomain"
 
@@ -77,7 +78,7 @@ func (s *proxyMonitorServer) monitorConnection(
 	quit chan error) {
 	logrus.Infof(proxyLogFormat, name, "Added")
 
-	conn, err := grpc.Dial(remotePeerURL, grpc.WithInsecure())
+	conn, err := tools.DialTCPInsecure(remotePeerURL)
 	if err != nil {
 		logrus.Errorf(proxyLogWithParamFormat, name, "Failed to connect", err)
 		quit <- err

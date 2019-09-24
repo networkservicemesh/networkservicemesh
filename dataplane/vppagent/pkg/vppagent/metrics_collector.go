@@ -3,10 +3,9 @@ package vppagent
 import (
 	"context"
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"io"
 	"time"
-
-	"google.golang.org/grpc"
 
 	"github.com/gogo/protobuf/proto"
 	rpc "github.com/ligato/vpp-agent/api/configurator"
@@ -34,7 +33,7 @@ func (m *MetricsCollector) CollectAsync(monitor metrics.MetricsMonitor, endpoint
 }
 
 func (m *MetricsCollector) collect(monitor metrics.MetricsMonitor, endpoint string) {
-	conn, err := grpc.Dial(endpoint, grpc.WithInsecure())
+	conn, err := tools.DialTCPInsecure(endpoint)
 	if err != nil {
 		logrus.Errorf("Metrics collector: can't dial %v", err)
 		return

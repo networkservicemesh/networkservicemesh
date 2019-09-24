@@ -6,16 +6,14 @@ import (
 
 	"github.com/ligato/vpp-agent/api/configurator"
 
-	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
-
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/converter"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"github.com/sirupsen/logrus"
 )
 
 func CreateVppInterface(nscConnection *connection.Connection, baseDir string, vppAgentEndpoint string) error {
-	conn, err := grpc.Dial(vppAgentEndpoint, grpc.WithInsecure())
+	conn, err := tools.DialTCPInsecure(vppAgentEndpoint)
 	if err != nil {
 		logrus.Errorf("can't dial grpc server: %v", err)
 		return err
@@ -49,7 +47,7 @@ func Reset(vppAgentEndpoint string) error {
 	defer cancel()
 	tools.WaitForPortAvailable(ctx, "tcp", vppAgentEndpoint, 100*time.Millisecond)
 
-	conn, err := grpc.Dial(vppAgentEndpoint, grpc.WithInsecure())
+	conn, err := tools.DialTCPInsecure(vppAgentEndpoint)
 	if err != nil {
 		logrus.Errorf("can't dial grpc server: %v", err)
 		return err

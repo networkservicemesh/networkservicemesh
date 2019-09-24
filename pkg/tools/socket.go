@@ -67,15 +67,29 @@ func NewServer(opts ...grpc.ServerOption) *grpc.Server {
 
 	if GetConfig().OpenTracing {
 		logrus.Infof("GRPC.NewServer with open tracing enabled")
-		opts = append(opts,
-			grpc.UnaryInterceptor(
-				CloneArgsServerInterceptor(
-					otgrpc.OpenTracingServerInterceptor(opentracing.GlobalTracer(), otgrpc.LogPayloads()))),
-			grpc.StreamInterceptor(
-				otgrpc.OpenTracingStreamServerInterceptor(opentracing.GlobalTracer())))
+		opts = append(opts, openTracingOpts()...)
 	}
 
 	return grpc.NewServer(opts...)
+}
+
+func NewServerInsecure(opts ...grpc.ServerOption) *grpc.Server {
+	if GetConfig().OpenTracing {
+		logrus.Infof("GRPC.NewServer with open tracing enabled")
+		opts = append(opts, openTracingOpts()...)
+	}
+
+	return grpc.NewServer(opts...)
+}
+
+func openTracingOpts() []grpc.ServerOption {
+	return []grpc.ServerOption{
+		grpc.UnaryInterceptor(
+			CloneArgsServerInterceptor(
+				otgrpc.OpenTracingServerInterceptor(opentracing.GlobalTracer(), otgrpc.LogPayloads()))),
+		grpc.StreamInterceptor(
+			otgrpc.OpenTracingStreamServerInterceptor(opentracing.GlobalTracer())),
+	}
 }
 
 // DialContext allows to call DialContext using net.Addr
@@ -96,6 +110,12 @@ func DialUnix(path string, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
 	return dialCtx(context.Background(), path, opts...)
 }
 
+// DialUnixInsecure establish connection with passed unix socket in insecure mode and set default timeout
+func DialUnixInsecure(path string, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
+	dialCtx := new(dialBuilder).Unix().Insecure().Timeout(dialTimeoutDefault).DialContextFunc()
+	return dialCtx(context.Background(), path, opts...)
+}
+
 // DialContextTCP establish TCP connection with address
 func DialContextTCP(ctx context.Context, address string, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
 	dialCtx := new(dialBuilder).TCP().DialContextFunc()
@@ -108,11 +128,18 @@ func DialTCP(address string, opts ...grpc.DialOption) (*grpc.ClientConn, error) 
 	return dialCtx(context.Background(), address, opts...)
 }
 
+// DialTCPInsecure establish TCP connection with address in insecure mode and set default timeout
+func DialTCPInsecure(address string, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
+	dialCtx := new(dialBuilder).TCP().Insecure().Timeout(dialTimeoutDefault).DialContextFunc()
+	return dialCtx(context.Background(), address, opts...)
+}
+
 type dialContextFunc func(ctx context.Context, target string, opts ...grpc.DialOption) (conn *grpc.ClientConn, err error)
 
 type dialBuilder struct {
-	opts []grpc.DialOption
-	t    time.Duration
+	opts     []grpc.DialOption
+	t        time.Duration
+	insecure bool
 }
 
 func (b *dialBuilder) TCP() *dialBuilder {
@@ -121,6 +148,11 @@ func (b *dialBuilder) TCP() *dialBuilder {
 
 func (b *dialBuilder) Unix() *dialBuilder {
 	return b.Network("unix")
+}
+
+func (b *dialBuilder) Insecure() *dialBuilder {
+	b.insecure = true
+	return b
 }
 
 func (b *dialBuilder) Network(network string) *dialBuilder {
@@ -147,7 +179,7 @@ func (b *dialBuilder) DialContextFunc() dialContextFunc {
 			b.opts = append(b.opts, OpenTracingDialOptions()...)
 		}
 
-		if GetConfig().SecurityManager != nil {
+		if !b.insecure && GetConfig().SecurityManager != nil {
 			cred := credentials.NewTLS(&tls.Config{
 				InsecureSkipVerify: true,
 				Certificates:       []tls.Certificate{*GetConfig().SecurityManager.GetCertificate()},

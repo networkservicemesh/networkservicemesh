@@ -108,7 +108,7 @@ func (n *nsmClientEndpoints) Allocate(ctx context.Context, reqs *pluginapi.Alloc
 
 // Register registers
 func Register(kubeletEndpoint string) error {
-	conn, err := grpc.Dial("unix:"+kubeletEndpoint, grpc.WithInsecure())
+	conn, err := tools.DialUnixInsecure(kubeletEndpoint)
 	if err != nil {
 		return fmt.Errorf("device-plugin: cannot connect to kubelet service: %v", err)
 	}
@@ -184,7 +184,7 @@ func startDeviceServer(nsm *nsmClientEndpoints) error {
 		return err
 	}
 
-	grpcServer := grpc.NewServer()
+	grpcServer := tools.NewServerInsecure()
 
 	pluginapi.RegisterDevicePluginServer(grpcServer, nsm)
 
@@ -195,7 +195,7 @@ func startDeviceServer(nsm *nsmClientEndpoints) error {
 		}
 	}()
 	// Check if the socket of device plugin server is operation
-	conn, err := grpc.Dial(listenEndpoint, grpc.WithInsecure())
+	conn, err := tools.DialUnixInsecure(listenEndpoint)
 	if err != nil {
 		return err
 	}

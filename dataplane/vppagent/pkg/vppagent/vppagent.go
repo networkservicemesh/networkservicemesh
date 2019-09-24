@@ -23,9 +23,9 @@ import (
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/ligato/vpp-agent/api/configurator"
 	"github.com/ligato/vpp-agent/api/models/vpp"
-	vpp_acl "github.com/ligato/vpp-agent/api/models/vpp/acl"
-	vpp_interfaces "github.com/ligato/vpp-agent/api/models/vpp/interfaces"
-	vpp_l3 "github.com/ligato/vpp-agent/api/models/vpp/l3"
+	"github.com/ligato/vpp-agent/api/models/vpp/acl"
+	"github.com/ligato/vpp-agent/api/models/vpp/interfaces"
+	"github.com/ligato/vpp-agent/api/models/vpp/l3"
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -108,7 +108,7 @@ func (v *VPPAgent) connectOrDisconnect(ctx context.Context, crossConnect *crossc
 	}
 
 	// TODO look at whether keepin a single conn might be better
-	conn, err := grpc.Dial(v.vppAgentEndpoint, grpc.WithInsecure())
+	conn, err := tools.DialTCPInsecure(v.vppAgentEndpoint)
 	if err != nil {
 		logrus.Errorf("can't dial grpc server: %v", err)
 		return nil, err
@@ -169,7 +169,7 @@ func (v *VPPAgent) reset() error {
 	defer cancel()
 	tools.WaitForPortAvailable(ctx, "tcp", v.vppAgentEndpoint, 100*time.Millisecond)
 
-	conn, err := grpc.Dial(v.vppAgentEndpoint, grpc.WithInsecure())
+	conn, err := tools.DialTCPInsecure(v.vppAgentEndpoint)
 	if err != nil {
 		logrus.Errorf("can't dial grpc server: %v", err)
 		return err
@@ -190,7 +190,7 @@ func (v *VPPAgent) programMgmtInterface() error {
 	defer cancel()
 	tools.WaitForPortAvailable(ctx, "tcp", v.vppAgentEndpoint, 100*time.Millisecond)
 
-	conn, err := grpc.Dial(v.vppAgentEndpoint, grpc.WithInsecure())
+	conn, err := tools.DialTCPInsecure(v.vppAgentEndpoint)
 	if err != nil {
 		logrus.Errorf("can't dial grpc server: %v", err)
 		return err
