@@ -80,5 +80,25 @@ func (rs *nseRegistryService) RegisterNSE(ctx context.Context, request *registry
 func (rs *nseRegistryService) RemoveNSE(ctx context.Context, request *registry.RemoveNSERequest) (*empty.Empty, error) {
 	logrus.Infof("%s: Received RemoveNSE(%v)", NSRegistryForwarderLogPrefix, request)
 
+	nsmrsURL := os.Getenv(NSMRSAddressEnv)
+	if strings.TrimSpace(nsmrsURL) == "" {
+		err := fmt.Errorf("NSMRS Address variable was not set")
+		logrus.Warnf("%s: Skipping Register NSE forwarding: %v", NSRegistryForwarderLogPrefix, err)
+		return &empty.Empty{}, err
+	}
+
+	remoteRegistry := nsmd.NewServiceRegistryAt(nsmrsURL + ":80")
+	defer remoteRegistry.Stop()
+
+	nseRegistryClient, err := remoteRegistry.NseRegistryClient()
+	if err != nil {
+		logrus.Warnf(fmt.Sprintf("%s: Cannot register network service endpoint in NSMRS: %v", NSRegistryForwarderLogPrefix, err))
+		return &empty.Empty{}, err
+	}
+
+	if _, requestErr := nseRegistryClient.RemoveNSE(ctx, request); requestErr != nil {
+		return &empty.Empty{}, requestErr
+	}
+
 	return &empty.Empty{}, nil
 }

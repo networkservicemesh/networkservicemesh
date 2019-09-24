@@ -95,7 +95,7 @@ func (rs *nseRegistryService) RegisterNSE(ctx context.Context, request *registry
 
 		err = rs.forwardRegisterNSE(ctx, request)
 		if err != nil {
-			logrus.Warnf("Cannot forward NSE Registration: %v", err)
+			logrus.Errorf("Cannot forward NSE Registration: %v", err)
 		}
 	}
 	logrus.Infof("Returned from RegisterNSE: time: %v request: %v", time.Since(st), request)
@@ -110,6 +110,11 @@ func (rs *nseRegistryService) RemoveNSE(ctx context.Context, request *registry.R
 	if err := rs.cache.DeleteNetworkServiceEndpoint(request.GetNetworkServiceEndpointName()); err != nil {
 		return nil, err
 	}
+
+	if err := rs.forwardRemoveNSE(ctx, request); err != nil {
+		logrus.Errorf("Cannot forward Remove NSE: %v", err)
+	}
+
 	logrus.Infof("RemoveNSE done: time %v", time.Since(st))
 	return &empty.Empty{}, nil
 }
@@ -153,8 +158,31 @@ func (rs *nseRegistryService) forwardRegisterNSE(ctx context.Context, request *r
 		request.NetworkService.Matches = append(request.NetworkService.Matches, match)
 	}
 
-	logrus.Info("Forwarding Register NSE request (%v)", err)
+	logrus.Info("Forwarding Register NSE request (%v)", request)
 	_, err = nseRegistryClient.RegisterNSE(ctx, request)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (rs *nseRegistryService) forwardRemoveNSE(ctx context.Context, request *registry.RemoveNSERequest) error {
+	nsrURL := os.Getenv(ProxyNsmdK8sAddressEnv)
+	if strings.TrimSpace(nsrURL) == "" {
+		nsrURL = ProxyNsmdK8sAddressDefaults
+	}
+
+	remoteRegistry := nsmd.NewServiceRegistryAt(nsrURL)
+	defer remoteRegistry.Stop()
+
+	nseRegistryClient, err := remoteRegistry.NseRegistryClient()
+	if err != nil {
+		return err
+	}
+
+	logrus.Info("Forwarding Remove NSE request (%v)", request)
+	_, err = nseRegistryClient.RemoveNSE(ctx, request)
 	if err != nil {
 		return err
 	}
