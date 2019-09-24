@@ -69,6 +69,12 @@ func TestNSMgrRestartDeploy(t *testing.T) {
 	g.Expect(restarts).To(Equal(int32(1)))
 	g.Expect(<-errChan).To(BeNil())
 	g.Expect(<-prevLogsChan).To(ContainSubstring("SIGABRT: abort"))
+
+	logrus.Info("Waiting for k8s plugin to re-register in restarted NSMD...")
+	err = k8s.WaitLogsContainsRegex(nodesConf[0].Nsmd, "nsmd-k8s", "starting re-registration procedure", defaultTimeout)
+	g.Expect(err).To(BeNil())
+	err = k8s.WaitLogsContainsRegex(nodesConf[0].Nsmd, "nsmd-k8s", "successfully re-registered plugin", defaultTimeout)
+	g.Expect(err).To(BeNil())
 }
 
 func readLogsFully(k8s *kubetest.K8s, pod *v1.Pod, container string) (chan string, chan error) {
