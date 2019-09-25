@@ -6,9 +6,9 @@ import (
 	"github.com/ligato/vpp-agent/api/configurator"
 	"github.com/sirupsen/logrus"
 
-	monitor_crossconnect "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/api/dataplane"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	monitor_crossconnect "github.com/networkservicemesh/networkservicemesh/sdk/monitor/crossconnect"
 )
 
 type contextKeyType string
