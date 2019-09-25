@@ -49,3 +49,7 @@ scripts/vagrant/.kube/
 vendor
 examples/
 
+# Miscellaneous build artifacts
+build/dist
+scripts/aws/aws
+controllers/sriov-controller/sriov-controller
