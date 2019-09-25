@@ -19,7 +19,7 @@ func TestSimpleCertCreation(t *testing.T) {
 	roots := x509.NewCertPool()
 	roots.AddCert(caX509)
 
-	crt, err := generateKeyPair(testSpiffeID, &ca)
+	crt, err := generateKeyPair(spiffeID1, testDomain, &ca)
 	g.Expect(err).To(BeNil())
 
 	err = verify(&crt, roots)

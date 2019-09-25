@@ -13,7 +13,7 @@ func TestCertificateObtainer(t *testing.T) {
 	ca, err := generateCA()
 	g.Expect(err).To(BeNil())
 
-	obt := newTestCertificateObtainerWithCA(testSpiffeID, &ca, 500*time.Millisecond)
+	obt := newTestCertificateObtainerWithCA(spiffeID1, &ca, 500*time.Millisecond)
 	certCh := obt.CertificateCh()
 
 	for i := 0; i < 5; i++ {

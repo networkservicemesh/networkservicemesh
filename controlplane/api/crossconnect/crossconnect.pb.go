@@ -11,8 +11,6 @@ import (
 	connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	connection1 "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
 	grpc "google.golang.org/grpc"
-	codes "google.golang.org/grpc/codes"
-	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -397,14 +395,6 @@ func (x *monitorCrossConnectMonitorCrossConnectsClient) Recv() (*CrossConnectEve
 // MonitorCrossConnectServer is the server API for MonitorCrossConnect service.
 type MonitorCrossConnectServer interface {
 	MonitorCrossConnects(*empty.Empty, MonitorCrossConnect_MonitorCrossConnectsServer) error
-}
-
-// UnimplementedMonitorCrossConnectServer can be embedded to have forward compatible implementations.
-type UnimplementedMonitorCrossConnectServer struct {
-}
-
-func (*UnimplementedMonitorCrossConnectServer) MonitorCrossConnects(req *empty.Empty, srv MonitorCrossConnect_MonitorCrossConnectsServer) error {
-	return status.Errorf(codes.Unimplemented, "method MonitorCrossConnects not implemented")
 }
 
 func RegisterMonitorCrossConnectServer(s *grpc.Server, srv MonitorCrossConnectServer) {

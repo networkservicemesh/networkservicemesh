@@ -50,7 +50,7 @@ func newCertCh(spiffeID string, ca *tls.Certificate, frequency time.Duration, er
 
 		for {
 			logrus.Info("Generating new x509 certificate...")
-			cert, err := generateKeyPair(spiffeID, ca)
+			cert, err := generateKeyPair(spiffeID, testDomain, ca)
 			if err != nil {
 				errCh <- err
 				return

@@ -15,9 +15,163 @@
 package security
 
 import (
+	"context"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
+	"fmt"
+	"github.com/dgrijalva/jwt-go"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/networkservice"
+	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/peer"
+	"google.golang.org/grpc/status"
+	"strings"
 )
+
+func ParseJWTWithClaims(tokenString string) (*jwt.Token, []string, *ChainClaims, error) {
+	token, parts, err := new(jwt.Parser).ParseUnverified(tokenString, &ChainClaims{})
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	claims, ok := token.Claims.(*ChainClaims)
+	if !ok {
+		return nil, nil, nil, errors.New("wrong claims format")
+	}
+
+	return token, parts, claims, err
+}
+
+func ClientInterceptor(securityProvider Provider) grpc.UnaryClientInterceptor {
+	return func(
+		ctx context.Context,
+		method string,
+		req, reply interface{},
+		cc *grpc.ClientConn,
+		invoker grpc.UnaryInvoker,
+		opts ...grpc.CallOption) error {
+
+		request, ok := req.(networkservice.Request)
+		if !ok {
+			return invoker(ctx, method, req, reply, cc, opts...)
+		}
+
+		logrus.Infof("ClientInterceptor start working, networkService = %v ...",
+			request.GetRequestConnection().GetNetworkService())
+
+		var obo string
+		if claims, ok := ctx.Value(NSMClaimsContextKey).(*ChainClaims); ok {
+			obo = claims.Obo
+		}
+
+		token, err := GenerateSignature(req, requestClaimSetter, securityProvider, WithObo(obo))
+		if err != nil {
+			logrus.Error(err)
+			return err
+		}
+
+		p := new(peer.Peer)
+		err = invoker(ctx, method, req, reply, cc, append(opts, grpc.PerRPCCredentials(&NSMToken{Token: token}), grpc.Peer(p))...)
+		if err != nil {
+			return err
+		}
+
+		transportSpiffeID, err := spiffeIDFromPeer(p)
+		if err != nil {
+			return err
+		}
+
+		nsReply, ok := reply.(connection.Connection)
+		if !ok {
+			return errors.New("can't verify response: wrong type")
+		}
+
+		if err := VerifySignature(nsReply.GetSignature(), securityProvider.GetCABundle(), transportSpiffeID); err != nil {
+			return status.Errorf(codes.Unauthenticated, "response jwt is not valid: %v", err)
+		}
+
+		return nil
+	}
+}
+
+func ServerInterceptor(securityProvider Provider) grpc.UnaryServerInterceptor {
+	return func(
+		ctx context.Context,
+		req interface{},
+		info *grpc.UnaryServerInfo,
+		handler grpc.UnaryHandler) (resp interface{}, err error) {
+		_, ok := req.(networkservice.Request)
+		if !ok {
+			return handler(ctx, req)
+		}
+
+		logrus.Infof("ServerInterceptor start working...")
+		spiffeID, err := spiffeIDFromContext(ctx)
+		if err != nil {
+			return nil, status.Errorf(codes.Unauthenticated, err.Error())
+		}
+
+		md, ok := metadata.FromIncomingContext(ctx)
+		if !ok {
+			return nil, status.Errorf(codes.InvalidArgument, "missing metadata")
+		}
+
+		if len(md["authorization"]) == 0 {
+			return nil, status.Errorf(codes.Unauthenticated, "no token provided")
+		}
+
+		jwt := md["authorization"][0]
+		if err := VerifySignature(jwt, securityProvider.GetCABundle(), spiffeID); err != nil {
+			return nil, status.Errorf(codes.Unauthenticated, fmt.Sprintf("token is not valid: %v", err))
+		}
+
+		_, _, claims, _ := ParseJWTWithClaims(jwt)
+		newCtx := context.WithValue(ctx, NSMClaimsContextKey, claims)
+
+		return handler(newCtx, req)
+	}
+}
+
+func requestClaimSetter(claims *ChainClaims, msg interface{}) error {
+	request, ok := msg.(networkservice.Request)
+	if !ok {
+		return fmt.Errorf("unable to cast msg to networkserivce.Request")
+	}
+
+	claims.Audience = request.GetRequestConnection().GetNetworkService()
+	return nil
+}
+
+func spiffeIDFromContext(ctx context.Context) (string, error) {
+	p, ok := peer.FromContext(ctx)
+	if !ok {
+		return "", status.Errorf(codes.InvalidArgument, "missing peer TLSCred")
+	}
+
+	return spiffeIDFromPeer(p)
+}
+
+func spiffeIDFromPeer(p *peer.Peer) (string, error) {
+	tlsInfo, ok := p.AuthInfo.(credentials.TLSInfo)
+	if !ok {
+		return "", fmt.Errorf("peer has wrong type")
+	}
+
+	if len(tlsInfo.State.PeerCertificates) == 0 {
+		return "", fmt.Errorf("peer's certificate list is empty")
+	}
+
+	if len(tlsInfo.State.PeerCertificates[0].URIs) == 0 {
+		return "", fmt.Errorf("certificate doesn't have URIs")
+	}
+
+	return tlsInfo.State.PeerCertificates[0].URIs[0].String(), nil
+}
 
 func certToPemBlocks(data []byte) ([]byte, error) {
 	certs, err := x509.ParseCertificates(data)
@@ -43,4 +197,40 @@ func keyToPem(data []byte) []byte {
 		Bytes: data,
 	}
 	return pem.EncodeToMemory(b)
+}
+
+func verifyJWTChain(token *jwt.Token, parts []string, claims *ChainClaims, ca *x509.CertPool) error {
+	currentToken, currentParts, currentClaims := token, parts, claims
+
+	for currentToken != nil {
+		err := verifySingleJwt(currentToken, currentParts, currentClaims, ca)
+		if err != nil {
+			return err
+		}
+
+		currentToken, currentParts, currentClaims, err = currentClaims.parseObo()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func verifySingleJwt(token *jwt.Token, parts []string, claims *ChainClaims, ca *x509.CertPool) error {
+	logrus.Infof("Validating JWT: %s", claims.Subject)
+	crt, err := claims.verifyAndGetCertificate(ca)
+	if err != nil {
+		return err
+	}
+
+	if len(parts) != 3 {
+		return errors.New("length of parts array is incorrect")
+	}
+
+	if err := token.Method.Verify(strings.Join(parts[0:2], "."), parts[2], crt.PublicKey); err != nil {
+		return fmt.Errorf("jwt signature is not valid: %s", err.Error())
+	}
+
+	return nil
 }

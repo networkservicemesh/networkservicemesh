@@ -17,15 +17,15 @@ package security
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"sync"
-
 	"github.com/sirupsen/logrus"
+	"sync"
 )
 
-// Manager provides methods for secure grpc communication
-type Manager interface {
+// Provider provides methods for secure grpc communication
+type Provider interface {
 	GetCertificate() *tls.Certificate
 	GetCABundle() *x509.CertPool
+	GetSpiffeID() string
 }
 
 // CertificateObtainer abstracts certificates obtaining
@@ -48,18 +48,45 @@ type certificateManager struct {
 	readyCh  chan struct{}
 }
 
-// NewManager creates new security.Manager using SpireCertObtainer
-func NewManager() Manager {
+// NewProvider creates new security.Manager using SpireCertObtainer
+func NewProvider() Provider {
 	return NewManagerWithCertObtainer(NewSpireObtainer())
 }
 
 // NewManagerWithCertObtainer creates new security.Manager with passed CertificateObtainer
-func NewManagerWithCertObtainer(obtainer CertificateObtainer) Manager {
+func NewManagerWithCertObtainer(obtainer CertificateObtainer) Provider {
 	cm := &certificateManager{
 		readyCh: make(chan struct{}),
 	}
 	go cm.exchangeCertificates(obtainer)
 	return cm
+}
+
+func (m *certificateManager) GetCertificate() *tls.Certificate {
+	<-m.readyCh
+
+	m.RLock()
+	defer m.RUnlock()
+	return m.cert
+}
+
+func (m *certificateManager) GetCABundle() *x509.CertPool {
+	<-m.readyCh
+
+	m.RLock()
+	defer m.RUnlock()
+	return m.caBundle
+}
+
+func (m *certificateManager) GetSpiffeID() string {
+	// todo: don't parse certificate every time, save spiffeID
+	crtBytes := m.GetCertificate().Certificate[0]
+	x509crt, err := x509.ParseCertificate(crtBytes)
+	if err != nil {
+		logrus.Error(err)
+		return ""
+	}
+	return x509crt.URIs[0].String()
 }
 
 func (m *certificateManager) exchangeCertificates(obtainer CertificateObtainer) {
@@ -82,20 +109,4 @@ func (m *certificateManager) setCertificates(r *Response) {
 	}
 	m.cert = r.TLSCert
 	m.caBundle = r.CABundle
-}
-
-func (m *certificateManager) GetCertificate() *tls.Certificate {
-	<-m.readyCh
-
-	m.RLock()
-	defer m.RUnlock()
-	return m.cert
-}
-
-func (m *certificateManager) GetCABundle() *x509.CertPool {
-	<-m.readyCh
-
-	m.RLock()
-	defer m.RUnlock()
-	return m.caBundle
 }

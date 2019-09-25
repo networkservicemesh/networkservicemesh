@@ -9,15 +9,85 @@ import (
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"encoding/pem"
+	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/pkg/security"
 	"math/big"
 	"time"
 )
 
 const (
-	testSpiffeID = "spiffe://test.com/test"
-	testDomain   = "test.com"
-	nameTypeURI  = 6
+	aud            = "testaud"
+	testDomain     = "test"
+	spiffeIDFormat = "spiffe://%s/testID_%d"
+	nameTypeURI    = 6
 )
+
+var (
+	spiffeID1 = fmt.Sprintf(spiffeIDFormat, testDomain, 1)
+	spiffeID2 = fmt.Sprintf(spiffeIDFormat, testDomain, 2)
+	spiffeID3 = fmt.Sprintf(spiffeIDFormat, testDomain, 3)
+)
+
+type testMsg struct {
+	testAud string
+	token   string
+}
+
+func (m *testMsg) GetSignature() string {
+	return m.token
+}
+
+func testClaimsSetter(claims *security.ChainClaims, msg interface{}) error {
+	claims.Audience = msg.(*testMsg).testAud
+	return nil
+}
+
+type testSecurityProvider struct {
+	ca       *x509.CertPool
+	cert     *tls.Certificate
+	spiffeID string
+}
+
+func newTestSecurityContext(spiffeID string) (*testSecurityProvider, error) {
+	ca, err := generateCA()
+	if err != nil {
+		return nil, err
+	}
+	return newTestSecurityContextWithCA(spiffeID, &ca)
+}
+
+func newTestSecurityContextWithCA(spiffeID string, ca *tls.Certificate) (*testSecurityProvider, error) {
+	caX509, err := x509.ParseCertificate(ca.Certificate[0])
+	if err != nil {
+		return nil, err
+	}
+
+	cpool := x509.NewCertPool()
+	cpool.AddCert(caX509)
+
+	cert, err := generateKeyPair(spiffeID, testDomain, ca)
+	if err != nil {
+		return nil, err
+	}
+
+	return &testSecurityProvider{
+		ca:       cpool,
+		cert:     &cert,
+		spiffeID: spiffeID,
+	}, nil
+}
+
+func (sc *testSecurityProvider) GetCertificate() *tls.Certificate {
+	return sc.cert
+}
+
+func (sc *testSecurityProvider) GetCABundle() *x509.CertPool {
+	return sc.ca
+}
+
+func (sc *testSecurityProvider) GetSpiffeID() string {
+	return sc.spiffeID
+}
 
 func generateCA() (tls.Certificate, error) {
 	ca := &x509.Certificate{
@@ -63,7 +133,7 @@ func marshalSAN(spiffeID string) ([]byte, error) {
 	return asn1.Marshal([]asn1.RawValue{{Tag: nameTypeURI, Class: 2, Bytes: []byte(spiffeID)}})
 }
 
-func generateKeyPair(spiffeID string, caTLS *tls.Certificate) (tls.Certificate, error) {
+func generateKeyPair(spiffeID, domain string, caTLS *tls.Certificate) (tls.Certificate, error) {
 	san, err := marshalSAN(spiffeID)
 	if err != nil {
 		return tls.Certificate{}, err
@@ -79,7 +149,7 @@ func generateKeyPair(spiffeID string, caTLS *tls.Certificate) (tls.Certificate, 
 			Locality:      []string{"CITY"},
 			StreetAddress: []string{"ADDRESS"},
 			PostalCode:    []string{"POSTAL_CODE"},
-			CommonName:    testDomain,
+			CommonName:    domain,
 		},
 		NotBefore:    time.Now(),
 		NotAfter:     time.Now().AddDate(10, 0, 0),
