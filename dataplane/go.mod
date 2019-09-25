@@ -4,7 +4,6 @@ require (
 	github.com/gogo/protobuf v1.2.2-0.20190723190241-65acae22fc9d
 	github.com/golang/protobuf v1.3.2
 	github.com/ligato/vpp-agent v2.1.1+incompatible
-	github.com/networkservicemesh/networkservicemesh/controlplane v0.2.0
 	github.com/networkservicemesh/networkservicemesh/controlplane/api v0.2.0
 	github.com/networkservicemesh/networkservicemesh/dataplane/api v0.2.0
 	github.com/networkservicemesh/networkservicemesh/pkg v0.2.0
