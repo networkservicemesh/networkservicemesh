@@ -146,6 +146,7 @@ func (c *nsmMonitorApp) beginMonitoring() {
 		if c.helper != nil {
 			configuration = c.helper.GetConfiguration()
 		}
+		configuration = configuration.FromEnv()
 		nsmClient, err := client.NewNSMClient(context.Background(), configuration)
 		if err != nil {
 			logrus.Errorf(nsmMonitorLogWithParamFormat, "unable to create the NSM client", err)
