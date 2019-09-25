@@ -3,8 +3,7 @@ package serviceregistryserver
 import (
 	"context"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect"
+	"github.com/networkservicemesh/networkservicemesh/pkg/livemonitor"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
@@ -35,7 +34,7 @@ func (m *nsmMonitor) StartMonitor() error {
 		return err
 	}
 
-	monitorClient, err := crossconnect.NewMonitorClient(conn)
+	monitorClient, err := livemonitor.NewClient(conn)
 	if err != nil {
 		conn.Close()
 		return err
@@ -46,17 +45,13 @@ func (m *nsmMonitor) StartMonitor() error {
 	return nil
 }
 
-func (m *nsmMonitor) monitorNSM(conn *grpc.ClientConn, monitorClient monitor.Client) {
+func (m *nsmMonitor) monitorNSM(conn *grpc.ClientConn, monitorClient livemonitor.Client) {
 	defer conn.Close()
 	defer monitorClient.Close()
 
 	logrus.Infof("NSM Monitor started: %v", m.nsm)
 
-Repeat:
 	select {
-	case <-monitorClient.EventChannel():
-		//ignore event channel
-		goto Repeat
 	case err:=<-monitorClient.ErrorChannel():
 		logrus.Errorf("Received error from NSM monitor channel: %v", err)
 		go m.deleteNSM()
