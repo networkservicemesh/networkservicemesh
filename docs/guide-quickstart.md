@@ -86,7 +86,6 @@ nsmgr   2         2         2       2            2           <none>          19m
 
 ## Deploy the Monitoring components
 
-
 ```bash
 helm-install-nsm-monitoring
 ```
@@ -111,14 +110,12 @@ Now that we have the NSM infrastructure deployed, we can proceed with deploying 
 * The basic ICMP example is deployed like this:
 
 ```bash
-make helm-install-nsm
 make helm-install-icmp-responder
 ```
 
 * The VPN service composition example is deployed with:
 
 ```bash
-make helm-install-nsm
 make helm-install-vpn
 ```
 
