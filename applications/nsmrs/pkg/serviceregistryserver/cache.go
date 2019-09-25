@@ -7,41 +7,46 @@ import (
 )
 
 type NSERegistryCache interface {
-	AddNetworkServiceEndpoint(nse *registry.NSERegistration) (*registry.NSERegistration, error)
-	DeleteNetworkServiceEndpoint(endpointName string) (*registry.NSERegistration, error)
-	GetEndpointsByNs(networkServiceName string) []*registry.NSERegistration
+	AddNetworkServiceEndpoint(nse *NSECacheEntry) (*NSECacheEntry, error)
+	DeleteNetworkServiceEndpoint(endpointName string) (*NSECacheEntry, error)
+	GetEndpointsByNs(networkServiceName string) []*NSECacheEntry
+}
+
+type NSECacheEntry struct {
+	nse *registry.NSERegistration
+	monitor *nsmMonitor
 }
 
 type nseRegistryCache struct {
-	networkServiceEndpoints map[string][]*registry.NSERegistration
+	networkServiceEndpoints map[string][]*NSECacheEntry
 }
 
 //NewNSERegistryCache creates new nerwork service server registry cache
 func NewNSERegistryCache() *nseRegistryCache {
 	return &nseRegistryCache{
-		networkServiceEndpoints: make(map[string][]*registry.NSERegistration),
+		networkServiceEndpoints: make(map[string][]*NSECacheEntry),
 	}
 }
 
 // AddNetworkServiceEndpoint - register NSE in cache
-func (rc *nseRegistryCache) AddNetworkServiceEndpoint(nse *registry.NSERegistration) (*registry.NSERegistration, error) {
-	existingEndpoints := rc.GetEndpointsByNs(nse.NetworkService.Name)
+func (rc *nseRegistryCache) AddNetworkServiceEndpoint(entry *NSECacheEntry) (*NSECacheEntry, error) {
+	existingEndpoints := rc.GetEndpointsByNs(entry.nse.NetworkService.Name)
 
 	for _, endpoint := range existingEndpoints {
-		if !proto.Equal(endpoint.NetworkService, nse.NetworkService) {
-			return nil, fmt.Errorf("network service already exists with different parameters: old: %v; new: %v", endpoint, nse)
+		if !proto.Equal(endpoint.nse.NetworkService, entry.nse.NetworkService) {
+			return nil, fmt.Errorf("network service already exists with different parameters: old: %v; new: %v", endpoint, entry)
 		}
 	}
 
-	rc.networkServiceEndpoints[nse.NetworkService.Name] = append(rc.networkServiceEndpoints[nse.NetworkService.Name], nse)
-	return nse, nil
+	rc.networkServiceEndpoints[entry.nse.NetworkService.Name] = append(rc.networkServiceEndpoints[entry.nse.NetworkService.Name], entry)
+	return entry, nil
 }
 
 // DeleteNetworkServiceEndpoint - remove NSE from cache
-func (rc *nseRegistryCache) DeleteNetworkServiceEndpoint(endpointName string) (*registry.NSERegistration, error) {
+func (rc *nseRegistryCache) DeleteNetworkServiceEndpoint(endpointName string) (*NSECacheEntry, error) {
 	for networkService, endpointList := range rc.networkServiceEndpoints {
 		for i := range endpointList {
-			if endpointList[i].NetworkServiceEndpoint.Name == endpointName {
+			if endpointList[i].nse.NetworkServiceEndpoint.Name == endpointName {
 				endpoint := endpointList[i]
 				rc.networkServiceEndpoints[networkService] = append(endpointList[:i], endpointList[i+1:]...)
 				return endpoint, nil
@@ -52,6 +57,6 @@ func (rc *nseRegistryCache) DeleteNetworkServiceEndpoint(endpointName string) (*
 }
 
 // GetEndpointsByNs - get Endpoints list from cache by Name
-func (rc *nseRegistryCache) GetEndpointsByNs(networkServiceName string) []*registry.NSERegistration {
+func (rc *nseRegistryCache) GetEndpointsByNs(networkServiceName string) []*NSECacheEntry {
 	return rc.networkServiceEndpoints[networkServiceName]
 }

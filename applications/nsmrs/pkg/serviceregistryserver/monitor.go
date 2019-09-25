@@ -3,6 +3,8 @@ package serviceregistryserver
 import (
 	"context"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/crossconnect"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
@@ -28,30 +30,43 @@ func NewNSMMonitor(nsm *registry.NetworkServiceManager, deleteNSM func()) *nsmMo
 }
 
 func (m *nsmMonitor) StartMonitor() error {
-	ctx, cancel := context.WithCancel(context.Background())
-	m.cancel = cancel
-
-	conn, err := grpc.DialContext(ctx, m.nsm.Url, grpc.WithInsecure())
+	conn, err := grpc.Dial(m.nsm.Url, grpc.WithInsecure())
 	if err != nil {
 		return err
 	}
 
-	go m.monitorNSM(conn, ctx)
+	monitorClient, err := crossconnect.NewMonitorClient(conn)
+	if err != nil {
+		conn.Close()
+		return err
+	}
+
+	go m.monitorNSM(conn, monitorClient)
 
 	return nil
 }
 
-func (m *nsmMonitor) monitorNSM(conn *grpc.ClientConn, ctx context.Context) {
+func (m *nsmMonitor) monitorNSM(conn *grpc.ClientConn, monitorClient monitor.Client) {
 	defer conn.Close()
+	defer monitorClient.Close()
 
 	logrus.Infof("NSM Monitor started: %v", m.nsm)
 
+Repeat:
 	select {
-	case <-ctx.Done():
-		m.deleteNSM()
+	case <-monitorClient.EventChannel():
+		//ignore event channel
+		goto Repeat
+	case err:=<-monitorClient.ErrorChannel():
+		logrus.Errorf("Received error from NSM monitor channel: %v", err)
+		go m.deleteNSM()
 		<-m.nsmDeleted
 	case <-m.nsmDeleted:
 	}
 
 	logrus.Infof("NSM Monitor done: %v", m.nsm)
+}
+
+func (m *nsmMonitor) stop() {
+	m.nsmDeleted <- 0
 }

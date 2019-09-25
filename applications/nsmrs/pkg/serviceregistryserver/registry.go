@@ -28,27 +28,33 @@ func (rs *nseRegistryService) RegisterNSE(ctx context.Context, request *registry
 	request.NetworkServiceManager.Name = nsmName
 	request.NetworkServiceEndpoint.NetworkServiceManagerName = nsmName
 
-	nse, err := rs.cache.AddNetworkServiceEndpoint(request)
+	monitor := NewNSMMonitor(request.NetworkServiceManager, func(){
+		rs.RemoveNSE(ctx, &registry.RemoveNSERequest{
+			NetworkServiceEndpointName: request.NetworkServiceEndpoint.Name,
+		})
+	})
+
+	_, err := rs.cache.AddNetworkServiceEndpoint(&NSECacheEntry{
+		nse:     request,
+		monitor: monitor,
+	})
 
 	if err != nil {
 		logrus.Errorf("Error registering NSE: %v", err)
 		return nil, err
 	}
 
-	NewNSMMonitor(request.NetworkServiceManager, func(){
-		rs.RemoveNSE(ctx, &registry.RemoveNSERequest{
-			NetworkServiceEndpointName: request.NetworkServiceEndpoint.Name,
-		})
-	}).StartMonitor()
+	monitor.StartMonitor()
 
 	logrus.Infof("Returned from RegisterNSE: request: %v", request)
-	return nse, err
+	return request, err
 }
 
 func (rs *nseRegistryService) RemoveNSE(ctx context.Context, request *registry.RemoveNSERequest) (*empty.Empty, error) {
 	logrus.Infof("Received RemoveNSE(%v)", request)
 
 	nse, err := rs.cache.DeleteNetworkServiceEndpoint(request.NetworkServiceEndpointName)
+	nse.monitor.stop()
 	if err != nil {
 		logrus.Errorf("cannot remove Network Service Endpoint: %v", err)
 		return &empty.Empty{}, err
