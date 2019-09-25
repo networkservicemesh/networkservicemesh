@@ -24,14 +24,6 @@ git clone https://github.com/networkservicemesh/networkservicemesh
 cd networkservicemesh
 ```
 
-## Build the Network Service Mesh images
-
-First, let's build the Docker images of the various components:
-
-```bash
-make k8s-save
-```
-
 ## Setup the local Vagrant environment
 
 Then we'll configure a Kubernetes cluster. A master and a worker node will be launched in two separate Vagrant machines. The Network Service Mesh components will then be deployed to the cluster.
@@ -50,11 +42,25 @@ source scripts/vagrant/env.sh
 
 ## Deploy the core Network Service Mesh components
 
-The core Network Service Mesh infrastructure is deployed with the following command:
+All commands have been wrapped in make machining tooling.
+
+### Build the Network Service Mesh images and push then to the Vagrant machines
+
+First, let's build the Docker images of the various components of Network Service Mesh:
 
 ```bash
 make k8s-save
+```
+
+Load the images on the Vagrant Machines.
+
+```bash
 make k8s-load-images
+````
+
+The core Network Service Mesh infrastructure is deployed via Helm with the following command:
+
+```bash
 make helm-init
 make helm-install-nsm
 ```
