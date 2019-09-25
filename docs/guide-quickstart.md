@@ -55,15 +55,23 @@ The core Network Service Mesh infrastructure is deployed with the following comm
 ```bash
 make k8s-save
 make k8s-load-images
+make helm-init
 make helm-install-nsm
 ```
 
 ### Verify the services are up and running
 
-The following check should show two `nsmgr`, two `nsm-vpp-forwarder`, two `skydive-agent`, one `crossconnect-monitor` and one `skydive-analyzer` pods:
+The following check should show two `nsmgr`, two `nsm-vpp-forwarder`, and one `nsm-admission-webhook` pod
 
 ```bash
 kubectl get pods -n nsm-system
+
+NAME                                     READY   STATUS    RESTARTS   AGE
+nsm-admission-webhook-8597995474-2p7vc   1/1     Running   0          2m4s
+nsm-vpp-forwarder-9lfnv                  1/1     Running   0          2m5s
+nsm-vpp-forwarder-w424k                  1/1     Running   0          2m5s
+nsmgr-5mkr2                              3/3     Running   0          2m5s
+nsmgr-gc976                              3/3     Running   0          2m5s
 ```
 
 This will allow you to see your Network Service Mesh daemonset running:
@@ -74,6 +82,26 @@ kubectl get daemonset nsmgr -n nsm-system
 
 NAME   DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR   AGE
 nsmgr   2         2         2       2            2           <none>          19m
+```
+
+## Deploy the Monitoring components
+
+
+```bash
+helm-install-nsm-monitoring
+```
+
+When deployed successfully two `skydive-agent`, one `skydive-analyzer`, one `crossconnect-monitor` and one `jaeger` pod will be running in the nsm-system namespace.
+
+````bash 
+kubectl get pods -n nsm-system 
+
+NAME                                     READY   STATUS    RESTARTS   AGE
+crossconnect-monitor-57dcf588dd-qk2n9    1/1     Running   0          43s
+jaeger-f5d6744c5-t2tc8                   1/1     Running   0          43s
+skydive-agent-hr9xh                      1/1     Running   0          43s
+skydive-agent-jxmm9                      1/1     Running   0          43s
+skydive-analyzer-778fc98897-9cr5w        1/1     Running   0          43s
 ```
 
 ## Deploy the Network Service Mesh examples
