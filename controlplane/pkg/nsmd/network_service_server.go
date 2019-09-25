@@ -2,7 +2,7 @@ package nsmd
 
 import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/local"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 )

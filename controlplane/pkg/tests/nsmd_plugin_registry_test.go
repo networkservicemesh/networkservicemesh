@@ -40,7 +40,7 @@ func TestDummyConnectionPlugin(t *testing.T) {
 	srv := NewNSMDFullServer(Master, storage)
 	defer srv.Stop()
 	srv.AddFakeDataplane("test_data_plane", "tcp:some_addr")
-	srv.TestModel.AddEndpoint(srv.RegisterFakeEndpoint("golden_network", "test", Master))
+	srv.TestModel.AddEndpoint(context.Background(), srv.RegisterFakeEndpoint("golden_network", "test", Master))
 
 	plugin := &dummyConnectionPlugin{
 		prefixes: []string{"10.10.1.0/24"},
@@ -68,7 +68,7 @@ func TestDummyConnectionPlugin2(t *testing.T) {
 	srv := NewNSMDFullServer(Master, storage)
 	defer srv.Stop()
 	srv.AddFakeDataplane("test_data_plane", "tcp:some_addr")
-	srv.TestModel.AddEndpoint(srv.RegisterFakeEndpoint("golden_network", "test", Master))
+	srv.TestModel.AddEndpoint(context.Background(), srv.RegisterFakeEndpoint("golden_network", "test", Master))
 
 	plugin := &dummyConnectionPlugin{
 		shouldFail: true,

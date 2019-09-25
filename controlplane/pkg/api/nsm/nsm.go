@@ -1,35 +1,34 @@
 package nsm
 
 import (
-	"time"
-
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
+	connection2 "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm/connection"
+	networkservice2 "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/plugins"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
+	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
+	crossconnect_monitor "github.com/networkservicemesh/networkservicemesh/sdk/monitor/crossconnect"
+	"time"
 
 	local_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
-
 	"golang.org/x/net/context"
-
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 )
 
 // ClientConnection is an interface for client connection
 type ClientConnection interface {
 	GetID() string
-	GetConnectionSource() connection.Connection
-	GetConnectionDestination() connection.Connection
+	GetConnectionSource() connection2.Connection
+	GetConnectionDestination() connection2.Connection
 	GetNetworkService() string
 }
 
 // NetworkServiceClient is an interface for network service client
 type NetworkServiceClient interface {
-	Request(ctx context.Context, request networkservice.Request) (connection.Connection, error)
-	Close(ctx context.Context, connection connection.Connection) error
+	Request(ctx context.Context, request networkservice2.Request) (connection2.Connection, error)
+	Close(ctx context.Context, connection connection2.Connection) error
 
 	Cleanup() error
 }
@@ -52,30 +51,42 @@ const (
 
 // NetworkServiceRequestManager - allow to provide local and remote service interfaces.
 type NetworkServiceRequestManager interface {
-	LocalManager() local_networkservice.NetworkServiceServer
+	LocalManager(clientConnection ClientConnection) local_networkservice.NetworkServiceServer
 	RemoteManager() remote_networkservice.NetworkServiceServer
 }
+
+// NetworkServiceHealProcessor - perform Healing operations
+type NetworkServiceHealProcessor interface {
+	Heal(ctx context.Context, clientConnection ClientConnection, healState HealState)
+	CloseConnection(ctx context.Context, clientConnection ClientConnection) error
+}
+
+// MonitorManager is an interface to provide access to different monitors
+type MonitorManager interface {
+	CrossConnectMonitor() crossconnect_monitor.MonitorServer
+	LocalConnectionMonitor(workspace string) monitor.Server
+}
+
 type NetworkServiceManager interface {
-	RestoreConnections(xcons []*crossconnect.CrossConnect, dataplane string)
 	GetHealProperties() *Properties
 	WaitForDataplane(ctx context.Context, duration time.Duration) error
 	RemoteConnectionLost(ctx context.Context, clientConnection ClientConnection)
 	NotifyRenamedEndpoint(nseOldName, nseNewName string)
 	// Getters
-	ServiceRegistry() serviceregistry.ServiceRegistry
 	NseManager() NetworkServiceEndpointManager
-	PluginRegistry() plugins.PluginRegistry
-	Model() model.Model
-
 	SetRemoteServer(server remote_networkservice.NetworkServiceServer)
 
-	CloseConnection(ctx context.Context, clientConnection ClientConnection) error
-	Heal(clientConnection ClientConnection, state HealState)
+	Model() model.Model
+
+	NetworkServiceHealProcessor
+	ServiceRegistry() serviceregistry.ServiceRegistry
+	PluginRegistry() plugins.PluginRegistry
+	RestoreConnections(xcons []*crossconnect.CrossConnect, dataplane string, manager MonitorManager)
 }
 
 //NetworkServiceEndpointManager - manages endpoints, TODO: Will be removed in next PRs.
 type NetworkServiceEndpointManager interface {
-	GetEndpoint(ctx context.Context, requestConnection connection.Connection, ignoreEndpoints map[string]*registry.NSERegistration) (*registry.NSERegistration, error)
+	GetEndpoint(ctx context.Context, requestConnection connection2.Connection, ignoreEndpoints map[string]*registry.NSERegistration) (*registry.NSERegistration, error)
 	CreateNSEClient(ctx context.Context, endpoint *registry.NSERegistration) (NetworkServiceClient, error)
 	IsLocalEndpoint(endpoint *registry.NSERegistration) bool
 	CheckUpdateNSE(ctx context.Context, reg *registry.NSERegistration) bool

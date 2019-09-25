@@ -1,5 +1,7 @@
 package monitor
 
+import "context"
+
 // EventType is an enum for event types
 type EventType string
 
@@ -23,25 +25,31 @@ type Event interface {
 	Entities() map[string]Entity
 
 	Message() (interface{}, error)
+
+	// A caller context to use with opentracing.
+	Context() context.Context
 }
 
 // EventFactory is an interface for Event factory
 type EventFactory interface {
-	NewEvent(eventType EventType, entities map[string]Entity) Event
-	EventFromMessage(message interface{}) (Event, error)
+	NewEvent(ctx context.Context, eventType EventType, entities map[string]Entity) Event
+	EventFromMessage(ctx context.Context, message interface{}) (Event, error)
+	FactoryName() string
 }
 
 // BaseEvent is a base struct for creating an Event
 type BaseEvent struct {
 	eventType EventType
 	entities  map[string]Entity
+	ctx context.Context
 }
 
 // NewBaseEvent creates a new BaseEvent
-func NewBaseEvent(eventType EventType, entities map[string]Entity) BaseEvent {
+func NewBaseEvent(ctx context.Context,eventType EventType, entities map[string]Entity) BaseEvent {
 	return BaseEvent{
 		eventType: eventType,
 		entities:  entities,
+		ctx: ctx,
 	}
 }
 
@@ -53,4 +61,8 @@ func (e BaseEvent) EventType() EventType {
 // Entities returns BaseEvent entities
 func (e BaseEvent) Entities() map[string]Entity {
 	return e.entities
+}
+
+func(e BaseEvent) Context() context.Context {
+	return e.ctx
 }

@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -18,14 +19,14 @@ func TestModelAddRemove(t *testing.T) {
 
 	mdl := newModel()
 
-	mdl.AddDataplane(&model.Dataplane{
+	mdl.AddDataplane(context.Background(), &model.Dataplane{
 		RegisteredName: "test_name",
 		SocketLocation: "location",
 	})
 
 	g.Expect(mdl.GetDataplane("test_name").RegisteredName).To(Equal("test_name"))
 
-	mdl.DeleteDataplane("test_name")
+	mdl.DeleteDataplane(context.Background(), "test_name")
 
 	g.Expect(mdl.GetDataplane("test_name")).To(BeNil())
 }
@@ -35,7 +36,7 @@ func TestModelSelectDataplane(t *testing.T) {
 
 	mdl := newModel()
 
-	mdl.AddDataplane(&model.Dataplane{
+	mdl.AddDataplane(context.Background(), &model.Dataplane{
 		RegisteredName: "test_name",
 		SocketLocation: "location",
 	})
@@ -59,7 +60,7 @@ func TestModelAddEndpoint(t *testing.T) {
 	mdl := newModel()
 
 	ep1 := createNSERegistration("golden-network", "ep1")
-	mdl.AddEndpoint(ep1)
+	mdl.AddEndpoint(context.Background(), ep1)
 	g.Expect(mdl.GetEndpoint("ep1")).To(Equal(ep1))
 
 	g.Expect(mdl.GetEndpointsByNetworkService("golden-network")[0]).To(Equal(ep1))
@@ -87,8 +88,8 @@ func TestModelTwoEndpoint(t *testing.T) {
 
 	ep1 := createNSERegistration("golden-network", "ep1")
 	ep2 := createNSERegistration("golden-network", "ep2")
-	model.AddEndpoint(ep1)
-	model.AddEndpoint(ep2)
+	model.AddEndpoint(context.Background(), ep1)
+	model.AddEndpoint(context.Background(), ep2)
 	g.Expect(model.GetEndpoint("ep1")).To(Equal(ep1))
 	g.Expect(model.GetEndpoint("ep2")).To(Equal(ep2))
 
@@ -102,9 +103,9 @@ func TestModelAddDeleteEndpoint(t *testing.T) {
 
 	ep1 := createNSERegistration("golden-network", "ep1")
 	ep2 := createNSERegistration("golden-network", "ep2")
-	model.AddEndpoint(ep1)
-	model.AddEndpoint(ep2)
-	model.DeleteEndpoint("ep1")
+	model.AddEndpoint(context.Background(), ep1)
+	model.AddEndpoint(context.Background(), ep2)
+	model.DeleteEndpoint(context.Background(), "ep1")
 	g.Expect(model.GetEndpoint("ep1")).To(BeNil())
 	g.Expect(model.GetEndpoint("ep2")).To(Equal(ep2))
 

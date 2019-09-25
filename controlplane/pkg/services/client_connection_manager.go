@@ -3,16 +3,18 @@ package services
 import (
 	"context"
 	"fmt"
-
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/log"
 	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	remote "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 )
@@ -36,58 +38,93 @@ func (m *ClientConnectionManager) GetNsmName() string {
 }
 
 // UpdateXcon handles case when xcon has been changed for NSMClientConnection
-func (m *ClientConnectionManager) UpdateXcon(cc nsm.ClientConnection, newXcon *crossconnect.CrossConnect) {
-	if upd := m.model.ApplyClientConnectionChanges(cc.GetID(), func(cc *model.ClientConnection) {
+func (m *ClientConnectionManager) UpdateXcon(ctx context.Context, cc *model.ClientConnection, newXcon *crossconnect.CrossConnect) {
+
+	var span opentracing.Span
+	if tools.IsOpentracingEnabled() {
+		span, ctx = opentracing.StartSpanFromContext(ctx, "handle.UpdateXcon")
+		defer span.Finish()
+		span.LogFields(log.Object("connection", cc))
+		span.LogFields(log.Object("newXCon", newXcon))
+	}
+	logger := common.LogFromSpan(span)
+	if upd := m.model.ApplyClientConnectionChanges(ctx, cc.GetID(), func(cc *model.ClientConnection) {
+		//TODO: This should be passed to Healing and not updated here.
 		cc.Xcon = newXcon
 	}); upd != nil {
 		cc = upd
 	} else {
-		logrus.Errorf("Trying to update not existing connection: %v", cc.GetID())
+		err := fmt.Errorf("Trying to update not existing connection: %v", cc.GetID())
+		if span != nil {
+			span.LogFields(log.Error(err))
+		}
+		logger.Error(err)
 		return
 	}
 
 	if src := newXcon.GetLocalSource(); src != nil && src.State == local.State_DOWN {
-		logrus.Info("ClientConnection src state is down")
-		ctx := context.Background()
-		if modelCc := m.model.GetClientConnection(cc.GetID()); modelCc != nil {
-			ctx = opentracing.ContextWithSpan(ctx, modelCc.Span)
-		}
+		logger.Info("ClientConnection src state is down. Closing.")
 		err := m.manager.CloseConnection(ctx, cc)
 		if err != nil {
 			logrus.Error(err)
+			if span != nil {
+				span.LogFields(log.Error(err))
+			}
 		}
 		return
 	}
 
 	if dst := newXcon.GetLocalDestination(); dst != nil && dst.State == local.State_DOWN {
-		logrus.Info("ClientConnection dst state is down")
-		m.manager.Heal(cc, nsm.HealStateDstDown)
+		logger.Info("ClientConnection dst state is down. calling Heal.")
+		m.manager.Heal(ctx, cc, nsm.HealStateDstDown)
 		return
 	}
 }
 
 // DestinationDown handles case when destination down
-func (m *ClientConnectionManager) DestinationDown(cc nsm.ClientConnection, nsmdDie bool) {
+func (m *ClientConnectionManager) DestinationDown(ctx context.Context, cc *model.ClientConnection, nsmdDie bool) {
+	var span opentracing.Span
+	if tools.IsOpentracingEnabled() {
+		span, ctx = opentracing.StartSpanFromContext(ctx, "DestinationDown")
+		defer span.Finish()
+		span.LogFields(log.Bool("nsmgr.die", nsmdDie))
+		span.LogFields(log.Object("connection", cc))
+	}
 	if nsmdDie {
-		m.manager.Heal(cc, nsm.HealStateDstNmgrDown)
+		m.manager.Heal(ctx, cc, nsm.HealStateDstNmgrDown)
 	} else {
-		m.manager.Heal(cc, nsm.HealStateDstDown)
+		m.manager.Heal(ctx, cc, nsm.HealStateDstDown)
 	}
 }
 
 // DataplaneDown handles case of local dp down
-func (m *ClientConnectionManager) DataplaneDown(dataplane *model.Dataplane) {
+func (m *ClientConnectionManager) DataplaneDown(ctx context.Context, dataplane *model.Dataplane) {
 	ccs := m.model.GetAllClientConnections()
-
 	for _, cc := range ccs {
 		if cc.DataplaneRegisteredName == dataplane.RegisteredName {
-			m.manager.Heal(cc, nsm.HealStateDataplaneDown)
+			var span opentracing.Span
+			if tools.IsOpentracingEnabled() {
+				if cc.Span != nil && opentracing.SpanFromContext(ctx) == nil {
+					ctx = opentracing.ContextWithSpan(ctx, cc.Span)
+				}
+				span, ctx = opentracing.StartSpanFromContext(ctx, "handle.DataplaneDown")
+				defer span.Finish()
+				span.LogFields(log.Object("dataplane", dataplane))
+			}
+			m.manager.Heal(ctx, cc, nsm.HealStateDataplaneDown)
 		}
 	}
 }
 
 // LocalDestinationUpdated handles case when local connection parameters changed
-func (m *ClientConnectionManager) LocalDestinationUpdated(cc *model.ClientConnection, localDst *local.Connection) {
+func (m *ClientConnectionManager) LocalDestinationUpdated(ctx context.Context, cc *model.ClientConnection, localDst *local.Connection) {
+	var span opentracing.Span
+	if tools.IsOpentracingEnabled() {
+		span, ctx = opentracing.StartSpanFromContext(ctx, "LocalDestinationUpdated")
+		defer span.Finish()
+		span.LogFields(log.Object("connection", cc))
+		span.LogFields(log.Object("destination", localDst))
+	}
 	if cc.ConnectionState != model.ClientConnectionReady {
 		return
 	}
@@ -98,41 +135,66 @@ func (m *ClientConnectionManager) LocalDestinationUpdated(cc *model.ClientConnec
 	localDst.GetMechanism().GetParameters()[local.WorkspaceNSEName] =
 		cc.Xcon.GetLocalDestination().GetMechanism().GetParameters()[local.WorkspaceNSEName]
 
-	m.destinationUpdated(cc, localDst)
+	m.destinationUpdated(ctx, cc, localDst)
 }
 
 // RemoteDestinationUpdated handles case when remote connection parameters changed
-func (m *ClientConnectionManager) RemoteDestinationUpdated(cc *model.ClientConnection, remoteDst *remote.Connection) {
+func (m *ClientConnectionManager) RemoteDestinationUpdated(ctx context.Context, cc *model.ClientConnection, remoteDst *remote.Connection) {
+	var span opentracing.Span
+	if tools.IsOpentracingEnabled() {
+		span, ctx = opentracing.StartSpanFromContext(ctx, "RemoteDestinationUpdated")
+
+		span.LogFields(log.Object("ClientConnection", cc))
+		span.LogFields(log.Object("RemoteConnect", remoteDst))
+		defer span.Finish()
+	}
+	logger := common.LogFromSpan(span)
 	if cc.ConnectionState != model.ClientConnectionReady {
+		logger.Infof("Event not send... %v", cc.GetID())
 		return
 	}
 
 	if remoteDst.State == remote.State_UP {
+		logger.Infof("State is already UP do not send")
 		// TODO: in order to update connection parameters we need to update model here
 		// We do not need to heal in case DST state is UP, remote NSM will try to recover and only when will send Update, Delete of connection.
 		return
 	}
 
-	m.destinationUpdated(cc, remoteDst)
+	logger.Infof("Event send... %v", cc.GetID())
+	m.destinationUpdated(ctx, cc, remoteDst)
 }
 
-func (m *ClientConnectionManager) destinationUpdated(cc nsm.ClientConnection, dst connection.Connection) {
+func (m *ClientConnectionManager) destinationUpdated(ctx context.Context, cc *model.ClientConnection, dst connection.Connection) {
+	var span opentracing.Span
+	if tools.IsOpentracingEnabled() {
+		span, ctx = opentracing.StartSpanFromContext(ctx, "handle.DestinationUpdated")
+		defer span.Finish()
+		span.LogFields(log.Object("connection", cc))
+		span.LogFields(log.Object("destination", dst))
+	}
+	logger := common.LogFromSpan(span)
 	// Check if it update we already have
 	if dst.Equals(cc.GetConnectionDestination()) {
+		logger.Infof("No event same destination objects")
 		// Since they are same, we do not need to do anything.
 		return
 	}
 
-	if upd := m.model.ApplyClientConnectionChanges(cc.GetID(), func(cc *model.ClientConnection) {
+	if upd := m.model.ApplyClientConnectionChanges(ctx, cc.GetID(), func(cc *model.ClientConnection) {
 		cc.Xcon.SetDestinationConnection(dst)
 	}); upd != nil {
 		cc = upd
 	} else {
-		logrus.Errorf("Trying to update not existing connection: %v", cc.GetID())
+		err := fmt.Errorf("trying to update not existing connection: %v", cc.GetID())
+		if span != nil {
+			span.LogFields(log.Error(err))
+		}
+		logrus.Error(err)
 		return
 	}
 
-	m.manager.Heal(cc, nsm.HealStateDstUpdate)
+	m.manager.Heal(ctx, cc, nsm.HealStateDstUpdate)
 }
 
 // Since cross connect is ours, we could always use local connection id to identify client connection.
@@ -163,9 +225,12 @@ func (m *ClientConnectionManager) GetClientConnectionByRemoteDst(dstID, remoteNa
 	for _, clientConnection := range clientConnections {
 		logrus.Infof("checking existing connection: %v to match %v %v", clientConnection.Xcon, dstID, remoteName)
 		if dst := clientConnection.Xcon.GetRemoteDestination(); dst != nil && dst.GetId() == dstID && dst.GetDestinationNetworkServiceManagerName() == remoteName {
+			logrus.Infof("found remote connection %v", clientConnection)
 			return clientConnection
 		}
 	}
+
+	logrus.Infof("NO DST found to match %v to match %v", dstID, remoteName)
 
 	return nil
 }
@@ -176,12 +241,12 @@ type channelConnectionListener struct {
 }
 
 // ClientConnectionUpdated will be called when ClientConnection in model is updated
-func (c *channelConnectionListener) ClientConnectionUpdated(old, new *model.ClientConnection) {
+func (c *channelConnectionListener) ClientConnectionUpdated(ctx context.Context, old, new *model.ClientConnection) {
 	c.channel <- new
 }
 
 // ClientConnectionDeleted will be called when ClientConnection in model is deleted
-func (c *channelConnectionListener) ClientConnectionDeleted(clientConnection *model.ClientConnection) {
+func (c *channelConnectionListener) ClientConnectionDeleted(ctx context.Context, clientConnection *model.ClientConnection) {
 	c.channel <- clientConnection
 }
 
@@ -283,6 +348,6 @@ func (m *ClientConnectionManager) UpdateRemoteMonitorDone(networkServiceManagerN
 	}
 }
 
-func (m *ClientConnectionManager) UpdateFromInitialState(xcons []*crossconnect.CrossConnect, dataplane *model.Dataplane) {
-	m.manager.RestoreConnections(xcons, dataplane.RegisteredName)
+func (m *ClientConnectionManager) UpdateFromInitialState(xcons []*crossconnect.CrossConnect, dataplane *model.Dataplane, manager nsm.MonitorManager) {
+	m.manager.RestoreConnections(xcons, dataplane.RegisteredName, manager)
 }

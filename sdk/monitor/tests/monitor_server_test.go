@@ -50,7 +50,7 @@ func TestSimple(t *testing.T) {
 		grpcServer.Serve(listener)
 	}()
 
-	monitor.Update(&crossconnect.CrossConnect{Id: "1"})
+	monitor.Update(context.Background(), &crossconnect.CrossConnect{Id: "1"})
 
 	startClient(g, listenerAddress(listener))
 }
@@ -79,7 +79,7 @@ func TestSeveralRecipient(t *testing.T) {
 		_ = grpcServer.Serve(listener)
 	}()
 	waitServe.Wait()
-	monitor.Update(&crossconnect.CrossConnect{Id: "1"})
+	monitor.Update(context.Background(), &crossconnect.CrossConnect{Id: "1"})
 
 	var wg sync.WaitGroup
 	for i := 0; i < 3; i++ {

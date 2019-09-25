@@ -1,12 +1,19 @@
 package monitor
 
 import (
+	"context"
+	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/log"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+	"runtime/debug"
 )
 
 const (
 	defaultSize = 10
+	stackName = "stackName"
 )
 
 // Recipient is an unified interface for receiving stream
@@ -16,8 +23,8 @@ type Recipient interface {
 
 // Server is an unified interface for GRPC monitoring API server
 type Server interface {
-	Update(entity Entity)
-	Delete(entity Entity)
+	Update(ctx context.Context, entity Entity)
+	Delete(ctx context.Context, entity Entity)
 
 	AddRecipient(recipient Recipient)
 	DeleteRecipient(recipient Recipient)
@@ -48,25 +55,48 @@ func NewServer(eventFactory EventFactory) Server {
 	}
 }
 
+// WithStack -
+//   Wraps 'parent' in a new Context that has the stack trace
+//   using Context.Value(...) and returns the result.
+//   Note: any previously existing value will be overwritten.
+//
+func withStack(parent context.Context, stack string) context.Context {
+	if parent == nil {
+		parent = context.Background()
+	}
+	return context.WithValue(parent, stackName, stack)
+}
+
+// Stack - Return a workspace name
+func stack(ctx context.Context) string {
+	value := ctx.Value(stackName)
+	if value == nil {
+		return ""
+	}
+	return value.(string)
+}
+
 // Update sends EventTypeUpdate event for entity to all server recipients
-func (s *server) Update(entity Entity) {
-	s.eventCh <- s.eventFactory.NewEvent(EventTypeUpdate, map[string]Entity{entity.GetId(): entity})
+func (s *server) Update(ctx context.Context, entity Entity) {
+	ctx = withStack(ctx, string(debug.Stack()))
+	s.eventCh <- s.eventFactory.NewEvent(ctx, EventTypeUpdate, map[string]Entity{entity.GetId(): entity})
 }
 
 // Delete sends EventTypeDelete event for entity to all server recipients
-func (s *server) Delete(entity Entity) {
-	s.eventCh <- s.eventFactory.NewEvent(EventTypeDelete, map[string]Entity{entity.GetId(): entity})
+func (s *server) Delete(ctx context.Context, entity Entity) {
+	ctx = withStack(ctx, string(debug.Stack()))
+	s.eventCh <- s.eventFactory.NewEvent(ctx, EventTypeDelete, map[string]Entity{entity.GetId(): entity})
 }
 
 // AddRecipient adds server recipient
 func (s *server) AddRecipient(recipient Recipient) {
-	logrus.Infof("MonitorServerImpl.AddRecipient: %v", recipient)
+	logrus.Infof("MonitorServerImpl.AddRecipient: %v-%v", s.eventFactory.FactoryName(), recipient)
 	s.newMonitorRecipientCh <- recipient
 }
 
 // DeleteRecipient deletes server recipient
 func (s *server) DeleteRecipient(recipient Recipient) {
-	logrus.Infof("MonitorServerImpl.DeleteRecipient: %v", recipient)
+	logrus.Infof("MonitorServerImpl.DeleteRecipient: %v-%v", s.eventFactory.FactoryName(), recipient)
 	s.closedMonitorRecipientCh <- recipient
 }
 
@@ -86,11 +116,11 @@ func (s *server) SendAll(event Event) {
 
 // Serve starts a main loop for server
 func (s *server) Serve() {
-	logrus.Infof("Serve starting...")
+	logrus.Infof("%v - Serve starting...", s.eventFactory.FactoryName())
 	for {
 		select {
 		case newRecipient := <-s.newMonitorRecipientCh:
-			initialStateTransferEvent := s.eventFactory.NewEvent(EventTypeInitialStateTransfer, s.entities)
+			initialStateTransferEvent := s.eventFactory.NewEvent(context.Background(), EventTypeInitialStateTransfer, s.entities)
 			s.send(initialStateTransferEvent, newRecipient)
 			s.recipients = append(s.recipients, newRecipient)
 		case closedRecipient := <-s.closedMonitorRecipientCh:
@@ -101,17 +131,35 @@ func (s *server) Serve() {
 				}
 			}
 		case event := <-s.eventCh:
-			logrus.Infof("New event: %v", event)
+			logrus.Infof("%v-New event: %v", s.eventFactory.FactoryName(), event)
 			for _, entity := range event.Entities() {
 				if event.EventType() == EventTypeUpdate {
+					s.sendTrace(event, fmt.Sprintf("%v-send-update", s.eventFactory.FactoryName()))
 					s.entities[entity.GetId()] = entity
 				}
 				if event.EventType() == EventTypeDelete {
+					s.sendTrace(event, fmt.Sprintf("%v-send-delete", s.eventFactory.FactoryName()))
 					delete(s.entities, entity.GetId())
 				}
 			}
 			s.SendAll(event)
 		}
+	}
+}
+
+func (s *server) sendTrace(event Event, operation string) {
+	if tools.IsOpentracingEnabled() && event.Context() != nil {
+		span, _ := opentracing.StartSpanFromContext(event.Context(), operation)
+		span.LogFields(log.Object("eventType", event.EventType()))
+		msg, err := event.Message()
+		span.LogFields(log.Object("msg", msg))
+		if err != nil {
+			span.LogFields(log.Error(err))
+		}
+		if s := stack(event.Context()); s != "" {
+			span.LogFields(log.String("stack", s))
+		}
+		span.Finish()
 	}
 }
 

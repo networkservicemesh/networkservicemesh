@@ -109,7 +109,7 @@ func (m *MonitorNetNsInodeServer) checkConnectionLiveness(xcon *crossconnect.Cro
 		logrus.Infof("Connection is down")
 		conn.State = connection.State_DOWN
 		m.kvSchedulerClient.DownstreamResync()
-		m.crossConnectServer.Update(xcon)
+		m.crossConnectServer.Update(nil, xcon)
 	}
 
 	return nil

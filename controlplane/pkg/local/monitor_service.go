@@ -15,22 +15,21 @@ package local
 
 import (
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
-	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/local"
-
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 )
 
 type monitorService struct {
-	monitor local.MonitorServer
+	monitor monitor.Server
 }
 
 // NewMonitorService - Perform updates to workspace monitoring services.
-func NewMonitorService(monitor local.MonitorServer) networkservice.NetworkServiceServer {
+func NewMonitorService(monitor monitor.Server) networkservice.NetworkServiceServer {
 	return &monitorService{
 		monitor: monitor,
 	}
@@ -40,8 +39,8 @@ func (srv *monitorService) Request(ctx context.Context, request *networkservice.
 	ctx = common.WithMonitorServer(ctx, srv.monitor)
 
 	conn, err := ProcessNext(ctx, request)
-	if conn != nil {
-		srv.monitor.Update(conn)
+	if err == nil {
+		srv.monitor.Update(ctx, conn)
 	}
 	return conn, err
 }
@@ -52,6 +51,6 @@ func (srv *monitorService) Close(ctx context.Context, connection *connection.Con
 	// Pass model connection with context
 	ctx = common.WithMonitorServer(ctx, srv.monitor)
 	conn, err := ProcessClose(ctx, connection)
-	srv.monitor.Delete(connection)
+	srv.monitor.Delete(ctx, connection)
 	return conn, err
 }

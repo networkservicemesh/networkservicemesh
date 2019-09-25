@@ -21,12 +21,12 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	local_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	local_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
-	nsm2 "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsmdapi"
 	pluginsapi "github.com/networkservicemesh/networkservicemesh/controlplane/api/plugins"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
+	nsm2 "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
@@ -446,7 +446,7 @@ func (srv *nsmdFullServerImpl) StopNoClean() {
 }
 
 func (impl *nsmdFullServerImpl) AddFakeDataplane(dp_name string, dp_addr string) {
-	impl.TestModel.AddDataplane(&model.Dataplane{
+	impl.TestModel.AddDataplane(context.Background(), &model.Dataplane{
 		RegisteredName: dp_name,
 		SocketLocation: dp_addr,
 		LocalMechanisms: []connection.Mechanism{

@@ -3,6 +3,7 @@ package nsm
 import (
 	"context"
 	"fmt"
+	"github.com/opentracing/opentracing-go/log"
 
 	"github.com/opentracing/opentracing-go"
 
@@ -11,9 +12,9 @@ import (
 	"github.com/sirupsen/logrus"
 
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 )
@@ -91,8 +92,11 @@ func (nsem *nseManager) CreateNSEClient(ctx context.Context, endpoint *registry.
 		logger.Infof("Create local NSE connection to endpoint: %v", modelEp)
 		client, conn, err := nsem.serviceRegistry.EndpointConnection(ctx, modelEp)
 		if err != nil {
+			if span != nil {
+				span.LogFields(log.Error(err))
+			}
 			// We failed to connect to local NSE.
-			nsem.cleanupNSE(modelEp)
+			nsem.cleanupNSE(ctx, modelEp)
 			return nil, err
 		}
 		return &endpointClient{connection: conn, client: client}, nil
@@ -123,9 +127,9 @@ func (nsem *nseManager) CheckUpdateNSE(ctx context.Context, reg *registry.NSEReg
 	return false
 }
 
-func (nsem *nseManager) cleanupNSE(endpoint *model.Endpoint) {
+func (nsem *nseManager) cleanupNSE(ctx context.Context, endpoint *model.Endpoint) {
 	// Remove endpoint from model and put workspace into BAD state.
-	nsem.model.DeleteEndpoint(endpoint.EndpointName())
+	nsem.model.DeleteEndpoint(ctx, endpoint.EndpointName())
 	logrus.Infof("NSM: Remove Endpoint since it is not available... %v", endpoint)
 }
 

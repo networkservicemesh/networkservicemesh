@@ -46,6 +46,9 @@ func (n *nextEndpoint) Request(ctx context.Context, request *networkservice.Netw
 
 	if err != nil {
 		logger.Errorf("Error: %v", err)
+		if span != nil {
+			span.LogFields(log.Error(err))
+		}
 		return nil, err
 	}
 	logger.Infof("internal response %v", rv)

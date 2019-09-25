@@ -64,7 +64,7 @@ func dataplaneMonitor(model model.Model, dataplaneName string) {
 	conn, err := tools.DialUnix(dataplane.SocketLocation)
 	if err != nil {
 		logrus.Errorf("failure to communicate with the socket %s with error: %+v", dataplane.SocketLocation, err)
-		model.DeleteDataplane(dataplaneName)
+		model.DeleteDataplane(context.Background(), dataplaneName)
 		return
 	}
 	defer conn.Close()
@@ -74,14 +74,14 @@ func dataplaneMonitor(model model.Model, dataplaneName string) {
 	stream, err := dataplaneClient.MonitorMechanisms(context.Background(), &empty.Empty{})
 	if err != nil {
 		logrus.Errorf("fail to create update grpc channel for Dataplane %s with error: %+v, removing dataplane from Objectstore.", dataplane.RegisteredName, err)
-		model.DeleteDataplane(dataplaneName)
+		model.DeleteDataplane(context.Background(), dataplaneName)
 		return
 	}
 	for {
 		updates, err := stream.Recv()
 		if err != nil {
 			logrus.Errorf("fail to receive on update grpc channel for Dataplane %s with error: %+v, removing dataplane from Objectstore.", dataplane.RegisteredName, err)
-			model.DeleteDataplane(dataplaneName)
+			model.DeleteDataplane(context.Background(),dataplaneName)
 			return
 		}
 		logrus.Infof("Dataplane %s informed of its parameters changes, applying new parameters %+v", dataplaneName, updates.RemoteMechanisms)
@@ -89,7 +89,7 @@ func dataplaneMonitor(model model.Model, dataplaneName string) {
 		dataplane.SetRemoteMechanisms(updates.RemoteMechanisms)
 		dataplane.SetLocalMechanisms(updates.LocalMechanisms)
 		dataplane.MechanismsConfigured = true
-		model.UpdateDataplane(dataplane)
+		model.UpdateDataplane(context.Background(),dataplane)
 	}
 }
 
@@ -121,7 +121,7 @@ func (r *dataplaneRegistrarServer) RequestDataplaneRegistration(ctx context.Cont
 		SocketLocation: req.DataplaneSocket,
 	}
 
-	r.model.AddDataplane(dataplane)
+	r.model.AddDataplane(ctx, dataplane)
 
 	// Starting per dataplane go routine which will open grpc client connection on dataplane advertised socket
 	// and will listen for operational parameters/constraints changes and reflecting these changes in the dataplane
@@ -135,7 +135,7 @@ func (r *dataplaneRegistrarServer) RequestDataplaneUnRegistration(ctx context.Co
 	logrus.Infof("Received dataplane un-registration requests from %s", req.DataplaneName)
 
 	// Removing dataplane from the store, if it does not exists, it does not matter as long as it is no longer there.
-	r.model.DeleteDataplane(req.DataplaneName)
+	r.model.DeleteDataplane(ctx, req.DataplaneName)
 
 	return &dataplaneregistrarapi.DataplaneUnRegistrationReply{UnRegistered: true}, nil
 }

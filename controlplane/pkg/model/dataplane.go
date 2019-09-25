@@ -1,11 +1,12 @@
 package model
 
 import (
+	"context"
 	"fmt"
 
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
 	remote "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm/connection"
 )
 
 // DataplaneState describes state of dataplane
@@ -83,8 +84,8 @@ func newDataplaneDomain() dataplaneDomain {
 	}
 }
 
-func (d *dataplaneDomain) AddDataplane(dp *Dataplane) {
-	d.store(dp.RegisteredName, dp)
+func (d *dataplaneDomain) AddDataplane(ctx context.Context, dp *Dataplane) {
+	d.store(ctx, dp.RegisteredName, dp)
 }
 
 func (d *dataplaneDomain) GetDataplane(name string) *Dataplane {
@@ -95,12 +96,12 @@ func (d *dataplaneDomain) GetDataplane(name string) *Dataplane {
 	return nil
 }
 
-func (d *dataplaneDomain) DeleteDataplane(name string) {
-	d.delete(name)
+func (d *dataplaneDomain) DeleteDataplane(ctx context.Context, name string) {
+	d.delete(ctx, name)
 }
 
-func (d *dataplaneDomain) UpdateDataplane(dp *Dataplane) {
-	d.store(dp.RegisteredName, dp)
+func (d *dataplaneDomain) UpdateDataplane(ctx context.Context, dp *Dataplane) {
+	d.store(ctx, dp.RegisteredName, dp)
 }
 
 func (d *dataplaneDomain) SelectDataplane(dataplaneSelector func(dp *Dataplane) bool) (*Dataplane, error) {

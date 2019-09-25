@@ -59,7 +59,7 @@ func TestWaitClientConnection(t *testing.T) {
 	g := gomega.NewGomegaWithT(t)
 	mdl := model.NewModel()
 	con := newConnection()
-	mdl.AddClientConnection(con)
+	mdl.AddClientConnection(context.Background(), con)
 	clientConnectionManager := services.NewClientConnectionManager(mdl, nil, nil)
 
 	result := make(chan connectionError, 1)
@@ -72,7 +72,7 @@ func TestWaitClientConnection(t *testing.T) {
 
 	waitListenersIncrement(mdl, g)
 
-	mdl.ApplyClientConnectionChanges("1", func(con *model.ClientConnection) {
+	mdl.ApplyClientConnectionChanges(context.Background(), "1", func(con *model.ClientConnection) {
 		con.ConnectionState = model.ClientConnectionReady
 		con.Xcon.GetRemoteDestination().Id = "2"
 	})
@@ -88,7 +88,7 @@ func TestWaitClientConnectionDelete(t *testing.T) {
 	g := gomega.NewGomegaWithT(t)
 	mdl := model.NewModel()
 	con := newConnection()
-	mdl.AddClientConnection(con)
+	mdl.AddClientConnection(context.Background(), con)
 	clientConnectionManager := services.NewClientConnectionManager(mdl, nil, nil)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
@@ -101,7 +101,7 @@ func TestWaitClientConnectionDelete(t *testing.T) {
 
 	waitListenersIncrement(mdl, g)
 
-	mdl.DeleteClientConnection("1")
+	mdl.DeleteClientConnection(context.Background(), "1")
 
 	dst := <-result
 	dstCon := dst.connection

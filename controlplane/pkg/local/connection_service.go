@@ -80,10 +80,10 @@ func (cce *connectionService) Request(ctx context.Context, request *networkservi
 		request.Connection.SetID(clientConnection.GetID())
 		logger.Infof("NSM:(%v) Called with existing connection passed: %v", id, clientConnection)
 
-		clientConnection.ConnectionState = model.ClientConnectionHealing
 		// Update model connection status
-		cce.model.ApplyClientConnectionChanges(clientConnection.GetID(), func(modelCC *model.ClientConnection) {
+		clientConnection = cce.model.ApplyClientConnectionChanges(ctx, clientConnection.GetID(), func(modelCC *model.ClientConnection) {
 			modelCC.ConnectionState = model.ClientConnectionHealing
+			modelCC.Span = common.OriginalSpan(ctx)
 		})
 	} else {
 		// Assign ID to connection
@@ -92,8 +92,10 @@ func (cce *connectionService) Request(ctx context.Context, request *networkservi
 		clientConnection = &model.ClientConnection{
 			ConnectionID:    request.Connection.GetId(),
 			ConnectionState: model.ClientConnectionRequesting,
+			Span: common.OriginalSpan(ctx),
+			Monitor: common.MonitorServer(ctx),
 		}
-		cce.model.AddClientConnection(clientConnection)
+		cce.model.AddClientConnection(ctx, clientConnection)
 	}
 
 	// 8. Remember original Request for Heal cases.
@@ -103,19 +105,17 @@ func (cce *connectionService) Request(ctx context.Context, request *networkservi
 	conn, err := ProcessNext(ctx, request)
 	if err != nil {
 		// In case of error we need to remove it from model
-		cce.model.DeleteClientConnection(clientConnection.GetID())
+		cce.model.DeleteClientConnection(ctx, clientConnection.GetID())
 		return conn, err
 	}
 
-	clientConnection.Span = common.OriginalSpan(ctx)
 	clientConnection.ConnectionState = model.ClientConnectionReady
-	clientConnection.Workspace = workspaceName
 
 	if span != nil {
 		span.LogFields(log.Object("client-connection", clientConnection))
 	}
 	// 10. Send update for client connection
-	cce.model.UpdateClientConnection(clientConnection)
+	cce.model.UpdateClientConnection(ctx, clientConnection)
 
 	return conn, err
 }
@@ -129,7 +129,7 @@ func (cce *connectionService) Close(ctx context.Context, connection *connection.
 		logrus.Error(err)
 		return nil, err
 	}
-	cce.model.ApplyClientConnectionChanges(clientConnection.GetID(), func(modelCC *model.ClientConnection) {
+	clientConnection = cce.model.ApplyClientConnectionChanges(ctx, clientConnection.GetID(), func(modelCC *model.ClientConnection) {
 		modelCC.ConnectionState = model.ClientConnectionClosing
 	})
 
@@ -138,7 +138,7 @@ func (cce *connectionService) Close(ctx context.Context, connection *connection.
 
 	_, err := ProcessClose(ctx, connection)
 
-	cce.model.DeleteClientConnection(clientConnection.GetID())
+	cce.model.DeleteClientConnection(ctx, clientConnection.GetID())
 
 	return &empty.Empty{}, err
 }

@@ -79,7 +79,7 @@ func (es *registryServer) RegisterNSEWithClient(ctx context.Context, request *re
 		Url: es.nsm.serviceRegistry.GetPublicAPI(),
 	}
 
-	registration, err := client.RegisterNSE(context.Background(), request)
+	registration, err := client.RegisterNSE(ctx, request)
 	if err != nil {
 		err = fmt.Errorf("attempt to pass through from nsm to upstream registry failed with: %v", err)
 		logrus.Error(err)
@@ -93,7 +93,7 @@ func (es *registryServer) RegisterNSEWithClient(ctx context.Context, request *re
 		Workspace:      es.workspace.Name(),
 	}
 	if ep == nil {
-		es.nsm.model.AddEndpoint(modelEndpoint)
+		es.nsm.model.AddEndpoint(ctx, modelEndpoint)
 	}
 	logrus.Infof("Received upstream NSERegitration: %v", registration)
 
@@ -116,7 +116,7 @@ func (es *registryServer) RemoveNSE(ctx context.Context, request *registry.Remov
 		logrus.Error(err)
 		return nil, err
 	}
-	es.nsm.model.DeleteEndpoint(request.GetNetworkServiceEndpointName())
+	es.nsm.model.DeleteEndpoint(ctx, request.GetNetworkServiceEndpointName())
 	return &empty.Empty{}, nil
 }
 

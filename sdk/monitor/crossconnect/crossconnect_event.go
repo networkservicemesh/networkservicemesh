@@ -1,6 +1,7 @@
 package crossconnect
 
 import (
+	context "context"
 	"fmt"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
@@ -12,6 +13,8 @@ type Event struct {
 	monitor.BaseEvent
 
 	Statistics map[string]*crossconnect.Metrics
+
+	ctx context.Context
 }
 
 // Message converts Event to CrossConnectEvent
@@ -32,18 +35,26 @@ func (e *Event) Message() (interface{}, error) {
 		Metrics:       e.Statistics,
 	}, nil
 }
+func (e *Event) Context() context.Context {
+	return e.ctx
+}
+
 
 type eventFactory struct {
 }
 
-func (m *eventFactory) NewEvent(eventType monitor.EventType, entities map[string]monitor.Entity) monitor.Event {
+func (m* eventFactory) FactoryName() string {
+	return "CrossConnect"
+}
+func (m *eventFactory) NewEvent(ctx context.Context, eventType monitor.EventType, entities map[string]monitor.Entity) monitor.Event {
 	return &Event{
-		BaseEvent:  monitor.NewBaseEvent(eventType, entities),
+		BaseEvent:  monitor.NewBaseEvent(ctx, eventType, entities),
 		Statistics: map[string]*crossconnect.Metrics{},
+		ctx: ctx,
 	}
 }
 
-func (m *eventFactory) EventFromMessage(message interface{}) (monitor.Event, error) {
+func (m *eventFactory) EventFromMessage(ctx context.Context, message interface{}) (monitor.Event, error) {
 	xconEvent, ok := message.(*crossconnect.CrossConnectEvent)
 	if !ok {
 		return nil, fmt.Errorf("unable to cast %v to CrossConnectEvent", message)
@@ -57,7 +68,7 @@ func (m *eventFactory) EventFromMessage(message interface{}) (monitor.Event, err
 	entities := entitiesFromXcons(xconEvent.CrossConnects)
 
 	return &Event{
-		BaseEvent:  monitor.NewBaseEvent(eventType, entities),
+		BaseEvent:  monitor.NewBaseEvent(ctx, eventType, entities),
 		Statistics: xconEvent.Metrics,
 	}, nil
 }

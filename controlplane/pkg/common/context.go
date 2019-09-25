@@ -15,19 +15,15 @@ package common
 
 import (
 	"context"
-
+	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
 	"github.com/opentracing/opentracing-go"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
-	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/remote"
-
-	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/local"
-
 	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
-	unified_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
+	unified_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm/connection"
 )
 
 // ContextKeyType - a type object for context values.
@@ -45,6 +41,7 @@ const (
 	originalSpan           ContextKeyType = "OriginalSpan"
 	ignoredEndpoints       ContextKeyType = "IgnoredEndpoints"
 	workspaceName          ContextKeyType = "WorkspaceName"
+	stackName              ContextKeyType = "Stack"
 )
 
 // WithClientConnection -
@@ -101,7 +98,7 @@ func Log(ctx context.Context) logrus.FieldLogger {
 //   using Context.Value(...) and returns the result.
 //   Note: any previously existing MonitorServer will be overwritten.
 //
-func WithMonitorServer(parent context.Context, monitorServer local.MonitorServer) context.Context {
+func WithMonitorServer(parent context.Context, monitorServer monitor.Server) context.Context {
 	if parent == nil {
 		parent = context.Background()
 	}
@@ -112,36 +109,12 @@ func WithMonitorServer(parent context.Context, monitorServer local.MonitorServer
 //    Returns a MonitorServer from:
 //      ctx context.Context
 //    If any is present, otherwise nil
-func MonitorServer(ctx context.Context) local.MonitorServer {
+func MonitorServer(ctx context.Context) monitor.Server {
 	value := ctx.Value(monitorServerKey)
 	if value == nil {
 		return nil
 	}
-	return value.(local.MonitorServer)
-}
-
-// WithRemoteMonitorServer -
-//   Wraps 'parent' in a new Context that has the remote connection Monitor
-//   using Context.Value(...) and returns the result.
-//   Note: any previously existing MonitorServer will be overwritten.
-//
-func WithRemoteMonitorServer(parent context.Context, monitorServer remote.MonitorServer) context.Context {
-	if parent == nil {
-		parent = context.Background()
-	}
-	return context.WithValue(parent, remoteMonitorServerKey, monitorServer)
-}
-
-// RemoteMonitorServer -
-//    Returns a RemoteMonitorServer from:
-//      ctx context.Context
-//    If any is present, otherwise nil
-func RemoteMonitorServer(ctx context.Context) remote.MonitorServer {
-	value := ctx.Value(remoteMonitorServerKey)
-	if value == nil {
-		return nil
-	}
-	return value.(remote.MonitorServer)
+	return value.(monitor.Server)
 }
 
 // WithModelConnection -

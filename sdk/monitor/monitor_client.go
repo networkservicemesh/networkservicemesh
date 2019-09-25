@@ -55,7 +55,7 @@ func NewClient(cc *grpc.ClientConn, eventFactory EventFactory, streamConstructor
 				return
 			}
 
-			if event, err := eventFactory.EventFromMessage(message); err != nil {
+			if event, err := eventFactory.EventFromMessage(nil, message); err != nil {
 				logrus.Errorf("An error during convertion event: %v", err)
 			} else {
 				eventChannel <- event

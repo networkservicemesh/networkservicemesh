@@ -39,12 +39,14 @@ func (c *nsmClientApp) Run() {
 
 	clientList, err := client.NewNSMClientList(ctx, nil)
 	if err != nil {
-		logrus.Fatalf("nsm client: Unable to create the NSM client %v", err)
+		logrus.Errorf("nsm client: Unable to create the NSM client %v", err)
+		return
 	}
 
 	err = clientList.ConnectRetry(ctx, "nsm", "kernel", "Primary interface", client.ConnectionRetry, client.RequestDelay)
 	if err != nil {
-		logrus.Fatalf("nsm client: Unable to establish connection with network service")
+		logrus.Errorf("nsm client: Unable to establish connection with network service")
+		return
 	}
 	logrus.Info("nsm client: initialization is completed successfully")
 }

@@ -9,8 +9,8 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
 	remote "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 )
 
@@ -56,14 +56,14 @@ func TestSelectDataplane(t *testing.T) {
 	srv2 := NewNSMDFullServer(Worker, storage)
 	defer srv.Stop()
 	defer srv2.Stop()
-	srv.TestModel.AddDataplane(testDataplane1)
-	srv2.TestModel.AddDataplane(testDataplane2)
-	srv.TestModel.AddDataplane(testDataplane1_1)
+	srv.TestModel.AddDataplane(context.Background(), testDataplane1)
+	srv2.TestModel.AddDataplane(context.Background(), testDataplane2)
+	srv.TestModel.AddDataplane(context.Background(), testDataplane1_1)
 
 	// Register in both
 	nseReg := srv2.RegisterFakeEndpoint("golden_network", "test", Worker)
 	// Add to local endpoints for Server2
-	srv2.TestModel.AddEndpoint(nseReg)
+	srv2.TestModel.AddEndpoint(context.Background(), nseReg)
 
 	l1 := newTestConnectionModelListener(Master)
 	l2 := newTestConnectionModelListener(Worker)

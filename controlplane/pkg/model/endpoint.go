@@ -1,6 +1,7 @@
 package model
 
 import (
+	"context"
 	"github.com/golang/protobuf/proto"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
@@ -50,8 +51,8 @@ func newEndpointDomain() endpointDomain {
 		baseDomain: newBase(),
 	}
 }
-func (d *endpointDomain) AddEndpoint(endpoint *Endpoint) {
-	d.store(endpoint.EndpointName(), endpoint)
+func (d *endpointDomain) AddEndpoint(ctx context.Context, endpoint *Endpoint) {
+	d.store(ctx, endpoint.EndpointName(), endpoint)
 }
 
 func (d *endpointDomain) GetEndpoint(name string) *Endpoint {
@@ -74,12 +75,12 @@ func (d *endpointDomain) GetEndpointsByNetworkService(nsName string) []*Endpoint
 	return rv
 }
 
-func (d *endpointDomain) DeleteEndpoint(name string) {
-	d.delete(name)
+func (d *endpointDomain) DeleteEndpoint(ctx context.Context, name string) {
+	d.delete(ctx, name)
 }
 
-func (d *endpointDomain) UpdateEndpoint(endpoint *Endpoint) {
-	d.store(endpoint.EndpointName(), endpoint)
+func (d *endpointDomain) UpdateEndpoint(ctx context.Context, endpoint *Endpoint) {
+	d.store(ctx, endpoint.EndpointName(), endpoint)
 }
 
 func (d *endpointDomain) SetEndpointModificationHandler(h *ModificationHandler) func() {

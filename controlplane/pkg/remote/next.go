@@ -95,6 +95,9 @@ func (n *nextEndpoint) Request(ctx context.Context, request *networkservice.Netw
 	rv, err := n.composite.services[n.index].Request(ctx, request)
 
 	if err != nil {
+		if span != nil {
+			span.LogFields(log.Error(err))
+		}
 		logger.Errorf("Error: %v", err)
 		return nil, err
 	}

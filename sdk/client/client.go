@@ -18,6 +18,7 @@ package client
 import (
 	"context"
 	"fmt"
+	"github.com/opentracing/opentracing-go/log"
 	"io"
 	"time"
 
@@ -119,6 +120,7 @@ func (nsmc *NsmClient) ConnectRetry(ctx context.Context, name, mechanism, descri
 
 		if err != nil {
 			if attemptSpan != nil {
+				attemptSpan.LogFields(log.Error(err))
 				attemptSpan.Finish()
 			}
 			cancelProc()

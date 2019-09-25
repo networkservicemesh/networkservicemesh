@@ -1,13 +1,15 @@
 package model
 
 import (
+	"context"
 	"github.com/golang/protobuf/proto"
+	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
 	"github.com/opentracing/opentracing-go"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm/networkservice"
 )
 
 // ClientConnectionState describes state of ClientConnection
@@ -44,7 +46,7 @@ type ClientConnection struct {
 	ConnectionState         ClientConnectionState
 	DataplaneState          DataplaneState
 	Span                    opentracing.Span
-	Workspace               string
+	Monitor                 monitor.Server
 }
 
 // GetID returns id of clientConnection
@@ -112,7 +114,7 @@ func (cc *ClientConnection) clone() cloneable {
 		ConnectionState:         cc.ConnectionState,
 		DataplaneState:          cc.DataplaneState,
 		Span:                    cc.Span,
-		Workspace:               cc.Workspace,
+		Monitor:                 cc.Monitor,
 	}
 }
 
@@ -126,8 +128,8 @@ func newClientConnectionDomain() clientConnectionDomain {
 	}
 }
 
-func (d *clientConnectionDomain) AddClientConnection(cc *ClientConnection) {
-	d.store(cc.ConnectionID, cc)
+func (d *clientConnectionDomain) AddClientConnection(ctx context.Context, cc *ClientConnection) {
+	d.store(ctx, cc.ConnectionID, cc)
 }
 
 func (d *clientConnectionDomain) GetClientConnection(id string) *ClientConnection {
@@ -147,16 +149,16 @@ func (d *clientConnectionDomain) GetAllClientConnections() []*ClientConnection {
 	return rv
 }
 
-func (d *clientConnectionDomain) DeleteClientConnection(id string) {
-	d.delete(id)
+func (d *clientConnectionDomain) DeleteClientConnection(ctx context.Context, id string) {
+	d.delete(ctx, id)
 }
 
-func (d *clientConnectionDomain) UpdateClientConnection(cc *ClientConnection) {
-	d.store(cc.ConnectionID, cc)
+func (d *clientConnectionDomain) UpdateClientConnection(ctx context.Context, cc *ClientConnection) {
+	d.store(ctx, cc.ConnectionID, cc)
 }
 
-func (d *clientConnectionDomain) ApplyClientConnectionChanges(id string, f func(*ClientConnection)) *ClientConnection {
-	upd := d.applyChanges(id, func(v interface{}) { f(v.(*ClientConnection)) })
+func (d *clientConnectionDomain) ApplyClientConnectionChanges(ctx context.Context, id string, f func(*ClientConnection)) *ClientConnection {
+	upd := d.applyChanges(ctx, id, func(v interface{}) { f(v.(*ClientConnection)) })
 	if upd != nil {
 		return upd.(*ClientConnection)
 	}

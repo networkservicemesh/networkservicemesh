@@ -82,7 +82,7 @@ func main() {
 				logrus.Infof("Delaying 5 seconds before send update event.")
 				go func() {
 					for i := 0; i < 10; i++ {
-						updateConnections(monitorServer)
+						updateConnections(ctx, monitorServer)
 						logrus.Infof("Update event %v sended.", i)
 						<-time.After(5 * time.Second)
 					}
@@ -148,12 +148,12 @@ func ipNeighborMutator(ctc context.Context, c *connection.Connection) error {
 	return nil
 }
 
-func updateConnections(monitorServer local.MonitorServer) {
+func updateConnections(ctx context.Context, monitorServer local.MonitorServer) {
 	for _, entity := range monitorServer.Entities() {
 		localConnection := proto.Clone(entity.(*connection.Connection)).(*connection.Connection)
 		localConnection.GetContext().GetIpContext().ExcludedPrefixes =
 			append(localConnection.GetContext().GetIpContext().GetExcludedPrefixes(), "255.255.255.255/32")
 
-		monitorServer.Update(localConnection)
+		monitorServer.Update(ctx, localConnection)
 	}
 }

@@ -22,7 +22,7 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm/connection"
 )
 
 // IsRemote returns if mechanism type is remote

@@ -15,6 +15,7 @@ package remote
 
 import (
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 
@@ -26,7 +27,7 @@ import (
 )
 
 type monitorService struct {
-	monitor remote.MonitorServer
+	monitor monitor.Server
 }
 
 // NewMonitorService - Perform updates to workspace monitoring services.
@@ -37,11 +38,11 @@ func NewMonitorService(monitor remote.MonitorServer) networkservice.NetworkServi
 }
 
 func (srv *monitorService) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
-	ctx = common.WithRemoteMonitorServer(ctx, srv.monitor)
+	ctx = common.WithMonitorServer(ctx, srv.monitor)
 
 	conn, err := ProcessNext(ctx, request)
-	if conn != nil {
-		srv.monitor.Update(conn)
+	if err == nil {
+		srv.monitor.Update(ctx, conn)
 	}
 	return conn, err
 }
@@ -50,8 +51,8 @@ func (srv *monitorService) Close(ctx context.Context, connection *connection.Con
 	logrus.Infof("Closing connection: %v", connection)
 
 	// Pass model connection with context
-	ctx = common.WithRemoteMonitorServer(ctx, srv.monitor)
+	ctx = common.WithMonitorServer(ctx, srv.monitor)
 	conn, err := ProcessClose(ctx, connection)
-	srv.monitor.Delete(connection)
+	srv.monitor.Delete(ctx, connection)
 	return conn, err
 }

@@ -5,7 +5,7 @@ import (
 	"path"
 	"strconv"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm/connection"
 
 	"github.com/golang/protobuf/proto"
 

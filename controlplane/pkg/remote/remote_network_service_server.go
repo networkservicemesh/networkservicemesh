@@ -16,8 +16,8 @@ package remote
 import (
 	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/remote"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
 	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
 )
 
 // NewRemoteNetworkServiceServer -  creates a new remote.NetworkServiceServer

@@ -16,6 +16,9 @@ package local
 import (
 	"context"
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/log"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/empty"
@@ -24,10 +27,10 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
-	unified_nsm "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
-	unified_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
 	plugin_api "github.com/networkservicemesh/networkservicemesh/controlplane/api/plugins"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
+	unified_nsm "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
+	unified_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/plugins"
@@ -76,8 +79,21 @@ func (cce *endpointSelectorService) Request(ctx context.Context, request *networ
 	// 7.1 try find NSE and do a Request to it.
 	var lastError error
 	ignoreEndpoints := common.IgnoredEndpoints(ctx)
+	parentCtx := ctx
+	attempt := 0
 	for {
+		attempt++
+		var span opentracing.Span
+		if tools.IsOpentracingEnabled() {
+			span, ctx = opentracing.StartSpanFromContext(parentCtx, fmt.Sprintf("select-nse-%v", attempt))
+			defer span.Finish()
+		}
+		logger := common.LogFromSpan(span)
+		ctx = common.WithLog(ctx, logger)
 		if ctx.Err() != nil {
+			if span != nil {
+				span.LogFields(log.Error(ctx.Err()))
+			}
 			logger.Errorf("NSM:(7.1.0) Context timeout, during find/call NSE... %v", ctx.Err())
 			return nil, ctx.Err()
 		}
@@ -85,6 +101,9 @@ func (cce *endpointSelectorService) Request(ctx context.Context, request *networ
 		newRequest, endpoint, err := cce.prepareRequest(ctx, request, clientConnection, ignoreEndpoints)
 		if err != nil {
 			if lastError != nil {
+				if span != nil {
+					span.LogFields(log.Error(lastError))
+				}
 				return nil, fmt.Errorf("NSM:(7.1.5) %v. Last NSE Error: %v", err, lastError)
 			}
 			return nil, err
@@ -99,6 +118,9 @@ func (cce *endpointSelectorService) Request(ctx context.Context, request *networ
 			logger.Errorf("NSM:(7.1.8) NSE respond with error: %v ", err)
 			lastError = err
 			ignoreEndpoints[endpoint.GetNetworkServiceEndpoint().GetName()] = endpoint
+			if span != nil {
+				span.Finish()
+			}
 			continue
 		}
 

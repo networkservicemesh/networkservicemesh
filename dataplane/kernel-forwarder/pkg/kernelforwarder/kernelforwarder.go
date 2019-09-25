@@ -77,7 +77,7 @@ func (v *KernelForwarder) Request(ctx context.Context, crossConnect *crossconnec
 	if err != nil {
 		return nil, err
 	}
-	v.common.Monitor.Update(xcon)
+	v.common.Monitor.Update(ctx, xcon)
 	logrus.Infof("Request() called with %v returning: %v", crossConnect, xcon)
 	return xcon, err
 }
@@ -103,7 +103,7 @@ func (v *KernelForwarder) Close(ctx context.Context, crossConnect *crossconnect.
 	if err != nil {
 		logrus.Warn(err)
 	}
-	v.common.Monitor.Delete(xcon)
+	v.common.Monitor.Delete(ctx, xcon)
 	return &empty.Empty{}, nil
 }
 

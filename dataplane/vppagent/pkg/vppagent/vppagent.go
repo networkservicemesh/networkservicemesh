@@ -95,7 +95,7 @@ func (v *VPPAgent) Request(ctx context.Context, crossConnect *crossconnect.Cross
 	if err != nil {
 		return nil, err
 	}
-	v.common.Monitor.Update(xcon)
+	v.common.Monitor.Update(ctx, xcon)
 	logrus.Infof("Request(ConnectRequest) called with %v returning: %v", crossConnect, xcon)
 	return xcon, err
 }
@@ -291,7 +291,7 @@ func (v *VPPAgent) Close(ctx context.Context, crossConnect *crossconnect.CrossCo
 	if err != nil {
 		logrus.Warn(err)
 	}
-	v.common.Monitor.Delete(xcon)
+	v.common.Monitor.Delete(ctx, xcon)
 	return &empty.Empty{}, err
 }
 

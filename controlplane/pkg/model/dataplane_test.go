@@ -1,14 +1,15 @@
 package model
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
 	. "github.com/onsi/gomega"
 
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
 	remote "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm/connection"
 )
 
 func TestAddAndGetDp(t *testing.T) {
@@ -37,7 +38,7 @@ func TestAddAndGetDp(t *testing.T) {
 	}
 
 	dd := newDataplaneDomain()
-	dd.AddDataplane(dp)
+	dd.AddDataplane(context.Background(), dp)
 	getDp := dd.GetDataplane("dp1")
 
 	g.Expect(getDp.RegisteredName).To(Equal(dp.RegisteredName))
@@ -54,7 +55,7 @@ func TestDeleteDp(t *testing.T) {
 	g := NewWithT(t)
 
 	dd := newDataplaneDomain()
-	dd.AddDataplane(&Dataplane{
+	dd.AddDataplane(context.Background(), &Dataplane{
 		RegisteredName: "dp1",
 		SocketLocation: "/socket",
 		LocalMechanisms: []connection.Mechanism{
@@ -79,12 +80,12 @@ func TestDeleteDp(t *testing.T) {
 	cc := dd.GetDataplane("dp1")
 	g.Expect(cc).ToNot(BeNil())
 
-	dd.DeleteDataplane("dp1")
+	dd.DeleteDataplane(context.Background(), "dp1")
 
 	dpDel := dd.GetDataplane("dp1")
 	g.Expect(dpDel).To(BeNil())
 
-	dd.DeleteDataplane("NotExistingId")
+	dd.DeleteDataplane(context.Background(), "NotExistingId")
 }
 
 func TestSelectDp(t *testing.T) {
@@ -93,7 +94,7 @@ func TestSelectDp(t *testing.T) {
 	amount := 5
 	dd := newDataplaneDomain()
 	for i := 0; i < amount; i++ {
-		dd.AddDataplane(&Dataplane{
+		dd.AddDataplane(context.Background(), &Dataplane{
 			RegisteredName: fmt.Sprintf("dp%d", i),
 			SocketLocation: fmt.Sprintf("/socket-%d", i),
 			LocalMechanisms: []connection.Mechanism{

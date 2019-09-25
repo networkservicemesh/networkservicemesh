@@ -1,6 +1,7 @@
 package model
 
 import (
+	"context"
 	"sync"
 	"testing"
 	"time"
@@ -31,25 +32,25 @@ func TestModificationHandler(t *testing.T) {
 	for i := 0; i < amountHandlers; i++ {
 		wg.Add(3)
 		bd.addHandler(&ModificationHandler{
-			AddFunc: func(new interface{}) {
+			AddFunc: func(ctx context.Context, new interface{}) {
 				defer wg.Done()
 				g.Expect(new.(*testResource).value).To(Equal(resource.value))
 			},
-			UpdateFunc: func(old interface{}, new interface{}) {
+			UpdateFunc: func(ctx context.Context, old interface{}, new interface{}) {
 				defer wg.Done()
 				g.Expect(old.(*testResource).value).To(Equal(resource.value))
 				g.Expect(new.(*testResource).value).To(Equal(updResource.value))
 			},
-			DeleteFunc: func(del interface{}) {
+			DeleteFunc: func(ctx context.Context, del interface{}) {
 				defer wg.Done()
 				g.Expect(del.(*testResource).value).To(Equal(resource.value))
 			},
 		})
 	}
 
-	bd.resourceAdded(resource)
-	bd.resourceUpdated(resource, updResource)
-	bd.resourceDeleted(resource)
+	bd.resourceAdded(context.Background(), resource)
+	bd.resourceUpdated(context.Background(), resource, updResource)
+	bd.resourceDeleted(context.Background(), resource)
 	doneCh := make(chan struct{})
 
 	go func() {

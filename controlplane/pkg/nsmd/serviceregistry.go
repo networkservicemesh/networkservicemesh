@@ -3,6 +3,7 @@ package nsmd
 import (
 	"context"
 	"fmt"
+	"github.com/opentracing/opentracing-go/log"
 	"net"
 	"os"
 	"strings"
@@ -214,8 +215,9 @@ func (impl *nsmdServiceRegistry) WaitForDataplaneAvailable(ctx context.Context, 
 	logger := common.Log(ctx)
 	logger.Info("Waiting for dataplane available...")
 
+	var span opentracing.Span
 	if opentracing.IsGlobalTracerRegistered() {
-		span, _ := opentracing.StartSpanFromContext(ctx, "wait-dataplane")
+		span, _ = opentracing.StartSpanFromContext(ctx, "wait-dataplane")
 		defer span.Finish()
 	}
 	st := time.Now()
@@ -228,7 +230,11 @@ func (impl *nsmdServiceRegistry) WaitForDataplaneAvailable(ctx context.Context, 
 			return nil
 		}
 		if time.Since(st) > timeout {
-			return fmt.Errorf("error waiting for dataplane... timeout happened")
+			err := fmt.Errorf("error waiting for dataplane... timeout happened")
+			logger.Error(err)
+			if span != nil {
+				span.LogFields(log.Error(err))
+			}
 		}
 	}
 	return nil

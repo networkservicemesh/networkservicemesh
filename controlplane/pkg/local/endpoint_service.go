@@ -26,13 +26,13 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
-	unified_nsm "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
-	unified_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
-	unified_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/networkservice"
 	plugin_api "github.com/networkservicemesh/networkservicemesh/controlplane/api/plugins"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	remote_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
 	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
+	unified_nsm "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
+	unified_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm/connection"
+	unified_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/plugins"
@@ -72,9 +72,15 @@ func (cce *endpointService) closeEndpoint(ctx context.Context, cc *model.ClientC
 		}
 		err := client.Cleanup()
 		if err != nil {
+			if span != nil {
+				span.LogFields(log.Error(err))
+			}
 			logger.Errorf("NSM: Error during Cleanup: %v", err)
 		}
 	} else {
+		if span != nil {
+			span.LogFields(log.Error(nseClientError))
+		}
 		logger.Errorf("NSM: Failed to create NSE Client %v", nseClientError)
 	}
 	return nseClientError

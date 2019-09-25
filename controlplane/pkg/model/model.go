@@ -1,6 +1,7 @@
 package model
 
 import (
+	"context"
 	"strconv"
 	"sync"
 
@@ -13,23 +14,23 @@ import (
 type Model interface {
 	GetEndpointsByNetworkService(nsName string) []*Endpoint
 
-	AddEndpoint(endpoint *Endpoint)
+	AddEndpoint(ctx context.Context, endpoint *Endpoint)
 	GetEndpoint(name string) *Endpoint
-	UpdateEndpoint(endpoint *Endpoint)
-	DeleteEndpoint(name string)
+	UpdateEndpoint(ctx context.Context, endpoint *Endpoint)
+	DeleteEndpoint(ctx context.Context, name string)
 
 	GetDataplane(name string) *Dataplane
-	AddDataplane(dataplane *Dataplane)
-	UpdateDataplane(dataplane *Dataplane)
-	DeleteDataplane(name string)
+	AddDataplane(ctx context.Context, dataplane *Dataplane)
+	UpdateDataplane(ctx context.Context, dataplane *Dataplane)
+	DeleteDataplane(ctx context.Context, name string)
 	SelectDataplane(dataplaneSelector func(dp *Dataplane) bool) (*Dataplane, error)
 
-	AddClientConnection(clientConnection *ClientConnection)
+	AddClientConnection(ctx context.Context, clientConnection *ClientConnection)
 	GetClientConnection(connectionID string) *ClientConnection
 	GetAllClientConnections() []*ClientConnection
-	UpdateClientConnection(clientConnection *ClientConnection)
-	DeleteClientConnection(connectionId string)
-	ApplyClientConnectionChanges(connectionID string, changeFunc func(*ClientConnection)) *ClientConnection
+	UpdateClientConnection(ctx context.Context, clientConnection *ClientConnection)
+	DeleteClientConnection(ctx context.Context, connectionId string)
+	ApplyClientConnectionChanges(ctx context.Context, connectionID string, changeFunc func(*ClientConnection)) *ClientConnection
 
 	ConnectionID() string
 	CorrectIDGenerator(id string)
@@ -58,35 +59,35 @@ type model struct {
 
 func (m *model) AddListener(listener Listener) {
 	endpListenerDelete := m.SetEndpointModificationHandler(&ModificationHandler{
-		AddFunc: func(new interface{}) {
-			listener.EndpointAdded(new.(*Endpoint))
+		AddFunc: func(ctx context.Context, new interface{}) {
+			listener.EndpointAdded(ctx, new.(*Endpoint))
 		},
-		UpdateFunc: func(old interface{}, new interface{}) {
-			listener.EndpointUpdated(new.(*Endpoint))
+		UpdateFunc: func(ctx context.Context, old interface{}, new interface{}) {
+			listener.EndpointUpdated(ctx, new.(*Endpoint))
 		},
-		DeleteFunc: func(del interface{}) {
-			listener.EndpointDeleted(del.(*Endpoint))
+		DeleteFunc: func(ctx context.Context, del interface{}) {
+			listener.EndpointDeleted(ctx, del.(*Endpoint))
 		},
 	})
 
 	dpListenerDelete := m.SetDataplaneModificationHandler(&ModificationHandler{
-		AddFunc: func(new interface{}) {
-			listener.DataplaneAdded(new.(*Dataplane))
+		AddFunc: func(ctx context.Context, new interface{}) {
+			listener.DataplaneAdded(ctx, new.(*Dataplane))
 		},
-		DeleteFunc: func(del interface{}) {
-			listener.DataplaneDeleted(del.(*Dataplane))
+		DeleteFunc: func(ctx context.Context, del interface{}) {
+			listener.DataplaneDeleted(ctx, del.(*Dataplane))
 		},
 	})
 
 	ccListenerDelete := m.SetClientConnectionModificationHandler(&ModificationHandler{
-		AddFunc: func(new interface{}) {
-			listener.ClientConnectionAdded(new.(*ClientConnection))
+		AddFunc: func(ctx context.Context, new interface{}) {
+			listener.ClientConnectionAdded(ctx, new.(*ClientConnection))
 		},
-		UpdateFunc: func(old interface{}, new interface{}) {
-			listener.ClientConnectionUpdated(old.(*ClientConnection), new.(*ClientConnection))
+		UpdateFunc: func(ctx context.Context, old interface{}, new interface{}) {
+			listener.ClientConnectionUpdated(ctx, old.(*ClientConnection), new.(*ClientConnection))
 		},
-		DeleteFunc: func(del interface{}) {
-			listener.ClientConnectionDeleted(del.(*ClientConnection))
+		DeleteFunc: func(ctx context.Context, del interface{}) {
+			listener.ClientConnectionDeleted(ctx, del.(*ClientConnection))
 		},
 	})
 

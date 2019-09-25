@@ -43,8 +43,8 @@ type endpointManager struct {
 	model model.Model
 }
 
-func (stub *endpointManager) DeleteEndpointWithBrokenConnection(endpoint *model.Endpoint) error {
-	stub.model.DeleteEndpoint(endpoint.EndpointName())
+func (stub *endpointManager) DeleteEndpointWithBrokenConnection(ctx context.Context, endpoint *model.Endpoint) error {
+	stub.model.DeleteEndpoint(ctx, endpoint.EndpointName())
 	return nil
 }
 
@@ -95,7 +95,7 @@ func TestCCServerEmpty(t *testing.T) {
 
 	g.Expect(err).To(BeNil())
 
-	monitor.Update(&crossconnect.CrossConnect{
+	monitor.Update(context.Background(), &crossconnect.CrossConnect{
 		Id:      "cc1",
 		Payload: "json_data",
 	})

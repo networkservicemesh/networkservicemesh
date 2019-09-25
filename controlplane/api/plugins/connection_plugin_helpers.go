@@ -6,7 +6,7 @@ import (
 	connection2 "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
 
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm/connection"
 )
 
 // NewConnectionWrapper creates a ConnectionWrapper instance

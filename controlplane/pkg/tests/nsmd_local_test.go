@@ -85,7 +85,7 @@ func TestNSMDRequestClientConnectionRequest(t *testing.T) {
 	defer srv.Stop()
 	srv.AddFakeDataplane("test_data_plane", "tcp:some_addr")
 
-	srv.TestModel.AddEndpoint(srv.RegisterFakeEndpoint("golden_network", "test", Master))
+	srv.TestModel.AddEndpoint(context.Background(), srv.RegisterFakeEndpoint("golden_network", "test", Master))
 
 	nsmClient, conn := srv.requestNSMConnection("nsm")
 	defer conn.Close()
@@ -112,7 +112,7 @@ func TestNSENoSrc(t *testing.T) {
 	}
 	srv.AddFakeDataplane("test_data_plane", "tcp:some_addr")
 
-	srv.TestModel.AddEndpoint(srv.RegisterFakeEndpoint("golden_network", "test", Master))
+	srv.TestModel.AddEndpoint(context.Background(), srv.RegisterFakeEndpoint("golden_network", "test", Master))
 
 	nsmClient, conn := srv.requestNSMConnection("nsm")
 	defer conn.Close()
@@ -139,7 +139,7 @@ func TestNSEIPNeghtbours(t *testing.T) {
 	}
 
 	srv.AddFakeDataplane("test_data_plane", "tcp:some_addr")
-	srv.TestModel.AddEndpoint(srv.RegisterFakeEndpoint("golden_network", "test", Master))
+	srv.TestModel.AddEndpoint(context.Background(), srv.RegisterFakeEndpoint("golden_network", "test", Master))
 
 	nsmClient, conn := srv.requestNSMConnection("nsm")
 	defer conn.Close()
@@ -173,7 +173,7 @@ func TestSlowNSE(t *testing.T) {
 	}
 	srv.AddFakeDataplane("test_data_plane", "tcp:some_addr")
 
-	srv.TestModel.AddEndpoint(srv.RegisterFakeEndpoint("golden_network", "test", Master))
+	srv.TestModel.AddEndpoint(context.Background(), srv.RegisterFakeEndpoint("golden_network", "test", Master))
 
 	nsmClient, conn := srv.requestNSMConnection("nsm")
 	defer conn.Close()
@@ -205,7 +205,7 @@ func TestSlowDP(t *testing.T) {
 	}
 	srv.AddFakeDataplane("test_data_plane", "tcp:some_addr")
 
-	srv.TestModel.AddEndpoint(srv.RegisterFakeEndpoint("golden_network", "test", Master))
+	srv.TestModel.AddEndpoint(context.Background(), srv.RegisterFakeEndpoint("golden_network", "test", Master))
 
 	nsmClient, conn := srv.requestNSMConnection("nsm")
 	defer conn.Close()
