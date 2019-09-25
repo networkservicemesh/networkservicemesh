@@ -46,7 +46,7 @@ type NSConfiguration struct {
 }
 
 // FromEnv creates a new NSConfiguration and fills all unset options from the env variables
-func FromEnv(configuration *NSConfiguration) *NSConfiguration {
+func FromEnv() *NSConfiguration {
 	return (&NSConfiguration{}).FromEnv()
 }
 

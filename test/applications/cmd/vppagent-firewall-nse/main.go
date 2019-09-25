@@ -30,10 +30,10 @@ import (
 var version string
 
 func main() {
-	logrus.Info("Starting vppagent-firewall-nse...")
-	logrus.Infof("Version: %v", version)
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
+	logrus.Info("Starting vppagent-firewall-nse...")
+	logrus.Infof("Version: %v", version)
 
 	logrus.SetOutput(os.Stdout)
 	logrus.SetLevel(logrus.TraceLevel)
