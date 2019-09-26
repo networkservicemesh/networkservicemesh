@@ -105,6 +105,7 @@ func (cce *endpointService) Request(ctx context.Context, request *networkservice
 	logger.Infof("NSM:(7.2.6.2) Requesting NSE with request %v", message)
 
 	span := common.SpanHelperFromContext(ctx, "nse.request")
+	ctx = span.Context()
 	defer span.Finish()
 	span.LogObject("nse.request", message)
 

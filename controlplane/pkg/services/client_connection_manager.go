@@ -56,6 +56,7 @@ func (m *ClientConnectionManager) UpdateXcon(ctx context.Context, cc *model.Clie
 
 	span := common.SpanHelperFromConnection(ctx, cc, "UpdateXcon")
 	defer span.Finish()
+	ctx = span.Context()
 	span.LogObject("connection", cc)
 	span.LogObject("newXCon", newXcon)
 	logger := span.Logger()
@@ -89,6 +90,7 @@ func (m *ClientConnectionManager) UpdateXcon(ctx context.Context, cc *model.Clie
 func (m *ClientConnectionManager) DestinationDown(ctx context.Context, cc nsm.ClientConnection, nsmdDie bool) {
 	span := common.SpanHelperFromContext(ctx, "DestinationDown")
 	defer span.Finish()
+	ctx = span.Context()
 	span.LogValue("nsmgr.die", nsmdDie)
 	if nsmdDie {
 		m.manager.Heal(ctx, cc, nsm.HealStateDstNmgrDown)
@@ -104,6 +106,7 @@ func (m *ClientConnectionManager) DataplaneDown(ctx context.Context, dataplane *
 		if cc.DataplaneRegisteredName == dataplane.RegisteredName {
 			span := common.SpanHelperFromConnection(ctx, cc, "DataplaneDown")
 			defer span.Finish()
+			ctx = span.Context()
 			span.LogObject("dataplane", dataplane)
 
 			m.manager.Heal(ctx, cc, nsm.HealStateDataplaneDown)
@@ -115,6 +118,7 @@ func (m *ClientConnectionManager) DataplaneDown(ctx context.Context, dataplane *
 func (m *ClientConnectionManager) LocalDestinationUpdated(ctx context.Context, cc *model.ClientConnection, localDst *local.Connection) {
 	span := common.SpanHelperFromConnection(ctx, cc, "LocalDestinationUpdated")
 	defer span.Finish()
+	ctx = span.Context()
 	span.LogObject("connection", cc)
 	span.LogObject("destination", localDst)
 
@@ -128,7 +132,7 @@ func (m *ClientConnectionManager) LocalDestinationUpdated(ctx context.Context, c
 	localDst.GetMechanism().GetParameters()[local.WorkspaceNSEName] =
 		cc.Xcon.GetLocalDestination().GetMechanism().GetParameters()[local.WorkspaceNSEName]
 
-	m.destinationUpdated(span.Context(), cc, localDst)
+	m.destinationUpdated(ctx, cc, localDst)
 }
 
 // RemoteDestinationUpdated handles case when remote connection parameters changed
@@ -136,6 +140,7 @@ func (m *ClientConnectionManager) RemoteDestinationUpdated(ctx context.Context, 
 
 	span := common.SpanHelperFromConnection(ctx, cc, "RemoteDestinationUpdated")
 	defer span.Finish()
+	ctx = span.Context()
 	span.LogObject("connection", cc)
 	span.LogObject("remoteDst", remoteDst)
 
@@ -153,12 +158,13 @@ func (m *ClientConnectionManager) RemoteDestinationUpdated(ctx context.Context, 
 	}
 
 	logger.Infof("Event send... %v", cc.GetID())
-	m.destinationUpdated(span.Context(), cc, remoteDst)
+	m.destinationUpdated(ctx, cc, remoteDst)
 }
 
 func (m *ClientConnectionManager) destinationUpdated(ctx context.Context, cc *model.ClientConnection, dst connection.Connection) {
 	span := common.SpanHelperFromConnection(ctx, cc, "destinationUpdated")
 	defer span.Finish()
+	ctx = span.Context()
 	span.LogObject("connection", cc)
 	span.LogObject("destination", dst)
 

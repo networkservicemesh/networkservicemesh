@@ -585,6 +585,8 @@ func (k8s *K8s) CleanupEndpointsCRDs() {
 // Cleanup cleans up
 func (k8s *K8s) Cleanup() {
 	st := time.Now()
+
+	k8s.reportSpans()
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {

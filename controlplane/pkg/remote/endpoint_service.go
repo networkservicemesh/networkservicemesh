@@ -101,6 +101,7 @@ func (cce *endpointService) Request(ctx context.Context, request *networkservice
 
 	span := common.SpanHelperFromContext(ctx, "nse.request")
 	defer span.Finish()
+	ctx = span.Context()
 	span.LogObject("nse.request", message)
 
 	nseConn, e := client.Request(ctx, message)

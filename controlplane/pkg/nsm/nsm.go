@@ -164,6 +164,7 @@ func (srv *networkServiceManager) WaitForDataplane(ctx context.Context, timeout 
 func (srv *networkServiceManager) RestoreConnections(xcons []*crossconnect.CrossConnect, dataplane string, manager nsm.MonitorManager) {
 	ctx := context.Background()
 	span := common.SpanHelperFromContext(ctx, "Nsmgr.RestoreConnections")
+	ctx = span.Context()
 	logger := span.Logger()
 	for _, xcon := range xcons {
 		srv.restoreXconnection(ctx, xcon, logger, dataplane, manager)

@@ -302,6 +302,7 @@ func (client *NsmMonitorCrossConnectClient) handleLocalConnection(entity monitor
 	if cc := client.xconManager.GetClientConnectionByLocalDst(localConnection.GetId()); cc != nil {
 		span := common.SpanHelperFromConnection(context.Background(), cc, "handleLocalConnection")
 		defer span.Finish()
+		ctx := span.Context()
 		span.LogObject("clientConnection", cc)
 		span.LogValue("event", entity)
 		span.LogObject("eventType", eventType)
@@ -309,10 +310,10 @@ func (client *NsmMonitorCrossConnectClient) handleLocalConnection(entity monitor
 		switch eventType {
 		case monitor.EventTypeUpdate:
 			// DST connection is updated, we most probable need to re-programm our data plane.
-			client.xconManager.LocalDestinationUpdated(span.Context(), cc, localConnection)
+			client.xconManager.LocalDestinationUpdated(ctx, cc, localConnection)
 		case monitor.EventTypeDelete:
 			// DST is down, we need to choose new NSE in any case.
-			client.xconManager.DestinationDown(span.Context(), cc, false)
+			client.xconManager.DestinationDown(ctx, cc, false)
 		}
 	}
 
@@ -427,8 +428,9 @@ func (client *NsmMonitorCrossConnectClient) remotePeerConnectionMonitor(ctx cont
 		for _, cc := range connections {
 			span := common.SpanHelperFromConnection(ctx, cc, "remotePeerConnectionMonitor.update")
 			defer span.Finish()
+			ctx = span.Context()
 			span.LogObject("clientConnection", cc)
-			client.xconManager.DestinationDown(span.Context(), cc, true)
+			client.xconManager.DestinationDown(ctx, cc, true)
 		}
 	}
 }
@@ -442,13 +444,14 @@ func (client *NsmMonitorCrossConnectClient) handleRemoteConnection(entity monito
 	if cc := client.xconManager.GetClientConnectionByRemoteDst(remoteConnection.GetId(), peerName); cc != nil {
 		span := common.SpanHelperFromConnection(context.Background(), cc, "handleRemoteConnection")
 		defer span.Finish()
+		ctx := span.Context()
 		span.LogObject("clientConnection", cc)
 		span.LogObject("RemoteConnect", remoteConnection)
 		span.LogValue("peerName", peerName)
 		span.LogValue("eventType", eventType)
 		span.LogObject("entity", entity)
 
-		client.handleRemoteConnectionEvent(span.Context(), eventType, cc, remoteConnection)
+		client.handleRemoteConnectionEvent(ctx, eventType, cc, remoteConnection)
 	} else {
 		// We need to check if there is connections in requesting status right, now and wait until they status will be finalized
 		// Or they will be removed.
@@ -459,8 +462,9 @@ func (client *NsmMonitorCrossConnectClient) handleRemoteConnection(entity monito
 
 			currentTime := time.Now()
 			if cc, err := client.xconManager.WaitPendingConnections(ctx, remoteConnection.GetId(), parameters[peerName]); cc != nil && err == nil {
-				span := common.SpanHelperFromConnection(context.Background(), cc, "handleRemoteConnection")
+				span := common.SpanHelperFromConnection(ctx, cc, "handleRemoteConnection")
 				defer span.Finish()
+				ctx = span.Context()
 				span.LogObject("clientConnection", cc)
 				span.LogObject("RemoteConnect", remoteConnection)
 				span.LogValue("peerName", peerName)
@@ -483,8 +487,9 @@ func (client *NsmMonitorCrossConnectClient) handleRemoteConnectionEvent(ctx cont
 		// DST connection is updated, we most probable need to re-program our data plane.
 		client.xconManager.RemoteDestinationUpdated(ctx, cc, remoteConnection)
 	case monitor.EventTypeDelete:
-		span := common.SpanHelperFromContext(ctx, "send-produced-delete")
-		span.Finish()
+		span := common.SpanHelperFromContext(ctx, "handleRemoteConnectionEvent")
+		defer span.Finish()
+		ctx = span.Context()
 
 		// DST is down, we need to choose new NSE in any case.
 		downConnection := remoteConnection.Clone()
@@ -499,7 +504,7 @@ func (client *NsmMonitorCrossConnectClient) handleRemoteConnectionEvent(ctx cont
 
 		span.LogObject("xcon-event", xconToSend)
 
-		client.monitorManager.CrossConnectMonitor().Update(span.Context(), xconToSend)
-		client.xconManager.DestinationDown(span.Context(), cc, false)
+		client.monitorManager.CrossConnectMonitor().Update(ctx, xconToSend)
+		client.xconManager.DestinationDown(ctx, cc, false)
 	}
 }

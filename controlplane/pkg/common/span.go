@@ -66,7 +66,6 @@ func (h *traceHook) Fire(entry *logrus.Entry) error {
 // SpanHelper - wrap span if specified to simplify workflow
 type SpanHelper interface {
 	Finish()
-	StartSpan(opertation string) SpanHelper
 	Context() context.Context
 	Logger() logrus.FieldLogger
 	LogObject(attribute string, value interface{})
@@ -107,7 +106,6 @@ func (s *spanHelper) Finish() {
 	if s.span != nil {
 		s.span.Finish()
 	}
-	s.span = nil
 }
 func (s *spanHelper) Logger() logrus.FieldLogger {
 	if s.logger == nil {
@@ -116,7 +114,7 @@ func (s *spanHelper) Logger() logrus.FieldLogger {
 	return s.logger
 }
 
-func (s *spanHelper) StartSpan(operation string) SpanHelper {
+func (s *spanHelper) startSpan(operation string) SpanHelper {
 	if s.span != nil && tools.IsOpentracingEnabled() {
 		newSpan, newCtx := opentracing.StartSpanFromContext(s.ctx, operation)
 		return &spanHelper{
@@ -192,14 +190,14 @@ func SpanHelperFromContextCopySpan(ctx context.Context, spanContext SpanHelper, 
 func SpanHelperFromConnection(ctx context.Context, clientConnection *model.ClientConnection, operation string) SpanHelper {
 	result := &spanHelper{
 		span: opentracing.SpanFromContext(ctx),
-		ctx:  context.Background(),
+		ctx:  ctx,
 	}
 	if !tools.IsOpentracingEnabled() {
 		return result
 	}
 	if result.span != nil {
 		// Context already had span, so let's just start operation.
-		return result.StartSpan(operation)
+		return result.startSpan(operation)
 	}
 	if clientConnection != nil && clientConnection.Span != nil {
 		ctx = opentracing.ContextWithSpan(ctx, clientConnection.Span)

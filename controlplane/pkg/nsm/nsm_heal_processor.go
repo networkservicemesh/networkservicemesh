@@ -126,7 +126,7 @@ func (p *healProcessor) serve() {
 
 		go func() {
 			span := common.SpanHelperFromContext(e.ctx, "heal")
-			span.Finish()
+			defer span.Finish()
 			ctx := span.Context()
 
 			logger := span.Logger()
@@ -406,6 +406,7 @@ func (p *healProcessor) waitNSE(ctx context.Context, cc *model.ClientConnection,
 
 	span := common.SpanHelperFromConnection(ctx, cc, "waitNSE")
 	defer span.Finish()
+	ctx = span.Context()
 
 	span.LogObject("endpointName", endpointName)
 	span.LogObject("networkService", networkService)
