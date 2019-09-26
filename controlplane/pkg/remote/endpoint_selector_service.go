@@ -23,11 +23,11 @@ import (
 	"github.com/golang/protobuf/ptypes/empty"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
+	unified_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
 	plugin_api "github.com/networkservicemesh/networkservicemesh/controlplane/api/plugins"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
 	unified_nsm "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
-	unified_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/plugins"

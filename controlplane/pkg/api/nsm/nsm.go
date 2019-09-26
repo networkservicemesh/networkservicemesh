@@ -1,20 +1,23 @@
 package nsm
 
 import (
+	"time"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
-	connection2 "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm/connection"
-	networkservice2 "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
+	connection2 "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
+	networkservice2 "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/plugins"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
 	crossconnect_monitor "github.com/networkservicemesh/networkservicemesh/sdk/monitor/crossconnect"
-	"time"
+
+	"golang.org/x/net/context"
 
 	local_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
-	"golang.org/x/net/context"
 )
 
 // ClientConnection is an interface for client connection
@@ -68,7 +71,7 @@ type MonitorManager interface {
 }
 
 type NetworkServiceManager interface {
-	GetHealProperties() *Properties
+	GetHealProperties() *nsm.Properties
 	WaitForDataplane(ctx context.Context, duration time.Duration) error
 	RemoteConnectionLost(ctx context.Context, clientConnection ClientConnection)
 	NotifyRenamedEndpoint(nseOldName, nseNewName string)

@@ -15,9 +15,10 @@ package local
 
 import (
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
+
+	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"

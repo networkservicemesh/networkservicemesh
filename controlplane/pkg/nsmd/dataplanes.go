@@ -81,7 +81,7 @@ func dataplaneMonitor(model model.Model, dataplaneName string) {
 		updates, err := stream.Recv()
 		if err != nil {
 			logrus.Errorf("fail to receive on update grpc channel for Dataplane %s with error: %+v, removing dataplane from Objectstore.", dataplane.RegisteredName, err)
-			model.DeleteDataplane(context.Background(),dataplaneName)
+			model.DeleteDataplane(context.Background(), dataplaneName)
 			return
 		}
 		logrus.Infof("Dataplane %s informed of its parameters changes, applying new parameters %+v", dataplaneName, updates.RemoteMechanisms)
@@ -89,7 +89,7 @@ func dataplaneMonitor(model model.Model, dataplaneName string) {
 		dataplane.SetRemoteMechanisms(updates.RemoteMechanisms)
 		dataplane.SetLocalMechanisms(updates.LocalMechanisms)
 		dataplane.MechanismsConfigured = true
-		model.UpdateDataplane(context.Background(),dataplane)
+		model.UpdateDataplane(context.Background(), dataplane)
 	}
 }
 

@@ -19,6 +19,8 @@ import (
 	"sync"
 	"time"
 
+	nsm2 "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
+
 	"github.com/opentracing/opentracing-go"
 
 	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
@@ -30,11 +32,11 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	local_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	local_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	remote_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/plugins"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
@@ -54,7 +56,7 @@ type networkServiceManager struct {
 	serviceRegistry  serviceregistry.ServiceRegistry
 	pluginRegistry   plugins.PluginRegistry
 	model            model.Model
-	properties       *nsm.Properties
+	properties       *nsm2.Properties
 	stateRestored    chan bool
 	renamedEndpoints map[string]string
 	nseManager       nsm.NetworkServiceEndpointManager
@@ -95,13 +97,13 @@ func (srv *networkServiceManager) Model() model.Model {
 	return srv.model
 }
 
-func (srv *networkServiceManager) GetHealProperties() *nsm.Properties {
+func (srv *networkServiceManager) GetHealProperties() *nsm2.Properties {
 	return srv.properties
 }
 
 // NewNetworkServiceManager creates an instance of NetworkServiceManager
 func NewNetworkServiceManager(model model.Model, serviceRegistry serviceregistry.ServiceRegistry, pluginRegistry plugins.PluginRegistry) nsm.NetworkServiceManager {
-	properties := nsm.NewNsmProperties()
+	properties := nsm2.NewNsmProperties()
 	nseManager := &nseManager{
 		serviceRegistry: serviceRegistry,
 		model:           model,
@@ -284,7 +286,7 @@ func (srv *networkServiceManager) RestoreConnections(xcons []*crossconnect.Cross
 				DataplaneRegisteredName: dp.RegisteredName,
 				ConnectionState:         connectionState,
 				DataplaneState:          model.DataplaneStateReady, // It is configured already.
-				Monitor: manager.LocalConnectionMonitor(workspaceName),
+				Monitor:                 manager.LocalConnectionMonitor(workspaceName),
 			}
 
 			srv.model.AddClientConnection(ctx, clientConnection)

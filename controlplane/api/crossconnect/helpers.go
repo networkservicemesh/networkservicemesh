@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
+	connection2 "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
 	connection3 "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
-	connection2 "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm/connection"
 )
 
 // NewCrossConnect creates a new crossConnect

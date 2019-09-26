@@ -21,7 +21,7 @@ import (
 	"github.com/golang/protobuf/proto"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
 )
 
 // IsRemote returns if connection is remote

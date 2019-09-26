@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	nsm2 "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
+
 	"github.com/golang/protobuf/ptypes/empty"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
@@ -18,12 +20,12 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	local_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	local_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	remote_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
 	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
@@ -109,7 +111,7 @@ func newHealTestData() *healTestData {
 	data.healProcessor = &healProcessor{
 		serviceRegistry: data.serviceRegistry,
 		model:           data.model,
-		properties: &nsm.Properties{
+		properties: &nsm2.Properties{
 			HealEnabled: true,
 		},
 		nseManager: data.nseManager,

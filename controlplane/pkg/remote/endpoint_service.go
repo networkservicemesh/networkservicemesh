@@ -16,7 +16,10 @@ package remote
 import (
 	"context"
 	"fmt"
+
 	"github.com/opentracing/opentracing-go/log"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/opentracing/opentracing-go"
@@ -25,6 +28,8 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
 	local_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	local_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
+	unified_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
+	unified_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/networkservice"
 	plugin_api "github.com/networkservicemesh/networkservicemesh/controlplane/api/plugins"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
@@ -32,8 +37,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
 	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
 	unified_nsm "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
-	unified_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm/connection"
-	unified_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/plugins"
@@ -42,7 +45,7 @@ import (
 // ConnectionService makes basic Mechanism selection for the incoming connection
 type endpointService struct {
 	nseManager     unified_nsm.NetworkServiceEndpointManager
-	properties     *unified_nsm.Properties
+	properties     *nsm.Properties
 	pluginRegistry plugins.PluginRegistry
 	model          model.Model
 }
@@ -262,7 +265,7 @@ func (cce *endpointService) updateConnectionParameters(nseConn unified_connectio
 }
 
 // NewEndpointService -  creates a service to connect to endpoint
-func NewEndpointService(nseManager unified_nsm.NetworkServiceEndpointManager, properties *unified_nsm.Properties, mdl model.Model, pluginRegistry plugins.PluginRegistry) networkservice.NetworkServiceServer {
+func NewEndpointService(nseManager unified_nsm.NetworkServiceEndpointManager, properties *nsm.Properties, mdl model.Model, pluginRegistry plugins.PluginRegistry) networkservice.NetworkServiceServer {
 	return &endpointService{
 		nseManager:     nseManager,
 		properties:     properties,

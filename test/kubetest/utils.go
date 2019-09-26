@@ -15,7 +15,7 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/test/applications/cmd/icmp-responder-nse/flags"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
 
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"

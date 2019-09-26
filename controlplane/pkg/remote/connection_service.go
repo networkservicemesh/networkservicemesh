@@ -69,8 +69,8 @@ func (cce *connectionService) Request(ctx context.Context, request *networkservi
 		clientConnection = &model.ClientConnection{
 			ConnectionID:    request.Connection.GetId(),
 			ConnectionState: model.ClientConnectionRequesting,
-			Span: common.OriginalSpan(ctx),
-			Monitor: common.MonitorServer(ctx),
+			Span:            common.OriginalSpan(ctx),
+			Monitor:         common.MonitorServer(ctx),
 		}
 		cce.model.AddClientConnection(ctx, clientConnection)
 	}

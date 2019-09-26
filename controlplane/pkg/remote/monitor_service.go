@@ -15,9 +15,10 @@ package remote
 
 import (
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
+
+	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/remote"

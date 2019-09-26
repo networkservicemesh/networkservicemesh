@@ -3,12 +3,13 @@ package nsmd
 import (
 	"context"
 	"fmt"
-	"github.com/opentracing/opentracing-go/log"
 	"net"
 	"os"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/opentracing/opentracing-go/log"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 

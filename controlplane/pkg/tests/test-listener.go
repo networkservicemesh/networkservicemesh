@@ -39,7 +39,7 @@ func (impl *testConnectionModelListener) ClientConnectionAdded(_ context.Context
 	logrus.Infof("(%v, %v)Listener ClientConnectionAdded: %v", impl.name, impl.additions, clientConnection)
 }
 
-func (impl *testConnectionModelListener) ClientConnectionDeleted(_ context.Context,clientConnection *model.ClientConnection) {
+func (impl *testConnectionModelListener) ClientConnectionDeleted(_ context.Context, clientConnection *model.ClientConnection) {
 	impl.Lock()
 	defer impl.Unlock()
 
@@ -48,7 +48,7 @@ func (impl *testConnectionModelListener) ClientConnectionDeleted(_ context.Conte
 	delete(impl.connections, clientConnection.GetID())
 }
 
-func (impl *testConnectionModelListener) ClientConnectionUpdated(_ context.Context,old, new *model.ClientConnection) {
+func (impl *testConnectionModelListener) ClientConnectionUpdated(_ context.Context, old, new *model.ClientConnection) {
 	impl.Lock()
 	defer impl.Unlock()
 
@@ -57,13 +57,13 @@ func (impl *testConnectionModelListener) ClientConnectionUpdated(_ context.Conte
 	logrus.Infof("(%v, %v)Listener ClientConnectionUpdated: %s %v", impl.name, impl.updates, new.GetID(), impl.textMarshaler.Text(new.Xcon))
 }
 
-func (impl *testConnectionModelListener) EndpointAdded(_ context.Context,endpoint *model.Endpoint) {
+func (impl *testConnectionModelListener) EndpointAdded(_ context.Context, endpoint *model.Endpoint) {
 	impl.Lock()
 	defer impl.Unlock()
 
 	impl.endpoints++
 }
-func (impl *testConnectionModelListener) EndpointDeleted(_ context.Context,endpoint *model.Endpoint) {
+func (impl *testConnectionModelListener) EndpointDeleted(_ context.Context, endpoint *model.Endpoint) {
 	impl.Lock()
 	defer impl.Unlock()
 

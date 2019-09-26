@@ -15,15 +15,18 @@ package common
 
 import (
 	"context"
-	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
+
 	"github.com/opentracing/opentracing-go"
+
+	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
+
+	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
-	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
-	unified_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm/connection"
+	unified_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
 )
 
 // ContextKeyType - a type object for context values.

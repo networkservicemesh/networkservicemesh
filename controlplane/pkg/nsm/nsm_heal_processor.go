@@ -3,24 +3,27 @@ package nsm
 import (
 	"context"
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	"github.com/opentracing/opentracing-go/log"
 	"time"
+
+	"github.com/opentracing/opentracing-go/log"
+
+	nsm2 "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 
 	"github.com/opentracing/opentracing-go"
 
 	local_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	local_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/networkservice"
 	remote_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
 	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 )
@@ -28,7 +31,7 @@ import (
 type healProcessor struct {
 	serviceRegistry serviceregistry.ServiceRegistry
 	model           model.Model
-	properties      *nsm.Properties
+	properties      *nsm2.Properties
 
 	manager    nsm.NetworkServiceRequestManager
 	nseManager nsm.NetworkServiceEndpointManager
@@ -46,7 +49,7 @@ type healEvent struct {
 func newNetworkServiceHealProcessor(
 	serviceRegistry serviceregistry.ServiceRegistry,
 	model model.Model,
-	properties *nsm.Properties,
+	properties *nsm2.Properties,
 	manager nsm.NetworkServiceRequestManager,
 	nseManager nsm.NetworkServiceEndpointManager) nsm.NetworkServiceHealProcessor {
 

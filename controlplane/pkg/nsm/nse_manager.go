@@ -3,7 +3,10 @@ package nsm
 import (
 	"context"
 	"fmt"
+
 	"github.com/opentracing/opentracing-go/log"
+
+	nsm2 "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
 
 	"github.com/opentracing/opentracing-go"
 
@@ -12,9 +15,9 @@ import (
 	"github.com/sirupsen/logrus"
 
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 )
@@ -22,7 +25,7 @@ import (
 type nseManager struct {
 	serviceRegistry serviceregistry.ServiceRegistry
 	model           model.Model
-	properties      *nsm.Properties
+	properties      *nsm2.Properties
 }
 
 func (nsem *nseManager) GetEndpoint(ctx context.Context, requestConnection connection.Connection, ignoreEndpoints map[string]*registry.NSERegistration) (*registry.NSERegistration, error) {

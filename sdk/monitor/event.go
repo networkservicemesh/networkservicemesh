@@ -41,15 +41,15 @@ type EventFactory interface {
 type BaseEvent struct {
 	eventType EventType
 	entities  map[string]Entity
-	ctx context.Context
+	ctx       context.Context
 }
 
 // NewBaseEvent creates a new BaseEvent
-func NewBaseEvent(ctx context.Context,eventType EventType, entities map[string]Entity) BaseEvent {
+func NewBaseEvent(ctx context.Context, eventType EventType, entities map[string]Entity) BaseEvent {
 	return BaseEvent{
 		eventType: eventType,
 		entities:  entities,
-		ctx: ctx,
+		ctx:       ctx,
 	}
 }
 
@@ -63,6 +63,6 @@ func (e BaseEvent) Entities() map[string]Entity {
 	return e.entities
 }
 
-func(e BaseEvent) Context() context.Context {
+func (e BaseEvent) Context() context.Context {
 	return e.ctx
 }

@@ -18,9 +18,10 @@ package client
 import (
 	"context"
 	"fmt"
-	"github.com/opentracing/opentracing-go/log"
 	"io"
 	"time"
+
+	"github.com/opentracing/opentracing-go/log"
 
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"

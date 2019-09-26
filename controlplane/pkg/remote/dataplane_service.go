@@ -16,19 +16,21 @@ package remote
 import (
 	"context"
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"strconv"
+	"time"
+
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/log"
 	"github.com/sirupsen/logrus"
-	"strconv"
-	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 
 	"github.com/golang/protobuf/ptypes/empty"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
+	unified_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
-	unified_connection "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
@@ -187,7 +189,7 @@ func (cce *dataplaneService) Close(ctx context.Context, conn *connection.Connect
 	return empty, err
 }
 
-func (cce *dataplaneService) performClose(ctx context.Context, conn *connection.Connection, cc *model.ClientConnection, logger logrus.FieldLogger) (error) {
+func (cce *dataplaneService) performClose(ctx context.Context, conn *connection.Connection, cc *model.ClientConnection, logger logrus.FieldLogger) error {
 	// Close endpoints, etc
 	if cc.DataplaneState != model.DataplaneStateNone {
 		logger.Info("NSM.Dataplane: Closing cross connection on dataplane...")

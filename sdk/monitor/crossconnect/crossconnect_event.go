@@ -39,18 +39,17 @@ func (e *Event) Context() context.Context {
 	return e.ctx
 }
 
-
 type eventFactory struct {
 }
 
-func (m* eventFactory) FactoryName() string {
+func (m *eventFactory) FactoryName() string {
 	return "CrossConnect"
 }
 func (m *eventFactory) NewEvent(ctx context.Context, eventType monitor.EventType, entities map[string]monitor.Entity) monitor.Event {
 	return &Event{
 		BaseEvent:  monitor.NewBaseEvent(ctx, eventType, entities),
 		Statistics: map[string]*crossconnect.Metrics{},
-		ctx: ctx,
+		ctx:        ctx,
 	}
 }
 

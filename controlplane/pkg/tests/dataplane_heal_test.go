@@ -23,14 +23,14 @@ func TestHealLocalDataplane(t *testing.T) {
 	defer srv.Stop()
 	defer srv2.Stop()
 
-	srv.TestModel.AddDataplane(context.Background(),testDataplane1)
-	srv2.TestModel.AddDataplane(context.Background(),testDataplane2)
+	srv.TestModel.AddDataplane(context.Background(), testDataplane1)
+	srv2.TestModel.AddDataplane(context.Background(), testDataplane2)
 
 	// Register in both
 	nseReg := srv2.registerFakeEndpointWithName("golden_network", "test", Worker, "ep1")
 
 	// Add to local endpoints for Server2
-	srv2.TestModel.AddEndpoint(context.Background(),nseReg)
+	srv2.TestModel.AddEndpoint(context.Background(), nseReg)
 
 	l1 := newTestConnectionModelListener(Master)
 	l2 := newTestConnectionModelListener(Worker)
@@ -90,7 +90,7 @@ func TestHealLocalDataplane(t *testing.T) {
 
 	// Simulate dataplane dead
 	srv.TestModel.AddDataplane(context.Background(), testDataplane1_1)
-	srv.TestModel.DeleteDataplane(context.Background(),testDataplane1.RegisteredName)
+	srv.TestModel.DeleteDataplane(context.Background(), testDataplane1.RegisteredName)
 
 	//<- time.After(1000*time.Second)
 	// We need to inform cross connection monitor about this connection, since dataplane is fake one.

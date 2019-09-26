@@ -32,7 +32,7 @@ func (e *event) Message() (interface{}, error) {
 type eventFactory struct {
 }
 
-func (m* eventFactory) FactoryName() string {
+func (m *eventFactory) FactoryName() string {
 	return "LocalConnection"
 }
 func (m *eventFactory) NewEvent(ctx context.Context, eventType monitor.EventType, entities map[string]monitor.Entity) monitor.Event {

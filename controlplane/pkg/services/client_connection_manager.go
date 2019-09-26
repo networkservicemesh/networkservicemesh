@@ -3,33 +3,51 @@ package services
 import (
 	"context"
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"time"
+
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/log"
 	"github.com/sirupsen/logrus"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	remote "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 )
+
+const (
+	// deletedConnectionLifetime -  3 minutes to handle connections delete and update
+	deletedConnectionLifetime = time.Minute * 3
+)
+
+type managedClientConnection struct {
+	deleteTime       time.Time
+	deleted          bool
+	clientConnection *model.ClientConnection
+}
 
 type ClientConnectionManager struct {
 	model           model.Model
 	serviceRegistry serviceregistry.ServiceRegistry
 	manager         nsm.NetworkServiceManager
+
+	// A map of deleted connections.
+	clientConnections map[string]*managedClientConnection
 }
 
 func NewClientConnectionManager(model model.Model, manager nsm.NetworkServiceManager, serviceRegistry serviceregistry.ServiceRegistry) *ClientConnectionManager {
 	return &ClientConnectionManager{
-		model:           model,
-		serviceRegistry: serviceRegistry,
-		manager:         manager,
+		model:             model,
+		serviceRegistry:   serviceRegistry,
+		manager:           manager,
+		clientConnections: map[string]*managedClientConnection{},
 	}
 }
 
@@ -199,13 +217,22 @@ func (m *ClientConnectionManager) destinationUpdated(ctx context.Context, cc *mo
 
 // Since cross connect is ours, we could always use local connection id to identify client connection.
 func (m *ClientConnectionManager) GetClientConnectionByXcon(xcon *crossconnect.CrossConnect) *model.ClientConnection {
-	return m.model.GetClientConnection(xcon.GetSourceConnection().GetId())
+	id := xcon.GetId()
+	result := m.model.GetClientConnection(id)
+	if result != nil {
+		return result
+	}
+	deleted := m.clientConnections[id]
+	if deleted != nil {
+		return deleted.clientConnection
+	}
+	return nil
 }
 
 // GetClientConnectionByLocalDst returns a ClientConnection with `Xcon.GetLocalDestination().GetID() == dstID`
 // or `null` if there is no such connection
 func (m *ClientConnectionManager) GetClientConnectionByLocalDst(dstID string) *model.ClientConnection {
-	clientConnections := m.model.GetAllClientConnections()
+	clientConnections := m.getClientConnections()
 
 	for _, clientConnection := range clientConnections {
 		logrus.Infof("checking existing connection: %v to match %v", clientConnection.Xcon, dstID)
@@ -220,8 +247,7 @@ func (m *ClientConnectionManager) GetClientConnectionByLocalDst(dstID string) *m
 // GetClientConnectionByRemoteDst returns a ClientConnection with `Xcon.GetRemoteDestination().GetId() == dstID`
 // or `null` if there is no such connection
 func (m *ClientConnectionManager) GetClientConnectionByRemoteDst(dstID, remoteName string) *model.ClientConnection {
-	clientConnections := m.model.GetAllClientConnections()
-
+	clientConnections := m.getClientConnections()
 	for _, clientConnection := range clientConnections {
 		logrus.Infof("checking existing connection: %v to match %v %v", clientConnection.Xcon, dstID, remoteName)
 		if dst := clientConnection.Xcon.GetRemoteDestination(); dst != nil && dst.GetId() == dstID && dst.GetDestinationNetworkServiceManagerName() == remoteName {
@@ -233,6 +259,15 @@ func (m *ClientConnectionManager) GetClientConnectionByRemoteDst(dstID, remoteNa
 	logrus.Infof("NO DST found to match %v to match %v", dstID, remoteName)
 
 	return nil
+}
+
+func (m *ClientConnectionManager) getClientConnections() []*model.ClientConnection {
+	clientConnections := m.model.GetAllClientConnections()
+	// Add all deleted client connections
+	for _, cc := range m.clientConnections {
+		clientConnections = append(clientConnections, cc.clientConnection)
+	}
+	return clientConnections
 }
 
 type channelConnectionListener struct {
@@ -302,7 +337,7 @@ func (m *ClientConnectionManager) isConnectionPending(cc *model.ClientConnection
 }
 
 func (m *ClientConnectionManager) GetClientConnectionByRemote(nsm *registry.NetworkServiceManager) []*model.ClientConnection {
-	clientConnections := m.model.GetAllClientConnections()
+	clientConnections := m.getClientConnections()
 	var result []*model.ClientConnection
 	for _, clientConnection := range clientConnections {
 		if clientConnection.RemoteNsm.GetName() == nsm.GetName() {
@@ -313,7 +348,7 @@ func (m *ClientConnectionManager) GetClientConnectionByRemote(nsm *registry.Netw
 }
 
 func (m *ClientConnectionManager) GetClientConnectionsByDataplane(name string) []*model.ClientConnection {
-	clientConnections := m.model.GetAllClientConnections()
+	clientConnections := m.getClientConnections()
 
 	var rv []*model.ClientConnection
 	for _, clientConnection := range clientConnections {
@@ -326,7 +361,7 @@ func (m *ClientConnectionManager) GetClientConnectionsByDataplane(name string) [
 }
 
 func (m *ClientConnectionManager) GetClientConnectionBySource(networkServiceName string) []*model.ClientConnection {
-	clientConnections := m.model.GetAllClientConnections()
+	clientConnections := m.getClientConnections()
 
 	var rv []*model.ClientConnection
 	for _, clientConnection := range clientConnections {
@@ -350,4 +385,38 @@ func (m *ClientConnectionManager) UpdateRemoteMonitorDone(networkServiceManagerN
 
 func (m *ClientConnectionManager) UpdateFromInitialState(xcons []*crossconnect.CrossConnect, dataplane *model.Dataplane, manager nsm.MonitorManager) {
 	m.manager.RestoreConnections(xcons, dataplane.RegisteredName, manager)
+}
+
+// MarkConnectionDeleted - put connection into map of deleted connections.
+func (m *ClientConnectionManager) MarkConnectionDeleted(clientConnection *model.ClientConnection) {
+	if cc := m.clientConnections[clientConnection.GetID()]; cc != nil {
+		cc.deleteTime = time.Now()
+		cc.deleted = true
+		cc.clientConnection = clientConnection
+	}
+	m.CleanupDeletedConnections()
+}
+
+// MarkConnectionupdated - put connection into map of deleted connections.
+func (m *ClientConnectionManager) MarkConnectionUpdated(clientConnection *model.ClientConnection) {
+	if cc := m.clientConnections[clientConnection.GetID()]; cc != nil {
+		cc.clientConnection = clientConnection
+	}
+	m.CleanupDeletedConnections()
+}
+
+// CleanupDeletedConnections - cleanup deleted connections if timeout passed.
+func (m *ClientConnectionManager) CleanupDeletedConnections() {
+	// Iterate over connections to cleanup any orphaned.
+	for k, c := range m.clientConnections {
+		if c.deleted && time.Since(c.deleteTime) > deletedConnectionLifetime {
+			// remove connection if hold for a long time already.
+			delete(m.clientConnections, k)
+		}
+	}
+}
+
+// MarkConnectionAdded - remember we have connection to send events from.
+func (m *ClientConnectionManager) MarkConnectionAdded(clientConnection *model.ClientConnection) {
+	m.clientConnections[clientConnection.GetID()] = &managedClientConnection{clientConnection: clientConnection, deleted: false}
 }

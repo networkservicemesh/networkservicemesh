@@ -18,9 +18,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
 	"sync"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
 
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/log"
@@ -32,9 +33,9 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	remote "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/services"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
@@ -165,6 +166,7 @@ func (client *NsmMonitorCrossConnectClient) ClientConnectionAdded(ctx context.Co
 		defer span.Finish()
 		span.LogFields(log.Object("clientConnection", clientConnection))
 	}
+	client.xconManager.MarkConnectionAdded(clientConnection)
 }
 
 // ClientConnectionUpdated implements method from Listener
@@ -181,6 +183,7 @@ func (client *NsmMonitorCrossConnectClient) ClientConnectionUpdated(ctx context.
 		span.LogFields(log.Object("old", old))
 		span.LogFields(log.Object("new ", new))
 	}
+	client.xconManager.MarkConnectionUpdated(new)
 }
 
 func (client *NsmMonitorCrossConnectClient) ClientConnectionDeleted(ctx context.Context, clientConnection *model.ClientConnection) {
@@ -199,6 +202,8 @@ func (client *NsmMonitorCrossConnectClient) ClientConnectionDeleted(ctx context.
 	logger := common.LogFromSpan(span)
 
 	logger.Infof("ClientConnectionDeleted: %v", clientConnection)
+
+	client.xconManager.MarkConnectionDeleted(clientConnection)
 
 	if clientConnection.RemoteNsm == nil {
 		return
@@ -374,7 +379,9 @@ func (client *NsmMonitorCrossConnectClient) handleXcon(entity monitor.Entity, ev
 	}
 
 	// Let's add this into Span.
-	clientConnection := client.model.GetClientConnection(xcon.GetId())
+	clientConnection := client.xconManager.GetClientConnectionByXcon(xcon)
+
+	client.xconManager.CleanupDeletedConnections()
 
 	var logger logrus.FieldLogger
 	var span opentracing.Span
@@ -386,7 +393,7 @@ func (client *NsmMonitorCrossConnectClient) handleXcon(entity monitor.Entity, ev
 
 		span.LogFields(log.Object("CrossConnect", xcon))
 		cc, err := json.Marshal(clientConnection)
-		if err != nil {
+		if err == nil {
 			span.LogFields(log.Object("clientConnection", string(cc)))
 		}
 		span.LogFields(log.Object("CrossConnect.event", eventType))
@@ -394,7 +401,7 @@ func (client *NsmMonitorCrossConnectClient) handleXcon(entity monitor.Entity, ev
 	}
 	logger = common.LogFromSpan(span)
 
-	if cc := client.xconManager.GetClientConnectionByXcon(xcon); cc != nil {
+	if clientConnection != nil {
 		switch eventType {
 		case monitor.EventTypeInitialStateTransfer:
 			logger.Infof("Send initial transfer cross connect event: %v", xcon)
@@ -402,12 +409,10 @@ func (client *NsmMonitorCrossConnectClient) handleXcon(entity monitor.Entity, ev
 		case monitor.EventTypeUpdate:
 			logger.Infof("Send cross connect event: %v", xcon)
 			client.monitorManager.CrossConnectMonitor().Update(ctx, xcon)
-			client.xconManager.UpdateXcon(ctx, cc, xcon)
+			client.xconManager.UpdateXcon(ctx, clientConnection, xcon)
 		case monitor.EventTypeDelete:
 			logger.Infof("Send cross connect delete event: %v", xcon)
-			if cc.ConnectionState == model.ClientConnectionClosing {
-				client.monitorManager.CrossConnectMonitor().Delete(ctx, xcon)
-			}
+			client.monitorManager.CrossConnectMonitor().Delete(ctx, xcon)
 		}
 	} else {
 		err := fmt.Errorf("Failed to Send cross connect event: %v. No Client connection is found", xcon)

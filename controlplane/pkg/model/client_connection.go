@@ -2,14 +2,16 @@ package model
 
 import (
 	"context"
+
 	"github.com/golang/protobuf/proto"
-	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
 	"github.com/opentracing/opentracing-go"
 
+	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm/networkservice"
 )
 
 // ClientConnectionState describes state of ClientConnection

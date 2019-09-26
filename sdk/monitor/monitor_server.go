@@ -3,17 +3,19 @@ package monitor
 import (
 	"context"
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"runtime/debug"
+
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/log"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
-	"runtime/debug"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
 const (
 	defaultSize = 10
-	stackName = "stackName"
+	stackName   = "stackName"
 )
 
 // Recipient is an unified interface for receiving stream
