@@ -24,14 +24,6 @@ git clone https://github.com/networkservicemesh/networkservicemesh
 cd networkservicemesh
 ```
 
-## Build the Network Service Mesh images
-
-First, let's build the Docker images of the various components:
-
-```bash
-make k8s-save
-```
-
 ## Setup the local Vagrant environment
 
 Then we'll configure a Kubernetes cluster. A master and a worker node will be launched in two separate Vagrant machines. The Network Service Mesh components will then be deployed to the cluster.
@@ -50,20 +42,42 @@ source scripts/vagrant/env.sh
 
 ## Deploy the core Network Service Mesh components
 
-The core Network Service Mesh infrastructure is deployed with the following command:
+All commands have been wrapped in make machining tooling.
+
+### Build the Network Service Mesh images and push then to the Vagrant machines
+
+First, let's build the Docker images of the various components of Network Service Mesh:
 
 ```bash
 make k8s-save
+```
+
+Load the images on the Vagrant Machines.
+
+```bash
 make k8s-load-images
+````
+
+The core Network Service Mesh infrastructure is deployed via Helm with the following command:
+
+```bash
+make helm-init
 make helm-install-nsm
 ```
 
 ### Verify the services are up and running
 
-The following check should show two `nsmgr`, two `nsm-vpp-forwarder`, two `skydive-agent`, one `crossconnect-monitor` and one `skydive-analyzer` pods:
+The following check should show two `nsmgr`, two `nsm-vpp-forwarder`, and one `nsm-admission-webhook` pod
 
 ```bash
 kubectl get pods -n nsm-system
+
+NAME                                     READY   STATUS    RESTARTS   AGE
+nsm-admission-webhook-8597995474-2p7vc   1/1     Running   0          2m4s
+nsm-vpp-forwarder-9lfnv                  1/1     Running   0          2m5s
+nsm-vpp-forwarder-w424k                  1/1     Running   0          2m5s
+nsmgr-5mkr2                              3/3     Running   0          2m5s
+nsmgr-gc976                              3/3     Running   0          2m5s
 ```
 
 This will allow you to see your Network Service Mesh daemonset running:
@@ -76,6 +90,25 @@ NAME   DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR   AGE
 nsmgr   2         2         2       2            2           <none>          19m
 ```
 
+## Deploy the Monitoring components
+
+```bash
+helm-install-nsm-monitoring
+```
+
+When deployed successfully two `skydive-agent`, one `skydive-analyzer`, one `crossconnect-monitor` and one `jaeger` pod will be running in the nsm-system namespace.
+
+````bash 
+kubectl get pods -n nsm-system 
+
+NAME                                     READY   STATUS    RESTARTS   AGE
+crossconnect-monitor-57dcf588dd-qk2n9    1/1     Running   0          43s
+jaeger-f5d6744c5-t2tc8                   1/1     Running   0          43s
+skydive-agent-hr9xh                      1/1     Running   0          43s
+skydive-agent-jxmm9                      1/1     Running   0          43s
+skydive-analyzer-778fc98897-9cr5w        1/1     Running   0          43s
+```
+
 ## Deploy the Network Service Mesh examples
 
 Now that we have the NSM infrastructure deployed, we can proceed with deploying some of the examples.
@@ -83,14 +116,12 @@ Now that we have the NSM infrastructure deployed, we can proceed with deploying 
 * The basic ICMP example is deployed like this:
 
 ```bash
-make helm-install-nsm
 make helm-install-icmp-responder
 ```
 
 * The VPN service composition example is deployed with:
 
 ```bash
-make helm-install-nsm
 make helm-install-vpn
 ```
 

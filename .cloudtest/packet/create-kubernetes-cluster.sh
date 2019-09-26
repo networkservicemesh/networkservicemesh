@@ -25,11 +25,12 @@ ssh ${SSH_OPTS} root@${worker_ip} ./download-worker-images.sh &
 wait
 
 # Download worker join script
-scp ${SSH_OPTS} root@${master_ip}:join-cluster.sh /tmp/join-cluster.sh || exit 5
-chmod +x /tmp/join-cluster.sh || exit 6
+mkdir -p /tmp/${master_ip}
+scp ${SSH_OPTS} root@${master_ip}:join-cluster.sh /tmp/${master_ip}/join-cluster.sh || exit 5
+chmod +x /tmp/${master_ip}/join-cluster.sh || exit 6
 
 # Upload and run worker join script
-scp ${SSH_OPTS} /tmp/join-cluster.sh root@${worker_ip}:join-cluster.sh || exit 7
+scp ${SSH_OPTS} /tmp/${master_ip}/join-cluster.sh root@${worker_ip}:join-cluster.sh || exit 7
 ssh ${SSH_OPTS} root@${worker_ip} ./join-cluster.sh &
 
 wait

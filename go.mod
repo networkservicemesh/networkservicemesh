@@ -1,20 +1,7 @@
 module github.com/networkservicemesh/networkservicemesh
 
-require (
-	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
-	github.com/go-errors/errors v1.0.1
-	github.com/grpc-ecosystem/grpc-opentracing v0.0.0-20180507213350-8e809c8a8645
-	github.com/networkservicemesh/networkservicemesh/test v0.2.0
-	github.com/onsi/gomega v1.7.0
-	github.com/opentracing/opentracing-go v1.1.0
-	github.com/pkg/errors v0.8.1
-	github.com/sirupsen/logrus v1.4.2
-	github.com/uber-go/atomic v1.4.0 // indirect
-	github.com/uber/jaeger-client-go v2.17.0+incompatible
-	google.golang.org/grpc v1.23.1
-)
-
 replace (
+	// ./scripts/switch_k8s_version.sh to change k8s version
 	gonum.org/v1/gonum => github.com/gonum/gonum v0.0.0-20190331200053-3d26580ed485
 	gonum.org/v1/netlib => github.com/gonum/netlib v0.0.0-20190331212654-76723241ea4e
 	k8s.io/api => k8s.io/api v0.0.0-20190819141258-3544db3b9e44
