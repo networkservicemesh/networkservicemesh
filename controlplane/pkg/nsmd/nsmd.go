@@ -7,6 +7,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/pkg/livemonitor"
+
 	"github.com/networkservicemesh/networkservicemesh/pkg/probes"
 	"github.com/networkservicemesh/networkservicemesh/pkg/probes/health"
 
@@ -67,6 +69,7 @@ type nsmServer struct {
 	xconManager             *services.ClientConnectionManager
 	crossConnectMonitor     monitor_crossconnect.MonitorServer
 	remoteConnectionMonitor remote.MonitorServer
+	liveMonitor             livemonitor.Server
 }
 
 func (nsm *nsmServer) XconManager() *services.ClientConnectionManager {
@@ -456,6 +459,8 @@ func (nsm *nsmServer) initMonitorServers() {
 	nsm.crossConnectMonitor = monitor_crossconnect.NewMonitorServer()
 	// Start Connection monitor server
 	nsm.remoteConnectionMonitor = remote.NewMonitorServer(nsm.xconManager)
+	// Start Live Check Monitor server
+	nsm.liveMonitor = livemonitor.NewServer()
 }
 
 func (nsm *nsmServer) StartDataplaneRegistratorServer() error {
@@ -497,6 +502,7 @@ func (nsm *nsmServer) StartAPIServerAt(ctx context.Context, sock net.Listener, p
 
 	crossconnect.RegisterMonitorCrossConnectServer(grpcServer, nsm.crossConnectMonitor)
 	connection.RegisterMonitorConnectionServer(grpcServer, nsm.remoteConnectionMonitor)
+	livemonitor.RegisterLivenessMonitorServer(grpcServer, nsm.liveMonitor)
 	probes.Append(health.NewGrpcHealth(grpcServer, sock.Addr(), time.Minute))
 
 	// Register Remote NetworkServiceManager
