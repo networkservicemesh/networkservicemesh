@@ -2,21 +2,15 @@ package livemonitor
 
 import (
 	"context"
+
 	"github.com/golang/protobuf/ptypes/empty"
+
 	"github.com/networkservicemesh/networkservicemesh/pkg/livemonitor/api"
 
 	"google.golang.org/grpc"
 )
 
-// EventStream is an unified interface for blocking receiver
-type EventStream interface {
-	Recv() (interface{}, error)
-}
-
-// EventStreamConstructor is a type for EventStream constructor
-type EventStreamConstructor func(ctx context.Context, cc *grpc.ClientConn) (EventStream, error)
-
-// Client is an unified interface for GRPC monitoring API client
+// Client is an interface for GRPC monitoring of server liveness
 type Client interface {
 	ErrorChannel() <-chan error
 
@@ -31,7 +25,7 @@ type client struct {
 	cancel context.CancelFunc
 }
 
-// NewClient creates a new Client on given GRPC connection
+// NewClient creates a new Live Monitor Client on given GRPC connection
 func NewClient(cc *grpc.ClientConn) (Client, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -77,4 +71,3 @@ func (c *client) Context() context.Context {
 func (c *client) Close() {
 	c.cancel()
 }
-

@@ -2,12 +2,13 @@ package livemonitor
 
 import (
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/networkservicemesh/networkservicemesh/pkg/livemonitor/api"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/livemonitor/api"
 )
 
-// Server is an unified interface for GRPC monitoring API server
+// Server is an interface for GRPC monitoring API server
 type Server interface {
 	MonitorLiveness(req *empty.Empty, srv api.LivenessMonitor_MonitorLivenessServer) error
 }
@@ -22,11 +23,12 @@ func NewServer() Server {
 }
 
 func (*server) MonitorLiveness(req *empty.Empty, srv api.LivenessMonitor_MonitorLivenessServer) error {
-	<- srv.Context().Done()
+	<-srv.Context().Done()
 	return nil
 }
 
-func RegisterLivenessMonitorServer(s *grpc.Server, srv api.LivenessMonitorServer){
+// RegisterLivenessMonitorServer register Liveness Monitor Server on grpc server
+func RegisterLivenessMonitorServer(s *grpc.Server, srv api.LivenessMonitorServer) {
 	api.RegisterLivenessMonitorServer(s, srv)
-	logrus.Infof("Liveness Monitor GRPC Server started")
+	logrus.Infof("Liveness Monitor grpc Server started")
 }

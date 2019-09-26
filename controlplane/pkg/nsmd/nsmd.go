@@ -2,7 +2,6 @@ package nsmd
 
 import (
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/pkg/livemonitor"
 	"net"
 	"os"
 	"sync"
