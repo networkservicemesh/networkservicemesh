@@ -11,6 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 package remote
 
 import (
@@ -40,7 +41,7 @@ func NewConnectionService(model model.Model) networkservice.NetworkServiceServer
 func (cce *connectionService) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 	logger := common.Log(ctx)
 	logger.Infof("Received request from client to connect to NetworkService: %v", request)
-
+	span := common.GetSpanHelper(ctx)
 	id := request.GetRequestConnection().GetId()
 	clientConnection := cce.model.GetClientConnection(id)
 
@@ -50,7 +51,7 @@ func (cce *connectionService) Request(ctx context.Context, request *networkservi
 			clientConnection.ConnectionState == model.ClientConnectionHealing ||
 			clientConnection.ConnectionState == model.ClientConnectionClosing {
 			err := fmt.Errorf("trying to request connection in bad state")
-			logger.Errorf("Error %v", err)
+			span.LogError(err)
 			return nil, err
 		}
 
@@ -85,7 +86,6 @@ func (cce *connectionService) Request(ctx context.Context, request *networkservi
 		cce.model.DeleteClientConnection(ctx, clientConnection.GetID())
 		return conn, err
 	}
-
 	clientConnection.Span = common.OriginalSpan(ctx)
 	clientConnection.ConnectionState = model.ClientConnectionReady
 	// 10. Send update for client connection

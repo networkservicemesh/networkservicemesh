@@ -11,10 +11,16 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 package common
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/log"
@@ -55,4 +61,159 @@ func (h *traceHook) Fire(entry *logrus.Entry) error {
 	h.span.LogFields(log.String(fmt.Sprintf("log[%d]", h.index), msg))
 	h.index++
 	return nil
+}
+
+// SpanHelper - wrap span if specified to simplify workflow
+type SpanHelper interface {
+	Finish()
+	StartSpan(opertation string) SpanHelper
+	Context() context.Context
+	Logger() logrus.FieldLogger
+	LogObject(attribute string, value interface{})
+	LogValue(attribute string, value interface{})
+	LogError(err error)
+}
+
+type spanHelper struct {
+	span   opentracing.Span
+	ctx    context.Context
+	logger logrus.FieldLogger
+}
+
+func (s *spanHelper) LogError(err error) {
+	if s.span != nil && err != nil {
+		s.span.LogFields(log.Error(err))
+		s.Logger().Error(err)
+	}
+}
+
+func (s *spanHelper) LogObject(attribute string, value interface{}) {
+	if s.span != nil {
+		cc, err := json.Marshal(value)
+		if err == nil {
+			s.span.LogFields(log.Object(attribute, string(cc)))
+		} else {
+			s.span.LogFields(log.Object(attribute, value))
+		}
+	}
+}
+func (s *spanHelper) LogValue(attribute string, value interface{}) {
+	if s.span != nil {
+		s.span.LogFields(log.Object(attribute, value))
+	}
+}
+
+func (s *spanHelper) Finish() {
+	if s.span != nil {
+		s.span.Finish()
+	}
+	s.span = nil
+}
+func (s *spanHelper) Logger() logrus.FieldLogger {
+	if s.logger == nil {
+		s.logger = LogFromSpan(s.span)
+	}
+	return s.logger
+}
+
+func (s *spanHelper) StartSpan(operation string) SpanHelper {
+	if s.span != nil && tools.IsOpentracingEnabled() {
+		newSpan, newCtx := opentracing.StartSpanFromContext(s.ctx, operation)
+		return &spanHelper{
+			ctx:  newCtx,
+			span: newSpan,
+		}
+	}
+	return &spanHelper{
+		ctx:  context.Background(),
+		span: nil,
+	}
+}
+
+func (s *spanHelper) Context() context.Context {
+	if s.span == nil {
+		return context.Background()
+	}
+	return s.ctx
+}
+
+// SpanHelperFromContext - return span helper from context and if opentracing is enabled start new span
+func SpanHelperFromContext(ctx context.Context, operation string) SpanHelper {
+	if tools.IsOpentracingEnabled() {
+		newSpan, newCtx := opentracing.StartSpanFromContext(ctx, operation)
+		return &spanHelper{
+			span: newSpan,
+			ctx:  newCtx,
+		}
+	}
+	// return just context
+	return &spanHelper{
+		span: nil,
+		ctx:  ctx,
+	}
+}
+
+// GetSpanHelper - construct a span helper object from current context span
+func GetSpanHelper(ctx context.Context) SpanHelper {
+	if tools.IsOpentracingEnabled() {
+		return &spanHelper{
+			span: opentracing.SpanFromContext(ctx),
+			ctx:  ctx,
+		}
+	}
+	// return just context
+	return &spanHelper{
+		span: nil,
+		ctx:  ctx,
+	}
+}
+
+//SpanHelperFromContextCopySpan - construct span helper object with ctx and copy span from spanContext
+// Will start new operation on span
+func SpanHelperFromContextCopySpan(ctx context.Context, spanContext SpanHelper, operation string) SpanHelper {
+	if tools.IsOpentracingEnabled() {
+		span := opentracing.SpanFromContext(spanContext.Context())
+		if span != nil {
+			ctx = opentracing.ContextWithSpan(ctx, span)
+			newSpan, newCtx := opentracing.StartSpanFromContext(ctx, operation)
+			return &spanHelper{
+				span: newSpan,
+				ctx:  newCtx,
+			}
+		}
+	}
+	return &spanHelper{
+		span: nil,
+		ctx:  ctx,
+	}
+}
+
+// SpanHelperFromConnection - construct new span helper with span from context is pressent or span from connection object
+func SpanHelperFromConnection(ctx context.Context, clientConnection *model.ClientConnection, operation string) SpanHelper {
+	result := &spanHelper{
+		span: opentracing.SpanFromContext(ctx),
+		ctx:  context.Background(),
+	}
+	if !tools.IsOpentracingEnabled() {
+		return result
+	}
+	if result.span != nil {
+		// Context already had span, so let's just start operation.
+		return result.StartSpan(operation)
+	}
+	if clientConnection != nil && clientConnection.Span != nil {
+		ctx = opentracing.ContextWithSpan(ctx, clientConnection.Span)
+		span, newCtx := opentracing.StartSpanFromContext(ctx, operation)
+
+		result.span = span
+		result.ctx = newCtx
+		return result
+	}
+
+	// No connection object and no span in context, lets start new
+	newSpan, newCtx := opentracing.StartSpanFromContext(ctx, operation)
+	return &spanHelper{
+		span: newSpan,
+		ctx:  newCtx,
+	}
 }

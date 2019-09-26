@@ -11,6 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 package remote
 
 import (
@@ -19,11 +20,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/opentracing/opentracing-go"
-	"github.com/opentracing/opentracing-go/log"
 	"github.com/sirupsen/logrus"
-
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 
 	"github.com/golang/protobuf/ptypes/empty"
 
@@ -122,15 +119,12 @@ func (cce *dataplaneService) Request(ctx context.Context, request *networkservic
 
 	clientConnection := common.ModelConnection(ctx)
 	// 3. get dataplane
-	err := cce.serviceRegistry.WaitForDataplaneAvailable(ctx, cce.model, DataplaneTimeout)
-	if err != nil {
+	if err := cce.serviceRegistry.WaitForDataplaneAvailable(ctx, cce.model, DataplaneTimeout); err != nil {
 		logger.Errorf("Error waiting for dataplane: %v", err)
+		return nil, err
 	}
-
-	var dp *model.Dataplane
-
 	// TODO: We could iterate dataplanes to match required one, if failed with first one.
-	dp, err = cce.selectDataplane(request)
+	dp, err := cce.selectDataplane(request)
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +133,7 @@ func (cce *dataplaneService) Request(ctx context.Context, request *networkservic
 	err = cce.updateMechanism(request, dp)
 	if err != nil {
 		// 5.1 Close Datplane connection, if had existing one and NSE is closed.
-		cce.doFailureClose(ctx, request.GetConnection())
+		cce.doFailureClose(ctx)
 		return nil, fmt.Errorf("NSM:(5.1) %v", err)
 	}
 
@@ -148,48 +142,43 @@ func (cce *dataplaneService) Request(ctx context.Context, request *networkservic
 	ctx = common.WithDataplane(ctx, dp)
 	conn, connErr := ProcessNext(ctx, request)
 	if connErr != nil {
-		cce.doFailureClose(ctx, request.GetConnection())
+		cce.doFailureClose(ctx)
 		return conn, connErr
 	}
 	// We need to program dataplane.
 	return cce.programDataplane(ctx, conn, dp, clientConnection)
 }
 
-func (cce *dataplaneService) doFailureClose(ctx context.Context, conn *connection.Connection) {
+func (cce *dataplaneService) doFailureClose(ctx context.Context) {
 	clientConnection := common.ModelConnection(ctx)
 
 	newCtx, cancel := context.WithTimeout(context.Background(), ErrorCloseTimeout)
 	defer cancel()
-	var span opentracing.Span
-	if tools.IsOpentracingEnabled() {
-		newCtx = opentracing.ContextWithSpan(newCtx, opentracing.SpanFromContext(ctx))
-		span, newCtx = opentracing.StartSpanFromContext(newCtx, "doDataplaneClose")
-		defer span.Finish()
-	}
-	logger := common.LogFromSpan(span)
-	newCtx = common.WithLog(newCtx, logger)
+
+	span := common.SpanHelperFromContextCopySpan(newCtx, common.GetSpanHelper(ctx), "doDataplaneClose")
+	defer span.Finish()
+
+	newCtx = span.Context()
+
+	newCtx = common.WithLog(newCtx, span.Logger())
 	newCtx = common.WithModelConnection(newCtx, clientConnection)
 
-	closeErr := cce.performClose(newCtx, conn, clientConnection, logger)
-	if closeErr != nil {
-		if span != nil {
-			span.LogFields(log.Error(closeErr))
-		}
-		logger.Errorf("failed to close connection %v", closeErr)
-	}
+	closeErr := cce.performClose(newCtx, clientConnection, span.Logger())
+	span.LogError(closeErr)
 }
 
 func (cce *dataplaneService) Close(ctx context.Context, conn *connection.Connection) (*empty.Empty, error) {
+
 	cc := common.ModelConnection(ctx)
 	logger := common.Log(ctx)
 	empty, err := ProcessClose(ctx, conn)
-	if closeErr := cce.performClose(ctx, conn, cc, logger); closeErr != nil {
+	if closeErr := cce.performClose(ctx, cc, logger); closeErr != nil {
 		logger.Errorf("Failed to close: %v", closeErr)
 	}
 	return empty, err
 }
 
-func (cce *dataplaneService) performClose(ctx context.Context, conn *connection.Connection, cc *model.ClientConnection, logger logrus.FieldLogger) error {
+func (cce *dataplaneService) performClose(ctx context.Context, cc *model.ClientConnection, logger logrus.FieldLogger) error {
 	// Close endpoints, etc
 	if cc.DataplaneState != model.DataplaneStateNone {
 		logger.Info("NSM.Dataplane: Closing cross connection on dataplane...")
@@ -214,10 +203,11 @@ func (cce *dataplaneService) performClose(ctx context.Context, conn *connection.
 
 func (cce *dataplaneService) programDataplane(ctx context.Context, conn *connection.Connection, dp *model.Dataplane, clientConnection *model.ClientConnection) (*connection.Connection, error) {
 	logger := common.Log(ctx)
+	// We need to program dataplane.
 	dataplaneClient, dataplaneConn, err := cce.serviceRegistry.DataplaneConnection(ctx, dp)
 	if err != nil {
 		logger.Errorf("Error creating dataplane connection %v. Performing close", err)
-		cce.doFailureClose(ctx, conn)
+		cce.doFailureClose(ctx)
 		return conn, err
 	}
 	if dataplaneConn != nil { // Required for testing
@@ -233,7 +223,7 @@ func (cce *dataplaneService) programDataplane(ctx context.Context, conn *connect
 	// 9.1 Sending updated request to dataplane.
 	for dpRetry := 0; dpRetry < DataplaneRetryCount; dpRetry++ {
 		if ctx.Err() != nil {
-			cce.doFailureClose(ctx, conn)
+			cce.doFailureClose(ctx)
 			return nil, ctx.Err()
 		}
 
@@ -252,13 +242,13 @@ func (cce *dataplaneService) programDataplane(ctx context.Context, conn *connect
 			}
 			logger.Errorf("NSM:(9.1.2) Dataplane request  all retry attempts failed: %v", clientConnection.Xcon)
 			// 9.3 If datplane configuration are failed, we need to close remore NSE actually.
-			cce.doFailureClose(ctx, conn)
+			cce.doFailureClose(ctx)
 			return conn, err
 		}
 
 		// In case of context deadline, we need to close NSE and dataplane.
 		if ctx.Err() != nil {
-			cce.doFailureClose(ctx, conn)
+			cce.doFailureClose(ctx)
 			return nil, ctx.Err()
 		}
 
@@ -276,7 +266,7 @@ func (cce *dataplaneService) updateClientConnection(ctx context.Context, conn *c
 	// Update connection context if it updated from dataplane.
 	err := conn.UpdateContext(clientConnection.GetConnectionSource().GetContext())
 	if err != nil {
-		cce.doFailureClose(ctx, conn)
+		cce.doFailureClose(ctx)
 		return nil, err
 	}
 

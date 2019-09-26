@@ -11,16 +11,15 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 package local
 
 import (
 	"fmt"
 
-	"github.com/opentracing/opentracing-go"
-	"github.com/opentracing/opentracing-go/log"
-
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/sirupsen/logrus"
+
 	"golang.org/x/net/context"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
@@ -44,27 +43,21 @@ func NewConnectionService(model model.Model) networkservice.NetworkServiceServer
 func (cce *connectionService) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 	logger := common.Log(ctx)
 	logger.Infof("Received request from client to connect to NetworkService: %v", request)
-	span := opentracing.SpanFromContext(ctx)
 
-	id := request.GetRequestConnection().GetId()
-	if span != nil {
-		span.LogFields(log.String("connection-id", id))
-	}
-
+	span := common.GetSpanHelper(ctx)
 	workspaceName := common.WorkspaceName(ctx)
 
-	if span != nil {
-		span.LogFields(log.String("workspace", workspaceName))
-	}
+	id := request.GetRequestConnection().GetId()
+	span.LogValue("connection-id", id)
+	span.LogValue("workspace", workspaceName)
 
 	// We need to take updated connection in case of updates
 	clientConnection := common.ModelConnection(ctx) // Case only for Healing.
-
 	if clientConnection == nil {
 		clientConnection = cce.model.GetClientConnection(id)
 	} else if cce.model.GetClientConnection(id) == nil {
 		err := fmt.Errorf("trying to request not existing connection")
-		logger.Errorf("Error %v", err)
+		span.LogError(err)
 		return nil, err
 	}
 	if clientConnection != nil {
@@ -73,28 +66,17 @@ func (cce *connectionService) Request(ctx context.Context, request *networkservi
 			clientConnection.ConnectionState == model.ClientConnectionHealing ||
 			clientConnection.ConnectionState == model.ClientConnectionClosing {
 			err := fmt.Errorf("trying to request connection in bad state")
-			logger.Errorf("Error %v", err)
+			span.LogError(err)
 			return nil, err
 		}
 
 		request.Connection.SetID(clientConnection.GetID())
-		logger.Infof("NSM:(%v) Called with existing connection passed: %v", id, clientConnection)
-
-		// Update model connection status
-		clientConnection = cce.model.ApplyClientConnectionChanges(ctx, clientConnection.GetID(), func(modelCC *model.ClientConnection) {
-			modelCC.ConnectionState = model.ClientConnectionHealing
-			modelCC.Span = common.OriginalSpan(ctx)
-		})
+		clientConnection = cce.updateClientConnection(ctx, logger, id, clientConnection)
 	} else {
 		// Assign ID to connection
 		request.Connection.SetID(cce.model.ConnectionID())
 
-		clientConnection = &model.ClientConnection{
-			ConnectionID:    request.Connection.GetId(),
-			ConnectionState: model.ClientConnectionRequesting,
-			Span:            common.OriginalSpan(ctx),
-			Monitor:         common.MonitorServer(ctx),
-		}
+		clientConnection = cce.createClientConnection(ctx, request)
 		cce.model.AddClientConnection(ctx, clientConnection)
 	}
 
@@ -110,14 +92,32 @@ func (cce *connectionService) Request(ctx context.Context, request *networkservi
 	}
 
 	clientConnection.ConnectionState = model.ClientConnectionReady
+	span.LogObject("client-connection", clientConnection)
 
-	if span != nil {
-		span.LogFields(log.Object("client-connection", clientConnection))
-	}
 	// 10. Send update for client connection
 	cce.model.UpdateClientConnection(ctx, clientConnection)
 
 	return conn, err
+}
+
+func (cce *connectionService) updateClientConnection(ctx context.Context, logger logrus.FieldLogger, id string, clientConnection *model.ClientConnection) *model.ClientConnection {
+	logger.Infof("NSM:(%v) Called with existing connection passed: %v", id, clientConnection)
+
+	// Update model connection status
+	clientConnection = cce.model.ApplyClientConnectionChanges(ctx, clientConnection.GetID(), func(modelCC *model.ClientConnection) {
+		modelCC.ConnectionState = model.ClientConnectionHealing
+		modelCC.Span = common.OriginalSpan(ctx)
+	})
+	return clientConnection
+}
+
+func (cce *connectionService) createClientConnection(ctx context.Context, request *networkservice.NetworkServiceRequest) *model.ClientConnection {
+	return &model.ClientConnection{
+		ConnectionID:    request.Connection.GetId(),
+		ConnectionState: model.ClientConnectionRequesting,
+		Span:            common.OriginalSpan(ctx),
+		Monitor:         common.MonitorServer(ctx),
+	}
 }
 
 func (cce *connectionService) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {

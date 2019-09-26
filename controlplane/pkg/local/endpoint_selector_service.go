@@ -11,16 +11,12 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 package local
 
 import (
 	"context"
 	"fmt"
-
-	"github.com/opentracing/opentracing-go"
-	"github.com/opentracing/opentracing-go/log"
-
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/empty"
@@ -72,12 +68,10 @@ func (cce *endpointSelectorService) Request(ctx context.Context, request *networ
 	// true if we detect we need to request NSE to upgrade/update connection.
 	// 4.1 New Network service is requested, we need to close current connection and do re-request of NSE.
 	requestNSEOnUpdate := cce.checkNSEUpdateIsRequired(ctx, clientConnection, request, logger, dp)
-
 	// 7. do a Request() on NSE and select it.
 	if clientConnection.ConnectionState == model.ClientConnectionHealing && !requestNSEOnUpdate {
 		return cce.checkUpdateConnectionContext(ctx, request, clientConnection)
 	}
-
 	// 7.1 try find NSE and do a Request to it.
 	var lastError error
 	ignoreEndpoints := common.IgnoredEndpoints(ctx)
@@ -85,33 +79,21 @@ func (cce *endpointSelectorService) Request(ctx context.Context, request *networ
 	attempt := 0
 	for {
 		attempt++
-		var span opentracing.Span
-		if tools.IsOpentracingEnabled() {
-			span, ctx = opentracing.StartSpanFromContext(parentCtx, fmt.Sprintf("select-nse-%v", attempt))
-			defer span.Finish()
-		}
-		logger := common.LogFromSpan(span)
-		ctx = common.WithLog(ctx, logger)
-		if ctx.Err() != nil {
-			if span != nil {
-				span.LogFields(log.Error(ctx.Err()))
-			}
-			logger.Errorf("NSM:(7.1.0) Context timeout, during find/call NSE... %v", ctx.Err())
-			return nil, ctx.Err()
-		}
+		span := common.SpanHelperFromContext(parentCtx, fmt.Sprintf("select-nse-%v", attempt))
+		defer span.Finish()
+
+		logger := span.Logger()
+		ctx = common.WithLog(span.Context(), logger)
+
 		// 7.1.1 Clone Connection to support iteration via EndPoints
 		newRequest, endpoint, err := cce.prepareRequest(ctx, request, clientConnection, ignoreEndpoints)
 		if err != nil {
-			if lastError != nil {
-				if span != nil {
-					span.LogFields(log.Error(lastError))
-				}
-				return nil, fmt.Errorf("NSM:(7.1.5) %v. Last NSE Error: %v", err, lastError)
-			}
+			return cce.combineErrors(span, lastError, err)
+		}
+		if err = cce.checkTimeout(parentCtx, span); err != nil {
 			return nil, err
 		}
 		ctx = common.WithEndpoint(ctx, endpoint)
-
 		// Perform passing execution to next chain element.
 		conn, err := ProcessNext(ctx, newRequest)
 
@@ -120,22 +102,25 @@ func (cce *endpointSelectorService) Request(ctx context.Context, request *networ
 			logger.Errorf("NSM:(7.1.8) NSE respond with error: %v ", err)
 			lastError = err
 			ignoreEndpoints[endpoint.GetNetworkServiceEndpoint().GetName()] = endpoint
-			if span != nil {
-				span.Finish()
-			}
+			span.Finish()
 			continue
 		}
-
 		// We could put endpoint to clientConnection.
 		clientConnection.Endpoint = endpoint
-
 		if !cce.nseManager.IsLocalEndpoint(endpoint) {
 			clientConnection.RemoteNsm = endpoint.GetNetworkServiceManager()
 		}
-
 		// 7.1.9 We are fine with NSE connection and could continue.
 		return conn, nil
 	}
+}
+
+func (cce *endpointSelectorService) combineErrors(span common.SpanHelper, err, lastError error) (*connection.Connection, error) {
+	if lastError != nil {
+		span.LogError(lastError)
+		return nil, fmt.Errorf("NSM:(7.1.5) %v. Last NSE Error: %v", err, lastError)
+	}
+	return nil, err
 }
 
 func (cce *endpointSelectorService) selectEndpoint(ctx context.Context, clientConnection *model.ClientConnection, ignoreEndpoints map[string]*registry.NSERegistration, nseConn unified_connection.Connection) (*registry.NSERegistration, error) {
@@ -303,6 +288,15 @@ func (cce *endpointSelectorService) prepareRequest(ctx context.Context, request 
 
 	newRequest.Connection = nseConn
 	return newRequest, endpoint, nil
+}
+
+func (cce *endpointSelectorService) checkTimeout(ctx context.Context, span common.SpanHelper) error {
+	if ctx.Err() != nil {
+		newErr := fmt.Errorf("NSM:(7.1.0) Context timeout, during find/call NSE... %v", ctx.Err())
+		span.LogError(newErr)
+		return newErr
+	}
+	return nil
 }
 
 // NewEndpointSelectorService - creates a service to select endpoint

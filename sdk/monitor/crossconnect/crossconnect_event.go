@@ -35,6 +35,8 @@ func (e *Event) Message() (interface{}, error) {
 		Metrics:       e.Statistics,
 	}, nil
 }
+
+// Context - return associated event caller context
 func (e *Event) Context() context.Context {
 	return e.ctx
 }

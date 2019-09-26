@@ -287,9 +287,9 @@ func (k8s *K8s) reportSpans() {
 					for _, l := range lines {
 						pos := strings.Index(l, " Reporting span ")
 						if pos > 0 {
-							value := l[pos:len(l)]
+							value := l[pos:]
 							pos = strings.Index(value, ":")
-							value = value[0: pos]
+							value = value[0:pos]
 							if value != "" {
 								spans[fmt.Sprintf("%v from %v", value, c.Name)] = l
 							}
@@ -298,11 +298,10 @@ func (k8s *K8s) reportSpans() {
 				}
 			}
 		}
-		for k, _ := range spans {
+		for k := range spans {
 			logrus.Infof("Span %v", k)
 		}
 	}
-
 }
 
 // ExtK8s - K8s ClientSet with nodes config

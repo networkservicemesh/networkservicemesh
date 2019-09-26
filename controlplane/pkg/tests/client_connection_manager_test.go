@@ -37,9 +37,7 @@ func waitListenersIncrement(mdl model.Model, g *gomega.GomegaWithT) {
 	for mdl.ListenerCount() == 0 {
 		select {
 		case <-time.After(1 * time.Millisecond):
-			break
 		case <-ctx.Done():
-			break
 		}
 		its++
 		if ctx.Err() != nil {

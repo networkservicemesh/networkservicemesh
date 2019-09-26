@@ -4,13 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/opentracing/opentracing-go/log"
+	span "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 
-	nsm2 "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
-
-	"github.com/opentracing/opentracing-go"
-
-	"github.com/networkservicemesh/networkservicemesh/sdk/common"
+	nsm_properties "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
 
 	"github.com/sirupsen/logrus"
 
@@ -25,7 +21,7 @@ import (
 type nseManager struct {
 	serviceRegistry serviceregistry.ServiceRegistry
 	model           model.Model
-	properties      *nsm2.Properties
+	properties      *nsm_properties.Properties
 }
 
 func (nsem *nseManager) GetEndpoint(ctx context.Context, requestConnection connection.Connection, ignoreEndpoints map[string]*registry.NSERegistration) (*registry.NSERegistration, error) {
@@ -79,14 +75,9 @@ func (nsem *nseManager) GetEndpoint(ctx context.Context, requestConnection conne
 ctx - we assume it is big enought to perform connection.
 */
 func (nsem *nseManager) CreateNSEClient(ctx context.Context, endpoint *registry.NSERegistration) (nsm.NetworkServiceClient, error) {
+	span := span.GetSpanHelper(ctx)
+	logger := span.Logger()
 
-	var span opentracing.Span
-	if opentracing.GlobalTracer() != nil {
-		span, ctx = opentracing.StartSpanFromContext(ctx, "nsm.create.nse.client")
-		defer span.Finish()
-	}
-
-	logger := common.LogFromSpan(span)
 	if nsem.IsLocalEndpoint(endpoint) {
 		modelEp := nsem.model.GetEndpoint(endpoint.GetNetworkServiceEndpoint().GetName())
 		if modelEp == nil {
@@ -95,9 +86,7 @@ func (nsem *nseManager) CreateNSEClient(ctx context.Context, endpoint *registry.
 		logger.Infof("Create local NSE connection to endpoint: %v", modelEp)
 		client, conn, err := nsem.serviceRegistry.EndpointConnection(ctx, modelEp)
 		if err != nil {
-			if span != nil {
-				span.LogFields(log.Error(err))
-			}
+			span.LogError(err)
 			// We failed to connect to local NSE.
 			nsem.cleanupNSE(ctx, modelEp)
 			return nil, err

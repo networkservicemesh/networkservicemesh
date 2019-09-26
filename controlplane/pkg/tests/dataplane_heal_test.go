@@ -92,7 +92,6 @@ func TestHealLocalDataplane(t *testing.T) {
 	srv.TestModel.AddDataplane(context.Background(), testDataplane1_1)
 	srv.TestModel.DeleteDataplane(context.Background(), testDataplane1.RegisteredName)
 
-	//<- time.After(1000*time.Second)
 	// We need to inform cross connection monitor about this connection, since dataplane is fake one.
 	// First update is with down state
 	// But we want to wait for Up state

@@ -151,8 +151,8 @@ func (d *clientConnectionDomain) GetAllClientConnections() []*ClientConnection {
 	return rv
 }
 
-func (d *clientConnectionDomain) DeleteClientConnection(ctx context.Context, id string) {
-	d.delete(ctx, id)
+func (d *clientConnectionDomain) DeleteClientConnection(ctx context.Context, connectionID string) {
+	d.delete(ctx, connectionID)
 }
 
 func (d *clientConnectionDomain) UpdateClientConnection(ctx context.Context, cc *ClientConnection) {

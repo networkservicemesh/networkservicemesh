@@ -11,21 +11,18 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 package remote
 
 import (
 	"context"
 	"fmt"
 
-	"github.com/opentracing/opentracing-go/log"
-
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
 	local_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	local_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
 	unified_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
@@ -51,12 +48,12 @@ type endpointService struct {
 }
 
 func (cce *endpointService) closeEndpoint(ctx context.Context, cc *model.ClientConnection) error {
-	var span opentracing.Span
-	if opentracing.GlobalTracer() != nil {
-		span, ctx = opentracing.StartSpanFromContext(ctx, "nsm.closeEndpoint")
-		defer span.Finish()
-	}
-	logger := common.LogFromSpan(span)
+
+	span := common.SpanHelperFromContext(ctx, "closeEndpoint")
+	defer span.Finish()
+	ctx = span.Context()
+	logger := span.Logger()
+	ctx = common.WithLog(ctx, logger)
 
 	if cc.Endpoint == nil {
 		logger.Infof("No need to close, since NSE is we know is dead at this point.")
@@ -72,34 +69,11 @@ func (cce *endpointService) closeEndpoint(ctx context.Context, cc *model.ClientC
 			return client.Close(ctx, ld)
 		}
 		err := client.Cleanup()
-		if err != nil {
-			if span != nil {
-				span.LogFields(log.Error(err))
-			}
-			logger.Errorf("NSM: Error during Cleanup: %v", err)
-		}
+		span.LogError(err)
 	} else {
-		err := fmt.Errorf("NSM: Failed to create NSE Client %v", nseClientError)
-		if span != nil {
-			span.LogFields(log.Error(err))
-		}
+		span.LogError(nseClientError)
 	}
 	return nseClientError
-}
-
-func (cce *endpointService) updateConnection(ctx context.Context, conn *connection.Connection) (*connection.Connection, error) {
-	if conn.GetContext() == nil {
-		c := &connectioncontext.ConnectionContext{}
-		conn.SetContext(c)
-	}
-
-	wrapper := plugin_api.NewConnectionWrapper(conn)
-	wrapper, err := cce.pluginRegistry.GetConnectionPluginManager().UpdateConnection(ctx, wrapper)
-	if err != nil {
-		return conn, err
-	}
-
-	return wrapper.GetConnection().(*connection.Connection), nil
 }
 
 func (cce *endpointService) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
@@ -124,17 +98,23 @@ func (cce *endpointService) Request(ctx context.Context, request *networkservice
 
 	message := cce.createLocalNSERequest(endpoint, dp, request.Connection, clientConnection)
 	logger.Infof("NSM:(7.2.6.2) Requesting NSE with request %v", message)
-	nseConn, e := client.Request(ctx, message)
 
+	span := common.SpanHelperFromContext(ctx, "nse.request")
+	defer span.Finish()
+	span.LogObject("nse.request", message)
+
+	nseConn, e := client.Request(ctx, message)
+	span.LogObject("nse.response", nseConn)
 	if e != nil {
-		logger.Errorf("NSM:(7.2.6.2.1) error requesting networkservice from %+v with message %#v error: %s", endpoint, message, e)
+		e = fmt.Errorf("NSM:(7.2.6.2.1) error requesting networkservice from %+v with message %#v error: %s", endpoint, message, e)
+		span.LogError(e)
 		return nil, e
 	}
 
 	// 7.2.6.2.2
 	if err = cce.updateConnectionContext(ctx, request.GetConnection(), nseConn); err != nil {
 		err = fmt.Errorf("NSM:(7.2.6.2.2) failure Validating NSE Connection: %s", err)
-		logger.Errorf("%v", err)
+		span.LogError(err)
 		return nil, err
 	}
 

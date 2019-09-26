@@ -5,15 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/opentracing/opentracing-go/log"
-
-	nsm2 "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-
-	"github.com/opentracing/opentracing-go"
-
 	local_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	local_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
+	nsm2 "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/networkservice"
 	remote_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
 	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
@@ -69,17 +63,15 @@ func newNetworkServiceHealProcessor(
 func (p *healProcessor) Heal(ctx context.Context, clientConnection nsm.ClientConnection, healState nsm.HealState) {
 	cc := clientConnection.(*model.ClientConnection)
 
-	var span opentracing.Span
-	if opentracing.IsGlobalTracerRegistered() {
-		opName := "Heal"
-		if clientConnection.GetConnectionSource().IsRemote() {
-			opName = "RemoteHeal"
-		}
-		span, ctx = opentracing.StartSpanFromContext(ctx, opName)
-		defer span.Finish()
+	opName := "Heal"
+	if clientConnection.GetConnectionSource().IsRemote() {
+		opName = "RemoteHeal"
 	}
+	span := common.SpanHelperFromConnection(ctx, cc, opName)
+	defer span.Finish()
+	ctx = span.Context()
 
-	logger := common.LogFromSpan(span)
+	logger := span.Logger()
 	ctx = common.WithLog(ctx, logger)
 
 	healID := create_logid()
@@ -96,9 +88,7 @@ func (p *healProcessor) Heal(ctx context.Context, clientConnection nsm.ClientCon
 		return
 	} else if modelCC.ConnectionState != model.ClientConnectionReady {
 		healErr := fmt.Errorf("NSM_Heal(%v) Trying to heal connection in bad state", healID)
-		if span != nil {
-			span.LogFields(log.Error(healErr))
-		}
+		span.LogError(healErr)
 		return
 	}
 
@@ -135,18 +125,13 @@ func (p *healProcessor) serve() {
 		}
 
 		go func() {
-			var ctx = e.ctx
-			var span opentracing.Span
+			span := common.SpanHelperFromContext(e.ctx, "heal")
+			span.Finish()
+			ctx := span.Context()
 
-			if tools.IsOpentracingEnabled() {
-				span, ctx = opentracing.StartSpanFromContext(e.ctx, "heal")
-			}
-			logger := common.LogFromSpan(span)
+			logger := span.Logger()
 			defer func() {
 				logger.Infof("NSM_Heal(%v) Connection %v healing state is finished...", e.healID, e.cc.GetID())
-				if span != nil {
-					span.Finish()
-				}
 			}()
 
 			healed := false
@@ -165,8 +150,10 @@ func (p *healProcessor) serve() {
 			}
 
 			if healed {
+				span.LogValue("status", "healed")
 				logger.Infof("NSM_Heal(%v) Heal: Connection recovered: %v", e.healID, e.cc)
 			} else {
+				span.LogValue("status", "closing")
 				_ = p.CloseConnection(ctx, e.cc)
 			}
 		}()
@@ -174,12 +161,12 @@ func (p *healProcessor) serve() {
 }
 
 func (p *healProcessor) healDstDown(ctx context.Context, cc *model.ClientConnection) bool {
-	var span opentracing.Span
-	if tools.IsOpentracingEnabled() {
-		span, ctx = opentracing.StartSpanFromContext(ctx, "healDstDown")
-		defer span.Finish()
-	}
-	logger := common.LogFromSpan(span)
+	span := common.SpanHelperFromConnection(ctx, cc, "healDstDown")
+	defer span.Finish()
+
+	logger := span.Logger()
+	// Update context
+	ctx = span.Context()
 
 	logger.Infof("NSM_Heal(1.1.1) Checking if DST die is NSMD/DST die...")
 	// Check if this is a really HealStateDstDown or HealStateDstNmgrDown
@@ -194,15 +181,11 @@ func (p *healProcessor) healDstDown(ctx context.Context, cc *model.ClientConnect
 		if err != nil {
 			// This is NSMD die case.
 			logger.Infof("NSM_Heal(1.1.2) Connection healing state is %v...", nsm.HealStateDstNmgrDown)
-			if span != nil {
-				span.LogFields(log.Error(err))
-			}
+			span.LogError(err)
 			return p.healDstNmgrDown(ctx, cc)
 		}
 	}
-
 	logger.Infof("NSM_Heal(1.1.2) Connection healing state is %v...", nsm.HealStateDstDown)
-
 	// Destination is down, we need to find it again.
 	if cc.Xcon.GetRemoteSource() != nil {
 		// NSMd id remote one, we just need to close and return.
@@ -215,8 +198,8 @@ func (p *healProcessor) healDstDown(ctx context.Context, cc *model.ClientConnect
 	defer cancel()
 
 	logger.Infof("NSM_Heal(2.2) Starting DST Heal...")
-	// We are client NSMd, we need to try recover our connection srv.
 
+	// We are client NSMd, we need to try recover our connection srv.
 	endpointName := cc.Endpoint.GetNetworkServiceEndpoint().GetName()
 
 	// Wait for NSE not equal to down one, since we know it will be re-registered with new endpoint name.
@@ -235,30 +218,25 @@ func (p *healProcessor) healDstDown(ctx context.Context, cc *model.ClientConnect
 		logger.Errorf("NSM_Heal(2.3.1) Failed to heal connection: %v", err)
 		return false
 	}
-
 	return true
 }
 
 func (p *healProcessor) healDataplaneDown(ctx context.Context, cc *model.ClientConnection) bool {
-	var span opentracing.Span
-	if tools.IsOpentracingEnabled() {
-		span, ctx = opentracing.StartSpanFromContext(ctx, "healDataplaneDown")
-		defer span.Finish()
-	}
+	span := common.SpanHelperFromConnection(ctx, cc, "healDataplaneDown")
+	defer span.Finish()
+	ctx = span.Context()
 
 	var cancel context.CancelFunc
 	ctx, cancel = context.WithTimeout(ctx, p.properties.HealTimeout)
 	defer cancel()
 
-	logger := common.LogFromSpan(span)
+	logger := span.Logger()
 	// Dataplane is down, we only need to re-programm dataplane.
 	// 1. Wait for dataplane to appear.
 	logger.Infof("NSM_Heal(3.1) Waiting for Dataplane to recovery...")
 	if err := p.serviceRegistry.WaitForDataplaneAvailable(ctx, p.model, p.properties.HealDataplaneTimeout); err != nil {
 		err = fmt.Errorf("NSM_Heal(3.1) Dataplane is not available on recovery for timeout %v: %v", p.properties.HealDataplaneTimeout, err)
-		if span != nil {
-			span.LogFields(log.Error(err))
-		}
+		span.LogError(err)
 		return false
 	}
 	logger.Infof("NSM_Heal(3.2) Dataplane is now available...")
@@ -287,16 +265,16 @@ func (p *healProcessor) healDataplaneDown(ctx context.Context, cc *model.ClientC
 }
 
 func (p *healProcessor) healDstUpdate(ctx context.Context, cc *model.ClientConnection) bool {
-	var span opentracing.Span
-	if tools.IsOpentracingEnabled() {
-		span, ctx = opentracing.StartSpanFromContext(ctx, "healDstUpdate")
-		defer span.Finish()
-	}
+
+	span := common.SpanHelperFromContext(ctx, "healDstUpdate")
+	defer span.Finish()
+	ctx = span.Context()
+
 	var cancel context.CancelFunc
 	ctx, cancel = context.WithTimeout(ctx, p.properties.HealTimeout)
 	defer cancel()
 
-	logger := common.LogFromSpan(span)
+	logger := span.Logger()
 	// Destination is updated.
 	// Update request to contain a proper connection object from previous attempt.
 	logger.Infof("NSM_Heal(5.1-%v) Healing Src Update... %v", cc)
@@ -309,9 +287,7 @@ func (p *healProcessor) healDstUpdate(ctx context.Context, cc *model.ClientConne
 
 	err := p.performRequest(ctx, request, cc)
 	if err != nil {
-		if span != nil {
-			span.LogFields(log.Error(err))
-		}
+		span.LogError(err)
 		logger.Errorf("NSM_Heal(5.2) Failed to heal connection: %v", err)
 		return false
 	}
@@ -319,7 +295,7 @@ func (p *healProcessor) healDstUpdate(ctx context.Context, cc *model.ClientConne
 	return true
 }
 
-func (p *healProcessor) performRequest(ctx context.Context, request networkservice.Request, cc *model.ClientConnection) error {
+func (p *healProcessor) performRequest(ctx context.Context, request networkservice.Request, cc nsm.ClientConnection) error {
 	var err error
 	if request.IsRemote() {
 		_, err = p.manager.RemoteManager().Request(ctx, request.(*remote_networkservice.NetworkServiceRequest))
@@ -330,12 +306,12 @@ func (p *healProcessor) performRequest(ctx context.Context, request networkservi
 }
 
 func (p *healProcessor) healDstNmgrDown(ctx context.Context, cc *model.ClientConnection) bool {
-	var span opentracing.Span
-	if tools.IsOpentracingEnabled() {
-		span, ctx = opentracing.StartSpanFromContext(ctx, "healDstNsmgrDown")
-		defer span.Finish()
-	}
-	logger := common.LogFromSpan(span)
+
+	span := common.SpanHelperFromConnection(ctx, cc, "healDstNsmgrDown")
+	defer span.Finish()
+	ctx = span.Context()
+	logger := span.Logger()
+
 	logger.Infof("NSM_Heal(6.1-%v) Starting DST + NSMGR Heal...")
 
 	var cancel context.CancelFunc
@@ -377,9 +353,7 @@ func (p *healProcessor) healDstNmgrDown(ctx context.Context, cc *model.ClientCon
 
 		if err := p.performRequest(requestCtx, cc.Request, cc); err != nil {
 			err = fmt.Errorf("NSM_Heal(6.2.3) Failed to heal connection: %v", err)
-			if span != nil {
-				span.LogFields(log.Error(err))
-			}
+			span.LogError(err)
 			return false
 		}
 	}
@@ -429,21 +403,17 @@ func (p *healProcessor) nseIsSameAndAvailable(ctx context.Context, endpointName 
 }
 
 func (p *healProcessor) waitNSE(ctx context.Context, cc *model.ClientConnection, endpointName, networkService string, nseValidator nseValidator) bool {
-	var span opentracing.Span
-	if tools.IsOpentracingEnabled() {
-		span, ctx = opentracing.StartSpanFromContext(ctx, "waitNSE")
-		span.LogFields(log.String("endpointName", endpointName))
-		span.LogFields(log.String("networkService", networkService))
-		defer span.Finish()
-	}
-	logger := common.LogFromSpan(span)
+
+	span := common.SpanHelperFromConnection(ctx, cc, "waitNSE")
+	defer span.Finish()
+
+	span.LogObject("endpointName", endpointName)
+	span.LogObject("networkService", networkService)
+
+	logger := span.Logger()
 	discoveryClient, err := p.serviceRegistry.DiscoveryClient()
 	if err != nil {
-		if span != nil {
-			span.LogFields(log.Error(err))
-		}
-		logger.Errorf("Failed to connect to Registry... %v", err)
-		// Still try to recovery
+		span.LogError(err)
 		return false
 	}
 
@@ -476,10 +446,8 @@ func (p *healProcessor) waitNSE(ctx context.Context, cc *model.ClientConnection,
 		}
 
 		if time.Since(st) > p.properties.HealDSTNSEWaitTimeout {
-			err = fmt.Errorf("Timeout waiting for NetworkService: %v", networkService)
-			if span != nil {
-				span.LogFields(log.Error(err))
-			}
+			err = fmt.Errorf("timeout waiting for NetworkService: %v", networkService)
+			span.LogError(err)
 			return false
 		}
 		// Wait a bit

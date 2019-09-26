@@ -63,6 +63,7 @@ func (e BaseEvent) Entities() map[string]Entity {
 	return e.entities
 }
 
+// Context - return event calling context
 func (e BaseEvent) Context() context.Context {
 	return e.ctx
 }

@@ -1,9 +1,10 @@
 package pods
 
 import (
+	"os"
+
 	v1 "k8s.io/api/core/v1"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"os"
 )
 
 func JaegerService(pod *v1.Pod) *v1.Service {

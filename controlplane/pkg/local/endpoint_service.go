@@ -11,6 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 package local
 
 import (
@@ -19,13 +20,9 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
 
-	"github.com/opentracing/opentracing-go/log"
-
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
 	unified_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
@@ -49,12 +46,11 @@ type endpointService struct {
 }
 
 func (cce *endpointService) closeEndpoint(ctx context.Context, cc *model.ClientConnection) error {
-	var span opentracing.Span
-	if opentracing.IsGlobalTracerRegistered() {
-		span, ctx = opentracing.StartSpanFromContext(ctx, "nsm.closeEndpoint")
-		defer span.Finish()
-	}
-	logger := common.LogFromSpan(span)
+
+	span := common.SpanHelperFromContext(ctx, "closeEndpoint")
+	defer span.Finish()
+	ctx = span.Context()
+	logger := span.Logger()
 
 	if cc.Endpoint == nil {
 		logger.Infof("No need to close, since NSE is we know is dead at this point.")
@@ -73,34 +69,11 @@ func (cce *endpointService) closeEndpoint(ctx context.Context, cc *model.ClientC
 			return client.Close(ctx, rd)
 		}
 		err := client.Cleanup()
-		if err != nil {
-			if span != nil {
-				span.LogFields(log.Error(err))
-			}
-			logger.Errorf("NSM: Error during Cleanup: %v", err)
-		}
+		span.LogError(err)
 	} else {
-		if span != nil {
-			span.LogFields(log.Error(nseClientError))
-		}
-		logger.Errorf("NSM: Failed to create NSE Client %v", nseClientError)
+		span.LogError(nseClientError)
 	}
 	return nseClientError
-}
-
-func (cce *endpointService) updateConnection(ctx context.Context, conn *connection.Connection) (*connection.Connection, error) {
-	if conn.GetContext() == nil {
-		c := &connectioncontext.ConnectionContext{}
-		conn.SetContext(c)
-	}
-
-	wrapper := plugin_api.NewConnectionWrapper(conn)
-	wrapper, err := cce.pluginRegistry.GetConnectionPluginManager().UpdateConnection(ctx, wrapper)
-	if err != nil {
-		return conn, err
-	}
-
-	return wrapper.GetConnection().(*connection.Connection), nil
 }
 
 func (cce *endpointService) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
@@ -118,8 +91,8 @@ func (cce *endpointService) Request(ctx context.Context, request *networkservice
 		return nil, fmt.Errorf("NSM:(7.2.6.1) Failed to create NSE Client. %v", err)
 	}
 	defer func() {
-		if cleanupRrr := client.Cleanup(); cleanupRrr != nil {
-			logger.Errorf("NSM:(7.2.6.2) Error during Cleanup: %v", cleanupRrr)
+		if cleanupErr := client.Cleanup(); cleanupErr != nil {
+			logger.Errorf("NSM:(7.2.6.2) Error during Cleanup: %v", cleanupErr)
 		}
 	}()
 
@@ -131,22 +104,21 @@ func (cce *endpointService) Request(ctx context.Context, request *networkservice
 	}
 	logger.Infof("NSM:(7.2.6.2) Requesting NSE with request %v", message)
 
-	span := opentracing.SpanFromContext(ctx)
-	if span != nil {
-		span.LogFields(log.Object("nse.request", message))
-	}
+	span := common.SpanHelperFromContext(ctx, "nse.request")
+	defer span.Finish()
+	span.LogObject("nse.request", message)
+
 	nseConn, e := client.Request(ctx, message)
-	if span != nil {
-		span.LogFields(log.Object("nse.response", nseConn))
-	}
+	span.LogObject("nse.response", nseConn)
 	if e != nil {
-		logger.Errorf("NSM:(7.2.6.2.1) error requesting networkservice from %+v with message %#v error: %s", endpoint, message, e)
+		e = fmt.Errorf("NSM:(7.2.6.2.1) error requesting networkservice from %+v with message %#v error: %s", endpoint, message, e)
+		span.LogError(e)
 		return nil, e
 	}
 	// 7.2.6.2.2
 	if err = cce.updateConnectionContext(ctx, request.GetConnection(), nseConn); err != nil {
 		err = fmt.Errorf("NSM:(7.2.6.2.2) failure Validating NSE Connection: %s", err)
-		logger.Errorf("%v", err)
+		span.LogError(err)
 		return nil, err
 	}
 

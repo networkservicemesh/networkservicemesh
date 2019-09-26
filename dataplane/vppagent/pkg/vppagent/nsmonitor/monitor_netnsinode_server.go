@@ -1,6 +1,7 @@
 package nsmonitor
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"time"
@@ -109,7 +110,7 @@ func (m *MonitorNetNsInodeServer) checkConnectionLiveness(xcon *crossconnect.Cro
 		logrus.Infof("Connection is down")
 		conn.State = connection.State_DOWN
 		m.kvSchedulerClient.DownstreamResync()
-		m.crossConnectServer.Update(nil, xcon)
+		m.crossConnectServer.Update(context.Background(), xcon)
 	}
 
 	return nil

@@ -11,6 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 package local
 
 import (
@@ -18,14 +19,10 @@ import (
 	"fmt"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/opentracing/opentracing-go"
-	"github.com/opentracing/opentracing-go/log"
-	"github.com/sirupsen/logrus"
-
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 	"github.com/networkservicemesh/networkservicemesh/utils/typeutils"
 )
 
@@ -78,14 +75,10 @@ func (n *nextEndpoint) Request(ctx context.Context, request *networkservice.Netw
 		ctx = WithNext(ctx, nil)
 	}
 
-	// Create a new span
-	var span opentracing.Span
-	if opentracing.IsGlobalTracerRegistered() {
-		span, ctx = opentracing.StartSpanFromContext(ctx, fmt.Sprintf("%s.Request", typeutils.GetTypeName(n.composite.services[n.index])))
-		defer span.Finish()
-		// Make sure we log to span
-	}
-	logger := common.LogFromSpan(span)
+	span := common.SpanHelperFromContext(ctx, fmt.Sprintf("%s.Request", typeutils.GetTypeName(n.composite.services[n.index])))
+	defer span.Finish()
+	logger := span.Logger()
+	ctx = span.Context()
 
 	ctx = common.WithLog(ctx, logger)
 	logger.Infof("internal request %v", request)
@@ -93,13 +86,7 @@ func (n *nextEndpoint) Request(ctx context.Context, request *networkservice.Netw
 	// Actually call the next
 	rv, err := n.composite.services[n.index].Request(ctx, request)
 
-	if err != nil {
-		logger.Errorf("Error: %v", err)
-		if span != nil {
-			span.LogFields(log.Error(err))
-		}
-		return nil, err
-	}
+	span.LogError(err)
 	logger.Infof("internal response %v", rv)
 	return rv, err
 }
@@ -111,25 +98,18 @@ func (n *nextEndpoint) Close(ctx context.Context, connection *connection.Connect
 		ctx = WithNext(ctx, nil)
 	}
 	// Create a new span
-	var span opentracing.Span
-	if opentracing.IsGlobalTracerRegistered() {
-		span, ctx = opentracing.StartSpanFromContext(ctx, fmt.Sprintf("%s.Close", typeutils.GetTypeName(n.composite.services[n.index])))
-		defer span.Finish()
-	}
+	span := common.SpanHelperFromContext(ctx, fmt.Sprintf("%s.Close", typeutils.GetTypeName(n.composite.services[n.index])))
+	defer span.Finish()
+	ctx = span.Context()
+
 	// Make sure we log to span
-	logger := common.LogFromSpan(span)
+	logger := span.Logger()
 	ctx = common.WithLog(ctx, logger)
 
-	logger.Infof("internal request %v", connection)
+	span.LogObject("request", connection)
 	rv, err := n.composite.services[n.index].Close(ctx, connection)
 
-	if err != nil {
-		if span != nil {
-			span.LogFields(log.Error(err))
-		}
-		logrus.Error(err)
-		return nil, err
-	}
-	logger.Infof("internal response %v", rv)
+	span.LogError(err)
+	span.LogObject("response", rv)
 	return rv, err
 }

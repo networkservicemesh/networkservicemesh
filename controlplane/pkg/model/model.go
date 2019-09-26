@@ -29,7 +29,7 @@ type Model interface {
 	GetClientConnection(connectionID string) *ClientConnection
 	GetAllClientConnections() []*ClientConnection
 	UpdateClientConnection(ctx context.Context, clientConnection *ClientConnection)
-	DeleteClientConnection(ctx context.Context, connectionId string)
+	DeleteClientConnection(ctx context.Context, connectionID string)
 	ApplyClientConnectionChanges(ctx context.Context, connectionID string, changeFunc func(*ClientConnection)) *ClientConnection
 
 	ConnectionID() string

@@ -44,7 +44,7 @@ func TestAddAndGetСс(t *testing.T) {
 	}
 
 	ccd := newClientConnectionDomain()
-	ccd.AddClientConnection(nil, cc)
+	ccd.AddClientConnection(context.Background(), cc)
 	getConn := ccd.GetClientConnection("1")
 
 	g.Expect(getConn.ConnectionID).To(Equal(cc.ConnectionID))
@@ -247,7 +247,7 @@ func TestApplyChanges(t *testing.T) {
 	g := NewWithT(t)
 
 	ccd := newClientConnectionDomain()
-	ccd.AddClientConnection(nil, &ClientConnection{
+	ccd.AddClientConnection(context.Background(), &ClientConnection{
 		ConnectionID: "1",
 		Xcon: &crossconnect.CrossConnect{
 			Id: "1",

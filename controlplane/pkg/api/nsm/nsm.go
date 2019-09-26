@@ -5,8 +5,8 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
-	connection2 "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
-	networkservice2 "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/networkservice"
+	unified_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
+	unified_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/plugins"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
@@ -23,15 +23,15 @@ import (
 // ClientConnection is an interface for client connection
 type ClientConnection interface {
 	GetID() string
-	GetConnectionSource() connection2.Connection
-	GetConnectionDestination() connection2.Connection
+	GetConnectionSource() unified_connection.Connection
+	GetConnectionDestination() unified_connection.Connection
 	GetNetworkService() string
 }
 
 // NetworkServiceClient is an interface for network service client
 type NetworkServiceClient interface {
-	Request(ctx context.Context, request networkservice2.Request) (connection2.Connection, error)
-	Close(ctx context.Context, connection connection2.Connection) error
+	Request(ctx context.Context, request unified_networkservice.Request) (unified_connection.Connection, error)
+	Close(ctx context.Context, connection unified_connection.Connection) error
 
 	Cleanup() error
 }
@@ -70,6 +70,7 @@ type MonitorManager interface {
 	LocalConnectionMonitor(workspace string) monitor.Server
 }
 
+//NetworkServiceManager - hold useful nsm structures
 type NetworkServiceManager interface {
 	GetHealProperties() *nsm.Properties
 	WaitForDataplane(ctx context.Context, duration time.Duration) error
@@ -89,7 +90,7 @@ type NetworkServiceManager interface {
 
 //NetworkServiceEndpointManager - manages endpoints, TODO: Will be removed in next PRs.
 type NetworkServiceEndpointManager interface {
-	GetEndpoint(ctx context.Context, requestConnection connection2.Connection, ignoreEndpoints map[string]*registry.NSERegistration) (*registry.NSERegistration, error)
+	GetEndpoint(ctx context.Context, requestConnection unified_connection.Connection, ignoreEndpoints map[string]*registry.NSERegistration) (*registry.NSERegistration, error)
 	CreateNSEClient(ctx context.Context, endpoint *registry.NSERegistration) (NetworkServiceClient, error)
 	IsLocalEndpoint(endpoint *registry.NSERegistration) bool
 	CheckUpdateNSE(ctx context.Context, reg *registry.NSERegistration) bool

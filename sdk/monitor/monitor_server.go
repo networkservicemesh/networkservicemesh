@@ -3,7 +3,6 @@ package monitor
 import (
 	"context"
 	"fmt"
-	"runtime/debug"
 
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/log"
@@ -15,7 +14,6 @@ import (
 
 const (
 	defaultSize = 10
-	stackName   = "stackName"
 )
 
 // Recipient is an unified interface for receiving stream
@@ -57,36 +55,13 @@ func NewServer(eventFactory EventFactory) Server {
 	}
 }
 
-// WithStack -
-//   Wraps 'parent' in a new Context that has the stack trace
-//   using Context.Value(...) and returns the result.
-//   Note: any previously existing value will be overwritten.
-//
-func withStack(parent context.Context, stack string) context.Context {
-	if parent == nil {
-		parent = context.Background()
-	}
-	return context.WithValue(parent, stackName, stack)
-}
-
-// Stack - Return a workspace name
-func stack(ctx context.Context) string {
-	value := ctx.Value(stackName)
-	if value == nil {
-		return ""
-	}
-	return value.(string)
-}
-
 // Update sends EventTypeUpdate event for entity to all server recipients
 func (s *server) Update(ctx context.Context, entity Entity) {
-	ctx = withStack(ctx, string(debug.Stack()))
 	s.eventCh <- s.eventFactory.NewEvent(ctx, EventTypeUpdate, map[string]Entity{entity.GetId(): entity})
 }
 
 // Delete sends EventTypeDelete event for entity to all server recipients
 func (s *server) Delete(ctx context.Context, entity Entity) {
-	ctx = withStack(ctx, string(debug.Stack()))
 	s.eventCh <- s.eventFactory.NewEvent(ctx, EventTypeDelete, map[string]Entity{entity.GetId(): entity})
 }
 
@@ -157,9 +132,6 @@ func (s *server) sendTrace(event Event, operation string) {
 		span.LogFields(log.Object("msg", msg))
 		if err != nil {
 			span.LogFields(log.Error(err))
-		}
-		if s := stack(event.Context()); s != "" {
-			span.LogFields(log.String("stack", s))
 		}
 		span.Finish()
 	}

@@ -19,9 +19,9 @@ import (
 	"sync"
 	"time"
 
-	nsm2 "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 
-	"github.com/opentracing/opentracing-go"
+	unified_nsm "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
 
 	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/local"
@@ -56,7 +56,7 @@ type networkServiceManager struct {
 	serviceRegistry  serviceregistry.ServiceRegistry
 	pluginRegistry   plugins.PluginRegistry
 	model            model.Model
-	properties       *nsm2.Properties
+	properties       *unified_nsm.Properties
 	stateRestored    chan bool
 	renamedEndpoints map[string]string
 	nseManager       nsm.NetworkServiceEndpointManager
@@ -97,13 +97,13 @@ func (srv *networkServiceManager) Model() model.Model {
 	return srv.model
 }
 
-func (srv *networkServiceManager) GetHealProperties() *nsm2.Properties {
+func (srv *networkServiceManager) GetHealProperties() *unified_nsm.Properties {
 	return srv.properties
 }
 
 // NewNetworkServiceManager creates an instance of NetworkServiceManager
 func NewNetworkServiceManager(model model.Model, serviceRegistry serviceregistry.ServiceRegistry, pluginRegistry plugins.PluginRegistry) nsm.NetworkServiceManager {
-	properties := nsm2.NewNsmProperties()
+	properties := unified_nsm.NewNsmProperties()
 	nseManager := &nseManager{
 		serviceRegistry: serviceRegistry,
 		model:           model,
@@ -157,177 +157,189 @@ func (srv *networkServiceManager) WaitForDataplane(ctx context.Context, timeout 
 	case <-srv.stateRestored:
 		return nil
 	case <-time.After(timeout):
-		return fmt.Errorf("Failed to wait for NSMD stare restore... timeout %v happened", timeout)
+		return fmt.Errorf("failed to wait for NSMD stare restore... timeout %v happened", timeout)
 	}
 }
 
 func (srv *networkServiceManager) RestoreConnections(xcons []*crossconnect.CrossConnect, dataplane string, manager nsm.MonitorManager) {
 	ctx := context.Background()
-	var span opentracing.Span
-	if opentracing.IsGlobalTracerRegistered() {
-		span = opentracing.StartSpan("NSMgr.RestoreConnections")
-		ctx = opentracing.ContextWithSpan(ctx, span)
-		defer span.Finish()
-	}
-
+	span := common.SpanHelperFromContext(ctx, "Nsmgr.RestoreConnections")
+	logger := span.Logger()
 	for _, xcon := range xcons {
-
-		// Model should increase its id counter to max of xcons restored from dataplane
-		srv.model.CorrectIDGenerator(xcon.GetId())
-
-		existing := srv.model.GetClientConnection(xcon.GetId())
-		if existing == nil {
-			logrus.Infof("Restoring state of active connection %v", xcon)
-
-			endpointName := ""
-			networkServiceName := ""
-			var endpoint *registry.NSERegistration
-			connectionState := model.ClientConnectionReady
-
-			dp := srv.model.GetDataplane(dataplane)
-
-			discovery, err := srv.serviceRegistry.DiscoveryClient()
-			if err != nil {
-				logrus.Errorf("Failed to find NSE to recovery: %v", err)
-			}
-
-			if src := xcon.GetSourceConnection(); src.IsRemote() {
-				// Since source is remote, connection need to be healed.
-				connectionState = model.ClientConnectionBroken
-
-				networkServiceName = src.GetNetworkService()
-				endpointName = src.GetNetworkServiceEndpointName()
-			} else if dst := xcon.GetDestinationConnection(); !dst.IsRemote() {
-				// Local NSE, connection is Ready
-				connectionState = model.ClientConnectionReady
-
-				networkServiceName = dst.GetNetworkService()
-				endpointName = dst.GetConnectionMechanism().GetParameters()[local_connection.WorkspaceNSEName]
-			} else {
-				// NSE is remote one, and source is local one, we are ready.
-				connectionState = model.ClientConnectionReady
-
-				networkServiceName = xcon.GetRemoteDestination().GetNetworkService()
-				endpointName = xcon.GetRemoteDestination().GetNetworkServiceEndpointName()
-
-				// In case VxLan is used we need to correct vlanId id generator.
-				m := dst.GetConnectionMechanism().(*remote_connection.Mechanism)
-				if m.Type == remote_connection.MechanismType_VXLAN {
-					srcIp, err := m.SrcIP()
-					dstIp, err2 := m.DstIP()
-					vni, err3 := m.VNI()
-					if err != nil || err2 != nil || err3 != nil {
-						logrus.Errorf("Error retrieving SRC/DST IP or VNI from Remote connection %v %v", err, err2)
-					} else {
-						srv.serviceRegistry.VniAllocator().Restore(srcIp, dstIp, vni)
-					}
-				}
-			}
-
-			endpointRenamed := false
-			if endpointName != "" {
-				logrus.Infof("Discovering endpoint at registry Network service: %s endpoint: %s ", networkServiceName, endpointName)
-
-				localEndpoint := srv.model.GetEndpoint(endpointName)
-				if localEndpoint != nil {
-					logrus.Infof("Local endpoint selected: %v", localEndpoint)
-					endpoint = localEndpoint.Endpoint
-				} else {
-					endpoints, err := discovery.FindNetworkService(context.Background(), &registry.FindNetworkServiceRequest{
-						NetworkServiceName: networkServiceName,
-					})
-					if err != nil {
-						logrus.Errorf("Failed to find NSE to recovery: %v", err)
-					}
-					for _, ep := range endpoints.NetworkServiceEndpoints {
-						if xcon.GetRemoteDestination() != nil && ep.GetName() == xcon.GetRemoteDestination().GetNetworkServiceEndpointName() {
-							endpoint = &registry.NSERegistration{
-								NetworkServiceManager:  endpoints.NetworkServiceManagers[ep.NetworkServiceManagerName],
-								NetworkServiceEndpoint: ep,
-								NetworkService:         endpoints.NetworkService,
-							}
-							break
-						}
-					}
-				}
-				if endpoint == nil {
-					// Check if endpoint was renamed
-					if newEndpointName, ok := srv.renamedEndpoints[endpointName]; ok {
-						logrus.Infof("Endpoint was renamed %v => %v", endpointName, newEndpointName)
-						localEndpoint = srv.model.GetEndpoint(newEndpointName)
-						if localEndpoint != nil {
-							endpoint = localEndpoint.Endpoint
-							endpointRenamed = true
-						}
-					} else {
-						logrus.Errorf("Failed to find Endpoint %s", endpointName)
-					}
-				} else {
-					logrus.Infof("Endpoint found: %v", endpoint)
-				}
-			}
-
-			var request networkservice.Request
-			workspaceName := ""
-			if src := xcon.GetSourceConnection(); !src.IsRemote() {
-				// Update request to match source connection
-				request = local_networkservice.NewRequest(
-					src,
-					[]connection.Mechanism{src.GetConnectionMechanism()},
-				)
-				workspaceName = src.GetConnectionMechanism().GetParameters()[local_connection.Workspace]
-			}
-
-			clientConnection := &model.ClientConnection{
-				ConnectionID:            xcon.GetId(),
-				Request:                 request,
-				Xcon:                    xcon,
-				Endpoint:                endpoint, // We do not have endpoint here.
-				DataplaneRegisteredName: dp.RegisteredName,
-				ConnectionState:         connectionState,
-				DataplaneState:          model.DataplaneStateReady, // It is configured already.
-				Monitor:                 manager.LocalConnectionMonitor(workspaceName),
-			}
-
-			srv.model.AddClientConnection(ctx, clientConnection)
-
-			// Add healing timer, for connection to be healed from source side.
-			if src := xcon.GetSourceConnection(); src.IsRemote() {
-				if endpoint != nil {
-					if endpointRenamed {
-						// close current connection and wait for a new one
-						err := srv.CloseConnection(ctx, clientConnection)
-						if err != nil {
-							logrus.Errorf("Failed to close local NSE connection %v", err)
-						}
-					}
-					srv.RemoteConnectionLost(ctx, clientConnection)
-				} else {
-					srv.closeLocalMissingNSE(ctx, clientConnection)
-				}
-			} else {
-				if dst := xcon.GetRemoteDestination(); dst != nil {
-					srv.Heal(ctx, clientConnection, nsm.HealStateDstNmgrDown)
-				} else {
-					// In this case if there is no NSE, we just need to close.
-					if endpoint != nil {
-						srv.Heal(ctx, clientConnection, nsm.HealStateDstNmgrDown)
-					} else {
-						srv.closeLocalMissingNSE(ctx, clientConnection)
-					}
-				}
-
-				if src.GetConnectionState() == connection.StateDown {
-					// if source is down, we need to close connection properly.
-					_ = srv.CloseConnection(ctx, clientConnection)
-				}
-			}
-			logrus.Infof("Active connection state %v is Restored", xcon)
-		}
+		srv.restoreXconnection(ctx, xcon, logger, dataplane, manager)
 	}
-	logrus.Infof("All connections are recovered...")
+	logger.Infof("All connections are recovered...")
 	// Notify state is restored
 	srv.stateRestored <- true
+}
+
+func (srv *networkServiceManager) restoreXconnection(ctx context.Context, xcon *crossconnect.CrossConnect, logger logrus.FieldLogger, dataplane string, manager nsm.MonitorManager) {
+	// Model should increase its id counter to max of xcons restored from dataplane
+	srv.model.CorrectIDGenerator(xcon.GetId())
+
+	existing := srv.model.GetClientConnection(xcon.GetId())
+	if existing == nil {
+		logger.Infof("Restoring state of active connection %v", xcon)
+
+		endpointName := ""
+		networkServiceName := ""
+		var endpoint *registry.NSERegistration
+		var connectionState model.ClientConnectionState
+
+		dp := srv.model.GetDataplane(dataplane)
+		discovery, err := srv.serviceRegistry.DiscoveryClient()
+		if err != nil {
+			logger.Errorf("Failed to find NSE to recovery: %v", err)
+		}
+
+		connectionState, networkServiceName, endpointName = srv.getConnectionParameters(xcon, logger)
+
+		endpointRenamed := false
+		if endpointName != "" {
+			endpoint = srv.getEndpoint(logger, networkServiceName, endpointName, discovery, xcon)
+
+			if endpoint == nil {
+				// Check if endpoint was renamed
+				if newEndpointName, ok := srv.renamedEndpoints[endpointName]; ok {
+					logger.Infof("Endpoint was renamed %v => %v", endpointName, newEndpointName)
+					localEndpoint := srv.model.GetEndpoint(newEndpointName)
+					if localEndpoint != nil {
+						endpoint = localEndpoint.Endpoint
+						endpointRenamed = true
+					}
+				} else {
+					logger.Errorf("Failed to find Endpoint %s", endpointName)
+				}
+			} else {
+				logger.Infof("Endpoint found: %v", endpoint)
+			}
+		}
+
+		var request networkservice.Request
+		workspaceName := ""
+		if src := xcon.GetSourceConnection(); !src.IsRemote() {
+			// Update request to match source connection
+			request = local_networkservice.NewRequest(
+				src,
+				[]connection.Mechanism{src.GetConnectionMechanism()},
+			)
+			workspaceName = src.GetConnectionMechanism().GetParameters()[local_connection.Workspace]
+		}
+
+		clientConnection := srv.createConnection(xcon, request, endpoint, dp, connectionState, manager, workspaceName)
+		srv.model.AddClientConnection(ctx, clientConnection)
+
+		srv.performHeal(ctx, xcon, endpoint, endpointRenamed, clientConnection, logger)
+		logger.Infof("Active connection state %v is Restored", xcon)
+	}
+}
+
+func (srv *networkServiceManager) performHeal(ctx context.Context, xcon *crossconnect.CrossConnect, endpoint *registry.NSERegistration, endpointRenamed bool, clientConnection nsm.ClientConnection, logger logrus.FieldLogger) {
+	// Add healing timer, for connection to be healed from source side.
+	if src := xcon.GetSourceConnection(); src.IsRemote() {
+		if endpoint != nil {
+			if endpointRenamed {
+				// close current connection and wait for a new one
+				err := srv.CloseConnection(ctx, clientConnection)
+				if err != nil {
+					logger.Errorf("Failed to close local NSE connection %v", err)
+				}
+			}
+			srv.RemoteConnectionLost(ctx, clientConnection)
+		} else {
+			srv.closeLocalMissingNSE(ctx, clientConnection)
+		}
+	} else {
+		if dst := xcon.GetRemoteDestination(); dst != nil {
+			srv.Heal(ctx, clientConnection, nsm.HealStateDstNmgrDown)
+		} else {
+			// In this case if there is no NSE, we just need to close.
+			if endpoint != nil {
+				srv.Heal(ctx, clientConnection, nsm.HealStateDstNmgrDown)
+			} else {
+				srv.closeLocalMissingNSE(ctx, clientConnection)
+			}
+		}
+
+		if src.GetConnectionState() == connection.StateDown {
+			// if source is down, we need to close connection properly.
+			_ = srv.CloseConnection(ctx, clientConnection)
+		}
+	}
+}
+
+func (srv *networkServiceManager) createConnection(xcon *crossconnect.CrossConnect, request networkservice.Request, endpoint *registry.NSERegistration, dp *model.Dataplane, state model.ClientConnectionState, manager nsm.MonitorManager, workspaceName string) *model.ClientConnection {
+	return &model.ClientConnection{
+		ConnectionID:            xcon.GetId(),
+		Request:                 request,
+		Xcon:                    xcon,
+		Endpoint:                endpoint, // We do not have endpoint here.
+		DataplaneRegisteredName: dp.RegisteredName,
+		ConnectionState:         state,
+		DataplaneState:          model.DataplaneStateReady, // It is configured already.
+		Monitor:                 manager.LocalConnectionMonitor(workspaceName),
+	}
+}
+
+func (srv *networkServiceManager) getEndpoint(logger logrus.FieldLogger, networkServiceName, endpointName string, discovery registry.NetworkServiceDiscoveryClient, xcon *crossconnect.CrossConnect) (endpoint *registry.NSERegistration) {
+	logger.Infof("Discovering endpoint at registry Network service: %s endpoint: %s ", networkServiceName, endpointName)
+
+	localEndpoint := srv.model.GetEndpoint(endpointName)
+	if localEndpoint != nil {
+		logger.Infof("Local endpoint selected: %v", localEndpoint)
+		endpoint = localEndpoint.Endpoint
+	} else {
+		endpoints, err := discovery.FindNetworkService(context.Background(), &registry.FindNetworkServiceRequest{
+			NetworkServiceName: networkServiceName,
+		})
+		if err != nil {
+			logger.Errorf("Failed to find NSE to recovery: %v", err)
+		}
+		for _, ep := range endpoints.NetworkServiceEndpoints {
+			if xcon.GetRemoteDestination() != nil && ep.GetName() == xcon.GetRemoteDestination().GetNetworkServiceEndpointName() {
+				endpoint = &registry.NSERegistration{
+					NetworkServiceManager:  endpoints.NetworkServiceManagers[ep.NetworkServiceManagerName],
+					NetworkServiceEndpoint: ep,
+					NetworkService:         endpoints.NetworkService,
+				}
+				break
+			}
+		}
+	}
+	return endpoint
+}
+
+func (srv *networkServiceManager) getConnectionParameters(xcon *crossconnect.CrossConnect, logger logrus.FieldLogger) (connectionState model.ClientConnectionState, networkServiceName, endpointName string) {
+	connectionState = model.ClientConnectionReady
+	if src := xcon.GetSourceConnection(); src.IsRemote() {
+		// Since source is remote, connection need to be healed.
+		connectionState = model.ClientConnectionBroken
+
+		networkServiceName = src.GetNetworkService()
+		endpointName = src.GetNetworkServiceEndpointName()
+	} else if dst := xcon.GetDestinationConnection(); !dst.IsRemote() {
+		// Local NSE, connection is Ready
+		networkServiceName = dst.GetNetworkService()
+		endpointName = dst.GetConnectionMechanism().GetParameters()[local_connection.WorkspaceNSEName]
+	} else {
+		// NSE is remote one, and source is local one, we are ready.
+		networkServiceName = xcon.GetRemoteDestination().GetNetworkService()
+		endpointName = xcon.GetRemoteDestination().GetNetworkServiceEndpointName()
+
+		// In case VxLan is used we need to correct vlanId id generator.
+		m := dst.GetConnectionMechanism().(*remote_connection.Mechanism)
+		if m.Type == remote_connection.MechanismType_VXLAN {
+			srcIP, err := m.SrcIP()
+			dstIP, err2 := m.DstIP()
+			vni, err3 := m.VNI()
+			if err != nil || err2 != nil || err3 != nil {
+				logger.Errorf("Error retrieving SRC/DST IP or VNI from Remote connection %v %v", err, err2)
+			} else {
+				srv.serviceRegistry.VniAllocator().Restore(srcIP, dstIP, vni)
+			}
+		}
+	}
+	return connectionState, networkServiceName, endpointName
 }
 
 func (srv *networkServiceManager) closeLocalMissingNSE(ctx context.Context, cc nsm.ClientConnection) {

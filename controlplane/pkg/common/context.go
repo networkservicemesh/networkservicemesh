@@ -11,6 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 package common
 
 import (
@@ -33,18 +34,16 @@ import (
 type ContextKeyType string
 
 const (
-	clientConnectionKey    ContextKeyType = "ClientConnection"
-	modelConnectionKey     ContextKeyType = "ModelConnection"
-	monitorServerKey       ContextKeyType = "MonitorServer"
-	remoteMonitorServerKey ContextKeyType = "RemoteMonitorServer"
-	logKey                 ContextKeyType = "Log"
-	dataplaneKey           ContextKeyType = "Dataplane"
-	endpointKey            ContextKeyType = "Endpoint"
-	endpointConnectionKey  ContextKeyType = "EndpointConnection"
-	originalSpan           ContextKeyType = "OriginalSpan"
-	ignoredEndpoints       ContextKeyType = "IgnoredEndpoints"
-	workspaceName          ContextKeyType = "WorkspaceName"
-	stackName              ContextKeyType = "Stack"
+	clientConnectionKey   ContextKeyType = "ClientConnection"
+	modelConnectionKey    ContextKeyType = "ModelConnection"
+	monitorServerKey      ContextKeyType = "MonitorServer"
+	logKey                ContextKeyType = "Log"
+	dataplaneKey          ContextKeyType = "Dataplane"
+	endpointKey           ContextKeyType = "Endpoint"
+	endpointConnectionKey ContextKeyType = "EndpointConnection"
+	originalSpan          ContextKeyType = "OriginalSpan"
+	ignoredEndpoints      ContextKeyType = "IgnoredEndpoints"
+	workspaceName         ContextKeyType = "WorkspaceName"
 )
 
 // WithClientConnection -
