@@ -33,7 +33,7 @@ func main() {
 	logrus.Infof("Version: %v", version)
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
-	nsminit.NewNSMClientApp().Run()
+	nsminit.NewNSMClientApp(common.FromEnv()).Run()
 	app := nsmmonitor.NewNSMMonitorApp(common.FromEnv())
 	app.SetHandler(nsmmonitor.NewNsmDNSMonitorHandler())
 	app.Run()
