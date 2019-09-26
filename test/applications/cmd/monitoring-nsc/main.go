@@ -57,7 +57,7 @@ func main() {
 	if err != nil {
 		logrus.Fatalf(nscLogWithParamFormat, "Failed to connect", err)
 	}
-	monitor := nsmmonitor.NewNSMMonitorApp()
+	monitor := nsmmonitor.NewNSMMonitorApp(configuration)
 	monitor.Run()
 	<-c
 }
