@@ -63,13 +63,7 @@ func testFloatingInterdomainDie(t *testing.T, clustersCount int, killPod string)
 
 	for i := 0; i < clustersCount; i++ {
 		k8s := k8ss[i].K8s
-		nseNoHealPodConfig.Namespace = k8s.GetK8sNamespace()
-		nseNoHealPodConfig.DataplaneVariables = kubetest.DefaultDataplaneVariables(k8s.GetForwardingPlane())
-
-		nodesSetup, err := kubetest.SetupNodesConfig(k8s, 1, defaultTimeout, []*pods.NSMgrPodConfig{
-			nseNoHealPodConfig,
-			nseNoHealPodConfig,
-		}, k8s.GetK8sNamespace())
+		nodesSetup, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
 		g.Expect(err).To(BeNil())
 
 		k8ss[i].NodesSetup = nodesSetup
