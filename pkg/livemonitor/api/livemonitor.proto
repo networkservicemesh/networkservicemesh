@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package api;
+
+import "ptypes/empty/empty.proto";
+
+service LivenessMonitor {
+  rpc MonitorLiveness(google.protobuf.Empty)
+      returns (stream google.protobuf.Empty);
+}
