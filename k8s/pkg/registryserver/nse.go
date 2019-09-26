@@ -159,7 +159,7 @@ func (rs *nseRegistryService) forwardRegisterNSE(ctx context.Context, request *r
 		request.NetworkService.Matches = append(request.NetworkService.Matches, match)
 	}
 
-	logrus.Info("Forwarding Register NSE request (%v)", request)
+	logrus.Infof("Forwarding Register NSE request (%v)", request)
 	_, err = nseRegistryClient.RegisterNSE(ctx, request)
 	if err != nil {
 		return err
@@ -182,7 +182,7 @@ func (rs *nseRegistryService) forwardRemoveNSE(ctx context.Context, request *reg
 		return err
 	}
 
-	logrus.Info("Forwarding Remove NSE request (%v)", request)
+	logrus.Infof("Forwarding Remove NSE request (%v)", request)
 	_, err = nseRegistryClient.RemoveNSE(ctx, request)
 	if err != nil {
 		return err

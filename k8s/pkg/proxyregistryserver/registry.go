@@ -16,8 +16,10 @@ import (
 )
 
 const (
+	// NSRegistryForwarderLogPrefix - log prefix
 	NSRegistryForwarderLogPrefix = "Network Service Registry Forwarder"
-	NSMRSAddressEnv              = "NSMRS_ADDRESS"
+	// NSMRSAddressEnv - environment variable - address of Network Service Registry Server to forward NSE registry requests
+	NSMRSAddressEnv = "NSMRS_ADDRESS"
 )
 
 type nseRegistryService struct {

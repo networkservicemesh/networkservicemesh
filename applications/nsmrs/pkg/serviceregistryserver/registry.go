@@ -11,16 +11,24 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 )
 
+// NSERegistryService - service registering Network Service Endpoints
+type NSERegistryService interface {
+	RegisterNSE(ctx context.Context, request *registry.NSERegistration) (*registry.NSERegistration, error)
+	RemoveNSE(ctx context.Context, request *registry.RemoveNSERequest) (*empty.Empty, error)
+}
+
 type nseRegistryService struct {
 	cache NSERegistryCache
 }
 
-func NewNseRegistryService(cache NSERegistryCache) *nseRegistryService {
+// NewNseRegistryService - creates NSE Registry service
+func NewNseRegistryService(cache NSERegistryCache) NSERegistryService {
 	return &nseRegistryService{
 		cache: cache,
 	}
 }
 
+// RegisterNSE - Registers NSE in cache and starts NSMgr monitor
 func (rs *nseRegistryService) RegisterNSE(ctx context.Context, request *registry.NSERegistration) (*registry.NSERegistration, error) {
 	logrus.Infof("Received RegisterNSE(%v)", request)
 
@@ -31,9 +39,12 @@ func (rs *nseRegistryService) RegisterNSE(ctx context.Context, request *registry
 	request.NetworkServiceEndpoint.NetworkServiceManagerName = nsmName
 
 	monitor := NewNSMMonitor(request.NetworkServiceManager, func() {
-		rs.RemoveNSE(ctx, &registry.RemoveNSERequest{
+		_, err := rs.RemoveNSE(ctx, &registry.RemoveNSERequest{
 			NetworkServiceEndpointName: request.NetworkServiceEndpoint.Name,
 		})
+		if err != nil {
+			logrus.Errorf("Error removing Network Service Endpoint (%s) from cache: %v", request.NetworkServiceEndpoint.Name, err)
+		}
 	})
 
 	_, err := rs.cache.AddNetworkServiceEndpoint(&NSECacheEntry{
@@ -46,17 +57,27 @@ func (rs *nseRegistryService) RegisterNSE(ctx context.Context, request *registry
 		return nil, err
 	}
 
-	monitor.StartMonitor()
+	err = monitor.StartMonitor()
+	if err != nil {
+		logrus.Errorf("Error starting NSMgr monitor: %v", err)
+		_, removeErr := rs.RemoveNSE(ctx, &registry.RemoveNSERequest{
+			NetworkServiceEndpointName: request.NetworkServiceEndpoint.Name,
+		})
+		if removeErr != nil {
+			logrus.Errorf("Error removing Network Service Endpoint (%s) from cache: %v", request.NetworkServiceEndpoint.Name, removeErr)
+		}
+	}
 
 	logrus.Infof("Returned from RegisterNSE: request: %v", request)
 	return request, err
 }
 
+// RemoveNSE - Removes NSE from cache and stops NSMgr monitor
 func (rs *nseRegistryService) RemoveNSE(ctx context.Context, request *registry.RemoveNSERequest) (*empty.Empty, error) {
 	logrus.Infof("Received RemoveNSE(%v)", request)
 
 	nse, err := rs.cache.DeleteNetworkServiceEndpoint(request.NetworkServiceEndpointName)
-	nse.monitor.stop()
+	nse.monitor.Stop()
 	if err != nil {
 		logrus.Errorf("cannot remove Network Service Endpoint: %v", err)
 		return &empty.Empty{}, err

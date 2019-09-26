@@ -16,7 +16,9 @@ import (
 )
 
 const (
-	RegistryAPIAddressEnv      = "NSMRS_API_ADDRESS"
+	// RegistryAPIAddressEnv - env with NSMRS API address
+	RegistryAPIAddressEnv = "NSMRS_API_ADDRESS"
+	// RegistryAPIAddressDefaults - default NSMRS API address
 	RegistryAPIAddressDefaults = ":5006"
 )
 
@@ -32,7 +34,12 @@ func main() {
 
 	tracer, closer := tools.InitJaeger("serviceregistryserver")
 	opentracing.SetGlobalTracer(tracer)
-	defer closer.Close()
+	defer func() {
+		if err := closer.Close(); err != nil {
+			logrus.Errorf("Error closing logger: %v", err)
+		}
+
+	}()
 
 	span := opentracing.StartSpan("serviceregistryserver")
 	defer span.Finish()

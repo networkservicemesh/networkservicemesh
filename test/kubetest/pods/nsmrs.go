@@ -5,23 +5,26 @@ import (
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// DefaultNSMD creates default variables for NSMD.
+// DefaultNSMRS creates default variables for NSMRS.
 func DefaultNSMRS() map[string]string {
 	return map[string]string{}
 }
 
 const ()
 
+// NSMRSPodConfig - configuration required for NSMRS Pod creating (environment variables)
 type NSMRSPodConfig struct {
 	Variables map[string]string
 }
 
+// NSMRSPod - create NSMRS pod with default config
 func NSMRSPod(name string, node *v1.Node) *v1.Pod {
 	return NSMRSPodWithConfig(name, node, &NSMgrPodConfig{
 		Variables: DefaultNSMRS(),
 	})
 }
 
+// NSMRSPodWithConfig - create NSMRS pod with custom config
 func NSMRSPodWithConfig(name string, node *v1.Node, config *NSMgrPodConfig) *v1.Pod {
 
 	ht := new(v1.HostPathType)

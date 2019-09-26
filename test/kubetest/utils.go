@@ -249,7 +249,7 @@ func DeployProxyNSMgr(k8s *K8s, node *v1.Node, name string, timeout time.Duratio
 	return deployProxyNSMgr(k8s, template, node, timeout)
 }
 
-// DeployProxyNSMgr - Setup Proxy NSMgr on Cluster
+// DeployProxyNSMgrWithConfig - Setup Proxy NSMgr on Cluster with custom config
 func DeployProxyNSMgrWithConfig(k8s *K8s, node *v1.Node, name string, timeout time.Duration, config *pods.NSMgrPodConfig) (pnsmd *v1.Pod, err error) {
 	template := pods.ProxyNSMgrPodWithConfig(name, node, config)
 	return deployProxyNSMgr(k8s, template, node, timeout)
@@ -285,6 +285,7 @@ func RunProxyNSMgrService(k8s *K8s) func() {
 	}
 }
 
+// DeployNSMRS - Setup NSMRS on Cluster
 func DeployNSMRS(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
 	return deployNSMRS(k8s, nodeName(node), name, timeout,
 		pods.NSMRSPod(name, node),
@@ -297,6 +298,8 @@ func deployNSMRS(k8s *K8s, nodeName, name string, timeout time.Duration, templat
 	logrus.Infof("Starting NSM Service Registry Server on node: %s", nodeName)
 	nsmrs := k8s.CreatePod(template)
 	k8s.g.Expect(nsmrs.Name).To(Equal(name))
+
+	_ = k8s.WaitLogsContainsRegex(nsmrs, "nsmrs", "Service Registry gRPC API Server: .* is operational", timeout)
 
 	logrus.Printf("NSM Service Registry Server %v started done: %v", name, time.Since(startTime))
 	return nsmrs

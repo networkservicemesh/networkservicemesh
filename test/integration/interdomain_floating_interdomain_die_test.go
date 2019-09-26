@@ -74,7 +74,8 @@ func testFloatingInterdomainDie(t *testing.T, clustersCount int, killPod string)
 			Namespace: k8s.GetK8sNamespace(),
 		}
 		proxyNSMgrConfig.Variables[proxyregistryserver.NSMRSAddressEnv] = nsmrsInternalIP
-		kubetest.DeployProxyNSMgrWithConfig(k8s, nodesSetup[0].Node, pnsmdName, defaultTimeout, proxyNSMgrConfig)
+		_, err = kubetest.DeployProxyNSMgrWithConfig(k8s, nodesSetup[0].Node, pnsmdName, defaultTimeout, proxyNSMgrConfig)
+		g.Expect(err).To(BeNil())
 
 		serviceCleanup := kubetest.RunProxyNSMgrService(k8s)
 		defer serviceCleanup()

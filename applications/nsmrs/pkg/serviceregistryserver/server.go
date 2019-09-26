@@ -10,17 +10,25 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 )
 
+// ServiceRegistry - service starting NSE registry server
+type ServiceRegistry interface {
+	NewPublicListener(registryAPIAddress string) (net.Listener, error)
+}
+
 type serviceRegistry struct {
 }
 
+// NewPublicListener - Starts public listener for NSMRS services
 func (*serviceRegistry) NewPublicListener(registryAPIAddress string) (net.Listener, error) {
 	return net.Listen("tcp", registryAPIAddress)
 }
 
-func NewNSMDServiceRegistryServer() *serviceRegistry {
+// NewNSMDServiceRegistryServer - creates new service registry service
+func NewNSMDServiceRegistryServer() ServiceRegistry {
 	return &serviceRegistry{}
 }
 
+// New - creates new grcp server and registers NSE discovery and registry services
 func New() *grpc.Server {
 	tracer := opentracing.GlobalTracer()
 	server := grpc.NewServer(

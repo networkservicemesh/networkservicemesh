@@ -8,23 +8,25 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 )
 
+// NSERegistryCache - cache of registered Network Service Endpoints
 type NSERegistryCache interface {
 	AddNetworkServiceEndpoint(nse *NSECacheEntry) (*NSECacheEntry, error)
 	DeleteNetworkServiceEndpoint(endpointName string) (*NSECacheEntry, error)
 	GetEndpointsByNs(networkServiceName string) []*NSECacheEntry
 }
 
+// NSECacheEntry - entry of NSERegistryCache, contains information about NSE and NSMgr monitor
 type NSECacheEntry struct {
 	nse     *registry.NSERegistration
-	monitor *nsmMonitor
+	monitor NsmMonitor
 }
 
 type nseRegistryCache struct {
 	networkServiceEndpoints map[string][]*NSECacheEntry
 }
 
-//NewNSERegistryCache creates new nerwork service server registry cache
-func NewNSERegistryCache() *nseRegistryCache {
+//NewNSERegistryCache creates new nerwork service endpoints cache
+func NewNSERegistryCache() NSERegistryCache {
 	return &nseRegistryCache{
 		networkServiceEndpoints: make(map[string][]*NSECacheEntry),
 	}

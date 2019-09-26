@@ -1,7 +1,7 @@
 package serviceregistryserver
 
 import (
-	"context"
+	"io"
 
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -12,16 +12,18 @@ import (
 
 type nsmMonitor struct {
 	nsm        *registry.NetworkServiceManager
-	cancel     context.CancelFunc
 	deleteNSM  func()
 	nsmDeleted chan int
 }
 
+// NsmMonitor - NSMgr liveness monitor
 type NsmMonitor interface {
-	StartMonitor()
+	StartMonitor() error
+	Stop()
 }
 
-func NewNSMMonitor(nsm *registry.NetworkServiceManager, deleteNSM func()) *nsmMonitor {
+// NewNSMMonitor - creates NSMgr liveness monitor with delete NSM handler
+func NewNSMMonitor(nsm *registry.NetworkServiceManager, deleteNSM func()) NsmMonitor {
 	nsmDeleted := make(chan int)
 	return &nsmMonitor{
 		nsm:        nsm,
@@ -30,6 +32,7 @@ func NewNSMMonitor(nsm *registry.NetworkServiceManager, deleteNSM func()) *nsmMo
 	}
 }
 
+// StartMonitor - creates NSMgr liveness monitor client connection
 func (m *nsmMonitor) StartMonitor() error {
 	conn, err := grpc.Dial(m.nsm.Url, grpc.WithInsecure())
 	if err != nil {
@@ -38,7 +41,10 @@ func (m *nsmMonitor) StartMonitor() error {
 
 	monitorClient, err := livemonitor.NewClient(conn)
 	if err != nil {
-		conn.Close()
+		closeErr := conn.Close()
+		if closeErr != nil {
+			logrus.Errorf("Error closing monitor connection to NSMgr: %v", closeErr)
+		}
 		return err
 	}
 
@@ -47,8 +53,13 @@ func (m *nsmMonitor) StartMonitor() error {
 	return nil
 }
 
-func (m *nsmMonitor) monitorNSM(conn *grpc.ClientConn, monitorClient livemonitor.Client) {
-	defer conn.Close()
+func (m *nsmMonitor) monitorNSM(conn io.Closer, monitorClient livemonitor.Client) {
+	defer func() {
+		err := conn.Close()
+		if err != nil {
+			logrus.Errorf("Error closing NSMgr connection: %v", err)
+		}
+	}()
 	defer monitorClient.Close()
 
 	logrus.Infof("NSM Monitor started: %v", m.nsm)
@@ -64,6 +75,7 @@ func (m *nsmMonitor) monitorNSM(conn *grpc.ClientConn, monitorClient livemonitor
 	logrus.Infof("NSM Monitor done: %v", m.nsm)
 }
 
-func (m *nsmMonitor) stop() {
+// Stop - Stops NSMgr liveness monitor and close connection
+func (m *nsmMonitor) Stop() {
 	m.nsmDeleted <- 0
 }
