@@ -1,10 +1,11 @@
 package registryserver
 
 import (
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/sirupsen/logrus"

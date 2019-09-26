@@ -1,11 +1,13 @@
 package serviceregistryserver
 
 import (
+	"net"
+
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	"github.com/opentracing/opentracing-go"
 	"google.golang.org/grpc"
-	"net"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 )
 
 type serviceRegistry struct {
@@ -26,7 +28,6 @@ func New() *grpc.Server {
 			otgrpc.OpenTracingServerInterceptor(tracer, otgrpc.LogPayloads())),
 		grpc.StreamInterceptor(
 			otgrpc.OpenTracingStreamServerInterceptor(tracer)))
-
 
 	cache := NewNSERegistryCache()
 	discovery := newDiscoveryService(cache)

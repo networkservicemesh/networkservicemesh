@@ -13,7 +13,7 @@ func DefaultNSMRS() map[string]string {
 const ()
 
 type NSMRSPodConfig struct {
-	Variables           map[string]string
+	Variables map[string]string
 }
 
 func NSMRSPod(name string, node *v1.Node) *v1.Pod {
@@ -40,7 +40,7 @@ func NSMRSPodWithConfig(name string, node *v1.Node, config *NSMgrPodConfig) *v1.
 					Name:            "nsmrs",
 					Image:           "networkservicemesh/nsmrs",
 					ImagePullPolicy: v1.PullIfNotPresent,
-					Resources: createDefaultResources(),
+					Resources:       createDefaultResources(),
 					Ports: []v1.ContainerPort{
 						{
 							HostPort:      80,
@@ -69,4 +69,3 @@ func NSMRSPodWithConfig(name string, node *v1.Node, config *NSMgrPodConfig) *v1.
 
 	return pod
 }
-

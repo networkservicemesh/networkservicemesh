@@ -2,7 +2,9 @@ package serviceregistryserver
 
 import (
 	"fmt"
+
 	"github.com/golang/protobuf/proto"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 )
 
@@ -13,7 +15,7 @@ type NSERegistryCache interface {
 }
 
 type NSECacheEntry struct {
-	nse *registry.NSERegistration
+	nse     *registry.NSERegistration
 	monitor *nsmMonitor
 }
 

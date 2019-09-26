@@ -3,8 +3,10 @@ package serviceregistryserver
 import (
 	"context"
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
+
 	"github.com/sirupsen/logrus"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 )
 
 type discoveryService struct {
@@ -27,12 +29,12 @@ func (d *discoveryService) FindNetworkService(ctx context.Context, request *regi
 
 	response := &registry.FindNetworkServiceResponse{
 		NetworkService: &registry.NetworkService{
-			Name: request.NetworkServiceName,
+			Name:    request.NetworkServiceName,
 			Payload: networkServiceEnpoints[0].nse.NetworkService.Payload,
 			Matches: networkServiceEnpoints[0].nse.NetworkService.Matches,
 		},
 		NetworkServiceManagers: make(map[string]*registry.NetworkServiceManager),
-		Payload: networkServiceEnpoints[0].nse.NetworkService.Payload,
+		Payload:                networkServiceEnpoints[0].nse.NetworkService.Payload,
 	}
 
 	for _, endpoint := range networkServiceEnpoints {

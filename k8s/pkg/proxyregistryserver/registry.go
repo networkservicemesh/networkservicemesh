@@ -2,20 +2,22 @@ package proxyregistryserver
 
 import (
 	"fmt"
-	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/clusterinfo"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
-	"github.com/sirupsen/logrus"
-	"golang.org/x/net/context"
 	"os"
 	"strings"
+
+	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/sirupsen/logrus"
+	"golang.org/x/net/context"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/clusterinfo"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 )
 
 const (
 	NSRegistryForwarderLogPrefix = "Network Service Registry Forwarder"
-	NSMRSAddressEnv = "NSMRS_ADDRESS"
+	NSMRSAddressEnv              = "NSMRS_ADDRESS"
 )
 
 type nseRegistryService struct {

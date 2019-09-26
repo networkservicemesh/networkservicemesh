@@ -3,14 +3,16 @@ package serviceregistryserver
 import (
 	"context"
 	"fmt"
-	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
-	"github.com/sirupsen/logrus"
 	"strings"
+
+	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/sirupsen/logrus"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 )
 
 type nseRegistryService struct {
-	cache   NSERegistryCache
+	cache NSERegistryCache
 }
 
 func NewNseRegistryService(cache NSERegistryCache) *nseRegistryService {
@@ -28,7 +30,7 @@ func (rs *nseRegistryService) RegisterNSE(ctx context.Context, request *registry
 	request.NetworkServiceManager.Name = nsmName
 	request.NetworkServiceEndpoint.NetworkServiceManagerName = nsmName
 
-	monitor := NewNSMMonitor(request.NetworkServiceManager, func(){
+	monitor := NewNSMMonitor(request.NetworkServiceManager, func() {
 		rs.RemoveNSE(ctx, &registry.RemoveNSERequest{
 			NetworkServiceEndpointName: request.NetworkServiceEndpoint.Name,
 		})
@@ -63,4 +65,3 @@ func (rs *nseRegistryService) RemoveNSE(ctx context.Context, request *registry.R
 	logrus.Infof("RemoveNSE done: %v", nse)
 	return &empty.Empty{}, nil
 }
-

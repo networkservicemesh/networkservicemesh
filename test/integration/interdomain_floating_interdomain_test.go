@@ -2,12 +2,14 @@ package nsmd_integration_tests
 
 import (
 	"fmt"
+	"os"
+	"testing"
+
+	. "github.com/onsi/gomega"
+
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/proxyregistryserver"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
-	. "github.com/onsi/gomega"
-	"os"
-	"testing"
 )
 
 func TestFloatingInterdomain(t *testing.T) {
@@ -40,7 +42,7 @@ func testFloatingInterdomain(t *testing.T, clustersCount int) {
 	}
 
 	nsmrsNode := &k8ss[clustersCount-1].K8s.GetNodesWait(2, defaultTimeout)[1]
-	nsmrsPod := kubetest.DeployNSMRS(k8ss[clustersCount - 1].K8s, nsmrsNode, "nsmrs", defaultTimeout)
+	nsmrsPod := kubetest.DeployNSMRS(k8ss[clustersCount-1].K8s, nsmrsNode, "nsmrs", defaultTimeout)
 
 	nsmrsExternalIP, err := kubetest.GetNodeExternalIP(nsmrsNode)
 	if err != nil {
