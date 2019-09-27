@@ -22,12 +22,12 @@ func TestNSMDRestart1(t *testing.T) {
 
 	reply := srv.RequestNSM("nsm-1")
 
-	configuration := &common.NSConfiguration{
+	configuration := (&common.NSConfiguration{
 		Workspace:        reply.Workspace,
 		NsmServerSocket:  reply.ClientBaseDir + reply.Workspace + "/" + reply.NsmServerSocket,
 		NsmClientSocket:  reply.ClientBaseDir + reply.Workspace + "/" + reply.NsmClientSocket,
 		AdvertiseNseName: "test_nse",
-	}
+	}).FromEnv()
 
 	composite := endpoint.NewCompositeEndpoint(
 		endpoint.NewMonitorEndpoint(configuration),

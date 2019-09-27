@@ -174,7 +174,6 @@ func NewNSMEndpoint(ctx context.Context, configuration *common.NSConfiguration, 
 	if configuration == nil {
 		configuration = &common.NSConfiguration{}
 	}
-	configuration.CompleteNSConfiguration()
 
 	if service == nil {
 		return nil, fmt.Errorf("NewNSMEndpoint must be provided a non-nil service *networkservice.NewNetworkServiceServer argument")

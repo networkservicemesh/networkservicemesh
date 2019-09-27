@@ -119,7 +119,6 @@ func NewClientEndpoint(configuration *common.NSConfiguration) *ClientEndpoint {
 	if configuration == nil {
 		configuration = &common.NSConfiguration{}
 	}
-	configuration.CompleteNSConfiguration()
 
 	self := &ClientEndpoint{
 		ioConnMap:     map[string]*connection.Connection{},

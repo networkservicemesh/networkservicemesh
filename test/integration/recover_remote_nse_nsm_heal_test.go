@@ -138,6 +138,7 @@ func TestNSMHealRemoteDieNSMDFakeEndpoint(t *testing.T) {
 	defer k8s.Cleanup()
 
 	g.Expect(err).To(BeNil())
+	defer kubetest.MakeLogsSnapshot(k8s, t)
 
 	// Deploy open tracing to see what happening.
 	nodesSetup, err := kubetest.SetupNodes(k8s, 2, defaultTimeout)

@@ -20,12 +20,15 @@ import (
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 
+	"github.com/networkservicemesh/networkservicemesh/sdk/common"
+
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 
 	"github.com/networkservicemesh/networkservicemesh/sdk/client"
 )
 
 type nsmClientApp struct {
+	configuration *common.NSConfiguration
 }
 
 func (c *nsmClientApp) Run() {
@@ -37,7 +40,7 @@ func (c *nsmClientApp) Run() {
 	span, ctx := opentracing.StartSpanFromContext(context.Background(), "RequestNetworkService")
 	defer span.Finish()
 
-	clientList, err := client.NewNSMClientList(ctx, nil)
+	clientList, err := client.NewNSMClientList(ctx, c.configuration)
 	if err != nil {
 		logrus.Errorf("nsm client: Unable to create the NSM client %v", err)
 		return
@@ -52,6 +55,8 @@ func (c *nsmClientApp) Run() {
 }
 
 // NewNSMClientApp - creates a client application.
-func NewNSMClientApp() NSMApp {
-	return &nsmClientApp{}
+func NewNSMClientApp(configration *common.NSConfiguration) NSMApp {
+	return &nsmClientApp{
+		configuration: configration,
+	}
 }

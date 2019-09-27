@@ -179,7 +179,6 @@ func NewNSMClient(ctx context.Context, configuration *common.NSConfiguration) (*
 	if configuration == nil {
 		configuration = &common.NSConfiguration{}
 	}
-	configuration.CompleteNSConfiguration()
 
 	client := &NsmClient{
 		OutgoingNscName:   configuration.OutgoingNscName,
