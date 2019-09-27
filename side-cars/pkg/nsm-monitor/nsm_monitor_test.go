@@ -52,7 +52,7 @@ func TestNSMMonitorInit(t *testing.T) {
 
 	srv.TestModel.AddEndpoint(srv.RegisterFakeEndpoint("golden_network", "test", tests.Master))
 
-	monitorApp := NewNSMMonitorApp()
+	monitorApp := NewNSMMonitorApp(common.FromEnv())
 
 	response := srv.RequestNSM("nsm")
 	// Now we could try to connect via Client API

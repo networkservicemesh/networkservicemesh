@@ -30,7 +30,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
 )
 
@@ -114,13 +113,7 @@ func (a *ACL) Name() string {
 }
 
 // NewACL creates an ACL
-func NewACL(configuration *common.NSConfiguration, rules map[string]string) *ACL {
-	// ensure the env variables are processed
-	if configuration == nil {
-		configuration = &common.NSConfiguration{}
-	}
-	configuration.CompleteNSConfiguration()
-
+func NewACL(rules map[string]string) *ACL {
 	return &ACL{
 		Rules: rules,
 	}
