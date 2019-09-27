@@ -44,7 +44,7 @@ func TestSimpleMetrics(t *testing.T) {
 	kubetest.DeployICMP(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
 	defer kubetest.MakeLogsSnapshot(k8s, t)
 
-	eventCh, closeFunc := kubetest.XconProxyMonitor(k8s, nodes[0], "0")
+	eventCh, closeFunc := kubetest.CrossConnectClientAt(k8s, nodes[0].Nsmd)
 	defer closeFunc()
 
 	metricsCh := metricsFromEventCh(eventCh)

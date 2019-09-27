@@ -47,6 +47,7 @@ jobs:
             export CONTAINER_TAG="${COMMIT}"
             export CONTAINER_REPO="networkservicemeshci"
             export CONTAINER_FORCE_PULL="true"
+            export INSECURE="true"
             ./scripts/run_unit_tests.sh
       - store_test_results:
           path: ~/junit
@@ -294,6 +295,11 @@ workflows:
       - build-container:
           name: "build-kernel-forwarding-plane"
           container: "kernel-forwarder"
+          requires:
+            - test-sanity-check
+      - build-container:
+          name: "build-spire-registration"
+          container: "spire-registration"
           requires:
             - test-sanity-check
       - build-container-success:

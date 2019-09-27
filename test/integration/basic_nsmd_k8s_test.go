@@ -335,7 +335,7 @@ func createSingleNsmgr(k8s *kubetest.K8s, name string) *v1.Pod {
 	nsmgr := k8s.CreatePod(pods.NSMgrPod(name, nil, k8s.GetK8sNamespace()))
 
 	// We need to wait until it is started
-	k8s.WaitLogsContains(nsmgr, "nsmd-k8s", "nsmd-k8s initialized and waiting for connection", fastTimeout)
+	k8s.WaitLogsContains(nsmgr, "nsmd-k8s", "nsmd-k8s initialized and waiting for connection", defaultTimeout)
 	// To be sure NSMD is already called for register.
 	k8s.WaitLogsContains(nsmgr, "nsmd", "Waiting for dataplane available...", defaultTimeout)
 

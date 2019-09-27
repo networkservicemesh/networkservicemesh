@@ -19,13 +19,14 @@ import (
 	"os"
 	"sync"
 
+	"github.com/networkservicemesh/networkservicemesh/sdk/common"
+
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/client"
-	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 )
 
 const (

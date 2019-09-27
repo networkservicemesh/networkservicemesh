@@ -38,6 +38,7 @@ func TestNSCDiesMultiNode(t *testing.T) {
 	}
 	testDie(t, true, 2)
 }
+
 func TestNSEDiesMultiNode(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")

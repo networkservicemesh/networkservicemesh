@@ -2,6 +2,8 @@ module github.com/networkservicemesh/networkservicemesh
 
 replace (
 	// ./scripts/switch_k8s_version.sh to change k8s version
+	git.apache.org/thrift.git => github.com/apache/thrift v0.0.0-20180902110319-2566ecd5d999
+	github.com/census-instrumentation/opencensus-proto v0.1.0-0.20181214143942-ba49f56771b8 => github.com/census-instrumentation/opencensus-proto v0.0.3-0.20181214143942-ba49f56771b8
 	gonum.org/v1/gonum => github.com/gonum/gonum v0.0.0-20190331200053-3d26580ed485
 	gonum.org/v1/netlib => github.com/gonum/netlib v0.0.0-20190331212654-76723241ea4e
 	k8s.io/api => k8s.io/api v0.0.0-20190819141258-3544db3b9e44

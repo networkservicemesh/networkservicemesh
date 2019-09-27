@@ -1,0 +1,12 @@
+---
+# Default values for spire.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+registry: docker.io
+org: networkservicemesh
+tag: master
+pullPolicy: IfNotPresent
+
+# workaround since Azure doesn't support by default 10250 security port for kubelet
+azure: false

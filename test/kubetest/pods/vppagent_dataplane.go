@@ -33,8 +33,9 @@ func createVPPDataplanePod(name string, node *v1.Node, liveness, readiness *v1.P
 			Kind: "Deployment",
 		},
 		Spec: v1.PodSpec{
-			HostPID:     true,
-			HostNetwork: true,
+			ServiceAccountName: ForwardPlaneServiceAccount,
+			HostPID:            true,
+			HostNetwork:        true,
 			Volumes: []v1.Volume{
 				{
 					Name: "workspace",
@@ -54,6 +55,7 @@ func createVPPDataplanePod(name string, node *v1.Node, liveness, readiness *v1.P
 						},
 					},
 				},
+				spireVolume(),
 			},
 			Containers: []v1.Container{
 				containerMod(&v1.Container{
@@ -71,6 +73,7 @@ func createVPPDataplanePod(name string, node *v1.Node, liveness, readiness *v1.P
 							MountPath:        "/var/tmp/nsm-postmortem/",
 							MountPropagation: &mode,
 						},
+						spireVolumeMount(),
 					},
 					Env: []v1.EnvVar{
 						{
@@ -97,6 +100,9 @@ func createVPPDataplanePod(name string, node *v1.Node, liveness, readiness *v1.P
 			TerminationGracePeriodSeconds: &ZeroGraceTimeout,
 		},
 	}
+
+	variables = setInsecureEnvIfExist(variables)
+
 	if len(variables) > 0 {
 		for k, v := range variables {
 			pod.Spec.Containers[0].Env = append(pod.Spec.Containers[0].Env, v1.EnvVar{

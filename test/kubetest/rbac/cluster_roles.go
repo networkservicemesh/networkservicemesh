@@ -214,7 +214,7 @@ func CreateRoleBinding(name, namespace string) Role {
 				{
 					Kind:      "ServiceAccount",
 					APIGroup:  "",
-					Name:      "default",
+					Name:      "nsmgr-acc",
 					Namespace: namespace,
 				},
 			},

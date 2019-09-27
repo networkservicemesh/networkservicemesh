@@ -7,7 +7,7 @@ import (
 )
 
 // VppTestCommonPod creates a new vpp-based testing pod
-func VppTestCommonPod(app, name, container string, node *v1.Node, env map[string]string) *v1.Pod {
+func VppTestCommonPod(app, name, container string, node *v1.Node, env map[string]string, sa string) *v1.Pod {
 	envVars := []v1.EnvVar{{Name: "TEST_APPLICATION", Value: app}}
 	for k, v := range env {
 		envVars = append(envVars,
@@ -25,6 +25,7 @@ func VppTestCommonPod(app, name, container string, node *v1.Node, env map[string
 			Kind: "Deployment",
 		},
 		Spec: v1.PodSpec{
+			ServiceAccountName: sa,
 			Containers: []v1.Container{
 				containerMod(&v1.Container{
 					Name:            container,
