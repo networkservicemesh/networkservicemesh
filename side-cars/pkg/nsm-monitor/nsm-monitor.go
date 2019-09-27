@@ -49,8 +49,6 @@ type Handler interface {
 	Healing(conn *connection.Connection)
 	//Closed occurs when the connection closed
 	Closed(conn *connection.Connection)
-	//GetConfiguration gets custom network service configuration
-	GetConfiguration() *common.NSConfiguration
 	//ProcessHealing occurs when the restore failed, the error pass as the second parameter
 	ProcessHealing(newConn *connection.Connection, e error)
 	//Stopped occurs when the invoked App.Stop()
@@ -79,9 +77,6 @@ func (h *EmptyNSMMonitorHandler) Healing(conn *connection.Connection) {}
 
 //Closed occurs when the connection closed
 func (h *EmptyNSMMonitorHandler) Closed(conn *connection.Connection) {}
-
-//GetConfiguration returns nil by default
-func (h *EmptyNSMMonitorHandler) GetConfiguration() *common.NSConfiguration { return nil }
 
 //ProcessHealing occurs when the restore failed, the error pass as the second parameter
 func (h *EmptyNSMMonitorHandler) ProcessHealing(newConn *connection.Connection, e error) {}

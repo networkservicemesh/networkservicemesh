@@ -5,13 +5,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/sdk/common"
+
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsmdapi"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/tests"
-	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 )
 
 type nsmHelper struct {
@@ -34,14 +35,6 @@ func (h *nsmHelper) Healing(conn *connection.Connection) {
 	h.healing <- true
 }
 
-func (h *nsmHelper) GetConfiguration() *common.NSConfiguration {
-	return &common.NSConfiguration{
-		NsmClientSocket: h.response.HostBasedir + "/" + h.response.Workspace + "/" + h.response.NsmClientSocket,
-		NsmServerSocket: h.response.HostBasedir + "/" + h.response.Workspace + "/" + h.response.NsmServerSocket,
-		Workspace:       h.response.HostBasedir + "/" + h.response.Workspace,
-	}
-}
-
 func TestNSMMonitorInit(t *testing.T) {
 	g := NewWithT(t)
 
@@ -50,11 +43,16 @@ func TestNSMMonitorInit(t *testing.T) {
 	defer srv.Stop()
 	srv.AddFakeDataplane("test_data_plane", "tcp:some_addr")
 
-	srv.TestModel.AddEndpoint(srv.RegisterFakeEndpoint("golden_network", "test", tests.Master))
-
-	monitorApp := NewNSMMonitorApp(common.FromEnv())
+	srv.TestModel.AddEndpoint(context.Background(), srv.RegisterFakeEndpoint("golden_network", "test", tests.Master))
 
 	response := srv.RequestNSM("nsm")
+
+	monitorApp := NewNSMMonitorApp(&common.NSConfiguration{
+		NsmClientSocket: response.HostBasedir + "/" + response.Workspace + "/" + response.NsmClientSocket,
+		NsmServerSocket: response.HostBasedir + "/" + response.Workspace + "/" + response.NsmServerSocket,
+		Workspace:       response.HostBasedir + "/" + response.Workspace,
+	})
+
 	// Now we could try to connect via Client API
 	nsmClient, conn := srv.CreateNSClient(response)
 	defer func() {
