@@ -20,6 +20,8 @@ import (
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 
+	"github.com/networkservicemesh/networkservicemesh/sdk/common"
+
 	nsmmonitor "github.com/networkservicemesh/networkservicemesh/side-cars/pkg/nsm-monitor"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
@@ -34,16 +36,18 @@ const (
 var version string
 
 func main() {
-	logrus.Info("Starting monitoring-nsc...")
-	logrus.Infof("Version: %v", version)
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
+	logrus.Info("Starting monitoring-nsc...")
+	logrus.Infof("Version: %v", version)
+
 	if tools.IsOpentracingEnabled() {
 		tracer, closer := tools.InitJaeger("nsc")
 		opentracing.SetGlobalTracer(tracer)
 		defer func() { _ = closer.Close() }()
 	}
-	nsc, err := client.NewNSMClient(context.Background(), nil)
+	configuration := common.FromEnv()
+	nsc, err := client.NewNSMClient(context.Background(), configuration)
 	if err != nil {
 		logrus.Fatalf(nscLogWithParamFormat, "Unable to create the NSM client", err)
 	}
@@ -53,7 +57,7 @@ func main() {
 	if err != nil {
 		logrus.Fatalf(nscLogWithParamFormat, "Failed to connect", err)
 	}
-	monitor := nsmmonitor.NewNSMMonitorApp()
+	monitor := nsmmonitor.NewNSMMonitorApp(configuration)
 	monitor.Run()
 	<-c
 }

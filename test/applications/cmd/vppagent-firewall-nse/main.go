@@ -30,19 +30,19 @@ import (
 var version string
 
 func main() {
-	logrus.Info("Starting vppagent-firewall-nse...")
-	logrus.Infof("Version: %v", version)
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
+	logrus.Info("Starting vppagent-firewall-nse...")
+	logrus.Infof("Version: %v", version)
 
 	logrus.SetOutput(os.Stdout)
 	logrus.SetLevel(logrus.TraceLevel)
 
 	initConfig()
 
-	configuration := &common.NSConfiguration{
+	configuration := (&common.NSConfiguration{
 		MechanismType: "mem",
-	}
+	}).FromEnv()
 
 	composite := endpoint.NewCompositeEndpoint(
 		endpoint.NewMonitorEndpoint(configuration),
@@ -51,8 +51,8 @@ func main() {
 		vppagent.NewClientMemifConnect(configuration),
 		vppagent.NewMemifConnect(configuration),
 		vppagent.NewXConnect(configuration),
-		vppagent.NewACL(configuration, getAclRulesConfig()),
-		vppagent.NewCommit(configuration, "localhost:9112", true),
+		vppagent.NewACL(getAclRulesConfig()),
+		vppagent.NewCommit("localhost:9112", true),
 	)
 
 	nsmEndpoint, err := endpoint.NewNSMEndpoint(context.TODO(), configuration, composite)

@@ -39,16 +39,19 @@ import (
 var version string
 
 func main() {
+	// Capture signals to cleanup before exiting
+	c := tools.NewOSSignalChannel()
+
 	logrus.Info("Starting icmp-responder-nse...")
 	logrus.Infof("Version: %v", version)
 
 	flags := flags.ParseFlags()
-	// Capture signals to cleanup before exiting
-	c := tools.NewOSSignalChannel()
+
+	configuration := common.FromEnv()
 
 	endpoints := []networkservice.NetworkServiceServer{
-		endpoint.NewMonitorEndpoint(nil),
-		endpoint.NewConnectionEndpoint(nil),
+		endpoint.NewMonitorEndpoint(configuration),
+		endpoint.NewConnectionEndpoint(configuration),
 	}
 
 	if flags.Neighbors {
@@ -57,7 +60,7 @@ func main() {
 			endpoint.NewCustomFuncEndpoint("neighbor", ipNeighborMutator))
 	}
 
-	ipamEndpoint := endpoint.NewIpamEndpoint(nil)
+	ipamEndpoint := endpoint.NewIpamEndpoint(configuration)
 	endpoints = append(endpoints, ipamEndpoint)
 
 	routeAddr := endpoint.CreateRouteMutator([]string{"8.8.8.8/30"})
@@ -93,7 +96,7 @@ func main() {
 
 	composite := endpoint.NewCompositeEndpoint(endpoints...)
 
-	nsmEndpoint, err := endpoint.NewNSMEndpoint(context.Background(), nil, composite)
+	nsmEndpoint, err := endpoint.NewNSMEndpoint(context.Background(), configuration, composite)
 	if err != nil {
 		logrus.Fatalf("%v", err)
 	}

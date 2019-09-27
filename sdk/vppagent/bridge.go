@@ -66,12 +66,6 @@ func (vbc *bridgeConnect) Close(ctx context.Context, conn *connection.Connection
 
 // NewBridgeConnect creates a new Bridge Endpoint
 func NewBridgeConnect(configuration *common.NSConfiguration, bridgeName string) networkservice.NetworkServiceServer {
-	// ensure the env variables are processed
-	if configuration == nil {
-		configuration = &common.NSConfiguration{}
-	}
-	configuration.CompleteNSConfiguration()
-
 	bridge := &bridgeConnect{
 		workspace:  configuration.Workspace,
 		bridgeName: bridgeName,
