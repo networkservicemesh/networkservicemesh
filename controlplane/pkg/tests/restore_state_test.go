@@ -20,7 +20,7 @@ func TestRestoreConnectionState(t *testing.T) {
 
 	srv.AddFakeDataplane("dp1", "tcp:some_address")
 
-	g.Expect(srv.nsmServer.Manager().WaitForDataplane(context.Background(), 1*time.Millisecond).Error()).To(Equal("Failed to wait for NSMD stare restore... timeout 1ms happened"))
+	g.Expect(srv.nsmServer.Manager().WaitForDataplane(context.Background(), 1*time.Millisecond).Error()).To(Equal("failed to wait for NSMD stare restore... timeout 1ms happened"))
 
 	xcons := []*crossconnect.CrossConnect{}
 	srv.nsmServer.Manager().RestoreConnections(xcons, "dp1", srv.nsmServer)
