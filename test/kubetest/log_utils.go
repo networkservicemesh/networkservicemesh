@@ -123,33 +123,40 @@ func distill(w *zip.Writer, r *zip.ReadCloser) {
 func showPodLogs(k8s *K8s, t *testing.T, pod *v1.Pod) {
 	for i := 0; i < len(pod.Spec.Containers); i++ {
 		c := &pod.Spec.Containers[i]
-		name := strings.Join([]string{pod.Name, c.Name}, "-")
-		logs, err := k8s.GetLogs(pod, c.Name)
-		writeLogFunc := logTransaction
+		savePodContainerLog(k8s, pod, c, k8s, t)
+	}
+	for i := 0; i < len(pod.Spec.InitContainers); i++ {
+		c := &pod.Spec.Containers[i]
+		savePodContainerLog(k8s, pod, c, k8s, t)
+	}
+}
 
-		if shouldStoreLogsInFiles() && t != nil {
-			writeLogFunc = func(name string, content string) {
-				logErr := logFile(name, filepath.Join(logsDir(), t.Name()), content)
-				if logErr != nil {
-					logrus.Errorf("Can't log in file, reason %v", logErr)
-					logTransaction(name, content)
-				} else {
-					logrus.Infof("Saved log for %v. Check arcive %v.zip in path %v", name, t.Name(), logsDir())
-				}
+func savePodContainerLog(k8s *K8s, pod *v1.Pod, c *v1.Container, s *K8s, t *testing.T) {
+	name := strings.Join([]string{pod.Name, c.Name}, "-")
+	logs, err := k8s.GetLogs(pod, c.Name)
+	writeLogFunc := logTransaction
+
+	if shouldStoreLogsInFiles() && t != nil {
+		writeLogFunc = func(name string, content string) {
+			logErr := logFile(name, filepath.Join(logsDir(), t.Name()), content)
+			if logErr != nil {
+				logrus.Errorf("Can't log in file, reason %v", logErr)
+				logTransaction(name, content)
+			} else {
+				logrus.Infof("Saved log for %v. Check arcive %v.zip in path %v", name, t.Name(), logsDir())
 			}
 		}
+	}
 
-		if err == nil {
-			writeLogFunc(name, logs)
-		}
-		logs, err = k8s.GetLogsWithOptions(pod, &v1.PodLogOptions{
-			Container: c.Name,
-			Previous:  true,
-		})
-		if err == nil {
-			writeLogFunc(name+"-previous", logs)
-		}
-
+	if err == nil {
+		writeLogFunc(name, logs)
+	}
+	logs, err = k8s.GetLogsWithOptions(pod, &v1.PodLogOptions{
+		Container: c.Name,
+		Previous:  true,
+	})
+	if err == nil {
+		writeLogFunc(name+"-previous", logs)
 	}
 }
 
