@@ -247,7 +247,7 @@ func (c *nsmMonitorApp) updateConnection(entity monitor.Entity) {
 }
 
 func (c *nsmMonitorApp) waitRetry() {
-	logrus.Errorf(nsmMonitorLogWithParamFormat, "Retry delay %v sec", nsmMonitorRetryDelay/time.Second)
+	logrus.Errorf(nsmMonitorLogWithParamFormat, "Retry delay", nsmMonitorRetryDelay)
 	<-time.After(nsmMonitorRetryDelay)
 }
 
