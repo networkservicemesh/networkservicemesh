@@ -75,19 +75,19 @@ func (n *nextEndpoint) Request(ctx context.Context, request *networkservice.Netw
 		ctx = WithNext(ctx, nil)
 	}
 
-	span := common.SpanHelperFromContext(ctx, fmt.Sprintf("%s.Request", typeutils.GetTypeName(n.composite.services[n.index])))
+	span := common.SpanHelperFromContext(ctx, fmt.Sprintf("Local.%s.Request", typeutils.GetTypeName(n.composite.services[n.index])))
 	defer span.Finish()
 	logger := span.Logger()
 	ctx = span.Context()
 
 	ctx = common.WithLog(ctx, logger)
-	logger.Infof("internal request %v", request)
+	span.LogObject("request", request)
 
 	// Actually call the next
 	rv, err := n.composite.services[n.index].Request(ctx, request)
 
 	span.LogError(err)
-	logger.Infof("internal response %v", rv)
+	span.LogObject("response", rv)
 	return rv, err
 }
 
@@ -98,7 +98,7 @@ func (n *nextEndpoint) Close(ctx context.Context, connection *connection.Connect
 		ctx = WithNext(ctx, nil)
 	}
 	// Create a new span
-	span := common.SpanHelperFromContext(ctx, fmt.Sprintf("%s.Close", typeutils.GetTypeName(n.composite.services[n.index])))
+	span := common.SpanHelperFromContext(ctx, fmt.Sprintf("Local.%s.Close", typeutils.GetTypeName(n.composite.services[n.index])))
 	defer span.Finish()
 	ctx = span.Context()
 

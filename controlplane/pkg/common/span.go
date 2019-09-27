@@ -74,9 +74,10 @@ type SpanHelper interface {
 }
 
 type spanHelper struct {
-	span   opentracing.Span
-	ctx    context.Context
-	logger logrus.FieldLogger
+	operation string
+	span      opentracing.Span
+	ctx       context.Context
+	logger    logrus.FieldLogger
 }
 
 func (s *spanHelper) LogError(err error) {
@@ -87,13 +88,16 @@ func (s *spanHelper) LogError(err error) {
 }
 
 func (s *spanHelper) LogObject(attribute string, value interface{}) {
+	cc, err := json.Marshal(value)
+	msg := value
+	if err == nil {
+		msg = string(cc)
+	}
+
 	if s.span != nil {
-		cc, err := json.Marshal(value)
-		if err == nil {
-			s.span.LogFields(log.Object(attribute, string(cc)))
-		} else {
-			s.span.LogFields(log.Object(attribute, value))
-		}
+		s.span.LogFields(log.Object(attribute, msg))
+	} else {
+		s.Logger().Infof("%s %v", attribute, msg)
 	}
 }
 func (s *spanHelper) LogValue(attribute string, value interface{}) {
@@ -107,9 +111,13 @@ func (s *spanHelper) Finish() {
 		s.span.Finish()
 	}
 }
+
 func (s *spanHelper) Logger() logrus.FieldLogger {
 	if s.logger == nil {
 		s.logger = LogFromSpan(s.span)
+		if s.operation != "" {
+			s.logger = s.logger.WithField("operation", s.operation)
+		}
 	}
 	return s.logger
 }
@@ -118,20 +126,19 @@ func (s *spanHelper) startSpan(operation string) SpanHelper {
 	if s.span != nil && tools.IsOpentracingEnabled() {
 		newSpan, newCtx := opentracing.StartSpanFromContext(s.ctx, operation)
 		return &spanHelper{
-			ctx:  newCtx,
-			span: newSpan,
+			operation: operation,
+			ctx:       newCtx,
+			span:      newSpan,
 		}
 	}
 	return &spanHelper{
-		ctx:  context.Background(),
-		span: nil,
+		operation: operation,
+		ctx:       context.Background(),
+		span:      nil,
 	}
 }
 
 func (s *spanHelper) Context() context.Context {
-	if s.span == nil {
-		return context.Background()
-	}
 	return s.ctx
 }
 
@@ -140,22 +147,25 @@ func SpanHelperFromContext(ctx context.Context, operation string) SpanHelper {
 	if tools.IsOpentracingEnabled() {
 		newSpan, newCtx := opentracing.StartSpanFromContext(ctx, operation)
 		return &spanHelper{
-			span: newSpan,
-			ctx:  newCtx,
+			operation: operation,
+			span:      newSpan,
+			ctx:       newCtx,
 		}
 	}
 	// return just context
 	return &spanHelper{
-		span: nil,
-		ctx:  ctx,
+		operation: operation,
+		span:      nil,
+		ctx:       ctx,
 	}
 }
 
 // GetSpanHelper - construct a span helper object from current context span
 func GetSpanHelper(ctx context.Context) SpanHelper {
 	if tools.IsOpentracingEnabled() {
+		span := opentracing.SpanFromContext(ctx)
 		return &spanHelper{
-			span: opentracing.SpanFromContext(ctx),
+			span: span,
 			ctx:  ctx,
 		}
 	}
@@ -175,22 +185,25 @@ func SpanHelperFromContextCopySpan(ctx context.Context, spanContext SpanHelper, 
 			ctx = opentracing.ContextWithSpan(ctx, span)
 			newSpan, newCtx := opentracing.StartSpanFromContext(ctx, operation)
 			return &spanHelper{
-				span: newSpan,
-				ctx:  newCtx,
+				operation: operation,
+				span:      newSpan,
+				ctx:       newCtx,
 			}
 		}
 	}
 	return &spanHelper{
-		span: nil,
-		ctx:  ctx,
+		operation: operation,
+		span:      nil,
+		ctx:       ctx,
 	}
 }
 
 // SpanHelperFromConnection - construct new span helper with span from context is pressent or span from connection object
 func SpanHelperFromConnection(ctx context.Context, clientConnection *model.ClientConnection, operation string) SpanHelper {
 	result := &spanHelper{
-		span: opentracing.SpanFromContext(ctx),
-		ctx:  ctx,
+		operation: operation,
+		span:      opentracing.SpanFromContext(ctx),
+		ctx:       ctx,
 	}
 	if !tools.IsOpentracingEnabled() {
 		return result
@@ -211,7 +224,8 @@ func SpanHelperFromConnection(ctx context.Context, clientConnection *model.Clien
 	// No connection object and no span in context, lets start new
 	newSpan, newCtx := opentracing.StartSpanFromContext(ctx, operation)
 	return &spanHelper{
-		span: newSpan,
-		ctx:  newCtx,
+		operation: operation,
+		span:      newSpan,
+		ctx:       newCtx,
 	}
 }

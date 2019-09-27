@@ -273,33 +273,55 @@ type K8s struct {
 	g                  *WithT
 }
 
+type spanRecord struct {
+	spanPod map[string]*v1.Pod
+}
+
 func (k8s *K8s) reportSpans() {
 	if os.Getenv("TRACER_ENABLED") == "true" {
 		logrus.Infof("Finding spans")
 		// We need to find all Reporting span and print uniq to console for analysis.
 		pods := k8s.ListPods()
-		spans := map[string]string{}
+		spans := map[string]*spanRecord{}
 		for i := 0; i < len(pods); i++ {
 			for _, c := range pods[i].Spec.Containers {
-				content, err := k8s.GetLogs(&pods[i], c.Name)
-				if err == nil {
-					lines := strings.Split(content, "\n")
-					for _, l := range lines {
-						pos := strings.Index(l, " Reporting span ")
-						if pos > 0 {
-							value := l[pos:]
-							pos = strings.Index(value, ":")
-							value = value[0:pos]
-							if value != "" {
-								spans[fmt.Sprintf("%v from %v", value, c.Name)] = l
-							}
+				k8s.findSpans(&pods[i], c, spans)
+			}
+			for _, c := range pods[i].Spec.InitContainers {
+				k8s.findSpans(&pods[i], c, spans)
+			}
+		}
+		for spanId, span := range spans {
+			keys := []string{}
+			for k := range span.spanPod {
+				keys = append(keys, k)
+			}
+			logrus.Infof("Span %v pods: %v", spanId, keys)
+		}
+	}
+}
+
+func (k8s *K8s) findSpans(pod *v1.Pod, c v1.Container, spans map[string]*spanRecord) {
+	content, err := k8s.GetLogs(pod, c.Name)
+	if err == nil {
+		lines := strings.Split(content, "\n")
+		for _, l := range lines {
+			pos := strings.Index(l, " Reporting span ")
+			if pos > 0 {
+				value := l[pos:]
+				pos = strings.Index(value, ":")
+				value = value[0:pos]
+				if value != "" {
+					podRecordId := fmt.Sprintf("%s:%s", pod.Name, c.Name)
+					if span, ok := spans[value]; ok {
+						span.spanPod[podRecordId] = pod
+					} else {
+						spans[value] = &spanRecord{
+							spanPod: map[string]*v1.Pod{podRecordId: pod},
 						}
 					}
 				}
 			}
-		}
-		for k := range spans {
-			logrus.Infof("Span %v", k)
 		}
 	}
 }
