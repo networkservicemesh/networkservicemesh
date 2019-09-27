@@ -20,6 +20,7 @@ DEPLOY_WEBHOOK = admission-webhook nsm-coredns nsm-monitor
 DEPLOY_MONITOR = crossconnect-monitor skydive
 DEPLOY_ICMP_KERNEL = icmp-responder-nse nsc
 DEPLOY_ICMP = $(DEPLOY_ICMP_KERNEL)
+DEPLOY_SPIRE = spire-registration
 # Set the configured forwarding plane
 ifeq (${FORWARDING_PLANE}, vpp)
   # Deployments - VPP plane
@@ -36,7 +37,7 @@ endif
 DEPLOY_NSM = nsmgr $(DEPLOY_FORWARDING_PLANE)
 DEPLOY_PROXY_NSM = proxy-nsmgr
 DEPLOY_INFRA = $(DEPLOY_TRACING) $(DEPLOY_WEBHOOK) $(DEPLOY_NSM) $(DEPLOY_PROXY_NSM) $(DEPLOY_MONITOR)
-DEPLOYS = $(DEPLOY_INFRA) $(DEPLOY_ICMP) $(DEPLOY_VPN)
+DEPLOYS = $(DEPLOY_SPIRE) $(DEPLOY_INFRA) $(DEPLOY_ICMP) $(DEPLOY_VPN)
 
 CLUSTER_CONFIG_ROLE = cluster-role-admin cluster-role-binding cluster-role-view
 CLUSTER_CONFIG_CRD = crd-networkservices crd-networkserviceendpoints crd-networkservicemanagers
@@ -130,6 +131,12 @@ k8s-nsm-coredns-save:  $(addsuffix -save,$(addprefix ${CONTAINER_BUILD_PREFIX}-,
 
 .PHONY: k8s-nsm-coredns-build
 k8s-nsm-coredns-build:  $(addsuffix -build,$(addprefix ${CONTAINER_BUILD_PREFIX}-,nsm-coredns))
+
+.PHONY: k8s-spire-registration-save
+k8s-spire-registration-save:  $(addsuffix -save,$(addprefix ${CONTAINER_BUILD_PREFIX}-,spire-registration))
+
+.PHONY: k8s-spire-registration-build
+k8s-spire-registration-build:  $(addsuffix -build,$(addprefix ${CONTAINER_BUILD_PREFIX}-,spire-registration))
 
 .PHONY: k8s-jaeger-build
 k8s-jaeger-build:
