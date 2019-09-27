@@ -32,6 +32,7 @@ replace (
 
 replace (
 	github.com/networkservicemesh/networkservicemesh => ./
+	github.com/networkservicemesh/networkservicemesh/controllers/sriov-controller => ./controllers/sriov-controller
 	github.com/networkservicemesh/networkservicemesh/controlplane => ./controlplane
 	github.com/networkservicemesh/networkservicemesh/controlplane/api => ./controlplane/api
 	github.com/networkservicemesh/networkservicemesh/dataplane => ./dataplane
@@ -39,6 +40,7 @@ replace (
 	github.com/networkservicemesh/networkservicemesh/k8s => ./k8s
 	github.com/networkservicemesh/networkservicemesh/k8s/api => ./k8s/api
 	github.com/networkservicemesh/networkservicemesh/pkg => ./pkg
+	github.com/networkservicemesh/networkservicemesh/scripts/aws => ./scripts/aws
 	github.com/networkservicemesh/networkservicemesh/sdk => ./sdk
 	github.com/networkservicemesh/networkservicemesh/side-cars => ./side-cars
 	github.com/networkservicemesh/networkservicemesh/test => ./test
