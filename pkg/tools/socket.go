@@ -2,6 +2,7 @@ package tools
 
 import (
 	"context"
+	"crypto/tls"
 	"net"
 	"sync"
 	"time"
@@ -10,20 +11,25 @@ import (
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/security"
 )
 
 const (
+	// InsecureEnv environment variable, if "true" NSM will work in insecure mode
+	InsecureEnv = "INSECURE"
+
 	opentracingEnv     = "TRACER_ENABLED"
 	opentracingDefault = false
-	insecureEnv        = "INSECURE"
-	insecureDefault    = true
+	insecureDefault    = false
 	dialTimeoutDefault = 5 * time.Second
 )
 
 // DialConfig represents configuration of grpc connection, one per instance
 type DialConfig struct {
-	OpenTracing bool
-	Insecure    bool
+	OpenTracing     bool
+	SecurityManager security.Manager
 }
 
 var cfg DialConfig
@@ -41,19 +47,49 @@ func GetConfig() DialConfig {
 	return cfg
 }
 
+// InitConfig allows init global DialConfig, should be called before any GetConfig(), otherwise do nothing
+func InitConfig(c DialConfig) {
+	once.Do(func() {
+		cfg = c
+	})
+}
+
 // NewServer checks DialConfig and calls grpc.NewServer with certain grpc.ServerOption
 func NewServer(opts ...grpc.ServerOption) *grpc.Server {
+	if GetConfig().SecurityManager != nil {
+		cred := credentials.NewTLS(&tls.Config{
+			ClientAuth:   tls.RequireAndVerifyClientCert,
+			Certificates: []tls.Certificate{*GetConfig().SecurityManager.GetCertificate()},
+			ClientCAs:    GetConfig().SecurityManager.GetCABundle(),
+		})
+		opts = append(opts, grpc.Creds(cred))
+	}
+
 	if GetConfig().OpenTracing {
 		logrus.Infof("GRPC.NewServer with open tracing enabled")
-		opts = append(opts,
-			grpc.UnaryInterceptor(
-				CloneArgsServerInterceptor(
-					otgrpc.OpenTracingServerInterceptor(opentracing.GlobalTracer(), otgrpc.LogPayloads()))),
-			grpc.StreamInterceptor(
-				otgrpc.OpenTracingStreamServerInterceptor(opentracing.GlobalTracer())))
+		opts = append(opts, openTracingOpts()...)
 	}
 
 	return grpc.NewServer(opts...)
+}
+
+func NewServerInsecure(opts ...grpc.ServerOption) *grpc.Server {
+	if GetConfig().OpenTracing {
+		logrus.Infof("GRPC.NewServer with open tracing enabled")
+		opts = append(opts, openTracingOpts()...)
+	}
+
+	return grpc.NewServer(opts...)
+}
+
+func openTracingOpts() []grpc.ServerOption {
+	return []grpc.ServerOption{
+		grpc.UnaryInterceptor(
+			CloneArgsServerInterceptor(
+				otgrpc.OpenTracingServerInterceptor(opentracing.GlobalTracer(), otgrpc.LogPayloads()))),
+		grpc.StreamInterceptor(
+			otgrpc.OpenTracingStreamServerInterceptor(opentracing.GlobalTracer())),
+	}
 }
 
 // DialContext allows to call DialContext using net.Addr
@@ -74,6 +110,12 @@ func DialUnix(path string, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
 	return dialCtx(context.Background(), path, opts...)
 }
 
+// DialUnixInsecure establish connection with passed unix socket in insecure mode and set default timeout
+func DialUnixInsecure(path string, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
+	dialCtx := new(dialBuilder).Unix().Insecure().Timeout(dialTimeoutDefault).DialContextFunc()
+	return dialCtx(context.Background(), path, opts...)
+}
+
 // DialContextTCP establish TCP connection with address
 func DialContextTCP(ctx context.Context, address string, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
 	dialCtx := new(dialBuilder).TCP().DialContextFunc()
@@ -86,11 +128,18 @@ func DialTCP(address string, opts ...grpc.DialOption) (*grpc.ClientConn, error) 
 	return dialCtx(context.Background(), address, opts...)
 }
 
+// DialTCPInsecure establish TCP connection with address in insecure mode and set default timeout
+func DialTCPInsecure(address string, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
+	dialCtx := new(dialBuilder).TCP().Insecure().Timeout(dialTimeoutDefault).DialContextFunc()
+	return dialCtx(context.Background(), address, opts...)
+}
+
 type dialContextFunc func(ctx context.Context, target string, opts ...grpc.DialOption) (conn *grpc.ClientConn, err error)
 
 type dialBuilder struct {
-	opts []grpc.DialOption
-	t    time.Duration
+	opts     []grpc.DialOption
+	t        time.Duration
+	insecure bool
 }
 
 func (b *dialBuilder) TCP() *dialBuilder {
@@ -99,6 +148,11 @@ func (b *dialBuilder) TCP() *dialBuilder {
 
 func (b *dialBuilder) Unix() *dialBuilder {
 	return b.Network("unix")
+}
+
+func (b *dialBuilder) Insecure() *dialBuilder {
+	b.insecure = true
+	return b
 }
 
 func (b *dialBuilder) Network(network string) *dialBuilder {
@@ -125,8 +179,15 @@ func (b *dialBuilder) DialContextFunc() dialContextFunc {
 			b.opts = append(b.opts, OpenTracingDialOptions()...)
 		}
 
-		if GetConfig().Insecure {
-			b.opts = append(b.opts, grpc.WithInsecure())
+		if !b.insecure && GetConfig().SecurityManager != nil {
+			cred := credentials.NewTLS(&tls.Config{
+				InsecureSkipVerify: true,
+				Certificates:       []tls.Certificate{*GetConfig().SecurityManager.GetCertificate()},
+				RootCAs:            GetConfig().SecurityManager.GetCABundle(),
+			})
+			opts = append(opts, grpc.WithTransportCredentials(cred))
+		} else {
+			opts = append(opts, grpc.WithInsecure())
 		}
 
 		b.opts = append(b.opts, grpc.WithBlock())
@@ -147,17 +208,21 @@ func OpenTracingDialOptions() []grpc.DialOption {
 }
 
 func readDialConfig() (DialConfig, error) {
-	var err error
 	rv := DialConfig{}
 
-	rv.OpenTracing, err = ReadEnvBool(opentracingEnv, opentracingDefault)
+	if ot, err := ReadEnvBool(opentracingEnv, opentracingDefault); err == nil {
+		rv.OpenTracing = ot
+	} else {
+		return DialConfig{}, err
+	}
+
+	insecure, err := IsInsecure()
 	if err != nil {
 		return DialConfig{}, err
 	}
 
-	rv.Insecure, err = ReadEnvBool(insecureEnv, insecureDefault)
-	if err != nil {
-		return DialConfig{}, err
+	if !insecure {
+		rv.SecurityManager = security.NewManager()
 	}
 
 	return rv, nil

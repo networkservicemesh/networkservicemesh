@@ -12,6 +12,7 @@ spec:
       labels:
         app: nsmgr-daemonset
     spec:
+      serviceAccount: nsmgr-acc
       containers:
         - name: nsmdp
           image: networkservicemesh/nsmdp

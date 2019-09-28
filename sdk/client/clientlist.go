@@ -109,7 +109,7 @@ func NewNSMClientList(ctx context.Context, configuration *common.NSConfiguration
 
 	var clients []nsmClientListEntry
 	for _, url := range urls {
-		configuration = common.NSConfigurationFromUrl(configuration, url)
+		configuration = configuration.FromNSUrl(url)
 		client, err := NewNSMClient(ctx, configuration)
 		if err != nil {
 			return nil, err

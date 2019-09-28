@@ -99,8 +99,9 @@ type nsmMonitorApp struct {
 	helper      Handler
 	stop        chan struct{}
 
-	initRecieved bool
-	recovery     bool
+	initRecieved  bool
+	recovery      bool
+	configuration *common.NSConfiguration
 }
 
 func (c *nsmMonitorApp) Stop() {
@@ -133,20 +134,17 @@ func (c *nsmMonitorApp) Run() {
 }
 
 // NewNSMMonitorApp - creates a monitoring application.
-func NewNSMMonitorApp() App {
+func NewNSMMonitorApp(configuration *common.NSConfiguration) App {
 	return &nsmMonitorApp{
-		connections: map[string]*connection.Connection{},
-		stop:        make(chan struct{}),
+		connections:   map[string]*connection.Connection{},
+		stop:          make(chan struct{}),
+		configuration: configuration,
 	}
 }
 
 func (c *nsmMonitorApp) beginMonitoring() {
 	for {
-		var configuration *common.NSConfiguration
-		if c.helper != nil {
-			configuration = c.helper.GetConfiguration()
-		}
-		nsmClient, err := client.NewNSMClient(context.Background(), configuration)
+		nsmClient, err := client.NewNSMClient(context.Background(), c.configuration)
 		if err != nil {
 			logrus.Errorf(nsmMonitorLogWithParamFormat, "unable to create the NSM client", err)
 
@@ -249,7 +247,7 @@ func (c *nsmMonitorApp) updateConnection(entity monitor.Entity) {
 }
 
 func (c *nsmMonitorApp) waitRetry() {
-	logrus.Errorf(nsmMonitorLogWithParamFormat, "Retry delay %v sec", nsmMonitorRetryDelay/time.Second)
+	logrus.Errorf(nsmMonitorLogWithParamFormat, "Retry delay", nsmMonitorRetryDelay)
 	<-time.After(nsmMonitorRetryDelay)
 }
 

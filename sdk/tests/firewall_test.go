@@ -24,13 +24,13 @@ func TestFirewallMemif(t *testing.T) {
 	g.Expect(err).To(gomega.BeNil())
 	defer ClearFolder(rootDir, false)
 
-	configuration := &common.NSConfiguration{
+	configuration := (&common.NSConfiguration{
 		MechanismType:    "mem",
 		NsmServerSocket:  rootDir + "/server.sock",
 		NsmClientSocket:  rootDir + "/client.sock",
 		Workspace:        rootDir,
 		AdvertiseNseName: "my_network_sercice",
-	}
+	}).FromEnv()
 
 	mechanism, err := connection.NewMechanism(common.MechanismFromString("mem"), "memif_outgoing", "")
 	g.Expect(err).To(gomega.BeNil())
@@ -61,7 +61,7 @@ func TestFirewallMemif(t *testing.T) {
 		vppagent.NewClientMemifConnect(configuration),
 		vppagent.NewMemifConnect(configuration),
 		vppagent.NewXConnect(configuration),
-		vppagent.NewACL(configuration, map[string]string{}),
+		vppagent.NewACL(map[string]string{}),
 		commit,
 		d2,
 	)

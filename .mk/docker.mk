@@ -32,7 +32,7 @@ KILL_CONTAINERS=$(BUILD_CONTAINERS)
 LOG_CONTAINERS=$(KILL_CONTAINERS)
 ORG=networkservicemesh
 GO_VERSION=1.13
-GOPROXY=https://proxy.golang.org
+GOPROXY=https://proxy.golang.org,direct
 VERSION = $(shell git describe --tags --always)
 
 include .mk/vpp_agent.mk

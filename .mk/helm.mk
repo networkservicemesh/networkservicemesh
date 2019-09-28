@@ -32,6 +32,7 @@ $(INSTALL_CHARTS):
 	--wait --timeout 300 \
 	--set org="${CONTAINER_REPO}",tag="${CONTAINER_TAG}" \
 	--set forwardingPlane="${FORWARDING_PLANE}" \
+	--set spire.enabled="${SPIRE_ENABLED}",spire.org="${CONTAINER_REPO}",spire.tag="${CONTAINER_TAG}" \
 	--set admission-webhook.org="${CONTAINER_REPO}",admission-webhook.tag="${CONTAINER_TAG}" \
 	--namespace="${NSM_NAMESPACE}" \
 	deployments/helm/${CHART}

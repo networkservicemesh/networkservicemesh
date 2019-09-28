@@ -19,13 +19,14 @@ import (
 	"os"
 	"sync"
 
+	"github.com/networkservicemesh/networkservicemesh/sdk/common"
+
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/client"
-	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 )
 
 const (
@@ -57,10 +58,10 @@ func (nscb *nsClientBackend) Connect(connection *connection.Connection) error {
 var version string
 
 func main() {
-	logrus.Info("Starting vppagent-nsc...")
-	logrus.Infof("Version: %v", version)
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
+	logrus.Info("Starting vppagent-nsc...")
+	logrus.Infof("Version: %v", version)
 	if tools.IsOpentracingEnabled() {
 		tracer, closer := tools.InitJaeger("nsc")
 		opentracing.SetGlobalTracer(tracer)
@@ -82,7 +83,9 @@ func main() {
 	ctx, cancelProc := context.WithTimeout(context.Background(), client.ConnectTimeout)
 	defer cancelProc()
 
-	nsmClient, err := client.NewNSMClient(ctx, nil)
+	configuration := common.FromEnv()
+
+	nsmClient, err := client.NewNSMClient(ctx, configuration)
 	if err != nil {
 		logrus.Fatalf("Unable to create the NSM client %v", err)
 	}

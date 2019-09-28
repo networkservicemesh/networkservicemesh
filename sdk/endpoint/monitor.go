@@ -93,7 +93,6 @@ func NewMonitorEndpoint(configuration *common.NSConfiguration) *MonitorEndpoint 
 	if configuration == nil {
 		configuration = &common.NSConfiguration{}
 	}
-	configuration.CompleteNSConfiguration()
 
 	self := &MonitorEndpoint{
 		monitorConnectionServer: local.NewMonitorServer(),

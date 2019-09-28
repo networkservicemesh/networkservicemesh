@@ -90,7 +90,6 @@ func NewConnectionEndpoint(configuration *common.NSConfiguration) *ConnectionEnd
 	if configuration == nil {
 		configuration = &common.NSConfiguration{}
 	}
-	configuration.CompleteNSConfiguration()
 
 	rand.Seed(time.Now().UTC().UnixNano())
 

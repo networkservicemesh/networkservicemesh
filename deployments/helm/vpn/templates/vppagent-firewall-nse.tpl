@@ -13,6 +13,7 @@ spec:
         networkservicemesh.io/app: "firewall"
         networkservicemesh.io/impl: "secure-intranet-connectivity"
     spec:
+      serviceAccount: nse-acc
       containers:
         - name: firewall-nse
           image: {{ .Values.registry }}/{{ .Values.org }}/vpp-test-common:{{ .Values.tag }}

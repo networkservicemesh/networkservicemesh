@@ -13,7 +13,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
 )
 
@@ -77,13 +76,7 @@ func (c *Commit) Close(ctx context.Context, connection *connection.Connection) (
 // NewCommit creates a new Commit endpoint.  The Commit endpoint commits
 // any changes accumulated in the vppagent.Config in the context.Context
 // to vppagent
-func NewCommit(configuration *common.NSConfiguration, endpoint string, shouldResetVpp bool) *Commit {
-	// ensure the env variables are processed
-	if configuration == nil {
-		configuration = &common.NSConfiguration{}
-	}
-	configuration.CompleteNSConfiguration()
-
+func NewCommit(endpoint string, shouldResetVpp bool) *Commit {
 	self := &Commit{
 		Endpoint:       endpoint,
 		shouldResetVpp: shouldResetVpp,
@@ -106,7 +99,7 @@ func (c *Commit) createConnection(ctx context.Context) (*grpc.ClientConn, error)
 		return nil, err
 	}
 
-	rv, err := tools.DialTCP(c.Endpoint)
+	rv, err := tools.DialTCPInsecure(c.Endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("can't dial grpc server: %v", err)
 	}

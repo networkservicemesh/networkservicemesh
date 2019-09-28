@@ -121,6 +121,7 @@ issues:
       linters:
         - gochecknoglobals
         - gochecknoinits
+        - gosec
     - path: pkg/monitor/
       linters:
         - dupl
