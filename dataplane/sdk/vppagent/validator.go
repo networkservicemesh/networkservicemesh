@@ -1,4 +1,4 @@
-package dataplane
+package forwarder
 
 import (
 	"context"
@@ -8,6 +8,11 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/api/dataplane"
 )
+
+//ConnectionValidator returns Dataplane Server with validation for Request and Close
+func ConnectionValidator() dataplane.DataplaneServer {
+	return &validator{}
+}
 
 type validator struct {
 }
@@ -32,9 +37,4 @@ func (n *validator) Close(ctx context.Context, request *crossconnect.CrossConnec
 		return next.Close(ctx, request)
 	}
 	return new(empty.Empty), nil
-}
-
-//Validator returns DataplaneServer which checks request
-func Validator() dataplane.DataplaneServer {
-	return &validator{}
 }

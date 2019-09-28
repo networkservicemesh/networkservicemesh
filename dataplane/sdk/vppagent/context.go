@@ -1,4 +1,4 @@
-package dataplane
+package forwarder
 
 import (
 	"context"
@@ -35,7 +35,7 @@ func Next(ctx context.Context) dataplane.DataplaneServer {
 
 // WithConfiguratorClient adds to context value with configurator client
 func WithConfiguratorClient(ctx context.Context, endpoint string) (context.Context, func() error, error) {
-	conn, err := tools.DialTCP(endpoint)
+	conn, err := tools.DialTCPInsecure(endpoint)
 	if err != nil {
 		Logger(ctx).Errorf("Can't dial grpc server: %v", err)
 		return nil, nil, err
