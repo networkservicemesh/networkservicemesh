@@ -1,8 +1,6 @@
 package pods
 
 import (
-	"strings"
-
 	v1 "k8s.io/api/core/v1"
 
 	"github.com/networkservicemesh/networkservicemesh/k8s/cmd/nsm-coredns/env"
@@ -10,7 +8,7 @@ import (
 
 //InjectNSMCorednsWithSharedFolder - Injects nsm-coredns container and configure the DnsConfig for template.
 //Also makes shared folder between nsm-coredns container and first container of template
-func InjectNSMCorednsWithSharedFolder(template *v1.Pod, defaultDNSIPs ...string) {
+func InjectNSMCorednsWithSharedFolder(template *v1.Pod) {
 	template.Spec.Containers = append(template.Spec.Containers,
 		containerMod(&v1.Container{
 			Name:            "nsm-coredns",
@@ -25,10 +23,6 @@ func InjectNSMCorednsWithSharedFolder(template *v1.Pod, defaultDNSIPs ...string)
 				{
 					Name:  env.UpdateAPIClientSock.Name(),
 					Value: "/etc/coredns/client.sock",
-				},
-				{
-					Name:  env.DefaultDNSServerIPList.Name(),
-					Value: strings.Join(defaultDNSIPs, " "),
 				},
 			},
 		}))
@@ -51,7 +45,6 @@ func InjectNSMCorednsWithSharedFolder(template *v1.Pod, defaultDNSIPs ...string)
 			},
 		},
 	})
-	setupDNSConfig(template)
 }
 
 //InjectNSMCoredns - Injects nsm-coredns container and configure the DnsConfig for template.
@@ -81,21 +74,5 @@ func InjectNSMCoredns(pod *v1.Pod, corednsConfigName string) *v1.Pod {
 			},
 		},
 	})
-	setupDNSConfig(pod)
 	return pod
-}
-
-func setupDNSConfig(pod *v1.Pod) {
-	ndotsValue := "5"
-	pod.Spec.DNSPolicy = v1.DNSNone
-	pod.Spec.DNSConfig = &v1.PodDNSConfig{
-		Nameservers: []string{"127.0.0.1"},
-		Searches:    []string{"default.svc.cluster.local", "svc.cluster.local", "cluster.local"},
-		Options: []v1.PodDNSConfigOption{
-			{
-				Name:  "ndots",
-				Value: &ndotsValue,
-			},
-		},
-	}
 }

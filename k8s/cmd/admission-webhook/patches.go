@@ -6,7 +6,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 
-	"github.com/networkservicemesh/networkservicemesh/k8s/cmd/admission-webhook/env"
 	nsmcorednsenv "github.com/networkservicemesh/networkservicemesh/k8s/cmd/nsm-coredns/env"
 
 	"github.com/networkservicemesh/networkservicemesh/sdk/client"
@@ -84,8 +83,6 @@ func createDNSPatch(tuple *podSpecAndMeta, annotationValue string) (patch []patc
 				},
 			},
 		}})...)
-	patch = append(patch, replaceDNSConfig()...)
-	patch = append(patch, replaceDNSPolicy()...)
 	return patch
 }
 
@@ -132,35 +129,6 @@ func createNsmInitContainerPatch(annotationValue string) []patchOperation {
 	})
 
 	return patch
-}
-
-func replaceDNSPolicy() []patchOperation {
-	none := corev1.DNSNone
-	return []patchOperation{
-		{
-			Op:    "replace",
-			Path:  dnsPolicyPath,
-			Value: &none,
-		},
-	}
-}
-
-func replaceDNSConfig() []patchOperation {
-	ndotsValue := "5"
-	return []patchOperation{{
-		Op:   "replace",
-		Path: dnsConfigPath,
-		Value: &corev1.PodDNSConfig{
-			Nameservers: []string{"127.0.0.1"},
-			Searches:    env.DNSSearchDomainsPatchEnv.GetStringListValueOrDefault(defaultDNSSearchDomains()...),
-			Options: []corev1.PodDNSConfigOption{
-				{
-					Name:  "ndots",
-					Value: &ndotsValue,
-				},
-			},
-		},
-	}}
 }
 
 func addVolume(spec *corev1.PodSpec, added []corev1.Volume) (patch []patchOperation) {
