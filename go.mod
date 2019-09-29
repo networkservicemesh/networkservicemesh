@@ -37,6 +37,7 @@ replace (
 
 replace (
 	github.com/networkservicemesh/networkservicemesh => ./
+	github.com/networkservicemesh/networkservicemesh/applications/nsmrs => ./applications/nsmrs
 	github.com/networkservicemesh/networkservicemesh/controllers/sriov-controller => ./controllers/sriov-controller
 	github.com/networkservicemesh/networkservicemesh/controlplane => ./controlplane
 	github.com/networkservicemesh/networkservicemesh/controlplane/api => ./controlplane/api
