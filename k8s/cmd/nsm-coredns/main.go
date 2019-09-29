@@ -13,7 +13,7 @@ import (
 	_ "github.com/coredns/coredns/plugin/bind"
 	_ "github.com/coredns/coredns/plugin/hosts"
 	_ "github.com/coredns/coredns/plugin/log"
-
+	_ "github.com/coredns/coredns/plugin/reload"
 	"github.com/networkservicemesh/networkservicemesh/k8s/cmd/nsm-coredns/env"
 	_ "github.com/networkservicemesh/networkservicemesh/k8s/cmd/nsm-coredns/plugin/fanout"
 )
@@ -27,10 +27,12 @@ func init() {
 func main() {
 	log.Println("Starting nsm-coredns")
 	log.Printf("Version: %v\n", version)
+	defaultConfig := defaultBasicDNSConfig()
+	updateResolvConfFile()
 	path := parseCorefilePath()
 	if env.UseUpdateAPIEnv.GetBooleanOrDefault(false) {
 		file := caddyfile.NewCaddyfile(path)
-		file.WriteScope(".").Write("log").Write(fmt.Sprintf("fanout %v", strings.Join(defaultBasicDNSConfig().DnsServerIps, " ")))
+		file.WriteScope(".").Write("log").Write(fmt.Sprintf("fanout %v", strings.Join(defaultConfig.DnsServerIps, " ")))
 		err := file.Save()
 		fmt.Println(file.String())
 		if err != nil {
@@ -44,6 +46,5 @@ func main() {
 			os.Exit(2)
 		}
 	}
-	updateResolvConfFile()
 	coremain.Run()
 }
