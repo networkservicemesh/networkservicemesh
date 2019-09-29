@@ -193,6 +193,7 @@ jobs:
             export CONTAINERS=(${CONTAINERS[@]} vppagent-dataplane vppagent-dataplane-dev)
             export CONTAINERS=(${CONTAINERS[@]} test-common vpp-test-common nsm-coredns)
             export CONTAINERS=(${CONTAINERS[@]} kernel-forwarder)
+            export CONTAINERS=(${CONTAINERS[@]} spire-registration)
             echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
             for c in ${CONTAINERS[@]}; do
               docker pull ${PULL_REPO}/${c}:${PULL_TAG}
