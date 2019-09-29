@@ -14,6 +14,7 @@ import (
 	_ "github.com/coredns/coredns/plugin/hosts"
 	_ "github.com/coredns/coredns/plugin/log"
 	_ "github.com/coredns/coredns/plugin/reload"
+
 	"github.com/networkservicemesh/networkservicemesh/k8s/cmd/nsm-coredns/env"
 	_ "github.com/networkservicemesh/networkservicemesh/k8s/cmd/nsm-coredns/plugin/fanout"
 )
