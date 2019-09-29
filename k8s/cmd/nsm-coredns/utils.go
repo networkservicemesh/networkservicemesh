@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/caddyserver/caddy"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/k8s/api/nsm-coredns/update"
 	"github.com/networkservicemesh/networkservicemesh/k8s/cmd/nsm-coredns/env"
