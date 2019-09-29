@@ -21,6 +21,12 @@ spec:
           image: {{ .Values.registry }}/{{ .Values.org }}/{{ (index .Values $fp).image }}:{{ .Values.tag }}
           imagePullPolicy: {{ .Values.pullPolicy }}
           env:
+            - name: INSECURE
+{{- if .Values.insecure }}
+              value: "true"
+{{- else }}
+              value: "false"
+{{- end }}
             - name: NSM_DATAPLANE_SRC_IP
               valueFrom:
                 fieldRef:
