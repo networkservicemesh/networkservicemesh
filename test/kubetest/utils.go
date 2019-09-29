@@ -13,6 +13,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/pkg/security"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+
 	"github.com/networkservicemesh/networkservicemesh/test/applications/cmd/icmp-responder-nse/flags"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
@@ -207,7 +210,7 @@ func DeployICMP(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1
 		Routes: true,
 	}
 	return deployICMP(k8s, nodeName(node), name, timeout,
-		pods.TestCommonPod(name, flags.Commands(), node, defaultICMPEnv(k8s.UseIPv6())),
+		pods.TestCommonPod(name, flags.Commands(), node, defaultICMPEnv(k8s.UseIPv6()), pods.NSEServiceAccount),
 	)
 }
 
@@ -218,7 +221,7 @@ func DeployICMPAndCoredns(k8s *K8s, node *v1.Node, name, corednsConfigName strin
 		DNS:    true,
 	}
 	return deployICMP(k8s, nodeName(node), name, timeout,
-		pods.InjectNSMCoredns(pods.TestCommonPod(name, flags.Commands(), node, defaultICMPEnv(k8s.UseIPv6())), corednsConfigName),
+		pods.InjectNSMCoredns(pods.TestCommonPod(name, flags.Commands(), node, defaultICMPEnv(k8s.UseIPv6()), pods.NSEServiceAccount), corednsConfigName),
 	)
 }
 
@@ -227,7 +230,7 @@ func DeployICMPWithConfig(k8s *K8s, node *v1.Node, name string, timeout time.Dur
 	flags := flags.ICMPResponderFlags{
 		Routes: true,
 	}
-	pod := pods.TestCommonPod(name, flags.Commands(), node, defaultICMPEnv(k8s.UseIPv6()))
+	pod := pods.TestCommonPod(name, flags.Commands(), node, defaultICMPEnv(k8s.UseIPv6()), pods.NSEServiceAccount)
 	pod.Spec.TerminationGracePeriodSeconds = &gracePeriod
 	return deployICMP(k8s, nodeName(node), name, timeout, pod)
 }
@@ -238,7 +241,7 @@ func DeployDirtyICMP(k8s *K8s, node *v1.Node, name string, timeout time.Duration
 		Dirty: true,
 	}
 	return deployDirtyNSE(k8s, nodeName(node), name, timeout,
-		pods.TestCommonPod(name, flags.Commands(), node, defaultICMPEnv(k8s.UseIPv6())),
+		pods.TestCommonPod(name, flags.Commands(), node, defaultICMPEnv(k8s.UseIPv6()), pods.NSEServiceAccount),
 	)
 }
 
@@ -248,7 +251,7 @@ func DeployNeighborNSE(k8s *K8s, node *v1.Node, name string, timeout time.Durati
 		Neighbors: true,
 	}
 	return deployICMP(k8s, nodeName(node), name, timeout,
-		pods.TestCommonPod(name, flags.Commands(), node, defaultICMPEnv(k8s.UseIPv6())),
+		pods.TestCommonPod(name, flags.Commands(), node, defaultICMPEnv(k8s.UseIPv6()), pods.NSEServiceAccount),
 	)
 }
 
@@ -258,7 +261,7 @@ func DeployUpdatingNSE(k8s *K8s, node *v1.Node, name string, timeout time.Durati
 		Update: true,
 	}
 	return deployICMP(k8s, nodeName(node), name, timeout,
-		pods.TestCommonPod(name, flags.Commands(), node, defaultICMPEnv(k8s.UseIPv6())),
+		pods.TestCommonPod(name, flags.Commands(), node, defaultICMPEnv(k8s.UseIPv6()), pods.NSEServiceAccount),
 	)
 }
 
@@ -312,7 +315,7 @@ func DeployNSCWebhook(k8s *K8s, node *v1.Node, name string, timeout time.Duratio
 // DeployMonitoringNSC deploys 'monitoring-nsc' pod
 func DeployMonitoringNSC(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
 	return deployNSC(k8s, nodeName(node), name, "monitoring-nsc", timeout,
-		pods.TestCommonPod(name, []string{"/bin/monitoring-nsc"}, node, defaultNSCEnv()),
+		pods.TestCommonPod(name, []string{"/bin/monitoring-nsc"}, node, defaultNSCEnv(), pods.NSCServiceAccount),
 	)
 }
 
@@ -321,6 +324,31 @@ func NoHealNSMgrPodConfig(k8s *K8s) []*pods.NSMgrPodConfig {
 	return []*pods.NSMgrPodConfig{
 		noHealNSMgrPodConfig(k8s),
 		noHealNSMgrPodConfig(k8s),
+	}
+}
+
+// InitSpireSecurity deploys pod that proxy Spire certificates to test environment
+func InitSpireSecurity(k8s *K8s) func() {
+	spireProxy := k8s.CreatePod(pods.SpireProxyPod())
+
+	fwd, err := k8s.NewPortForwarder(spireProxy, 7001)
+	k8s.g.Expect(err).To(BeNil())
+
+	err = fwd.Start()
+	k8s.g.Expect(err).To(BeNil())
+
+	addr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("localhost:%d", fwd.ListenPort))
+	k8s.g.Expect(err).To(BeNil())
+
+	obt := security.NewSpireObtainerWithAddress(addr)
+	mgr := security.NewManagerWithCertObtainer(obt)
+	tools.InitConfig(tools.DialConfig{
+		SecurityManager: mgr,
+	})
+
+	return func() {
+		obt.Stop()
+		fwd.Stop()
 	}
 }
 

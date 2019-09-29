@@ -13,6 +13,7 @@ spec:
         networkservicemesh.io/app: "icmp-responder"
         networkservicemesh.io/impl: "icmp-responder"
     spec:
+      serviceAccount: nse-acc
       affinity:
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:

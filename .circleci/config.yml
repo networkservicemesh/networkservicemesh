@@ -47,6 +47,7 @@ jobs:
             export CONTAINER_TAG="${COMMIT}"
             export CONTAINER_REPO="networkservicemeshci"
             export CONTAINER_FORCE_PULL="true"
+            export INSECURE="true"
             ./scripts/run_unit_tests.sh
       - store_test_results:
           path: ~/junit
@@ -192,6 +193,7 @@ jobs:
             export CONTAINERS=(${CONTAINERS[@]} vppagent-dataplane vppagent-dataplane-dev)
             export CONTAINERS=(${CONTAINERS[@]} test-common vpp-test-common nsm-coredns)
             export CONTAINERS=(${CONTAINERS[@]} kernel-forwarder)
+            export CONTAINERS=(${CONTAINERS[@]} spire-registration)
             echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
             for c in ${CONTAINERS[@]}; do
               docker pull ${PULL_REPO}/${c}:${PULL_TAG}
@@ -294,6 +296,11 @@ workflows:
       - build-container:
           name: "build-kernel-forwarding-plane"
           container: "kernel-forwarder"
+          requires:
+            - test-sanity-check
+      - build-container:
+          name: "build-spire-registration"
+          container: "spire-registration"
           requires:
             - test-sanity-check
       - build-container-success:

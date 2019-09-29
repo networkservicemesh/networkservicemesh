@@ -99,7 +99,7 @@ func (c *Commit) createConnection(ctx context.Context) (*grpc.ClientConn, error)
 		return nil, err
 	}
 
-	rv, err := tools.DialTCP(c.Endpoint)
+	rv, err := tools.DialTCPInsecure(c.Endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("can't dial grpc server: %v", err)
 	}

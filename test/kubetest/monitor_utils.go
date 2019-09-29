@@ -16,7 +16,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 )
 
 const (
@@ -147,7 +146,7 @@ func (e *OrEventChecker) Check(eventCh <-chan *crossconnect.CrossConnectEvent) e
 
 // CrossConnectClientAt returns channel of CrossConnectEvents from passed nsmgr pod
 func CrossConnectClientAt(k8s *K8s, pod *v1.Pod) (<-chan *crossconnect.CrossConnectEvent, func()) {
-	fwd, err := k8s.NewPortForwarder(pod, 6001)
+	fwd, err := k8s.NewPortForwarder(pod, 5001)
 	k8s.g.Expect(err).To(BeNil())
 
 	err = fwd.Start()
@@ -165,23 +164,6 @@ func CrossConnectClientAt(k8s *K8s, pod *v1.Pod) (<-chan *crossconnect.CrossConn
 	}
 
 	return getEventCh(client, cancel, stopCh), closeFunc
-}
-
-// XconProxyMonitor deploys proxy monitor to node and returns channel of events from it
-func XconProxyMonitor(k8s *K8s, conf *NodeConf, suffix string) (<-chan *crossconnect.CrossConnectEvent, func()) {
-	address := fmt.Sprintf("%s:5001", conf.Nsmd.Status.PodIP)
-
-	xconProxy := k8s.CreatePod(pods.TestCommonPod(
-		fmt.Sprintf("xcon-proxy-monitor-%s", suffix),
-		[]string{"/bin/proxy-xcon-monitor", fmt.Sprintf("-address=%s", address)},
-		conf.Node,
-		map[string]string{}))
-
-	eventCh, closeFunc := CrossConnectClientAt(k8s, xconProxy)
-	return eventCh, func() {
-		k8s.DeletePods(xconProxy)
-		closeFunc()
-	}
 }
 
 // NewEventChecker starts goroutine that read events from actualCh and

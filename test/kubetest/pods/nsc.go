@@ -19,6 +19,7 @@ func NSCPodWebhook(name string, node *v1.Node) *v1.Pod {
 			Kind: "Deployment",
 		},
 		Spec: v1.PodSpec{
+			ServiceAccountName: NSCServiceAccount,
 			Containers: []v1.Container{
 				{
 					Name:            "alpine-img",
@@ -92,6 +93,7 @@ func NSCPod(name string, node *v1.Node, env map[string]string) *v1.Pod {
 			Kind: "Deployment",
 		},
 		Spec: v1.PodSpec{
+			ServiceAccountName: NSCServiceAccount,
 			Containers: []v1.Container{
 				newAlpineContainer(),
 			},

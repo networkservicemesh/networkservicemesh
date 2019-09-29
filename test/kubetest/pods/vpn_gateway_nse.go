@@ -28,6 +28,7 @@ func VPNGatewayNSEPod(name string, node *v1.Node, env map[string]string) *v1.Pod
 			Kind: "Deployment",
 		},
 		Spec: v1.PodSpec{
+			ServiceAccountName: NSEServiceAccount,
 			Containers: []v1.Container{
 				containerMod(&v1.Container{
 					Name:            "vpn-gateway",

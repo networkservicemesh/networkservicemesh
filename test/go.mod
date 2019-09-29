@@ -23,6 +23,7 @@ require (
 	github.com/sirupsen/logrus v1.4.2
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/viper v1.4.0
+	github.com/spiffe/spire v0.0.0-20190515205011-c8123525fba8
 	google.golang.org/grpc v1.23.1
 	gopkg.in/yaml.v2 v2.2.2
 	k8s.io/api v0.0.0
@@ -33,6 +34,7 @@ require (
 
 replace (
 	// ./scripts/switch_k8s_version.sh to change k8s version
+	github.com/census-instrumentation/opencensus-proto v0.1.0-0.20181214143942-ba49f56771b8 => github.com/census-instrumentation/opencensus-proto v0.0.3-0.20181214143942-ba49f56771b8
 	gonum.org/v1/gonum => github.com/gonum/gonum v0.0.0-20190331200053-3d26580ed485
 	gonum.org/v1/netlib => github.com/gonum/netlib v0.0.0-20190331212654-76723241ea4e
 	k8s.io/api => k8s.io/api v0.0.0-20190819141258-3544db3b9e44

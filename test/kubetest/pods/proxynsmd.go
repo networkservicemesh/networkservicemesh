@@ -42,6 +42,7 @@ func ProxyNSMgrPodWithConfig(name string, node *v1.Node, config *NSMgrPodConfig)
 			//Kind: "DaemonSet",
 		},
 		Spec: v1.PodSpec{
+			ServiceAccountName: NSMgrServiceAccount,
 			Containers: []v1.Container{
 				containerMod(&v1.Container{
 					Name:            "proxy-nsmd",
@@ -56,6 +57,7 @@ func ProxyNSMgrPodWithConfig(name string, node *v1.Node, config *NSMgrPodConfig)
 							ContainerPort: 5006,
 						},
 					},
+					VolumeMounts: []v1.VolumeMount{spireVolumeMount()},
 				}),
 				containerMod(&v1.Container{
 					Name:            "proxy-nsmd-k8s",
@@ -68,18 +70,26 @@ func ProxyNSMgrPodWithConfig(name string, node *v1.Node, config *NSMgrPodConfig)
 							ContainerPort: 5005,
 						},
 					},
+					VolumeMounts: []v1.VolumeMount{spireVolumeMount()},
 				}),
 			},
+			Volumes: []v1.Volume{spireVolume()},
 		},
 	}
+
+	config.Variables = setInsecureEnvIfExist(config.Variables)
+
 	if len(config.Variables) > 0 {
 		for k, v := range config.Variables {
-			pod.Spec.Containers[1].Env = append(pod.Spec.Containers[1].Env, v1.EnvVar{
-				Name:  k,
-				Value: v,
-			})
+			for i := range pod.Spec.Containers {
+				pod.Spec.Containers[i].Env = append(pod.Spec.Containers[i].Env, v1.EnvVar{
+					Name:  k,
+					Value: v,
+				})
+			}
 		}
 	}
+
 	if node != nil {
 		pod.Spec.NodeSelector = map[string]string{
 			"kubernetes.io/hostname": node.Labels["kubernetes.io/hostname"],

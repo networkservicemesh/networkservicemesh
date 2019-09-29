@@ -270,7 +270,9 @@ type K8s struct {
 	apiServerHost      string
 	useIPv6            bool
 	forwardingPlane    string
+	sa                 []string
 	g                  *WithT
+	cleanupFunc        func()
 }
 
 // ExtK8s - K8s ClientSet with nodes config
@@ -288,6 +290,9 @@ func NewK8s(g *WithT, prepare bool) (*K8s, error) {
 		return client, err
 	}
 	client.roles, _ = client.CreateRoles("admin", "view", "binding")
+
+	client.cleanupFunc = InitSpireSecurity(client)
+
 	return client, err
 }
 
@@ -314,7 +319,13 @@ func NewK8sWithoutRolesForConfig(g *WithT, prepare bool, kubeconfigPath string) 
 
 	client := K8s{
 		pods: []*v1.Pod{},
-		g:    g,
+		sa: []string{
+			pods.NSCServiceAccount,
+			pods.NSEServiceAccount,
+			pods.NSMgrServiceAccount,
+			pods.ForwardPlaneServiceAccount,
+		},
+		g: g,
 	}
 	client.setForwardingPlane()
 	client.config = config
@@ -334,16 +345,20 @@ func NewK8sWithoutRolesForConfig(g *WithT, prepare bool, kubeconfigPath string) 
 
 	if prepare {
 		start := time.Now()
-		client.Prepare("nsmgr", "nsmd", "vppagent", "vpn", "icmp", "nsc", "source", "dest")
+		client.Prepare("nsmgr", "nsmd", "vppagent", "vpn", "icmp", "nsc", "source", "dest", "spire-proxy")
 		client.CleanupCRDs()
 		client.CleanupServices("nsm-admission-webhook-svc")
 		client.CleanupDeployments()
 		client.CleanupMutatingWebhookConfigurations()
 		client.CleanupSecrets("nsm-admission-webhook-certs")
 		client.CleanupConfigMaps()
+		_ = client.DeleteServiceAccounts()
 		_ = nsmrbac.DeleteAllRoles(client.clientset)
 		logrus.Printf("Cleanup done: %v", time.Since(start))
 	}
+
+	_, err = client.CreateServiceAccounts()
+	g.Expect(err).To(BeNil())
 	return &client, nil
 }
 
@@ -564,6 +579,14 @@ func (k8s *K8s) Cleanup() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
+		if k8s.cleanupFunc != nil {
+			k8s.cleanupFunc()
+		}
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
 		k8s.CleanupCRDs()
 	}()
 	wg.Add(1)
@@ -575,6 +598,11 @@ func (k8s *K8s) Cleanup() {
 	go func() {
 		defer wg.Done()
 		k8s.roles, _ = k8s.DeleteRoles(k8s.roles)
+	}()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		_ = k8s.DeleteServiceAccounts()
 	}()
 
 	wg.Wait()
@@ -995,6 +1023,46 @@ func (k8s *K8s) CreateTestNamespace(namespace string) (string, error) {
 	logrus.Printf("namespace %v is created", nsNamespace.GetName())
 
 	return nsNamespace.GetName(), nil
+}
+
+// CreateServiceAccounts create service accounts with passed names
+func (k8s *K8s) CreateServiceAccounts() ([]*v1.ServiceAccount, error) {
+	rv := make([]*v1.ServiceAccount, 0, len(k8s.sa))
+	for _, n := range k8s.sa {
+		sa, err := k8s.clientset.CoreV1().ServiceAccounts(k8s.namespace).Create(&v1.ServiceAccount{
+			ObjectMeta: metaV1.ObjectMeta{
+				Name: n,
+			},
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		for len(sa.Secrets) == 0 {
+			sa, err = k8s.clientset.CoreV1().ServiceAccounts(k8s.namespace).Get(n, metaV1.GetOptions{})
+			if err != nil {
+				return nil, err
+			}
+			logrus.Info(sa)
+			<-time.After(300 * time.Millisecond)
+		}
+
+		rv = append(rv, sa)
+	}
+
+	return rv, nil
+}
+
+// DeleteServiceAccounts deletes passed service accounts from cluster
+func (k8s *K8s) DeleteServiceAccounts() error {
+	var lastErr error
+	for _, n := range k8s.sa {
+		if err := k8s.clientset.CoreV1().ServiceAccounts(k8s.namespace).Delete(n, &metaV1.DeleteOptions{}); err != nil {
+			logrus.Error(err)
+			lastErr = err
+		}
+	}
+	return lastErr
 }
 
 // DeleteTestNamespace deletes a test namespace

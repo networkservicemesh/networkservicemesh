@@ -15,6 +15,6 @@ exec_command () {
 }
 
 export -f exec_command
-find . -name "go.mod" -exec bash -c "exec_command \"${cmd}\" " {} \;
+find . -name "go.mod" -not -path "./vendor/*" -exec bash -c "exec_command \"${cmd}\" " {} \;
 
 exit $res

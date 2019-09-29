@@ -13,6 +13,7 @@ spec:
         networkservicemesh.io/app: "vpn-gateway"
         networkservicemesh.io/impl: "secure-intranet-connectivity"
     spec:
+      serviceAccount: nse-acc
       affinity:
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
