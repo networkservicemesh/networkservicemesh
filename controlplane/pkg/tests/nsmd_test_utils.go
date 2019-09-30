@@ -352,15 +352,15 @@ func (impl *nsmdTestServiceRegistry) GetPublicAPI() string {
 	return fmt.Sprintf("%s:%d", "127.0.0.1", impl.apiRegistry.nsmdPublicPort)
 }
 
-func (impl *nsmdTestServiceRegistry) DiscoveryClient() (registry.NetworkServiceDiscoveryClient, error) {
+func (impl *nsmdTestServiceRegistry) DiscoveryClient(ctx context.Context) (registry.NetworkServiceDiscoveryClient, error) {
 	return impl.nseRegistry, nil
 }
 
-func (impl *nsmdTestServiceRegistry) NseRegistryClient() (registry.NetworkServiceRegistryClient, error) {
+func (impl *nsmdTestServiceRegistry) NseRegistryClient(ctx context.Context) (registry.NetworkServiceRegistryClient, error) {
 	return impl.nseRegistry, nil
 }
 
-func (impl *nsmdTestServiceRegistry) NsmRegistryClient() (registry.NsmRegistryClient, error) {
+func (impl *nsmdTestServiceRegistry) NsmRegistryClient(ctx context.Context) (registry.NsmRegistryClient, error) {
 	return impl.nseRegistry, nil
 }
 
