@@ -54,7 +54,8 @@ const (
 	endpointConnectionTimeout = 10 * time.Second
 	eventConnectionTimeout    = 30 * time.Second
 
-	peerName = "peerName"
+	peerName     = "peerName"
+	endpointName = "endpointName"
 )
 
 type NsmMonitorCrossConnectClient struct {
@@ -181,12 +182,12 @@ func (client *NsmMonitorCrossConnectClient) ClientConnectionDeleted(ctx context.
 	defer span.Finish()
 	span.LogObject("clientConnection", clientConnection)
 
-	logger := span.Logger()
-	logger.Infof("ClientConnectionDeleted: %v", clientConnection)
+	span.Logger().Infof("ClientConnectionDeleted: %v", clientConnection)
 
 	client.xconManager.MarkConnectionDeleted(clientConnection)
 
 	if clientConnection.RemoteNsm == nil {
+		span.Logger().Infof("Not a remote connection")
 		return
 	}
 	remotePeer := client.remotePeers[clientConnection.RemoteNsm.Name]
@@ -195,9 +196,9 @@ func (client *NsmMonitorCrossConnectClient) ClientConnectionDeleted(ctx context.
 		if len(remotePeer.connections) == 0 {
 			remotePeer.cancel()
 			delete(client.remotePeers, clientConnection.RemoteNsm.Name)
-			logger.Infof("stopping remote monitor")
+			span.Logger().Infof("stopping remote monitor")
 		}
-		logger.Infof("connection removed from monitor")
+		span.Logger().Infof("connection removed from monitor")
 	} else {
 		span.LogError(fmt.Errorf("remote peer for NSM is already closed: %v", clientConnection))
 	}
@@ -262,7 +263,6 @@ func (client *NsmMonitorCrossConnectClient) monitor(
 func (client *NsmMonitorCrossConnectClient) endpointConnectionMonitor(ctx context.Context, endpoint *model.Endpoint) {
 	grpcConnectionSupplier := func() (*grpc.ClientConn, error) {
 		logrus.Infof(endpointLogWithParamFormat, endpoint.EndpointName(), "Connecting to", endpoint.SocketLocation)
-		//<- time.After(1000* time.Second)
 		return client.connectToEndpoint(endpoint)
 	}
 
@@ -270,7 +270,7 @@ func (client *NsmMonitorCrossConnectClient) endpointConnectionMonitor(ctx contex
 		ctx,
 		endpointLogFormat, endpointLogWithParamFormat, endpoint.EndpointName(),
 		grpcConnectionSupplier, monitor_local.NewMonitorClient,
-		client.handleLocalConnection, nil, map[string]string{"endpointName": endpoint.EndpointName()})
+		client.handleLocalConnection, nil, map[string]string{endpointName: endpoint.EndpointName()})
 
 	if err != nil {
 		if err = client.endpointManager.DeleteEndpointWithBrokenConnection(ctx, endpoint); err != nil {
@@ -327,7 +327,6 @@ func (client *NsmMonitorCrossConnectClient) handleLocalConnection(entity monitor
 func (client *NsmMonitorCrossConnectClient) dataplaneCrossConnectMonitor(ctx context.Context, dataplane *model.Dataplane) {
 	grpcConnectionSupplier := func() (*grpc.ClientConn, error) {
 		logrus.Infof(dataplaneLogWithParamFormat, dataplane.RegisteredName, "Connecting to", dataplane.SocketLocation)
-		//<- time.After(1000* time.Second)
 		return tools.DialUnix(dataplane.SocketLocation)
 	}
 
@@ -359,21 +358,18 @@ func (client *NsmMonitorCrossConnectClient) handleXcon(entity monitor.Entity, ev
 	span.LogValue("event", entity)
 	span.LogObject("eventType", eventType)
 
-	logger := span.Logger()
-	ctx := span.Context()
-
 	if clientConnection != nil {
 		switch eventType {
 		case monitor.EventTypeInitialStateTransfer:
-			logger.Infof("Send initial transfer cross connect event: %v", xcon)
-			client.monitorManager.CrossConnectMonitor().Update(ctx, xcon)
+			span.Logger().Infof("Send initial transfer cross connect event: %v", xcon)
+			client.monitorManager.CrossConnectMonitor().Update(span.Context(), xcon)
 		case monitor.EventTypeUpdate:
-			logger.Infof("Send cross connect event: %v", xcon)
-			client.monitorManager.CrossConnectMonitor().Update(ctx, xcon)
-			client.xconManager.UpdateXcon(ctx, clientConnection, xcon)
+			span.Logger().Infof("Send cross connect event: %v", xcon)
+			client.monitorManager.CrossConnectMonitor().Update(span.Context(), xcon)
+			client.xconManager.UpdateXcon(span.Context(), clientConnection, xcon)
 		case monitor.EventTypeDelete:
-			logger.Infof("Send cross connect delete event: %v", xcon)
-			client.monitorManager.CrossConnectMonitor().Delete(ctx, xcon)
+			span.Logger().Infof("Send cross connect delete event: %v", xcon)
+			client.monitorManager.CrossConnectMonitor().Delete(span.Context(), xcon)
 		}
 	} else {
 		span.LogError(fmt.Errorf("failed to Send cross connect event: %v. No Client connection is found", xcon))
@@ -464,7 +460,6 @@ func (client *NsmMonitorCrossConnectClient) handleRemoteConnection(entity monito
 			if cc, err := client.xconManager.WaitPendingConnections(ctx, remoteConnection.GetId(), parameters[peerName]); cc != nil && err == nil {
 				span := common.SpanHelperFromConnection(ctx, cc, "handleRemoteConnection")
 				defer span.Finish()
-				ctx = span.Context()
 				span.LogObject("clientConnection", cc)
 				span.LogObject("RemoteConnect", remoteConnection)
 				span.LogValue("peerName", peerName)
@@ -473,7 +468,7 @@ func (client *NsmMonitorCrossConnectClient) handleRemoteConnection(entity monito
 
 				span.LogValue("waitTime", fmt.Sprintf("%v", time.Since(currentTime)))
 
-				client.handleRemoteConnectionEvent(ctx, eventType, cc, remoteConnection)
+				client.handleRemoteConnectionEvent(span.Context(), eventType, cc, remoteConnection)
 			}
 		}()
 	}

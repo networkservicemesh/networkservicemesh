@@ -9,11 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/opentracing/opentracing-go/log"
-
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
-
-	"github.com/opentracing/opentracing-go"
 
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -213,14 +209,10 @@ func NewServiceRegistryAt(nsmAddress string) serviceregistry.ServiceRegistry {
 }
 
 func (impl *nsmdServiceRegistry) WaitForDataplaneAvailable(ctx context.Context, mdl model.Model, timeout time.Duration) error {
-	logger := common.Log(ctx)
-	logger.Info("Waiting for dataplane available...")
+	span := common.SpanHelperFromContext(ctx, "wait-dataplane")
+	defer span.Finish()
+	span.Logger().Info("Waiting for dataplane available...")
 
-	var span opentracing.Span
-	if opentracing.IsGlobalTracerRegistered() {
-		span, _ = opentracing.StartSpanFromContext(ctx, "wait-dataplane")
-		defer span.Finish()
-	}
 	st := time.Now()
 	checkConfigured := func(dp *model.Dataplane) bool {
 		return dp.MechanismsConfigured
@@ -232,10 +224,7 @@ func (impl *nsmdServiceRegistry) WaitForDataplaneAvailable(ctx context.Context, 
 		}
 		if time.Since(st) > timeout {
 			err := fmt.Errorf("error waiting for dataplane... timeout happened")
-			logger.Error(err)
-			if span != nil {
-				span.LogFields(log.Error(err))
-			}
+			span.LogError(err)
 		}
 	}
 	return nil

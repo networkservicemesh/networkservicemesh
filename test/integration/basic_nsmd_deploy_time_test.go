@@ -30,7 +30,7 @@ func TestNSMDDeploy(t *testing.T) {
 	_, err = kubetest.SetupNodes(k8s, 1, defaultTimeout)
 	g.Expect(err).To(BeNil())
 	k8s.Cleanup()
-	
+
 	st := time.Now()
 	k8s, err = kubetest.NewK8s(g, true)
 	defer k8s.Cleanup()
@@ -40,8 +40,7 @@ func TestNSMDDeploy(t *testing.T) {
 	deploy := time.Now()
 	k8s.Cleanup()
 	destroy := time.Now()
-	
-	
+
 	logrus.Infof("Pods Start time: %v", deploy.Sub(st))
 	g.Expect(deploy.Sub(st) < time.Second*30).To(Equal(true))
 	logrus.Infof("Pods Cleanup time: %v", destroy.Sub(deploy))
