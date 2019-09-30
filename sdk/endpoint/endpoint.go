@@ -18,9 +18,10 @@ package endpoint
 import (
 	"context"
 	"fmt"
-	"github.com/opentracing/opentracing-go/log"
 	"io"
 	"net"
+
+	"github.com/opentracing/opentracing-go/log"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/opentracing/opentracing-go"

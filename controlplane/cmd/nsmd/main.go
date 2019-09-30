@@ -3,10 +3,11 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/probes"
 
@@ -44,7 +45,8 @@ func main() {
 	}
 
 	// Global NSMgr server span holder
-	span := spanhelper.SpanHelperFromContext(context.Background(), "nsmd.server")
+	span := spanhelper.FromContext(context.Background(), "nsmd.server")
+	span.LogValue("tracing.init-complete", fmt.Sprintf("%v", time.Since(start)))
 	defer span.Finish() // Mark it as finished, since it will be used as root.
 
 	apiRegistry := nsmd.NewApiRegistry()
@@ -96,7 +98,7 @@ func main() {
 
 	// Wait for dataplane to be connecting to us
 	if err := manager.WaitForDataplane(span.Context(), nsmd.DataplaneTimeout); err != nil {
-		span.LogError(fmt.Errorf("Error waiting for dataplane: %+v", err))
+		span.LogError(fmt.Errorf("error waiting for dataplane: %+v", err))
 		return
 	}
 
@@ -108,7 +110,7 @@ func main() {
 	span.LogObject("api-address", nsmdAPIAddress)
 	sock, err := apiRegistry.NewPublicListener(nsmdAPIAddress)
 	if err != nil {
-		span.LogError(fmt.Errorf("Failed to start Public API server: %+v", err))
+		span.LogError(fmt.Errorf("failed to start Public API server: %+v", err))
 		return
 	}
 	span.Logger().Info("Public listener is ready")
@@ -118,8 +120,7 @@ func main() {
 	nsmdGoals.SetServerAPIReady()
 	span.Logger().Info("Serve api is ready")
 
-	elapsed := time.Since(start)
-	span.LogObject("start-time", elapsed)
+	span.LogValue("start-time", fmt.Sprintf("%v", time.Since(start)))
 	span.Finish()
 	<-c
 }

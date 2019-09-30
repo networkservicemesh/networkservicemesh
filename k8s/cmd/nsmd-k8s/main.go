@@ -2,10 +2,11 @@ package main
 
 import (
 	"context"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
 	"net"
 	"os"
 	"strings"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
 
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
@@ -35,7 +36,7 @@ func main() {
 		}()
 	}
 
-	span := spanhelper.SpanHelperFromContext(context.Background(), "nsmd-k8s")
+	span := spanhelper.FromContext(context.Background(), "nsmd-k8s")
 	defer span.Finish()
 
 	address := os.Getenv("NSMD_K8S_ADDRESS")

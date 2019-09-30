@@ -17,6 +17,7 @@ package local
 import (
 	"context"
 	"fmt"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
 
 	"github.com/golang/protobuf/proto"
@@ -80,7 +81,7 @@ func (cce *endpointSelectorService) Request(ctx context.Context, request *networ
 	attempt := 0
 	for {
 		attempt++
-		span := spanhelper.SpanHelperFromContext(parentCtx, fmt.Sprintf("select-nse-%v", attempt))
+		span := spanhelper.FromContext(parentCtx, fmt.Sprintf("select-nse-%v", attempt))
 		defer span.Finish()
 
 		logger := span.Logger()

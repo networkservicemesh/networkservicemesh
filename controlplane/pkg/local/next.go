@@ -17,6 +17,7 @@ package local
 import (
 	"context"
 	"fmt"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
 
 	"github.com/golang/protobuf/ptypes/empty"
@@ -76,7 +77,7 @@ func (n *nextEndpoint) Request(ctx context.Context, request *networkservice.Netw
 		ctx = WithNext(ctx, nil)
 	}
 
-	span := spanhelper.SpanHelperFromContext(ctx, fmt.Sprintf("Local.%s.Request", typeutils.GetTypeName(n.composite.services[n.index])))
+	span := spanhelper.FromContext(ctx, fmt.Sprintf("Local.%s.Request", typeutils.GetTypeName(n.composite.services[n.index])))
 	defer span.Finish()
 	logger := span.Logger()
 	ctx = span.Context()
@@ -99,7 +100,7 @@ func (n *nextEndpoint) Close(ctx context.Context, connection *connection.Connect
 		ctx = WithNext(ctx, nil)
 	}
 	// Create a new span
-	span := spanhelper.SpanHelperFromContext(ctx, fmt.Sprintf("Local.%s.Close", typeutils.GetTypeName(n.composite.services[n.index])))
+	span := spanhelper.FromContext(ctx, fmt.Sprintf("Local.%s.Close", typeutils.GetTypeName(n.composite.services[n.index])))
 	defer span.Finish()
 	ctx = span.Context()
 

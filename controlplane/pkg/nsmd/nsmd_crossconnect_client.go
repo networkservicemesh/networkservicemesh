@@ -17,9 +17,10 @@ package nsmd
 import (
 	"context"
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
 	"sync"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
 
@@ -116,9 +117,9 @@ func (client *NsmMonitorCrossConnectClient) EndpointDeleted(_ context.Context, e
 
 // DataplaneAdded implements method from Listener
 func (client *NsmMonitorCrossConnectClient) DataplaneAdded(_ context.Context, dp *model.Dataplane) {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(client.xconManager.Context())
 	client.dataplanes.Store(dp.RegisteredName, cancel)
-	logrus.Infof("Starting Dataplane crossconnect monitoring client...")
+
 	go client.dataplaneCrossConnectMonitor(ctx, dp)
 }
 
@@ -141,7 +142,7 @@ func (client *NsmMonitorCrossConnectClient) startPeerMonitor(clientConnection *m
 		remotePeer.connections[clientConnection.ConnectionID] = clientConnection
 		return
 	}
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(client.xconManager.Context())
 	client.remotePeers[clientConnection.RemoteNsm.Name] = &remotePeerDescriptor{
 		cancel: cancel,
 		connections: map[string]*model.ClientConnection{
@@ -326,9 +327,13 @@ func (client *NsmMonitorCrossConnectClient) handleLocalConnection(entity monitor
 // If it detects a failure of the connection, it will indicate that dataplane is no longer operational. In this case
 // monitor will remove all dataplane connections and will terminate itself.
 func (client *NsmMonitorCrossConnectClient) dataplaneCrossConnectMonitor(ctx context.Context, dataplane *model.Dataplane) {
+	span := spanhelper.FromContext(ctx, fmt.Sprintf("Dataplane-%v-monitor", dataplane.RegisteredName))
+	defer span.Finish()
+
+	span.Logger().Infof("Starting Dataplane crossconnect monitoring client...")
 	grpcConnectionSupplier := func() (*grpc.ClientConn, error) {
 		logrus.Infof(dataplaneLogWithParamFormat, dataplane.RegisteredName, "Connecting to", dataplane.SocketLocation)
-		return tools.DialUnix(dataplane.SocketLocation)
+		return tools.DialContextUnix(span.Context(), dataplane.SocketLocation)
 	}
 
 	eventHandler := func(event monitor.Event, parameters map[string]string) error {
@@ -336,7 +341,7 @@ func (client *NsmMonitorCrossConnectClient) dataplaneCrossConnectMonitor(ctx con
 	}
 
 	_ = client.monitor(
-		ctx,
+		span.Context(),
 		dataplaneLogFormat, dataplaneLogWithParamFormat, dataplane.RegisteredName,
 		grpcConnectionSupplier, monitor_crossconnect.NewMonitorClient,
 		client.handleXcon, eventHandler, nil)
@@ -402,9 +407,11 @@ func (client *NsmMonitorCrossConnectClient) handleXconEvent(event monitor.Event,
 }
 
 func (client *NsmMonitorCrossConnectClient) remotePeerConnectionMonitor(ctx context.Context, remotePeer *registry.NetworkServiceManager) {
+	span := spanhelper.FromContext(ctx, fmt.Sprintf("remotePeerMonitor-%v", remotePeer.Name))
+	defer span.Finish()
 	grpcConnectionSupplier := func() (*grpc.ClientConn, error) {
-		logrus.Infof(peerLogWithParamFormat, remotePeer.Name, "Connecting to", remotePeer.Url)
-		return tools.DialTCP(remotePeer.GetUrl())
+		span.Logger().Infof(peerLogWithParamFormat, remotePeer.Name, "Connecting to", remotePeer.Url)
+		return tools.DialContextTCP(span.Context(), remotePeer.GetUrl())
 	}
 	monitorClientSupplier := func(conn *grpc.ClientConn) (monitor.Client, error) {
 		return monitor_remote.NewMonitorClient(conn, &remote.MonitorScopeSelector{
@@ -420,14 +427,14 @@ func (client *NsmMonitorCrossConnectClient) remotePeerConnectionMonitor(ctx cont
 		client.handleRemoteConnection, nil, map[string]string{peerName: remotePeer.Name})
 
 	if err != nil {
+		span.LogError(err)
 		// Same as DST down case, we need to wait for same NSE and updated NSMD.
 		connections := client.xconManager.GetClientConnectionByRemote(remotePeer)
 		for _, cc := range connections {
-			span := common.SpanHelperFromConnection(ctx, cc, "remotePeerConnectionMonitor.update")
-			defer span.Finish()
-			ctx = span.Context()
-			span.LogObject("clientConnection", cc)
-			client.xconManager.DestinationDown(ctx, cc, true)
+			ccSpan := common.SpanHelperFromConnection(ctx, cc, "remotePeerConnectionMonitor.update")
+			defer ccSpan.Finish()
+			ccSpan.LogObject("clientConnection", cc)
+			client.xconManager.DestinationDown(ccSpan.Context(), cc, true)
 		}
 	}
 }
@@ -483,7 +490,7 @@ func (client *NsmMonitorCrossConnectClient) handleRemoteConnectionEvent(ctx cont
 		// DST connection is updated, we most probable need to re-program our data plane.
 		client.xconManager.RemoteDestinationUpdated(ctx, cc, remoteConnection)
 	case monitor.EventTypeDelete:
-		span := spanhelper.SpanHelperFromContext(ctx, "handleRemoteConnectionEvent")
+		span := spanhelper.FromContext(ctx, "handleRemoteConnectionEvent")
 		defer span.Finish()
 		ctx = span.Context()
 

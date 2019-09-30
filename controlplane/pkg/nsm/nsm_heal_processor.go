@@ -3,8 +3,9 @@ package nsm
 import (
 	"context"
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
 
 	local_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	local_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
@@ -126,7 +127,7 @@ func (p *healProcessor) serve() {
 		}
 
 		go func() {
-			span := spanhelper.SpanHelperFromContext(e.ctx, "heal")
+			span := spanhelper.FromContext(e.ctx, "heal")
 			defer span.Finish()
 			ctx := span.Context()
 
@@ -162,7 +163,7 @@ func (p *healProcessor) serve() {
 }
 
 func (p *healProcessor) healDstDown(ctx context.Context, cc *model.ClientConnection) bool {
-	span := common.SpanHelperFromConnection(ctx, cc, "healDstDown")
+	span := spanhelper.FromContext(ctx, "healDstDown")
 	defer span.Finish()
 
 	logger := span.Logger()
@@ -194,9 +195,8 @@ func (p *healProcessor) healDstDown(ctx context.Context, cc *model.ClientConnect
 		return false
 	}
 
-	var cancel context.CancelFunc
-	ctx, cancel = context.WithTimeout(ctx, p.properties.HealTimeout*3)
-	defer cancel()
+	waitCtx, waitCancel := context.WithTimeout(ctx, p.properties.HealTimeout*3)
+	defer waitCancel()
 
 	logger.Infof("NSM_Heal(2.2) Starting DST Heal...")
 
@@ -204,7 +204,7 @@ func (p *healProcessor) healDstDown(ctx context.Context, cc *model.ClientConnect
 	endpointName := cc.Endpoint.GetNetworkServiceEndpoint().GetName()
 
 	// Wait for NSE not equal to down one, since we know it will be re-registered with new endpoint name.
-	if !p.waitNSE(ctx, cc, endpointName, cc.GetNetworkService(), p.nseIsNewAndAvailable) {
+	if !p.waitNSE(waitCtx, cc, endpointName, cc.GetNetworkService(), p.nseIsNewAndAvailable) {
 		// Mark endpoint as ignored.
 		ctx = common.WithIgnoredEndpoints(ctx, map[string]*registry.NSERegistration{
 			endpointName: cc.Endpoint,
@@ -223,7 +223,7 @@ func (p *healProcessor) healDstDown(ctx context.Context, cc *model.ClientConnect
 }
 
 func (p *healProcessor) healDataplaneDown(ctx context.Context, cc *model.ClientConnection) bool {
-	span := common.SpanHelperFromConnection(ctx, cc, "healDataplaneDown")
+	span := spanhelper.FromContext(ctx, "healDataplaneDown")
 	defer span.Finish()
 	ctx = span.Context()
 
@@ -267,7 +267,7 @@ func (p *healProcessor) healDataplaneDown(ctx context.Context, cc *model.ClientC
 
 func (p *healProcessor) healDstUpdate(ctx context.Context, cc *model.ClientConnection) bool {
 
-	span := spanhelper.SpanHelperFromContext(ctx, "healDstUpdate")
+	span := spanhelper.FromContext(ctx, "healDstUpdate")
 	defer span.Finish()
 	ctx = span.Context()
 
@@ -297,27 +297,29 @@ func (p *healProcessor) healDstUpdate(ctx context.Context, cc *model.ClientConne
 }
 
 func (p *healProcessor) performRequest(ctx context.Context, request networkservice.Request, cc nsm.ClientConnection) error {
-	var err error
+	span := spanhelper.FromContext(ctx, "performRequest")
+	defer span.Finish()
 	if request.IsRemote() {
-		_, err = p.manager.RemoteManager().Request(ctx, request.(*remote_networkservice.NetworkServiceRequest))
-	} else {
-		_, err = p.manager.LocalManager(cc).Request(ctx, request.(*local_networkservice.NetworkServiceRequest))
+		resp, err := p.manager.RemoteManager().Request(span.Context(), request.(*remote_networkservice.NetworkServiceRequest))
+		span.LogObject("response", resp)
+		return err
 	}
+	resp, err := p.manager.LocalManager(cc).Request(span.Context(), request.(*local_networkservice.NetworkServiceRequest))
+	span.LogObject("response", resp)
 	return err
 }
 
 func (p *healProcessor) healDstNmgrDown(ctx context.Context, cc *model.ClientConnection) bool {
 
-	span := common.SpanHelperFromConnection(ctx, cc, "healDstNsmgrDown")
+	span := spanhelper.FromContext(ctx, "healDstNsmgrDown")
 	defer span.Finish()
 	ctx = span.Context()
 	logger := span.Logger()
 
 	logger.Infof("NSM_Heal(6.1-%v) Starting DST + NSMGR Heal...")
 
-	var cancel context.CancelFunc
-	ctx, cancel = context.WithTimeout(ctx, p.properties.HealTimeout*3)
-	defer cancel()
+	waitCtx, waitCancel := context.WithTimeout(ctx, p.properties.HealTimeout*3)
+	defer waitCancel()
 
 	networkService := cc.GetNetworkService()
 
@@ -325,7 +327,7 @@ func (p *healProcessor) healDstNmgrDown(ctx context.Context, cc *model.ClientCon
 	// Wait for exact same NSE to be available with NSMD connection alive.
 	if cc.Endpoint != nil {
 		endpointName = cc.Endpoint.GetNetworkServiceEndpoint().GetName()
-		if !p.waitNSE(ctx, cc, endpointName, networkService, p.nseIsSameAndAvailable) {
+		if !p.waitNSE(waitCtx, cc, endpointName, networkService, p.nseIsSameAndAvailable) {
 			ctx = common.WithIgnoredEndpoints(ctx, map[string]*registry.NSERegistration{
 				endpointName: cc.Endpoint,
 			})
@@ -344,7 +346,14 @@ func (p *healProcessor) healDstNmgrDown(ctx context.Context, cc *model.ClientCon
 		})
 
 		// In this case, most probable both NSMD and NSE are die, and registry was outdated on moment of waitNSE.
-		if endpointName == "" || !p.waitNSE(ctx, cc, endpointName, networkService, p.nseIsNewAndAvailable) {
+		if endpointName == "" {
+			span.LogError(fmt.Errorf("endpoint name is empty"))
+			return false
+		}
+		waitCtx2, waitCancel2 := context.WithTimeout(ctx, p.properties.HealTimeout*3)
+		defer waitCancel2()
+		if !p.waitNSE(waitCtx2, cc, endpointName, networkService, p.nseIsNewAndAvailable) {
+			span.LogError(fmt.Errorf("failed to find endpoint %v", endpointName))
 			return false
 		}
 
@@ -353,7 +362,7 @@ func (p *healProcessor) healDstNmgrDown(ctx context.Context, cc *model.ClientCon
 		defer requestCancel()
 
 		if err := p.performRequest(requestCtx, cc.Request, cc); err != nil {
-			err = fmt.Errorf("NSM_Heal(6.2.3) Failed to heal connection: %v", err)
+			err = fmt.Errorf("heal(6.2.3) Failed to heal connection: %v", err)
 			span.LogError(err)
 			return false
 		}
@@ -405,7 +414,7 @@ func (p *healProcessor) nseIsSameAndAvailable(ctx context.Context, endpointName 
 
 func (p *healProcessor) waitNSE(ctx context.Context, cc *model.ClientConnection, endpointName, networkService string, nseValidator nseValidator) bool {
 
-	span := common.SpanHelperFromConnection(ctx, cc, "waitNSE")
+	span := spanhelper.FromContext(ctx, "waitNSE")
 	defer span.Finish()
 	ctx = span.Context()
 

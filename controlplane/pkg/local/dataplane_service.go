@@ -17,8 +17,9 @@ package local
 import (
 	"context"
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
 
 	"github.com/sirupsen/logrus"
 
@@ -131,7 +132,7 @@ func (cce *dataplaneService) doFailureClose(ctx context.Context) {
 	newCtx, cancel := context.WithTimeout(context.Background(), ErrorCloseTimeout)
 	defer cancel()
 
-	span := spanhelper.SpanHelperFromContextCopySpan(newCtx, spanhelper.GetSpanHelper(ctx), "doDataplaneClose")
+	span := spanhelper.CopySpan(newCtx, spanhelper.GetSpanHelper(ctx), "doDataplaneClose")
 	defer span.Finish()
 
 	newCtx = span.Context()

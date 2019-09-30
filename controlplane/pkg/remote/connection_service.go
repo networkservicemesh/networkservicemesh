@@ -16,6 +16,7 @@ package remote
 
 import (
 	"fmt"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
 
 	"github.com/golang/protobuf/ptypes/empty"

@@ -123,15 +123,15 @@ func distill(w *zip.Writer, r *zip.ReadCloser) {
 func showPodLogs(k8s *K8s, t *testing.T, pod *v1.Pod) {
 	for i := 0; i < len(pod.Spec.Containers); i++ {
 		c := &pod.Spec.Containers[i]
-		savePodContainerLog(k8s, pod, c, k8s, t)
+		savePodContainerLog(k8s, pod, c, t)
 	}
 	for i := 0; i < len(pod.Spec.InitContainers); i++ {
 		c := &pod.Spec.Containers[i]
-		savePodContainerLog(k8s, pod, c, k8s, t)
+		savePodContainerLog(k8s, pod, c, t)
 	}
 }
 
-func savePodContainerLog(k8s *K8s, pod *v1.Pod, c *v1.Container, s *K8s, t *testing.T) {
+func savePodContainerLog(k8s *K8s, pod *v1.Pod, c *v1.Container, t *testing.T) {
 	name := strings.Join([]string{pod.Name, c.Name}, "-")
 	logs, err := k8s.GetLogs(pod, c.Name)
 	writeLogFunc := logTransaction

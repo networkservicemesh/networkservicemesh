@@ -16,6 +16,7 @@ package common
 
 import (
 	"context"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 )
@@ -23,7 +24,7 @@ import (
 // SpanHelperFromConnection - construct new span helper with span from context is pressent or span from connection object
 func SpanHelperFromConnection(ctx context.Context, clientConnection *model.ClientConnection, operation string) spanhelper.SpanHelper {
 	if clientConnection != nil && clientConnection.Span != nil {
-		return spanhelper.SpanHelperWithSpan(ctx, clientConnection.Span, operation)
+		return spanhelper.WithSpan(ctx, clientConnection.Span, operation)
 	}
-	return spanhelper.SpanHelperFromContext(ctx, operation)
+	return spanhelper.FromContext(ctx, operation)
 }

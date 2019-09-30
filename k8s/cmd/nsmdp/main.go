@@ -16,8 +16,9 @@ package main
 
 import (
 	"context"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
 	"os"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
 
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
@@ -45,11 +46,10 @@ func main() {
 		opentracing.SetGlobalTracer(tracer)
 	}
 
-	span := spanhelper.SpanHelperFromContext(context.Background(), "NSMgr.Device.Plugin")
-	defer span.Finish() // Finish since it will be root for all events.
-
+	span := spanhelper.FromContext(context.Background(), "NSMgr.Device.Plugin")
 	serviceRegistry := nsmd.NewServiceRegistry()
 	span.LogObject("registry.at", serviceRegistry.GetPublicAPI())
+	defer span.Finish()
 
 	err := NewNSMDeviceServer(span.Context(), serviceRegistry)
 

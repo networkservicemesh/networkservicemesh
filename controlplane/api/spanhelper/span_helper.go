@@ -4,10 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/log"
 	"github.com/sirupsen/logrus"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
 // LogFromSpan - return a logger that has a TraceHook to also log messages to the span
@@ -55,7 +57,6 @@ type SpanHelper interface {
 	LogValue(attribute string, value interface{})
 	LogError(err error)
 	Span() opentracing.Span
-	StartSpan(operation string) SpanHelper
 }
 
 type spanHelper struct {
@@ -119,8 +120,8 @@ func NewSpanHelper(ctx context.Context, span opentracing.Span, operation string)
 	}
 }
 
-func (s *spanHelper) StartSpan(operation string) SpanHelper {
-	if s.span != nil && tools.IsOpentracingEnabled() {
+func (s *spanHelper) startSpan(operation string) SpanHelper {
+	if s.ctx != nil && tools.IsOpentracingEnabled() {
 		newSpan, newCtx := opentracing.StartSpanFromContext(s.ctx, operation)
 		return NewSpanHelper(newCtx, newSpan, operation)
 	}
@@ -131,8 +132,8 @@ func (s *spanHelper) Context() context.Context {
 	return s.ctx
 }
 
-// SpanHelperFromContext - return span helper from context and if opentracing is enabled start new span
-func SpanHelperFromContext(ctx context.Context, operation string) SpanHelper {
+// FromContext - return span helper from context and if opentracing is enabled start new span
+func FromContext(ctx context.Context, operation string) SpanHelper {
 	if tools.IsOpentracingEnabled() {
 		newSpan, newCtx := opentracing.StartSpanFromContext(ctx, operation)
 		return NewSpanHelper(newCtx, newSpan, operation)
@@ -154,15 +155,15 @@ func GetSpanHelper(ctx context.Context) SpanHelper {
 	}
 }
 
-//SpanHelperFromContextCopySpan - construct span helper object with ctx and copy span from spanContext
+//CopySpan - construct span helper object with ctx and copy span from spanContext
 // Will start new operation on span
-func SpanHelperFromContextCopySpan(ctx context.Context, spanContext SpanHelper, operation string) SpanHelper {
-	return SpanHelperWithSpan(ctx, spanContext.Span(), operation)
+func CopySpan(ctx context.Context, spanContext SpanHelper, operation string) SpanHelper {
+	return WithSpan(ctx, spanContext.Span(), operation)
 }
 
-//SpanHelperWithSpan - construct span helper object with ctx and copy spanid from span
+// WithSpan - construct span helper object with ctx and copy spanid from span
 // Will start new operation on span
-func SpanHelperWithSpan(ctx context.Context, span opentracing.Span, operation string) SpanHelper {
+func WithSpan(ctx context.Context, span opentracing.Span, operation string) SpanHelper {
 	if tools.IsOpentracingEnabled() && span != nil {
 		ctx = opentracing.ContextWithSpan(ctx, span)
 		newSpan, newCtx := opentracing.StartSpanFromContext(ctx, operation)

@@ -286,19 +286,22 @@ func (k8s *K8s) reportSpans() {
 		pods := k8s.ListPods()
 		spans := map[string]*spanRecord{}
 		for i := 0; i < len(pods); i++ {
-			for _, c := range pods[i].Spec.Containers {
+			pod := pods[i]
+			for ci := 0; ci < len(pod.Spec.Containers); ci++ {
+				c := pod.Spec.Containers[ci]
 				k8s.findSpans(&pods[i], c, spans)
 			}
-			for _, c := range pods[i].Spec.InitContainers {
+			for ci := 0; ci < len(pod.Spec.InitContainers); ci++ {
+				c := pod.Spec.Containers[ci]
 				k8s.findSpans(&pods[i], c, spans)
 			}
 		}
-		for spanId, span := range spans {
+		for spanID, span := range spans {
 			keys := []string{}
 			for k := range span.spanPod {
 				keys = append(keys, k)
 			}
-			logrus.Infof("Span %v pods: %v", spanId, keys)
+			logrus.Infof("Span %v pods: %v", spanID, keys)
 		}
 	}
 }
@@ -314,12 +317,12 @@ func (k8s *K8s) findSpans(pod *v1.Pod, c v1.Container, spans map[string]*spanRec
 				pos = strings.Index(value, ":")
 				value = value[0:pos]
 				if value != "" {
-					podRecordId := fmt.Sprintf("%s:%s", pod.Name, c.Name)
+					podRecordID := fmt.Sprintf("%s:%s", pod.Name, c.Name)
 					if span, ok := spans[value]; ok {
-						span.spanPod[podRecordId] = pod
+						span.spanPod[podRecordID] = pod
 					} else {
 						spans[value] = &spanRecord{
-							spanPod: map[string]*v1.Pod{podRecordId: pod},
+							spanPod: map[string]*v1.Pod{podRecordID: pod},
 						}
 					}
 				}

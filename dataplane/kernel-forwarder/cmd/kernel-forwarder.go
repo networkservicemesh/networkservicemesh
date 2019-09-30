@@ -16,7 +16,12 @@
 package main
 
 import (
+	"context"
+
+	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/probes"
 
@@ -28,6 +33,14 @@ import (
 func main() {
 	// Capture signals to cleanup before exiting
 	logrus.Info("Starting the Kernel-based forwarding plane!")
+
+	if tools.IsOpentracingEnabled() {
+		tracer, closer := tools.InitJaeger("kernel-forwarder")
+		opentracing.SetGlobalTracer(tracer)
+		defer func() { _ = closer.Close() }()
+	}
+	span := spanhelper.FromContext(context.Background(), "Start.KernelForwarder.Dataplane")
+	defer span.Finish()
 	c := tools.NewOSSignalChannel()
 	dataplaneGoals := &common.DataplaneProbeGoals{}
 	dataplaneProbes := probes.New("Kerner-based forwarding plane liveness/readiness healthcheck", dataplaneGoals)
@@ -35,7 +48,7 @@ func main() {
 
 	plane := kernelforwarder.CreateKernelForwarder()
 
-	registration := common.CreateDataplane(plane, dataplaneGoals)
+	registration := common.CreateDataplane(span.Context(), plane, dataplaneGoals)
 
 	for range c {
 		logrus.Info("Closing Dataplane Registration")

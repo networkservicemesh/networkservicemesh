@@ -111,9 +111,9 @@ func DialUnix(path string, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
 }
 
 // DialUnixInsecure establish connection with passed unix socket in insecure mode and set default timeout
-func DialUnixInsecure(ctx context.Context, path string, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
+func DialUnixInsecure(path string, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
 	dialCtx := new(dialBuilder).Unix().Insecure().Timeout(dialTimeoutDefault).DialContextFunc()
-	return dialCtx(ctx, path, opts...)
+	return dialCtx(context.Background(), path, opts...)
 }
 
 // DialContextTCP establish TCP connection with address

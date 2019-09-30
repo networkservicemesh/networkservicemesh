@@ -19,6 +19,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
+
 	"github.com/gogo/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/ligato/vpp-agent/api/configurator"
@@ -53,22 +55,28 @@ type VPPAgent struct {
 	metricsCollector     *MetricsCollector
 	directMemifConnector *memif.DirectMemifConnector
 	common               *common.DataplaneConfig
+	ctx                  context.Context
 }
 
-func CreateVPPAgent() *VPPAgent {
-	return &VPPAgent{}
+// CreateVPPAgent - create VPP agent
+func CreateVPPAgent(ctx context.Context) *VPPAgent {
+	return &VPPAgent{
+		ctx: ctx,
+	}
 }
 
 // MonitorMechanisms sends mechanism updates
 func (v *VPPAgent) MonitorMechanisms(empty *empty.Empty, updateSrv dataplane.MechanismsMonitor_MonitorMechanismsServer) error {
-	logrus.Infof("MonitorMechanisms was called")
+	span := spanhelper.FromContext(v.ctx, "MonitorMecnahisms")
+	defer span.Finish()
+	span.Logger().Infof("MonitorMechanisms was called")
 	initialUpdate := &dataplane.MechanismUpdate{
 		RemoteMechanisms: v.common.Mechanisms.RemoteMechanisms,
 		LocalMechanisms:  v.common.Mechanisms.LocalMechanisms,
 	}
-	logrus.Infof("Sending MonitorMechanisms update: %v", initialUpdate)
+	span.Logger().Infof("Sending MonitorMechanisms update: %v", initialUpdate)
 	if err := updateSrv.Send(initialUpdate); err != nil {
-		logrus.Errorf("vpp-agent dataplane server: Detected error %s, grpc code: %+v on grpc channel", err.Error(), status.Convert(err).Code())
+		span.Logger().Errorf("vpp-agent dataplane server: Detected error %s, grpc code: %+v on grpc channel", err.Error(), status.Convert(err).Code())
 		return nil
 	}
 	for {
@@ -77,12 +85,12 @@ func (v *VPPAgent) MonitorMechanisms(empty *empty.Empty, updateSrv dataplane.Mec
 		// them back to NSM.
 		case update := <-v.common.MechanismsUpdateChannel:
 			v.common.Mechanisms = update
-			logrus.Infof("Sending MonitorMechanisms update: %v", update)
+			span.Logger().Infof("Sending MonitorMechanisms update: %v", update)
 			if err := updateSrv.Send(&dataplane.MechanismUpdate{
 				RemoteMechanisms: update.RemoteMechanisms,
 				LocalMechanisms:  update.LocalMechanisms,
 			}); err != nil {
-				logrus.Errorf("vpp dataplane server: Detected error %s, grpc code: %+v on grpc channel", err.Error(), status.Convert(err).Code())
+				span.Logger().Errorf("vpp dataplane server: Detected error %s, grpc code: %+v on grpc channel", err.Error(), status.Convert(err).Code())
 				return nil
 			}
 		}

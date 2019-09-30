@@ -17,12 +17,13 @@ package main
 
 import (
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
 	"net"
 	"path"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/sirupsen/logrus"
@@ -57,11 +58,11 @@ type nsmClientEndpoints struct {
 	mutext          sync.Mutex
 	clientId        int
 	insecure        bool
-	span            spanhelper.SpanHelper
+	ctx             context.Context
 }
 
 func (n *nsmClientEndpoints) Allocate(ctx context.Context, reqs *pluginapi.AllocateRequest) (*pluginapi.AllocateResponse, error) {
-	span := spanhelper.SpanHelperFromContextCopySpan(ctx, n.span, "Allocate")
+	span := spanhelper.FromContext(n.ctx, "Allocate")
 	defer span.Finish()
 
 	span.Logger().Infof("Client request for nsmdp resource... %v", proto.MarshalTextString(reqs))
@@ -113,7 +114,9 @@ func (n *nsmClientEndpoints) Allocate(ctx context.Context, reqs *pluginapi.Alloc
 
 // Register registers
 func Register(ctx context.Context, kubeletEndpoint string) error {
-	conn, err := tools.DialUnixInsecure(ctx, kubeletEndpoint)
+	span := spanhelper.FromContext(ctx, "Register")
+	defer span.Finish()
+	conn, err := tools.DialUnixInsecure(kubeletEndpoint)
 	if err != nil {
 		return fmt.Errorf("device-plugin: cannot connect to kubelet service: %v", err)
 	}
@@ -126,7 +129,10 @@ func Register(ctx context.Context, kubeletEndpoint string) error {
 		ResourceName: resourceName,
 	}
 
-	_, err = client.Register(ctx, reqt)
+	span.LogObject("request", reqt)
+	_, err = client.Register(context.Background(), reqt)
+	span.Logger().Infof("Register done")
+	span.LogError(err)
 	if err != nil {
 		return fmt.Errorf("device-plugin: cannot register to kubelet service: %v", err)
 	}
@@ -144,12 +150,16 @@ func (n *nsmClientEndpoints) PreStartContainer(ctx context.Context, info *plugin
 }
 
 func enumWorkspaces(ctx context.Context, serviceRegistry serviceregistry.ServiceRegistry) (*nsmdapi.EnumConnectionReply, error) {
-	client, con, err := serviceRegistry.NSMDApiClient()
+	span := spanhelper.FromContext(ctx, "enumWorkspaces")
+	defer span.Finish()
+	client, con, err := serviceRegistry.NSMDApiClient(span.Context())
 	if err != nil {
 		logrus.Fatalf("Failed to connect to NSMD: %+v...", err)
 	}
 	defer con.Close()
-	reply, err := client.EnumConnection(ctx, &nsmdapi.EnumConnectionRequest{})
+	reply, err := client.EnumConnection(span.Context(), &nsmdapi.EnumConnectionRequest{})
+	span.LogObject("reply", reply)
+	span.LogError(err)
 	if err != nil {
 		return nil, err
 	}
@@ -166,21 +176,28 @@ func indexOf(slice []string, value string) int {
 }
 
 func (n *nsmClientEndpoints) ListAndWatch(e *pluginapi.Empty, s pluginapi.DevicePlugin_ListAndWatchServer) error {
-	logrus.Infof("ListAndWatch was called with s: %+v", s)
+	span := spanhelper.FromContext(n.ctx, "ListAndWatch")
+	defer span.Finish()
+	span.Logger().Infof("ListAndWatch was called with s: %+v. Start sending updates...", s)
 	n.pluginApi = &s
 
 	// Restore state from NSMD
+	ind := 0
 	for {
-		n.receiveWorkspaces()
-		n.sendDeviceUpdate()
+		forSpan := spanhelper.FromContext(span.Context(), fmt.Sprintf("ListAndWatch-%v", ind))
+		n.receiveWorkspaces(forSpan.Context())
+		n.sendDeviceUpdate(forSpan.Context())
 
 		// Sleep before next notification.
+		forSpan.Logger().Infof("Delaying %v", KubeletNotifyDelay)
+		forSpan.Finish()
 		time.Sleep(KubeletNotifyDelay)
+		ind++
 	}
 }
 
-func startDeviceServer(ctx context.Context, nsm *nsmClientEndpoints) error {
-	span := spanhelper.SpanHelperFromContext(ctx, "start-device-server")
+func startDeviceServer(ctx context.Context, nsm pluginapi.DevicePluginServer) error {
+	span := spanhelper.FromContext(ctx, "start.device.server")
 	defer span.Finish()
 	listenEndpoint := path.Join(pluginapi.DevicePluginPath, ServerSock)
 	span.LogObject("listen-endpoint", listenEndpoint)
@@ -198,16 +215,21 @@ func startDeviceServer(ctx context.Context, nsm *nsmClientEndpoints) error {
 
 	span.Logger().Infof("Starting Device Plugin's gRPC server listening on socket: %s", ServerSock)
 	go func() {
+		span.Logger().Infof("Start serving...")
 		if err := grpcServer.Serve(sock); err != nil {
 			span.Logger().Error("failed to start device plugin grpc server", listenEndpoint, err)
 		}
 	}()
+	span.Logger().Infof("Check device server operational")
 	// Check if the socket of device plugin server is operation
-	conn, err := tools.DialUnixInsecure(span.Context(), listenEndpoint)
+	conn, err := tools.DialUnixInsecure(listenEndpoint)
 	if err != nil {
+		span.LogError(err)
 		return err
 	}
 	_ = conn.Close()
+
+	span.Logger().Infof("Device server is operational")
 
 	return nil
 }
@@ -222,7 +244,7 @@ func waitForNsmdAvailable(ctx context.Context) {
 
 // NewNSMDeviceServer registers and starts Kubelet's device plugin
 func NewNSMDeviceServer(ctx context.Context, serviceRegistry serviceregistry.ServiceRegistry) error {
-	span := spanhelper.SpanHelperFromContext(ctx, "start.device.server")
+	span := spanhelper.FromContext(ctx, "start.device.server")
 	defer span.Finish()
 	waitForNsmdAvailable(span.Context())
 
@@ -236,12 +258,13 @@ func NewNSMDeviceServer(ctx context.Context, serviceRegistry serviceregistry.Ser
 		resp:            new(pluginapi.ListAndWatchResponse),
 		devs:            map[string]*pluginapi.Device{},
 		insecure:        insecure,
-		span:            span,
+		ctx:             ctx,
 	}
 
 	for i := 0; i < DeviceBuffer; i++ {
-		nsm.addClientDevice(span)
+		nsm.addClientDevice()
 	}
+	span.LogObject("devices", nsm.resp.Devices)
 
 	if err := startDeviceServer(span.Context(), nsm); err != nil {
 		return err
@@ -250,13 +273,12 @@ func NewNSMDeviceServer(ctx context.Context, serviceRegistry serviceregistry.Ser
 	return Register(span.Context(), pluginapi.KubeletSocket)
 }
 
-func (nsm *nsmClientEndpoints) addClientDevice(span spanhelper.SpanHelper) {
+func (nsm *nsmClientEndpoints) addClientDevice() {
 	nsm.mutext.Lock()
 	defer nsm.mutext.Unlock()
 
 	for {
 		nsm.clientId++
-		span.LogObject("clientId", nsm.clientId)
 
 		id := fmt.Sprintf("nsm-%d", nsm.clientId)
 		if _, ok := nsm.devs[id]; ok {
@@ -268,7 +290,6 @@ func (nsm *nsmClientEndpoints) addClientDevice(span spanhelper.SpanHelper) {
 			ID:     id,
 			Health: pluginapi.Healthy,
 		}
-		span.LogObject("device", dev)
 		nsm.devs[id] = dev
 		nsm.resp.Devices = append(nsm.resp.Devices, dev)
 		break
@@ -276,29 +297,36 @@ func (nsm *nsmClientEndpoints) addClientDevice(span spanhelper.SpanHelper) {
 
 }
 
-func (n *nsmClientEndpoints) sendDeviceUpdate() {
+func (n *nsmClientEndpoints) sendDeviceUpdate(ctx context.Context) {
 	n.mutext.Lock()
 	defer n.mutext.Unlock()
 	if n.pluginApi != nil {
+		span := spanhelper.FromContext(ctx, "sendDeviceUpdate")
 		api := *n.pluginApi
-		n.span.Logger().Infof("Send device plugins intfo %v", n.resp)
+		span.LogObject("info", n.resp)
+		span.Logger().Infof("Send device plugins info")
 		if err := api.Send(n.resp); err != nil {
-			n.span.Logger().Errorf("Failed to send response to kubelet: %v\n", err)
+			span.LogError(err)
+			span.Logger().Errorf("Failed to send response to kubelet: %v\n", err)
 		}
 	}
 }
 
-func (n *nsmClientEndpoints) receiveWorkspaces() {
+func (n *nsmClientEndpoints) receiveWorkspaces(ctx context.Context) {
 	for {
-		reply, err := enumWorkspaces(n.span.Context(), n.serviceRegistry)
+		span := spanhelper.FromContext(ctx, "recieveWorkspaces")
+		defer span.Finish()
+		span.Logger().Infof("Request workspaces list")
+		reply, err := enumWorkspaces(span.Context(), n.serviceRegistry)
 		if err != nil {
-			n.span.Logger().Errorf("Error receive devices from NSM. %v", err)
+			span.Logger().Errorf("Error receive devices from NSM. %v", err)
 			// Make a fast delay to faster startup of NSMD.
 			<-time.After(100 * time.Millisecond)
 			continue
 		}
 		n.mutext.Lock()
 
+		span.LogObject("reply", reply)
 		// Check we had all workspaces in our update list
 		// This list could be changed in case both NSMDp and NSMD restart.
 		for _, w := range reply.GetWorkspace() {
@@ -317,9 +345,9 @@ func (n *nsmClientEndpoints) receiveWorkspaces() {
 		n.mutext.Unlock()
 		// Be sure we have enought deviced ids allocated.
 		for len(n.resp.Devices) < len(reply.GetWorkspace())+DeviceBuffer {
-			n.addClientDevice(n.span)
+			n.addClientDevice()
+			span.LogObject("new-devices", n.resp.Devices)
 		}
-
 		break
 	}
 }

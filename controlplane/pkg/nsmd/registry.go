@@ -16,7 +16,9 @@ package nsmd
 
 import (
 	"fmt"
+
 	"github.com/golang/protobuf/ptypes/empty"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
@@ -44,7 +46,7 @@ func NewRegistryServer(nsm *nsmServer, workspace *Workspace) NSERegistryServer {
 }
 
 func (es *registryServer) RegisterNSE(ctx context.Context, request *registry.NSERegistration) (*registry.NSERegistration, error) {
-	span := spanhelper.SpanHelperFromContextCopySpan(ctx, spanhelper.GetSpanHelper(es.nsm.Context()), "RegisterNSE")
+	span := spanhelper.CopySpan(ctx, spanhelper.GetSpanHelper(es.nsm.Context()), "RegisterNSE")
 	defer span.Finish()
 	span.Logger().Infof("Received RegisterNSE request: %v", request)
 
@@ -66,7 +68,7 @@ func (es *registryServer) RegisterNSE(ctx context.Context, request *registry.NSE
 	// Append to workspace...
 	err = es.workspace.localRegistry.AppendNSERegRequest(es.workspace.name, reg)
 	if err != nil {
-		err = fmt.Errorf("Failed to store NSE into local registry service: %v", err)
+		err = fmt.Errorf("failed to store NSE into local registry service: %v", err)
 		span.LogError(err)
 		_, _ = client.RemoveNSE(span.Context(), &registry.RemoveNSERequest{NetworkServiceEndpointName: reg.GetNetworkServiceEndpoint().GetName()})
 		return nil, err
@@ -106,7 +108,7 @@ func (es *registryServer) RegisterNSEWithClient(ctx context.Context, request *re
 }
 
 func (es *registryServer) RemoveNSE(ctx context.Context, request *registry.RemoveNSERequest) (*empty.Empty, error) {
-	span := spanhelper.SpanHelperFromContextCopySpan(ctx, spanhelper.GetSpanHelper(es.nsm.Context()), "RemoveNSE")
+	span := spanhelper.CopySpan(ctx, spanhelper.GetSpanHelper(es.nsm.Context()), "RemoveNSE")
 	defer span.Finish()
 
 	span.LogObject("request", request)

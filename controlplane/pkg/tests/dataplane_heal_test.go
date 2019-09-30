@@ -1,10 +1,11 @@
 package tests
 
 import (
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 
 	. "github.com/onsi/gomega"
 	"golang.org/x/net/context"
@@ -17,7 +18,7 @@ import (
 )
 
 func TestHealLocalDataplane(t *testing.T) {
-	os.Setenv(tools.InsecureEnv, "true")
+	_ = os.Setenv(tools.InsecureEnv, "true")
 	g := NewWithT(t)
 
 	storage := NewSharedStorage()

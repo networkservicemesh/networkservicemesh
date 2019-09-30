@@ -331,7 +331,7 @@ func (impl *nsmdTestServiceRegistry) DataplaneConnection(ctx context.Context, da
 	return impl.testDataplaneConnection, nil, nil
 }
 
-func (impl *nsmdTestServiceRegistry) NSMDApiClient() (nsmdapi.NSMDClient, *grpc.ClientConn, error) {
+func (impl *nsmdTestServiceRegistry) NSMDApiClient(context.Context) (nsmdapi.NSMDClient, *grpc.ClientConn, error) {
 	addr := fmt.Sprintf("%s:%d", "127.0.0.1", impl.apiRegistry.nsmdPort)
 	logrus.Infof("Connecting to nsmd on socket: %s...", addr)
 
@@ -505,7 +505,7 @@ func (srv *nsmdFullServerImpl) CreateNSClient(response *nsmdapi.ClientConnection
 }
 
 func (srv *nsmdFullServerImpl) RequestNSM(clientName string) *nsmdapi.ClientConnectionReply {
-	client, con, err := srv.serviceRegistry.NSMDApiClient()
+	client, con, err := srv.serviceRegistry.NSMDApiClient(context.Background())
 	if err != nil {
 		panic(err)
 	}

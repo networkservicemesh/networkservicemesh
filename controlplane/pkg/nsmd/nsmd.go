@@ -2,11 +2,12 @@ package nsmd
 
 import (
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
 	"net"
 	"os"
 	"sync"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/probes"
 	"github.com/networkservicemesh/networkservicemesh/pkg/probes/health"
@@ -95,10 +96,11 @@ func (nsm *nsmServer) RemoteConnectionMonitor() monitor.Server {
 	return nsm.remoteConnectionMonitor
 }
 
+// RequestWorkspace - request a workspace
 func RequestWorkspace(ctx context.Context, serviceRegistry serviceregistry.ServiceRegistry, id string) (*nsmdapi.ClientConnectionReply, error) {
-	span := spanhelper.SpanHelperFromContext(ctx, "RequestWorkspace")
+	span := spanhelper.FromContext(ctx, "RequestWorkspace")
 	defer span.Finish()
-	client, con, err := serviceRegistry.NSMDApiClient()
+	client, con, err := serviceRegistry.NSMDApiClient(span.Context())
 	if err != nil {
 		span.Logger().Fatalf("Failed to connect to NSMD: %+v...", err)
 	}
@@ -115,7 +117,7 @@ func RequestWorkspace(ctx context.Context, serviceRegistry serviceregistry.Servi
 }
 
 func (nsm *nsmServer) RequestClientConnection(ctx context.Context, request *nsmdapi.ClientConnectionRequest) (*nsmdapi.ClientConnectionReply, error) {
-	span := spanhelper.SpanHelperFromContext(ctx, "RequestClientConnection")
+	span := spanhelper.FromContext(ctx, "RequestClientConnection")
 	defer span.Finish()
 
 	span.Logger().Infof("Requested client connection to nsmd : %+v", request)
@@ -129,7 +131,7 @@ func (nsm *nsmServer) RequestClientConnection(ctx context.Context, request *nsmd
 
 	err = nsm.localRegistry.AppendClientRequest(workspace.Name())
 	if err != nil {
-		span.LogError(fmt.Errorf("Failed to store Client information into local registry: %v", err))
+		span.LogError(fmt.Errorf("failed to store Client information into local registry: %v", err))
 		return nil, err
 	}
 	nsm.Lock()
@@ -159,7 +161,7 @@ func (nsm *nsmServer) DeleteClientConnection(context context.Context, request *n
 
 	err := nsm.localRegistry.DeleteClient(workspace.Name())
 	if err != nil {
-		logrus.Errorf("Failed to delete Client information into local registry: %v", err)
+		logrus.Errorf("failed to delete Client information into local registry: %v", err)
 		return nil, err
 	}
 
@@ -184,19 +186,19 @@ func (nsm *nsmServer) EnumConnection(context context.Context, request *nsmdapi.E
 }
 
 func (nsm *nsmServer) restore(ctx context.Context, registeredEndpointsList *registry.NetworkServiceEndpointList) {
-	span := spanhelper.SpanHelperFromContext(ctx, "restore")
+	span := spanhelper.FromContext(ctx, "restore")
 	defer span.Finish()
 
 	deleteClientRegistry := os.Getenv(NsmdDeleteLocalRegistry) == "true"
 	span.LogValue("delete.client.registry", deleteClientRegistry)
 	if deleteClientRegistry {
-		logrus.Errorf("Delete of local nse/client registry... by ENV VAR: %s", NsmdDeleteLocalRegistry)
+		logrus.Errorf("delete of local nse/client registry... by ENV VAR: %s", NsmdDeleteLocalRegistry)
 		nsm.localRegistry.Delete()
 	}
 
 	clients, nses, err := nsm.localRegistry.LoadRegistry()
 	if err != nil {
-		span.LogError(fmt.Errorf("NSMServer: Error Loading stored NSE registry: %v", err))
+		span.LogError(fmt.Errorf("error Loading stored NSE registry: %v", err))
 		return
 	}
 
@@ -213,14 +215,14 @@ func (nsm *nsmServer) restore(ctx context.Context, registeredEndpointsList *regi
 	updatedEndpoints, err := nsm.restoreEndpoints(span.Context(), nses, registeredNSEs)
 	span.LogObject("updated-endpoints", updatedEndpoints)
 	if err != nil {
-		span.LogError(fmt.Errorf("Error restoring endpoints: %v", err))
+		span.LogError(fmt.Errorf("rrror restoring endpoints: %v", err))
 		return
 	}
 
 	if len(updatedClients) > 0 || len(updatedEndpoints) > 0 {
 		span.Logger().Infof("save local client/nse registry")
 		if err := nsm.localRegistry.Save(updatedClients, updatedEndpoints); err != nil {
-			span.Logger().Errorf("Store updated NSE local registry...")
+			span.LogError(fmt.Errorf("store updated NSE local registry... %v", err))
 		}
 	}
 
@@ -231,7 +233,7 @@ func (nsm *nsmServer) restoreClients(ctx context.Context, clients []string) []st
 	nsm.Lock()
 	defer nsm.Unlock()
 
-	span := spanhelper.SpanHelperFromContext(ctx, "restoreClients")
+	span := spanhelper.FromContext(ctx, "restoreClients")
 	defer span.Finish()
 
 	span.Logger().Infof("NSMServer: Creating workspaces for existing clients...")
@@ -243,7 +245,7 @@ func (nsm *nsmServer) restoreClients(ctx context.Context, clients []string) []st
 		}
 		workspace, err := NewWorkSpace(span.Context(), nsm, client, true)
 		if err != nil {
-			span.LogError(fmt.Errorf("NSMServer: Failed to create workspace %s %v. Ignoring...", client, err))
+			span.LogError(fmt.Errorf("error NSMServer: Failed to create workspace %s %v. Ignoring...", client, err))
 			continue
 		}
 		nsm.workspaces[workspace.Name()] = workspace
@@ -255,17 +257,17 @@ func (nsm *nsmServer) restoreClients(ctx context.Context, clients []string) []st
 }
 
 func (nsm *nsmServer) restoreEndpoints(ctx context.Context, nses map[string]nseregistry.NSEEntry, registeredNSEs map[string]string) (map[string]nseregistry.NSEEntry, error) {
-	span := spanhelper.SpanHelperFromContext(ctx, "restore-endpoints")
+	span := spanhelper.FromContext(ctx, "restore-endpoints")
 	defer span.Finish()
 	discoveryClient, err := nsm.serviceRegistry.DiscoveryClient(span.Context())
 	if err != nil {
-		span.LogError(fmt.Errorf("Failed to get DiscoveryClient: %v", err))
+		span.LogError(fmt.Errorf("failed to get DiscoveryClient: %v", err))
 		return nil, err
 	}
 
 	registryClient, err := nsm.serviceRegistry.NseRegistryClient(span.Context())
 	if err != nil {
-		span.LogError(fmt.Errorf("Failed to get RegistryClient: %v", err))
+		span.LogError(fmt.Errorf("failed to get RegistryClient: %v", err))
 		return nil, err
 	}
 
@@ -277,15 +279,15 @@ func (nsm *nsmServer) restoreEndpoints(ctx context.Context, nses map[string]nser
 			continue
 		}
 
-		nseSpan := spanhelper.SpanHelperFromContext(span.Context(), fmt.Sprintf("check-nse-%v", name))
+		nseSpan := spanhelper.FromContext(span.Context(), fmt.Sprintf("check-nse-%v", name))
 		defer nseSpan.Finish()
 		nseSpan.LogObject("workspace", ws)
 
 		nseSpan.Logger().Infof("Checking NSE %s is alive at %v...", name, ws.NsmClientSocket())
 		if !ws.isConnectionAlive(nseSpan.Context(), NSEAliveTimeout) {
-			span.Logger().Errorf("Unable to connect to local nse %v. Skipping", nse.NseReg)
+			span.Logger().Errorf("unable to connect to local nse %v. Skipping", nse.NseReg)
 			if err := nsm.deleteEndpointWithClient(span.Context(), name, registryClient); err != nil {
-				span.Logger().Errorf("Remove NSE: NSE %v", err)
+				span.Logger().Errorf("remove NSE: NSE %v", err)
 			}
 			continue
 		}
@@ -293,7 +295,7 @@ func (nsm *nsmServer) restoreEndpoints(ctx context.Context, nses map[string]nser
 		span.Logger().Infof("NSE %s is alive at %v...", name, ws.NsmClientSocket())
 		newName, newNSE, err := nsm.restoreEndpoint(span.Context(), discoveryClient, registryClient, name, nse, ws, registeredNSEs, networkServices)
 		if err != nil {
-			span.LogError(fmt.Errorf("Failed to register NSE: %v", err))
+			span.LogError(fmt.Errorf("failed to register NSE: %v", err))
 			continue
 		}
 
@@ -307,7 +309,7 @@ func (nsm *nsmServer) restoreEndpoints(ctx context.Context, nses map[string]nser
 			if _, err := registryClient.RemoveNSE(span.Context(), &registry.RemoveNSERequest{
 				NetworkServiceEndpointName: name,
 			}); err != nil {
-				span.LogError(fmt.Errorf("Remove NSE: NSE %v", err))
+				span.LogError(fmt.Errorf("remove NSE: NSE %v", err))
 			}
 		}
 	}
@@ -324,7 +326,7 @@ func (nsm *nsmServer) restoreEndpoint(ctx context.Context,
 	registeredNSEs map[string]string,
 	networkServices map[string]bool) (string, nseregistry.NSEEntry, error) {
 
-	span := spanhelper.SpanHelperFromContext(ctx, "restoreEndpoint")
+	span := spanhelper.FromContext(ctx, "restoreEndpoint")
 	defer span.Finish()
 
 	if networkService, ok := registeredNSEs[name]; ok {
@@ -365,7 +367,7 @@ func (nsm *nsmServer) restoreNotRegisteredEndpoint(ctx context.Context,
 	ws *Workspace) (string, nseregistry.NSEEntry, error) {
 
 	name := nse.NseReg.GetNetworkServiceEndpoint().GetName()
-	span := spanhelper.SpanHelperFromContext(ctx, fmt.Sprintf("restoreNotRegisteredEndpoint-%v", name))
+	span := spanhelper.FromContext(ctx, fmt.Sprintf("restoreNotRegisteredEndpoint-%v", name))
 	span.LogObject("name", name)
 	defer span.Finish()
 
@@ -435,7 +437,7 @@ func (nsm *nsmServer) Stop() {
 // StartNSMServer registers and starts gRPC server which is listening for
 // Network Service requests.
 func StartNSMServer(ctx context.Context, model model.Model, manager nsm.NetworkServiceManager, apiRegistry serviceregistry.ApiRegistry) (NSMServer, error) {
-	span := spanhelper.SpanHelperFromContext(ctx, "nsm-server-start")
+	span := spanhelper.FromContext(ctx, "nsm-server-start")
 	defer span.Finish()
 
 	var err error
@@ -446,15 +448,7 @@ func StartNSMServer(ctx context.Context, model model.Model, manager nsm.NetworkS
 
 	locationProvider := manager.ServiceRegistry().NewWorkspaceProvider()
 
-	nsm := &nsmServer{
-		workspaces:       make(map[string]*Workspace),
-		model:            model,
-		serviceRegistry:  manager.ServiceRegistry(),
-		manager:          manager,
-		locationProvider: locationProvider,
-		localRegistry:    nseregistry.NewNSERegistry(locationProvider.NsmNSERegistryFile()),
-		ctx:              ctx,
-	}
+	nsm := createNsmServer(ctx, model, manager, locationProvider)
 
 	span.Logger().Infof("Starting NSM server")
 
@@ -469,7 +463,7 @@ func StartNSMServer(ctx context.Context, model model.Model, manager nsm.NetworkS
 	}
 	go func() {
 		if err := nsm.registerServer.Serve(nsm.registerSock); err != nil {
-			span.Logger().Fatalf("Failed to start NSM grpc server")
+			span.Logger().Fatalf("failed to start NSM grpc server")
 		}
 	}()
 	endpoints, err := setLocalNSM(span.Context(), model, nsm.serviceRegistry)
@@ -480,7 +474,7 @@ func StartNSMServer(ctx context.Context, model model.Model, manager nsm.NetworkS
 	}
 
 	// Check if the socket of NSM server is operation
-	_, conn, err := nsm.serviceRegistry.NSMDApiClient()
+	_, conn, err := nsm.serviceRegistry.NSMDApiClient(span.Context())
 	if err != nil {
 		nsm.Stop()
 		return nil, err
@@ -501,6 +495,19 @@ func StartNSMServer(ctx context.Context, model model.Model, manager nsm.NetworkS
 	return nsm, nil
 }
 
+func createNsmServer(ctx context.Context, model model.Model, manager nsm.NetworkServiceManager, locationProvider serviceregistry.WorkspaceLocationProvider) *nsmServer {
+	nsm := &nsmServer{
+		workspaces:       make(map[string]*Workspace),
+		model:            model,
+		serviceRegistry:  manager.ServiceRegistry(),
+		manager:          manager,
+		locationProvider: locationProvider,
+		localRegistry:    nseregistry.NewNSERegistry(locationProvider.NsmNSERegistryFile()),
+		ctx:              ctx,
+	}
+	return nsm
+}
+
 func (nsm *nsmServer) initMonitorServers() {
 	nsm.xconManager = services.NewClientConnectionManager(nsm.model, nsm.manager, nsm.serviceRegistry)
 	// Start CrossConnect monitor server
@@ -516,11 +523,11 @@ func (nsm *nsmServer) StartDataplaneRegistratorServer() error {
 }
 
 func setLocalNSM(ctx context.Context, model model.Model, serviceRegistry serviceregistry.ServiceRegistry) (*registry.NetworkServiceEndpointList, error) {
-	span := spanhelper.SpanHelperFromContext(ctx, "set-local-nsm")
+	span := spanhelper.FromContext(ctx, "set-local-nsm")
 	defer span.Finish()
 	client, err := serviceRegistry.NsmRegistryClient()
 	if err != nil {
-		err = fmt.Errorf("Failed to get RegistryClient: %s", err)
+		err = fmt.Errorf("failed to get RegistryClient: %s", err)
 		return nil, err
 	}
 
@@ -528,13 +535,13 @@ func setLocalNSM(ctx context.Context, model model.Model, serviceRegistry service
 		Url: serviceRegistry.GetPublicAPI(),
 	})
 	if err != nil {
-		err = fmt.Errorf("Failed to get my own NetworkServiceManager: %s", err)
+		err = fmt.Errorf("failed to get my own NetworkServiceManager: %s", err)
 		return nil, err
 	}
 
 	endpoints, err := client.GetEndpoints(span.Context(), &empty.Empty{})
 	if err != nil {
-		err = fmt.Errorf("Failed to get list of own Endpoints: %s", err)
+		err = fmt.Errorf("failed to get list of own Endpoints: %s", err)
 		return nil, err
 	}
 
@@ -546,7 +553,7 @@ func setLocalNSM(ctx context.Context, model model.Model, serviceRegistry service
 
 // StartAPIServerAt starts GRPC API server at sock
 func (nsm *nsmServer) StartAPIServerAt(ctx context.Context, sock net.Listener, probes probes.Probes) {
-	span := spanhelper.SpanHelperFromContext(ctx, "start-public-api-server")
+	span := spanhelper.FromContext(ctx, "start-public-api-server")
 	defer span.Finish()
 
 	grpcServer := tools.NewServer()

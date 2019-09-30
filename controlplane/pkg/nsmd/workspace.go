@@ -17,11 +17,12 @@ package nsmd
 import (
 	"context"
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
 	"net"
 	"os"
 	"sync"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
 
 	"google.golang.org/grpc"
 
@@ -57,7 +58,7 @@ type Workspace struct {
 }
 
 func NewWorkSpace(ctx context.Context, nsm *nsmServer, name string, restore bool) (*Workspace, error) {
-	span := spanhelper.SpanHelperFromContext(ctx, fmt.Sprintf("Workspace:%v", name))
+	span := spanhelper.FromContext(ctx, fmt.Sprintf("Workspace:%v", name))
 	defer span.Finish()
 	span.Logger().Infof("Creating new workspace: %s", name)
 	w := &Workspace{
@@ -87,24 +88,8 @@ func NewWorkSpace(ctx context.Context, nsm *nsmServer, name string, restore bool
 		return nil, err
 	}
 	w.listener = listener
-	span.Logger().Infof("Creating new NetworkServiceRegistryServer")
-	w.registryServer = NewRegistryServer(nsm, w)
 
-	span.Logger().Infof("Creating new MonitorConnectionServer")
-	w.monitorConnectionServer = local.NewMonitorServer()
-
-	span.Logger().Infof("Creating new NetworkServiceServer")
-	w.networkServiceServer = NewNetworkServiceServer(nsm.model, w, nsm.manager)
-
-	span.Logger().Infof("Creating new GRPC MonitorServer")
-	w.grpcServer = tools.NewServer()
-
-	span.Logger().Infof("Registering NetworkServiceRegistryServer with registerServer")
-	registry.RegisterNetworkServiceRegistryServer(w.grpcServer, w.registryServer)
-	span.Logger().Infof("Registering NetworkServiceServer with registerServer")
-	networkservice.RegisterNetworkServiceServer(w.grpcServer, w.networkServiceServer)
-	span.Logger().Infof("Registering MonitorConnectionServer with registerServer")
-	connection.RegisterMonitorConnectionServer(w.grpcServer, w.monitorConnectionServer)
+	registerWorkspaceServices(span, w, nsm)
 	w.state = RUNNING
 	go func() {
 		defer w.Close()
@@ -124,6 +109,27 @@ func NewWorkSpace(ctx context.Context, nsm *nsmServer, name string, restore bool
 	span.Logger().Infof("grpcserver for workspace %+v is operational", w)
 	span.Logger().Infof("Created new workspace: %+v", w)
 	return w, nil
+}
+
+func registerWorkspaceServices(span spanhelper.SpanHelper, w *Workspace, nsm *nsmServer) {
+	span.Logger().Infof("Creating new NetworkServiceRegistryServer")
+	w.registryServer = NewRegistryServer(nsm, w)
+
+	span.Logger().Infof("Creating new MonitorConnectionServer")
+	w.monitorConnectionServer = local.NewMonitorServer()
+
+	span.Logger().Infof("Creating new NetworkServiceServer")
+	w.networkServiceServer = NewNetworkServiceServer(nsm.model, w, nsm.manager)
+
+	span.Logger().Infof("Creating new GRPC MonitorServer")
+	w.grpcServer = tools.NewServer()
+
+	span.Logger().Infof("Registering NetworkServiceRegistryServer with registerServer")
+	registry.RegisterNetworkServiceRegistryServer(w.grpcServer, w.registryServer)
+	span.Logger().Infof("Registering NetworkServiceServer with registerServer")
+	networkservice.RegisterNetworkServiceServer(w.grpcServer, w.networkServiceServer)
+	span.Logger().Infof("Registering MonitorConnectionServer with registerServer")
+	connection.RegisterMonitorConnectionServer(w.grpcServer, w.monitorConnectionServer)
 }
 
 func (w *Workspace) Name() string {
@@ -170,7 +176,7 @@ func (w *Workspace) isConnectionAlive(ctx context.Context, timeout time.Duration
 	timeoutCtx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	span := spanhelper.SpanHelperFromContextCopySpan(timeoutCtx, spanhelper.GetSpanHelper(ctx), "check-nse-alive" )
+	span := spanhelper.CopySpan(timeoutCtx, spanhelper.GetSpanHelper(ctx), "check-nse-alive")
 	defer span.Finish()
 
 	nseConn, err := tools.DialContextUnix(timeoutCtx, w.NsmClientSocket())
@@ -184,7 +190,7 @@ func (w *Workspace) isConnectionAlive(ctx context.Context, timeout time.Duration
 }
 
 func (w *Workspace) cleanup() {
-	span := spanhelper.SpanHelperFromContext(w.ctx, "cleanup")
+	span := spanhelper.FromContext(w.ctx, "cleanup")
 	defer span.Finish()
 	if w.state != RUNNING {
 		if w.NsmDirectory() != "" {
@@ -203,7 +209,7 @@ func (w *Workspace) cleanup() {
 }
 
 func (w *Workspace) clearContents(ctx context.Context) error {
-	span := spanhelper.SpanHelperFromContext(ctx, "clearContents")
+	span := spanhelper.FromContext(ctx, "clearContents")
 	defer span.Finish()
 	if _, err := os.Stat(w.NsmDirectory()); err != nil {
 		if os.IsNotExist(err) {

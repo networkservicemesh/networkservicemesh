@@ -33,7 +33,7 @@ type ServiceRegistry interface {
 	NsmRegistryClient() (registry.NsmRegistryClient, error)
 
 	Stop()
-	NSMDApiClient() (nsmdapi.NSMDClient, *grpc.ClientConn, error)
+	NSMDApiClient(ctx context.Context) (nsmdapi.NSMDClient, *grpc.ClientConn, error)
 	DataplaneConnection(ctx context.Context, dataplane *model.Dataplane) (dataplaneapi.DataplaneClient, *grpc.ClientConn, error)
 
 	EndpointConnection(ctx context.Context, endpoint *model.Endpoint) (networkservice.NetworkServiceClient, *grpc.ClientConn, error)

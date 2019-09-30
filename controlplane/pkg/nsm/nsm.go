@@ -16,9 +16,10 @@ package nsm
 import (
 	"crypto/rand"
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
 	"sync"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
 
 	unified_nsm "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
 
@@ -168,7 +169,7 @@ func (srv *networkServiceManager) WaitForDataplane(ctx context.Context, timeout 
 
 func (srv *networkServiceManager) RestoreConnections(xcons []*crossconnect.CrossConnect, dataplane string, manager nsm.MonitorManager) {
 	ctx := context.Background()
-	span := spanhelper.SpanHelperFromContext(ctx, "Nsmgr.RestoreConnections")
+	span := spanhelper.FromContext(ctx, "Nsmgr.RestoreConnections")
 	ctx = span.Context()
 	logger := span.Logger()
 	for _, xcon := range xcons {
@@ -288,7 +289,7 @@ func (srv *networkServiceManager) createConnection(xcon *crossconnect.CrossConne
 }
 
 func (srv *networkServiceManager) getEndpoint(ctx context.Context, networkServiceName, endpointName string, discovery registry.NetworkServiceDiscoveryClient, xcon *crossconnect.CrossConnect) (endpoint *registry.NSERegistration) {
-	span := spanhelper.SpanHelperFromContext(ctx, "getEndpoint")
+	span := spanhelper.FromContext(ctx, "getEndpoint")
 	defer span.Finish()
 	span.Logger().Infof("Discovering endpoint at registry Network service: %s endpoint: %s ", networkServiceName, endpointName)
 

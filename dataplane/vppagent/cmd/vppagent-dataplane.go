@@ -15,7 +15,12 @@
 package main
 
 import (
+	"context"
+
+	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/probes"
 
@@ -29,15 +34,23 @@ var version string
 func main() {
 	logrus.Info("Starting vppagent-dataplane...")
 	logrus.Infof("Version: %v", version)
+
+	if tools.IsOpentracingEnabled() {
+		tracer, closer := tools.InitJaeger("vppagent-dataplane")
+		opentracing.SetGlobalTracer(tracer)
+		defer func() { _ = closer.Close() }()
+	}
+	span := spanhelper.FromContext(context.Background(), "Start.VPPAgent.Dataplane")
+	defer span.Finish()
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
 	dataplaneGoals := &common.DataplaneProbeGoals{}
 	dataplaneProbes := probes.New("Vppagent dataplane liveness/readiness healthcheck", dataplaneGoals)
 	dataplaneProbes.BeginHealthCheck()
 
-	agent := vppagent.CreateVPPAgent()
+	agent := vppagent.CreateVPPAgent(span.Context())
 
-	registration := common.CreateDataplane(agent, dataplaneGoals)
+	registration := common.CreateDataplane(span.Context(), agent, dataplaneGoals)
 
 	for range c {
 		logrus.Info("Closing Dataplane Registration")

@@ -3,13 +3,15 @@ package nsmd
 import (
 	"context"
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
-	context2 "golang.org/x/net/context"
 	"net"
 	"os"
 	"strings"
 	"sync"
 	"time"
+
+	context2 "golang.org/x/net/context"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
 
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -100,7 +102,7 @@ func (impl *nsmdServiceRegistry) DataplaneConnection(ctx context.Context, datapl
 	return dpClient, dataplaneConn, nil
 }
 
-func (impl *nsmdServiceRegistry) NSMDApiClient() (nsmdapi.NSMDClient, *grpc.ClientConn, error) {
+func (impl *nsmdServiceRegistry) NSMDApiClient(context2.Context) (nsmdapi.NSMDClient, *grpc.ClientConn, error) {
 	logrus.Infof("Connecting to nsmd on socket: %s...", ServerSock)
 	if _, err := os.Stat(ServerSock); err != nil {
 		return nil, nil, err
@@ -115,7 +117,7 @@ func (impl *nsmdServiceRegistry) NSMDApiClient() (nsmdapi.NSMDClient, *grpc.Clie
 	return nsmdapi.NewNSMDClient(conn), conn, nil
 }
 
-func (impl *nsmdServiceRegistry) NseRegistryClient(context2.Context) (registry.NetworkServiceRegistryClient, error) {
+func (impl *nsmdServiceRegistry) NseRegistryClient(context.Context) (registry.NetworkServiceRegistryClient, error) {
 	impl.RWMutex.Lock()
 	defer impl.RWMutex.Unlock()
 
@@ -144,7 +146,7 @@ func (impl *nsmdServiceRegistry) GetPublicAPI() string {
 	return GetLocalIPAddress() + ":5001"
 }
 
-func (impl *nsmdServiceRegistry) DiscoveryClient(context2.Context) (registry.NetworkServiceDiscoveryClient, error) {
+func (impl *nsmdServiceRegistry) DiscoveryClient(context.Context) (registry.NetworkServiceDiscoveryClient, error) {
 	impl.RWMutex.Lock()
 	defer impl.RWMutex.Unlock()
 
@@ -209,7 +211,7 @@ func NewServiceRegistryAt(nsmAddress string) serviceregistry.ServiceRegistry {
 }
 
 func (impl *nsmdServiceRegistry) WaitForDataplaneAvailable(ctx context.Context, mdl model.Model, timeout time.Duration) error {
-	span := spanhelper.SpanHelperFromContext(ctx, "wait-dataplane")
+	span := spanhelper.FromContext(ctx, "wait-dataplane")
 	defer span.Finish()
 	span.Logger().Info("Waiting for dataplane available...")
 

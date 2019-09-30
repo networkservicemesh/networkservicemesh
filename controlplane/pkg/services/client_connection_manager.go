@@ -3,8 +3,9 @@ package services
 import (
 	"context"
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
 
 	"github.com/sirupsen/logrus"
 
@@ -53,9 +54,9 @@ func (m *ClientConnectionManager) GetNsmName() string {
 }
 
 // UpdateXcon handles case when xcon has been changed for NSMClientConnection
-func (m *ClientConnectionManager) UpdateXcon(ctx context.Context, cc *model.ClientConnection, newXcon *crossconnect.CrossConnect) {
+func (m *ClientConnectionManager) UpdateXcon(ctx context.Context, cc nsm.ClientConnection, newXcon *crossconnect.CrossConnect) {
 
-	span := spanhelper.SpanHelperFromContext(ctx, "UpdateXcon")
+	span := spanhelper.FromContext(ctx, "UpdateXcon")
 	defer span.Finish()
 	ctx = span.Context()
 	span.LogObject("connection", cc)
@@ -89,7 +90,7 @@ func (m *ClientConnectionManager) UpdateXcon(ctx context.Context, cc *model.Clie
 
 // DestinationDown handles case when destination down
 func (m *ClientConnectionManager) DestinationDown(ctx context.Context, cc nsm.ClientConnection, nsmdDie bool) {
-	span := spanhelper.SpanHelperFromContext(ctx, "DestinationDown")
+	span := spanhelper.FromContext(ctx, "DestinationDown")
 	defer span.Finish()
 	ctx = span.Context()
 	span.LogValue("nsmgr.die", nsmdDie)
@@ -117,7 +118,7 @@ func (m *ClientConnectionManager) DataplaneDown(ctx context.Context, dataplane *
 
 // LocalDestinationUpdated handles case when local connection parameters changed
 func (m *ClientConnectionManager) LocalDestinationUpdated(ctx context.Context, cc *model.ClientConnection, localDst *local.Connection) {
-	span := spanhelper.SpanHelperFromContext(ctx, "LocalDestinationUpdated")
+	span := spanhelper.FromContext(ctx, "LocalDestinationUpdated")
 	defer span.Finish()
 	ctx = span.Context()
 	span.LogObject("connection", cc)
@@ -162,8 +163,8 @@ func (m *ClientConnectionManager) RemoteDestinationUpdated(ctx context.Context, 
 	m.destinationUpdated(ctx, cc, remoteDst)
 }
 
-func (m *ClientConnectionManager) destinationUpdated(ctx context.Context, cc *model.ClientConnection, dst connection.Connection) {
-	span := spanhelper.SpanHelperFromContext(ctx, "destinationUpdated")
+func (m *ClientConnectionManager) destinationUpdated(ctx context.Context, cc nsm.ClientConnection, dst connection.Connection) {
+	span := spanhelper.FromContext(ctx, "destinationUpdated")
 	defer span.Finish()
 	ctx = span.Context()
 	span.LogObject("connection", cc)
