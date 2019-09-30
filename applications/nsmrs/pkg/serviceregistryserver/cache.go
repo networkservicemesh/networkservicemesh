@@ -17,8 +17,8 @@ type NSERegistryCache interface {
 
 // NSECacheEntry - entry of NSERegistryCache, contains information about NSE and NSMgr monitor
 type NSECacheEntry struct {
-	nse     *registry.NSERegistration
-	monitor NsmMonitor
+	Nse     *registry.NSERegistration
+	Monitor NsmMonitor
 }
 
 type nseRegistryCache struct {
@@ -34,15 +34,22 @@ func NewNSERegistryCache() NSERegistryCache {
 
 // AddNetworkServiceEndpoint - register NSE in cache
 func (rc *nseRegistryCache) AddNetworkServiceEndpoint(entry *NSECacheEntry) (*NSECacheEntry, error) {
-	existingEndpoints := rc.GetEndpointsByNs(entry.nse.NetworkService.Name)
+	for _, endpoints := range rc.networkServiceEndpoints {
+		for _, endpoint := range endpoints {
+			if endpoint.Nse.NetworkServiceEndpoint.Name == entry.Nse.NetworkServiceEndpoint.Name {
+				return nil, fmt.Errorf("network service endpoint with name %s already exists: old: %v; new: %v", endpoint.Nse.NetworkServiceEndpoint.Name, endpoint, entry)
+			}
+		}
+	}
 
+	existingEndpoints := rc.GetEndpointsByNs(entry.Nse.NetworkService.Name)
 	for _, endpoint := range existingEndpoints {
-		if !proto.Equal(endpoint.nse.NetworkService, entry.nse.NetworkService) {
+		if !proto.Equal(endpoint.Nse.NetworkService, entry.Nse.NetworkService) {
 			return nil, fmt.Errorf("network service already exists with different parameters: old: %v; new: %v", endpoint, entry)
 		}
 	}
 
-	rc.networkServiceEndpoints[entry.nse.NetworkService.Name] = append(rc.networkServiceEndpoints[entry.nse.NetworkService.Name], entry)
+	rc.networkServiceEndpoints[entry.Nse.NetworkService.Name] = append(rc.networkServiceEndpoints[entry.Nse.NetworkService.Name], entry)
 	return entry, nil
 }
 
@@ -50,7 +57,7 @@ func (rc *nseRegistryCache) AddNetworkServiceEndpoint(entry *NSECacheEntry) (*NS
 func (rc *nseRegistryCache) DeleteNetworkServiceEndpoint(endpointName string) (*NSECacheEntry, error) {
 	for networkService, endpointList := range rc.networkServiceEndpoints {
 		for i := range endpointList {
-			if endpointList[i].nse.NetworkServiceEndpoint.Name == endpointName {
+			if endpointList[i].Nse.NetworkServiceEndpoint.Name == endpointName {
 				endpoint := endpointList[i]
 				rc.networkServiceEndpoints[networkService] = append(endpointList[:i], endpointList[i+1:]...)
 				return endpoint, nil

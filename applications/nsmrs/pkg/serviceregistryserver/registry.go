@@ -48,8 +48,8 @@ func (rs *nseRegistryService) RegisterNSE(ctx context.Context, request *registry
 	})
 
 	_, err := rs.cache.AddNetworkServiceEndpoint(&NSECacheEntry{
-		nse:     request,
-		monitor: monitor,
+		Nse:     request,
+		Monitor: monitor,
 	})
 
 	if err != nil {
@@ -77,7 +77,7 @@ func (rs *nseRegistryService) RemoveNSE(ctx context.Context, request *registry.R
 	logrus.Infof("Received RemoveNSE(%v)", request)
 
 	nse, err := rs.cache.DeleteNetworkServiceEndpoint(request.NetworkServiceEndpointName)
-	nse.monitor.Stop()
+	nse.Monitor.Stop()
 	if err != nil {
 		logrus.Errorf("cannot remove Network Service Endpoint: %v", err)
 		return &empty.Empty{}, err
