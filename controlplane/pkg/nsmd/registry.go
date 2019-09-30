@@ -16,8 +16,8 @@ package nsmd
 
 import (
 	"fmt"
-
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 
@@ -44,29 +44,34 @@ func NewRegistryServer(nsm *nsmServer, workspace *Workspace) NSERegistryServer {
 }
 
 func (es *registryServer) RegisterNSE(ctx context.Context, request *registry.NSERegistration) (*registry.NSERegistration, error) {
-	logrus.Infof("Received RegisterNSE request: %v", request)
+	span := spanhelper.SpanHelperFromContextCopySpan(ctx, spanhelper.GetSpanHelper(es.nsm.Context()), "RegisterNSE")
+	defer span.Finish()
+	span.Logger().Infof("Received RegisterNSE request: %v", request)
 
 	// Check if there is already Network Service Endpoint object with the same name, if there is
 	// success will be returned to NSE, since it is a case of NSE pod coming back up.
-	client, err := es.nsm.serviceRegistry.NseRegistryClient()
+	client, err := es.nsm.serviceRegistry.NseRegistryClient(es.nsm.Context())
 	if err != nil {
 		err = fmt.Errorf("attempt to connect to upstream registry failed with: %v", err)
-		logrus.Error(err)
+		span.LogError(err)
 		return nil, err
 	}
 
-	reg, err := es.RegisterNSEWithClient(ctx, request, client)
+	reg, err := es.RegisterNSEWithClient(span.Context(), request, client)
 	if err != nil {
+		span.LogError(err)
 		return reg, err
 	}
 
 	// Append to workspace...
 	err = es.workspace.localRegistry.AppendNSERegRequest(es.workspace.name, reg)
 	if err != nil {
-		logrus.Errorf("Failed to store NSE into local registry service: %v", err)
-		_, _ = client.RemoveNSE(context.Background(), &registry.RemoveNSERequest{NetworkServiceEndpointName: reg.GetNetworkServiceEndpoint().GetName()})
+		err = fmt.Errorf("Failed to store NSE into local registry service: %v", err)
+		span.LogError(err)
+		_, _ = client.RemoveNSE(span.Context(), &registry.RemoveNSERequest{NetworkServiceEndpointName: reg.GetNetworkServiceEndpoint().GetName()})
 		return nil, err
 	}
+	span.LogObject("registration", reg)
 	return reg, nil
 }
 func (es *registryServer) RegisterNSEWithClient(ctx context.Context, request *registry.NSERegistration, client registry.NetworkServiceRegistryClient) (*registry.NSERegistration, error) {
@@ -101,19 +106,24 @@ func (es *registryServer) RegisterNSEWithClient(ctx context.Context, request *re
 }
 
 func (es *registryServer) RemoveNSE(ctx context.Context, request *registry.RemoveNSERequest) (*empty.Empty, error) {
+	span := spanhelper.SpanHelperFromContextCopySpan(ctx, spanhelper.GetSpanHelper(es.nsm.Context()), "RemoveNSE")
+	defer span.Finish()
+
+	span.LogObject("request", request)
+
 	// TODO make sure we track which registry server we got the RegisterNSE from so we can only allow a deletion
 	// of what you advertised
-	logrus.Infof("Received Endpoint Remove request: %+v", request)
-	client, err := es.nsm.serviceRegistry.NseRegistryClient()
+	span.Logger().Infof("Received Endpoint Remove request: %+v", request)
+	client, err := es.nsm.serviceRegistry.NseRegistryClient(context.Background())
 	if err != nil {
 		err = fmt.Errorf("attempt to pass through from nsm to upstream registry failed with: %v", err)
-		logrus.Error(err)
+		span.LogError(err)
 		return nil, err
 	}
 	_, err = client.RemoveNSE(context.Background(), request)
 	if err != nil {
 		err = fmt.Errorf("attempt to pass through from nsm to upstream registry failed with: %v", err)
-		logrus.Error(err)
+		span.LogError(err)
 		return nil, err
 	}
 	es.nsm.model.DeleteEndpoint(ctx, request.GetNetworkServiceEndpointName())

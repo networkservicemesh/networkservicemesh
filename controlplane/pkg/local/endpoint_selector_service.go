@@ -17,6 +17,7 @@ package local
 import (
 	"context"
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/empty"
@@ -79,7 +80,7 @@ func (cce *endpointSelectorService) Request(ctx context.Context, request *networ
 	attempt := 0
 	for {
 		attempt++
-		span := common.SpanHelperFromContext(parentCtx, fmt.Sprintf("select-nse-%v", attempt))
+		span := spanhelper.SpanHelperFromContext(parentCtx, fmt.Sprintf("select-nse-%v", attempt))
 		defer span.Finish()
 
 		logger := span.Logger()
@@ -115,7 +116,7 @@ func (cce *endpointSelectorService) Request(ctx context.Context, request *networ
 	}
 }
 
-func (cce *endpointSelectorService) combineErrors(span common.SpanHelper, err, lastError error) (*connection.Connection, error) {
+func (cce *endpointSelectorService) combineErrors(span spanhelper.SpanHelper, err, lastError error) (*connection.Connection, error) {
 	if lastError != nil {
 		span.LogError(lastError)
 		return nil, fmt.Errorf("NSM:(7.1.5) %v. Last NSE Error: %v", err, lastError)
@@ -290,7 +291,7 @@ func (cce *endpointSelectorService) prepareRequest(ctx context.Context, request 
 	return newRequest, endpoint, nil
 }
 
-func (cce *endpointSelectorService) checkTimeout(ctx context.Context, span common.SpanHelper) error {
+func (cce *endpointSelectorService) checkTimeout(ctx context.Context, span spanhelper.SpanHelper) error {
 	if ctx.Err() != nil {
 		newErr := fmt.Errorf("NSM:(7.1.0) Context timeout, during find/call NSE... %v", ctx.Err())
 		span.LogError(newErr)

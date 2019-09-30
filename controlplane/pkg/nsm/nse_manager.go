@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	span "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
 
 	nsm_properties "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
 
@@ -38,7 +38,7 @@ func (nsem *nseManager) GetEndpoint(ctx context.Context, requestConnection conne
 	}
 
 	// Get endpoints, do it every time since we do not know if list are changed or not.
-	discoveryClient, err := nsem.serviceRegistry.DiscoveryClient()
+	discoveryClient, err := nsem.serviceRegistry.DiscoveryClient(ctx)
 	if err != nil {
 		logrus.Error(err)
 		return nil, err
@@ -75,7 +75,7 @@ func (nsem *nseManager) GetEndpoint(ctx context.Context, requestConnection conne
 ctx - we assume it is big enought to perform connection.
 */
 func (nsem *nseManager) CreateNSEClient(ctx context.Context, endpoint *registry.NSERegistration) (nsm.NetworkServiceClient, error) {
-	span := span.GetSpanHelper(ctx)
+	span := spanhelper.GetSpanHelper(ctx)
 	logger := span.Logger()
 
 	if nsem.IsLocalEndpoint(endpoint) {

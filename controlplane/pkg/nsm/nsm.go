@@ -16,10 +16,9 @@ package nsm
 import (
 	"crypto/rand"
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
 	"sync"
 	"time"
-
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 
 	unified_nsm "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
 
@@ -62,6 +61,11 @@ type networkServiceManager struct {
 	nseManager       nsm.NetworkServiceEndpointManager
 
 	remoteService remote_networkservice.NetworkServiceServer
+	ctx           context.Context
+}
+
+func (srv *networkServiceManager) Context() context.Context {
+	return srv.ctx
 }
 
 func (srv *networkServiceManager) LocalManager(clientConnection nsm.ClientConnection) local_networkservice.NetworkServiceServer {
@@ -102,7 +106,7 @@ func (srv *networkServiceManager) GetHealProperties() *unified_nsm.Properties {
 }
 
 // NewNetworkServiceManager creates an instance of NetworkServiceManager
-func NewNetworkServiceManager(model model.Model, serviceRegistry serviceregistry.ServiceRegistry, pluginRegistry plugins.PluginRegistry) nsm.NetworkServiceManager {
+func NewNetworkServiceManager(ctx context.Context, model model.Model, serviceRegistry serviceregistry.ServiceRegistry, pluginRegistry plugins.PluginRegistry) nsm.NetworkServiceManager {
 	properties := unified_nsm.NewNsmProperties()
 	nseManager := &nseManager{
 		serviceRegistry: serviceRegistry,
@@ -118,6 +122,7 @@ func NewNetworkServiceManager(model model.Model, serviceRegistry serviceregistry
 		stateRestored:    make(chan bool, 1),
 		renamedEndpoints: make(map[string]string),
 		nseManager:       nseManager,
+		ctx:              ctx,
 	}
 
 	srv.NetworkServiceHealProcessor = newNetworkServiceHealProcessor(
@@ -163,7 +168,7 @@ func (srv *networkServiceManager) WaitForDataplane(ctx context.Context, timeout 
 
 func (srv *networkServiceManager) RestoreConnections(xcons []*crossconnect.CrossConnect, dataplane string, manager nsm.MonitorManager) {
 	ctx := context.Background()
-	span := common.SpanHelperFromContext(ctx, "Nsmgr.RestoreConnections")
+	span := spanhelper.SpanHelperFromContext(ctx, "Nsmgr.RestoreConnections")
 	ctx = span.Context()
 	logger := span.Logger()
 	for _, xcon := range xcons {
@@ -188,7 +193,7 @@ func (srv *networkServiceManager) restoreXconnection(ctx context.Context, xcon *
 		var connectionState model.ClientConnectionState
 
 		dp := srv.model.GetDataplane(dataplane)
-		discovery, err := srv.serviceRegistry.DiscoveryClient()
+		discovery, err := srv.serviceRegistry.DiscoveryClient(ctx)
 		if err != nil {
 			logger.Errorf("Failed to find NSE to recovery: %v", err)
 		}
@@ -197,7 +202,7 @@ func (srv *networkServiceManager) restoreXconnection(ctx context.Context, xcon *
 
 		endpointRenamed := false
 		if endpointName != "" {
-			endpoint = srv.getEndpoint(logger, networkServiceName, endpointName, discovery, xcon)
+			endpoint = srv.getEndpoint(ctx, networkServiceName, endpointName, discovery, xcon)
 
 			if endpoint == nil {
 				// Check if endpoint was renamed
@@ -282,20 +287,20 @@ func (srv *networkServiceManager) createConnection(xcon *crossconnect.CrossConne
 	}
 }
 
-func (srv *networkServiceManager) getEndpoint(logger logrus.FieldLogger, networkServiceName, endpointName string, discovery registry.NetworkServiceDiscoveryClient, xcon *crossconnect.CrossConnect) (endpoint *registry.NSERegistration) {
-	logger.Infof("Discovering endpoint at registry Network service: %s endpoint: %s ", networkServiceName, endpointName)
+func (srv *networkServiceManager) getEndpoint(ctx context.Context, networkServiceName, endpointName string, discovery registry.NetworkServiceDiscoveryClient, xcon *crossconnect.CrossConnect) (endpoint *registry.NSERegistration) {
+	span := spanhelper.SpanHelperFromContext(ctx, "getEndpoint")
+	defer span.Finish()
+	span.Logger().Infof("Discovering endpoint at registry Network service: %s endpoint: %s ", networkServiceName, endpointName)
 
 	localEndpoint := srv.model.GetEndpoint(endpointName)
 	if localEndpoint != nil {
-		logger.Infof("Local endpoint selected: %v", localEndpoint)
 		endpoint = localEndpoint.Endpoint
+		span.LogObject("endpoint", endpoint)
 	} else {
 		endpoints, err := discovery.FindNetworkService(context.Background(), &registry.FindNetworkServiceRequest{
 			NetworkServiceName: networkServiceName,
 		})
-		if err != nil {
-			logger.Errorf("Failed to find NSE to recovery: %v", err)
-		}
+		span.LogError(err)
 		for _, ep := range endpoints.NetworkServiceEndpoints {
 			if xcon.GetRemoteDestination() != nil && ep.GetName() == xcon.GetRemoteDestination().GetNetworkServiceEndpointName() {
 				endpoint = &registry.NSERegistration{
@@ -303,6 +308,7 @@ func (srv *networkServiceManager) getEndpoint(logger logrus.FieldLogger, network
 					NetworkServiceEndpoint: ep,
 					NetworkService:         endpoints.NetworkService,
 				}
+				span.LogObject("endpoint", endpoint)
 				break
 			}
 		}

@@ -16,6 +16,7 @@ package remote
 
 import (
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"golang.org/x/net/context"
@@ -41,7 +42,7 @@ func NewConnectionService(model model.Model) networkservice.NetworkServiceServer
 func (cce *connectionService) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 	logger := common.Log(ctx)
 	logger.Infof("Received request from client to connect to NetworkService: %v", request)
-	span := common.GetSpanHelper(ctx)
+	span := spanhelper.GetSpanHelper(ctx)
 	id := request.GetRequestConnection().GetId()
 	clientConnection := cce.model.GetClientConnection(id)
 

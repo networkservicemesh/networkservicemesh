@@ -17,6 +17,7 @@ package nsmd
 import (
 	"context"
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
 	"sync"
 	"time"
 
@@ -300,7 +301,7 @@ func (client *NsmMonitorCrossConnectClient) handleLocalConnection(entity monitor
 
 	// We could do so because for local NSE connections ID is assigned by NSMgr itself.
 	if cc := client.xconManager.GetClientConnectionByLocalDst(localConnection.GetId()); cc != nil {
-		span := common.SpanHelperFromConnection(context.Background(), cc, "handleLocalConnection")
+		span := common.SpanHelperFromConnection(client.xconManager.Context(), cc, "handleLocalConnection")
 		defer span.Finish()
 		ctx := span.Context()
 		span.LogObject("clientConnection", cc)
@@ -352,7 +353,7 @@ func (client *NsmMonitorCrossConnectClient) handleXcon(entity monitor.Entity, ev
 
 	client.xconManager.CleanupDeletedConnections()
 
-	span := common.SpanHelperFromConnection(context.Background(), clientConnection, "CrossConnectUpdate")
+	span := common.SpanHelperFromConnection(client.xconManager.Context(), clientConnection, "CrossConnectUpdate")
 	defer span.Finish()
 	span.LogObject("clientConnection", clientConnection)
 	span.LogValue("event", entity)
@@ -438,7 +439,7 @@ func (client *NsmMonitorCrossConnectClient) handleRemoteConnection(entity monito
 	}
 	peerName := parameters[peerName]
 	if cc := client.xconManager.GetClientConnectionByRemoteDst(remoteConnection.GetId(), peerName); cc != nil {
-		span := common.SpanHelperFromConnection(context.Background(), cc, "handleRemoteConnection")
+		span := common.SpanHelperFromConnection(client.xconManager.Context(), cc, "handleRemoteConnection")
 		defer span.Finish()
 		ctx := span.Context()
 		span.LogObject("clientConnection", cc)
@@ -453,7 +454,7 @@ func (client *NsmMonitorCrossConnectClient) handleRemoteConnection(entity monito
 		// Or they will be removed.
 		logrus.Errorf("No remote destination found %v. Will wait for pending connections to match", cc)
 		go func() {
-			ctx, cancel := context.WithTimeout(context.Background(), eventConnectionTimeout)
+			ctx, cancel := context.WithTimeout(client.xconManager.Context(), eventConnectionTimeout)
 			defer cancel()
 
 			currentTime := time.Now()
@@ -482,7 +483,7 @@ func (client *NsmMonitorCrossConnectClient) handleRemoteConnectionEvent(ctx cont
 		// DST connection is updated, we most probable need to re-program our data plane.
 		client.xconManager.RemoteDestinationUpdated(ctx, cc, remoteConnection)
 	case monitor.EventTypeDelete:
-		span := common.SpanHelperFromContext(ctx, "handleRemoteConnectionEvent")
+		span := spanhelper.SpanHelperFromContext(ctx, "handleRemoteConnectionEvent")
 		defer span.Finish()
 		ctx = span.Context()
 

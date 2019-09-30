@@ -305,7 +305,7 @@ type serviceRegistryStub struct {
 	serviceregistry.ServiceRegistry
 }
 
-func (stub *serviceRegistryStub) DiscoveryClient() (registry.NetworkServiceDiscoveryClient, error) {
+func (stub *serviceRegistryStub) DiscoveryClient(net_context.Context) (registry.NetworkServiceDiscoveryClient, error) {
 	return stub.discoveryClient, stub.error
 }
 

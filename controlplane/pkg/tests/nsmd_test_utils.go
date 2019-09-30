@@ -354,11 +354,11 @@ func (impl *nsmdTestServiceRegistry) GetPublicAPI() string {
 	return fmt.Sprintf("%s:%d", "127.0.0.1", impl.apiRegistry.nsmdPublicPort)
 }
 
-func (impl *nsmdTestServiceRegistry) DiscoveryClient() (registry.NetworkServiceDiscoveryClient, error) {
+func (impl *nsmdTestServiceRegistry) DiscoveryClient(context.Context) (registry.NetworkServiceDiscoveryClient, error) {
 	return impl.nseRegistry, nil
 }
 
-func (impl *nsmdTestServiceRegistry) NseRegistryClient() (registry.NetworkServiceRegistryClient, error) {
+func (impl *nsmdTestServiceRegistry) NseRegistryClient(context.Context) (registry.NetworkServiceRegistryClient, error) {
 	return impl.nseRegistry, nil
 }
 
@@ -559,7 +559,7 @@ func newNSMDFullServerAt(ctx context.Context, nsmgrName string, storage *sharedS
 	}
 
 	srv.TestModel = model.NewModel()
-	srv.manager = nsm.NewNetworkServiceManager(srv.TestModel, srv.serviceRegistry, srv.pluginRegistry)
+	srv.manager = nsm.NewNetworkServiceManager(ctx, srv.TestModel, srv.serviceRegistry, srv.pluginRegistry)
 
 	// Choose a public API listener
 	sock, err := srv.apiRegistry.NewPublicListener("127.0.0.1:0")

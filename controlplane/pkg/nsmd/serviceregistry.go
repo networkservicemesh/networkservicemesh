@@ -3,13 +3,13 @@ package nsmd
 import (
 	"context"
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
+	context2 "golang.org/x/net/context"
 	"net"
 	"os"
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -115,7 +115,7 @@ func (impl *nsmdServiceRegistry) NSMDApiClient() (nsmdapi.NSMDClient, *grpc.Clie
 	return nsmdapi.NewNSMDClient(conn), conn, nil
 }
 
-func (impl *nsmdServiceRegistry) NseRegistryClient() (registry.NetworkServiceRegistryClient, error) {
+func (impl *nsmdServiceRegistry) NseRegistryClient(context2.Context) (registry.NetworkServiceRegistryClient, error) {
 	impl.RWMutex.Lock()
 	defer impl.RWMutex.Unlock()
 
@@ -144,7 +144,7 @@ func (impl *nsmdServiceRegistry) GetPublicAPI() string {
 	return GetLocalIPAddress() + ":5001"
 }
 
-func (impl *nsmdServiceRegistry) DiscoveryClient() (registry.NetworkServiceDiscoveryClient, error) {
+func (impl *nsmdServiceRegistry) DiscoveryClient(context2.Context) (registry.NetworkServiceDiscoveryClient, error) {
 	impl.RWMutex.Lock()
 	defer impl.RWMutex.Unlock()
 
@@ -209,7 +209,7 @@ func NewServiceRegistryAt(nsmAddress string) serviceregistry.ServiceRegistry {
 }
 
 func (impl *nsmdServiceRegistry) WaitForDataplaneAvailable(ctx context.Context, mdl model.Model, timeout time.Duration) error {
-	span := common.SpanHelperFromContext(ctx, "wait-dataplane")
+	span := spanhelper.SpanHelperFromContext(ctx, "wait-dataplane")
 	defer span.Finish()
 	span.Logger().Info("Waiting for dataplane available...")
 

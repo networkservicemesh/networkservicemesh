@@ -16,6 +16,7 @@ package local
 
 import (
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/sirupsen/logrus"
@@ -44,7 +45,7 @@ func (cce *connectionService) Request(ctx context.Context, request *networkservi
 	logger := common.Log(ctx)
 	logger.Infof("Received request from client to connect to NetworkService: %v", request)
 
-	span := common.GetSpanHelper(ctx)
+	span := spanhelper.GetSpanHelper(ctx)
 	workspaceName := common.WorkspaceName(ctx)
 
 	id := request.GetRequestConnection().GetId()

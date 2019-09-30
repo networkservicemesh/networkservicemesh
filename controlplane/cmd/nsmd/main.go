@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
 	"os"
 	"strings"
 	"time"
@@ -41,16 +43,15 @@ func main() {
 		defer closer.Close()
 	}
 
-	span := opentracing.StartSpan("nsmd")
-	defer span.Finish()
-
-	ctx := opentracing.ContextWithSpan(context.Background(), span)
+	// Global NSMgr server span holder
+	span := spanhelper.SpanHelperFromContext(context.Background(), "nsmd.server")
+	defer span.Finish() // Mark it as finished, since it will be used as root.
 
 	apiRegistry := nsmd.NewApiRegistry()
 	serviceRegistry := nsmd.NewServiceRegistry()
 	pluginRegistry := plugins.NewPluginRegistry(pluginsapi.PluginRegistrySocket)
 
-	if err := pluginRegistry.Start(ctx); err != nil {
+	if err := pluginRegistry.Start(span.Context()); err != nil {
 		logrus.Errorf("Failed to start Plugin Registry: %v", err)
 		return
 	}
@@ -63,13 +64,13 @@ func main() {
 
 	model := model.NewModel() // This is TCP gRPC server uri to access this NSMD via network.
 	defer serviceRegistry.Stop()
-	manager := nsm.NewNetworkServiceManager(model, serviceRegistry, pluginRegistry)
+	manager := nsm.NewNetworkServiceManager(span.Context(), model, serviceRegistry, pluginRegistry)
 
 	var server nsmd.NSMServer
 	var srvErr error
 	// Start NSMD server first, load local NSE/client registry and only then start dataplane/wait for it and recover active connections.
 
-	if server, srvErr = nsmd.StartNSMServer(ctx, model, manager, apiRegistry); srvErr != nil {
+	if server, srvErr = nsmd.StartNSMServer(span.Context(), model, manager, apiRegistry); srvErr != nil {
 		logrus.Errorf("error starting nsmd service: %+v", srvErr)
 		return
 	}
@@ -89,37 +90,37 @@ func main() {
 	// Starting dataplane
 	logrus.Info("Starting Dataplane registration server...")
 	if err := server.StartDataplaneRegistratorServer(); err != nil {
-		logrus.Errorf("Error starting dataplane service: %+v", err)
+		span.LogError(fmt.Errorf("error starting dataplane service: %+v", err))
 		return
 	}
 
 	// Wait for dataplane to be connecting to us
-	if err := manager.WaitForDataplane(ctx, nsmd.DataplaneTimeout); err != nil {
-		logrus.Errorf("Error waiting for dataplane..")
+	if err := manager.WaitForDataplane(span.Context(), nsmd.DataplaneTimeout); err != nil {
+		span.LogError(fmt.Errorf("Error waiting for dataplane: %+v", err))
 		return
 	}
 
-	logrus.Info("Dataplane server is ready")
+	span.Logger().Info("Dataplane server is ready")
 	nsmdGoals.SetDataplaneServerReady()
 	// Choose a public API listener
 
 	nsmdAPIAddress := getNsmdAPIAddress()
+	span.LogObject("api-address", nsmdAPIAddress)
 	sock, err := apiRegistry.NewPublicListener(nsmdAPIAddress)
 	if err != nil {
-		logrus.Errorf("Failed to start Public API server...")
-
+		span.LogError(fmt.Errorf("Failed to start Public API server: %+v", err))
 		return
 	}
-	logrus.Info("Public listener is ready")
+	span.Logger().Info("Public listener is ready")
 	nsmdGoals.SetPublicListenerReady()
 
-	server.StartAPIServerAt(ctx, sock, nsmdProbes)
+	server.StartAPIServerAt(span.Context(), sock, nsmdProbes)
 	nsmdGoals.SetServerAPIReady()
-	logrus.Info("Serve api is ready")
+	span.Logger().Info("Serve api is ready")
 
 	elapsed := time.Since(start)
-	logrus.Debugf("Starting NSMD took: %s", elapsed)
-
+	span.LogObject("start-time", elapsed)
+	span.Finish()
 	<-c
 }
 

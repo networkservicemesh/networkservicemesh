@@ -1,6 +1,7 @@
 package kubetest
 
 import (
+	"context"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
@@ -879,7 +880,7 @@ func ServiceRegistryAt(k8s *K8s, nsmgr *v1.Pod) (serviceregistry.ServiceRegistry
 func PrepareRegistryClients(k8s *K8s, nsmd *v1.Pod) (registry.NetworkServiceRegistryClient, registry.NsmRegistryClient, func()) {
 	serviceRegistry, closeFunc := ServiceRegistryAt(k8s, nsmd)
 
-	nseRegistryClient, err := serviceRegistry.NseRegistryClient()
+	nseRegistryClient, err := serviceRegistry.NseRegistryClient(context.Background())
 	k8s.g.Expect(err).To(BeNil())
 
 	nsmRegistryClient, err := serviceRegistry.NsmRegistryClient()

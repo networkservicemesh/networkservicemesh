@@ -1,6 +1,8 @@
 package tests
 
 import (
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"os"
 	"testing"
 	"time"
 
@@ -15,6 +17,7 @@ import (
 )
 
 func TestHealLocalDataplane(t *testing.T) {
+	os.Setenv(tools.InsecureEnv, "true")
 	g := NewWithT(t)
 
 	storage := NewSharedStorage()

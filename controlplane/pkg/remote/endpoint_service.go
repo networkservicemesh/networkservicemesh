@@ -17,6 +17,7 @@ package remote
 import (
 	"context"
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
 
@@ -49,7 +50,7 @@ type endpointService struct {
 
 func (cce *endpointService) closeEndpoint(ctx context.Context, cc *model.ClientConnection) error {
 
-	span := common.SpanHelperFromContext(ctx, "closeEndpoint")
+	span := spanhelper.SpanHelperFromContext(ctx, "closeEndpoint")
 	defer span.Finish()
 	ctx = span.Context()
 	logger := span.Logger()
@@ -99,7 +100,7 @@ func (cce *endpointService) Request(ctx context.Context, request *networkservice
 	message := cce.createLocalNSERequest(endpoint, dp, request.Connection, clientConnection)
 	logger.Infof("NSM:(7.2.6.2) Requesting NSE with request %v", message)
 
-	span := common.SpanHelperFromContext(ctx, "nse.request")
+	span := spanhelper.SpanHelperFromContext(ctx, "nse.request")
 	defer span.Finish()
 	ctx = span.Context()
 	span.LogObject("nse.request", message)

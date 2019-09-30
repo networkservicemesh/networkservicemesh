@@ -16,12 +16,13 @@ package nsmd
 
 import (
 	"context"
+	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
 	"net"
 	"os"
 	"sync"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
@@ -52,71 +53,76 @@ type Workspace struct {
 	state            WorkspaceState
 	locationProvider serviceregistry.WorkspaceLocationProvider
 	localRegistry    *nseregistry.NSERegistry
+	ctx              context.Context
 }
 
-func NewWorkSpace(nsm *nsmServer, name string, restore bool) (*Workspace, error) {
-	logrus.Infof("Creating new workspace: %s", name)
+func NewWorkSpace(ctx context.Context, nsm *nsmServer, name string, restore bool) (*Workspace, error) {
+	span := spanhelper.SpanHelperFromContext(ctx, fmt.Sprintf("Workspace:%v", name))
+	defer span.Finish()
+	span.Logger().Infof("Creating new workspace: %s", name)
 	w := &Workspace{
 		locationProvider: nsm.locationProvider,
 		name:             name,
 		state:            NEW,
 		localRegistry:    nsm.localRegistry,
+		ctx:              span.Context(),
 	}
 	defer w.cleanup() // Cleans up if and only iff we are not in state RUNNING
+	span.LogValue("restore", restore)
 	if !restore {
-		if err := w.clearContents(); err != nil {
+		if err := w.clearContents(span.Context()); err != nil {
 			return nil, err
 		}
 	}
-	logrus.Infof("Creating new directory: %s", w.NsmDirectory())
+	span.Logger().Infof("Creating new directory: %s", w.NsmDirectory())
 	if err := os.MkdirAll(w.NsmDirectory(), os.ModePerm); err != nil {
-		logrus.Errorf("can't create folder: %s, error: %v", w.NsmDirectory(), err)
+		span.Logger().Errorf("can't create folder: %s, error: %v", w.NsmDirectory(), err)
 		return nil, err
 	}
 	socket := w.NsmServerSocket()
-	logrus.Infof("Creating new listener on: %s", socket)
+	span.Logger().Infof("Creating new listener on: %s", socket)
 	listener, err := NewCustomListener(socket)
 	if err != nil {
-		logrus.Error(err)
+		span.LogError(err)
 		return nil, err
 	}
 	w.listener = listener
-	logrus.Infof("Creating new NetworkServiceRegistryServer")
+	span.Logger().Infof("Creating new NetworkServiceRegistryServer")
 	w.registryServer = NewRegistryServer(nsm, w)
 
-	logrus.Infof("Creating new MonitorConnectionServer")
+	span.Logger().Infof("Creating new MonitorConnectionServer")
 	w.monitorConnectionServer = local.NewMonitorServer()
 
-	logrus.Infof("Creating new NetworkServiceServer")
+	span.Logger().Infof("Creating new NetworkServiceServer")
 	w.networkServiceServer = NewNetworkServiceServer(nsm.model, w, nsm.manager)
 
-	logrus.Infof("Creating new GRPC MonitorServer")
+	span.Logger().Infof("Creating new GRPC MonitorServer")
 	w.grpcServer = tools.NewServer()
 
-	logrus.Infof("Registering NetworkServiceRegistryServer with registerServer")
+	span.Logger().Infof("Registering NetworkServiceRegistryServer with registerServer")
 	registry.RegisterNetworkServiceRegistryServer(w.grpcServer, w.registryServer)
-	logrus.Infof("Registering NetworkServiceServer with registerServer")
+	span.Logger().Infof("Registering NetworkServiceServer with registerServer")
 	networkservice.RegisterNetworkServiceServer(w.grpcServer, w.networkServiceServer)
-	logrus.Infof("Registering MonitorConnectionServer with registerServer")
+	span.Logger().Infof("Registering MonitorConnectionServer with registerServer")
 	connection.RegisterMonitorConnectionServer(w.grpcServer, w.monitorConnectionServer)
 	w.state = RUNNING
 	go func() {
 		defer w.Close()
 		err = w.grpcServer.Serve(w.listener)
 		if err != nil {
-			logrus.Errorf("Failed to server workspace %+v: %s", w, err)
+			span.Logger().Errorf("Failed to server workspace %+v: %s", w, err)
 			return
 		}
 	}()
 
 	conn, err := tools.DialUnix(socket)
 	if err != nil {
-		logrus.Errorf("failure to communicate with the socket %s with error: %+v", socket, err)
+		span.Logger().Errorf("failure to communicate with the socket %s with error: %+v", socket, err)
 		return nil, err
 	}
-	conn.Close()
-	logrus.Infof("grpcserver for workspace %+v is operational", w)
-	logrus.Infof("Created new workspace: %+v", w)
+	_ = conn.Close()
+	span.Logger().Infof("grpcserver for workspace %+v is operational", w)
+	span.Logger().Infof("Created new workspace: %+v", w)
 	return w, nil
 }
 
@@ -160,42 +166,54 @@ func (w *Workspace) Close() {
 	w.cleanup()
 }
 
-func (w *Workspace) isConnectionAlive(timeout time.Duration) bool {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+func (w *Workspace) isConnectionAlive(ctx context.Context, timeout time.Duration) bool {
+	timeoutCtx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	nseConn, err := tools.DialContextUnix(ctx, w.NsmClientSocket())
+	span := spanhelper.SpanHelperFromContextCopySpan(timeoutCtx, spanhelper.GetSpanHelper(ctx), "check-nse-alive" )
+	defer span.Finish()
+
+	nseConn, err := tools.DialContextUnix(timeoutCtx, w.NsmClientSocket())
 	if err != nil {
+		span.LogObject("alive", false)
 		return false
 	}
 	_ = nseConn.Close()
-
+	span.LogObject("alive", true)
 	return true
 }
 
 func (w *Workspace) cleanup() {
+	span := spanhelper.SpanHelperFromContext(w.ctx, "cleanup")
+	defer span.Finish()
 	if w.state != RUNNING {
 		if w.NsmDirectory() != "" {
-			w.clearContents()
+			err := w.clearContents(w.ctx)
+			span.LogError(err)
 		}
 		if w.grpcServer != nil {
 			// TODO switch to Graceful stop once we think through possible long running connections
 			w.grpcServer.Stop()
 		}
 		if w.listener != nil {
-			w.listener.Close()
+			err := w.listener.Close()
+			span.LogError(err)
 		}
 	}
 }
 
-func (w *Workspace) clearContents() error {
+func (w *Workspace) clearContents(ctx context.Context) error {
+	span := spanhelper.SpanHelperFromContext(ctx, "clearContents")
+	defer span.Finish()
 	if _, err := os.Stat(w.NsmDirectory()); err != nil {
 		if os.IsNotExist(err) {
+			span.Logger().Infof("No exist folder %s", w.NsmDirectory())
 			return nil
 		}
+		span.LogError(err)
 		return err
 	}
-	logrus.Infof("Removing exist content im %s", w.NsmDirectory())
+	span.Logger().Infof("Removing exist content im %s", w.NsmDirectory())
 	err := os.RemoveAll(w.NsmDirectory())
 	return err
 }

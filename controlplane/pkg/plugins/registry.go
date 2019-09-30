@@ -3,6 +3,7 @@ package plugins
 import (
 	"context"
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
 	"net"
 	"sync"
 	"time"
@@ -36,6 +37,7 @@ type pluginRegistry struct {
 	connections             sync.Map
 	connectionPluginManager ConnectionPluginManager
 	registrySocket          string
+	ctx                     context.Context
 }
 
 // NewPluginRegistry creates an instance of PluginRegistry
@@ -48,6 +50,7 @@ func NewPluginRegistry(socketPath string) PluginRegistry {
 }
 
 func (pr *pluginRegistry) Start(ctx context.Context) error {
+	pr.ctx = ctx
 	if err := tools.SocketCleanup(pr.registrySocket); err != nil {
 		return err
 	}
@@ -85,6 +88,9 @@ func (pr *pluginRegistry) Stop() error {
 }
 
 func (pr *pluginRegistry) Register(ctx context.Context, info *plugins.PluginInfo) (*empty.Empty, error) {
+	span := spanhelper.SpanHelperFromContextCopySpan(ctx, spanhelper.GetSpanHelper(pr.ctx), "RegisterPlugin")
+	defer span.Finish()
+	span.LogObject("info", info)
 	if info.GetName() == "" || info.GetEndpoint() == "" || len(info.Capabilities) == 0 {
 		return nil, fmt.Errorf("invalid registration data, expected non-empty name, endpoint and capabilities list")
 	}

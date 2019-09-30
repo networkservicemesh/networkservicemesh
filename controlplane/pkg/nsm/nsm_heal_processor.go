@@ -3,6 +3,7 @@ package nsm
 import (
 	"context"
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
 	"time"
 
 	local_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
@@ -125,7 +126,7 @@ func (p *healProcessor) serve() {
 		}
 
 		go func() {
-			span := common.SpanHelperFromContext(e.ctx, "heal")
+			span := spanhelper.SpanHelperFromContext(e.ctx, "heal")
 			defer span.Finish()
 			ctx := span.Context()
 
@@ -266,7 +267,7 @@ func (p *healProcessor) healDataplaneDown(ctx context.Context, cc *model.ClientC
 
 func (p *healProcessor) healDstUpdate(ctx context.Context, cc *model.ClientConnection) bool {
 
-	span := common.SpanHelperFromContext(ctx, "healDstUpdate")
+	span := spanhelper.SpanHelperFromContext(ctx, "healDstUpdate")
 	defer span.Finish()
 	ctx = span.Context()
 
@@ -412,7 +413,7 @@ func (p *healProcessor) waitNSE(ctx context.Context, cc *model.ClientConnection,
 	span.LogObject("networkService", networkService)
 
 	logger := span.Logger()
-	discoveryClient, err := p.serviceRegistry.DiscoveryClient()
+	discoveryClient, err := p.serviceRegistry.DiscoveryClient(span.Context())
 	if err != nil {
 		span.LogError(err)
 		return false

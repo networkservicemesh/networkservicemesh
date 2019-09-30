@@ -15,6 +15,8 @@
 package main
 
 import (
+	"context"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
 	"os"
 
 	"github.com/opentracing/opentracing-go"
@@ -32,6 +34,7 @@ func main() {
 	// Capture signals to cleanup before exiting
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
+
 	if tools.IsOpentracingEnabled() {
 		tracer, closer := tools.InitJaeger("nsmdp")
 		defer func() {
@@ -41,14 +44,22 @@ func main() {
 		}()
 		opentracing.SetGlobalTracer(tracer)
 	}
+
+	span := spanhelper.SpanHelperFromContext(context.Background(), "NSMgr.Device.Plugin")
+	defer span.Finish() // Finish since it will be root for all events.
+
 	serviceRegistry := nsmd.NewServiceRegistry()
-	err := NewNSMDeviceServer(serviceRegistry)
+	span.LogObject("registry.at", serviceRegistry.GetPublicAPI())
+
+	err := NewNSMDeviceServer(span.Context(), serviceRegistry)
 
 	if err != nil {
+		span.LogError(err)
 		logrus.Errorf("failed to start server: %v", err)
 		os.Exit(1)
 	}
 
-	logrus.Info("nsmdp: successfully started")
+	span.Logger().Info("nsmdp: successfully started")
+	span.Finish()
 	<-c
 }

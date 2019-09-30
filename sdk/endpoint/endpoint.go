@@ -18,6 +18,7 @@ package endpoint
 import (
 	"context"
 	"fmt"
+	"github.com/opentracing/opentracing-go/log"
 	"io"
 	"net"
 
@@ -77,6 +78,12 @@ func (nsme *nsmEndpoint) Start() error {
 		tracer, closer := tools.InitJaeger(nsme.Configuration.AdvertiseNseName)
 		opentracing.SetGlobalTracer(tracer)
 		nsme.tracerCloser = closer
+
+		span := opentracing.StartSpan(fmt.Sprintf("Endpoint-%v", nsme.Configuration.AdvertiseNseName))
+		span.LogFields(log.Object("labels", nsme.Configuration.AdvertiseNseLabels))
+		if nsme.Context != nil {
+			nsme.Context = opentracing.ContextWithSpan(nsme.Context, span)
+		}
 	}
 
 	nsme.grpcServer = tools.NewServer()

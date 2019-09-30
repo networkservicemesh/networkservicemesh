@@ -17,6 +17,7 @@ package remote
 import (
 	"context"
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
 	"strconv"
 	"time"
 
@@ -155,7 +156,7 @@ func (cce *dataplaneService) doFailureClose(ctx context.Context) {
 	newCtx, cancel := context.WithTimeout(context.Background(), ErrorCloseTimeout)
 	defer cancel()
 
-	span := common.SpanHelperFromContextCopySpan(newCtx, common.GetSpanHelper(ctx), "doDataplaneClose")
+	span := spanhelper.SpanHelperFromContextCopySpan(newCtx, spanhelper.GetSpanHelper(ctx), "doDataplaneClose")
 	defer span.Finish()
 
 	newCtx = span.Context()

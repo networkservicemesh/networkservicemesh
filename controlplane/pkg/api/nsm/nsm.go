@@ -86,6 +86,9 @@ type NetworkServiceManager interface {
 	ServiceRegistry() serviceregistry.ServiceRegistry
 	PluginRegistry() plugins.PluginRegistry
 	RestoreConnections(xcons []*crossconnect.CrossConnect, dataplane string, manager MonitorManager)
+
+	// Context - return a global context holding tracing span
+	Context() context.Context
 }
 
 //NetworkServiceEndpointManager - manages endpoints, TODO: Will be removed in next PRs.

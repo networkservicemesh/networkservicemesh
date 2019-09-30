@@ -17,6 +17,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
 	"net"
 	"path"
 	"strconv"
@@ -56,10 +57,14 @@ type nsmClientEndpoints struct {
 	mutext          sync.Mutex
 	clientId        int
 	insecure        bool
+	span            spanhelper.SpanHelper
 }
 
 func (n *nsmClientEndpoints) Allocate(ctx context.Context, reqs *pluginapi.AllocateRequest) (*pluginapi.AllocateResponse, error) {
-	logrus.Infof("Client request for nsmdp resource... %v", proto.MarshalTextString(reqs))
+	span := spanhelper.SpanHelperFromContextCopySpan(ctx, n.span, "Allocate")
+	defer span.Finish()
+
+	span.Logger().Infof("Client request for nsmdp resource... %v", proto.MarshalTextString(reqs))
 	responses := &pluginapi.AllocateResponse{}
 
 	var mounts []*pluginapi.Mount
@@ -73,11 +78,11 @@ func (n *nsmClientEndpoints) Allocate(ctx context.Context, reqs *pluginapi.Alloc
 
 	for _, req := range reqs.ContainerRequests {
 		id := req.DevicesIDs[0]
-		logrus.Infof("Requesting Workspace, device ID: %s", id)
-		workspace, err := nsmd.RequestWorkspace(n.serviceRegistry, id)
-		logrus.Infof("Received Workspace %v", workspace)
+		span.Logger().Infof("Requesting Workspace, device ID: %s", id)
+		workspace, err := nsmd.RequestWorkspace(span.Context(), n.serviceRegistry, id)
+		span.Logger().Infof("Received Workspace %v", workspace)
 		if err != nil {
-			logrus.Errorf("error talking to nsmd: %v", err)
+			span.Logger().Errorf("error talking to nsmd: %v", err)
 		} else {
 			mount := &pluginapi.Mount{
 				ContainerPath: workspace.ClientBaseDir,
@@ -99,15 +104,16 @@ func (n *nsmClientEndpoints) Allocate(ctx context.Context, reqs *pluginapi.Alloc
 				Mounts: append(mounts, mount),
 				Envs:   envs,
 			})
+			span.LogObject("responses", responses)
 		}
 	}
-	logrus.Infof("AllocateResponse: %v", responses)
+	span.Logger().Infof("AllocateResponse: %v", responses)
 	return responses, nil
 }
 
 // Register registers
-func Register(kubeletEndpoint string) error {
-	conn, err := tools.DialUnixInsecure(kubeletEndpoint)
+func Register(ctx context.Context, kubeletEndpoint string) error {
+	conn, err := tools.DialUnixInsecure(ctx, kubeletEndpoint)
 	if err != nil {
 		return fmt.Errorf("device-plugin: cannot connect to kubelet service: %v", err)
 	}
@@ -120,7 +126,7 @@ func Register(kubeletEndpoint string) error {
 		ResourceName: resourceName,
 	}
 
-	_, err = client.Register(context.Background(), reqt)
+	_, err = client.Register(ctx, reqt)
 	if err != nil {
 		return fmt.Errorf("device-plugin: cannot register to kubelet service: %v", err)
 	}
@@ -137,13 +143,13 @@ func (n *nsmClientEndpoints) PreStartContainer(ctx context.Context, info *plugin
 	return &pluginapi.PreStartContainerResponse{}, nil
 }
 
-func enumWorkspaces(serviceRegistry serviceregistry.ServiceRegistry) (*nsmdapi.EnumConnectionReply, error) {
+func enumWorkspaces(ctx context.Context, serviceRegistry serviceregistry.ServiceRegistry) (*nsmdapi.EnumConnectionReply, error) {
 	client, con, err := serviceRegistry.NSMDApiClient()
 	if err != nil {
 		logrus.Fatalf("Failed to connect to NSMD: %+v...", err)
 	}
 	defer con.Close()
-	reply, err := client.EnumConnection(context.Background(), &nsmdapi.EnumConnectionRequest{})
+	reply, err := client.EnumConnection(ctx, &nsmdapi.EnumConnectionRequest{})
 	if err != nil {
 		return nil, err
 	}
@@ -173,8 +179,11 @@ func (n *nsmClientEndpoints) ListAndWatch(e *pluginapi.Empty, s pluginapi.Device
 	}
 }
 
-func startDeviceServer(nsm *nsmClientEndpoints) error {
+func startDeviceServer(ctx context.Context, nsm *nsmClientEndpoints) error {
+	span := spanhelper.SpanHelperFromContext(ctx, "start-device-server")
+	defer span.Finish()
 	listenEndpoint := path.Join(pluginapi.DevicePluginPath, ServerSock)
+	span.LogObject("listen-endpoint", listenEndpoint)
 	if err := tools.SocketCleanup(listenEndpoint); err != nil {
 		return err
 	}
@@ -187,33 +196,35 @@ func startDeviceServer(nsm *nsmClientEndpoints) error {
 
 	pluginapi.RegisterDevicePluginServer(grpcServer, nsm)
 
-	logrus.Infof("Starting Device Plugin's gRPC server listening on socket: %s", ServerSock)
+	span.Logger().Infof("Starting Device Plugin's gRPC server listening on socket: %s", ServerSock)
 	go func() {
 		if err := grpcServer.Serve(sock); err != nil {
-			logrus.Error("failed to start device plugin grpc server", listenEndpoint, err)
+			span.Logger().Error("failed to start device plugin grpc server", listenEndpoint, err)
 		}
 	}()
 	// Check if the socket of device plugin server is operation
-	conn, err := tools.DialUnixInsecure(listenEndpoint)
+	conn, err := tools.DialUnixInsecure(span.Context(), listenEndpoint)
 	if err != nil {
 		return err
 	}
-	conn.Close()
+	_ = conn.Close()
 
 	return nil
 }
 
-func waitForNsmdAvailable() {
+func waitForNsmdAvailable(ctx context.Context) {
 	for {
-		if tools.WaitForPortAvailable(context.Background(), "unix", nsmd.ServerSock, 100*time.Millisecond) == nil {
+		if tools.WaitForPortAvailable(ctx, "unix", nsmd.ServerSock, 100*time.Millisecond) == nil {
 			break
 		}
 	}
 }
 
 // NewNSMDeviceServer registers and starts Kubelet's device plugin
-func NewNSMDeviceServer(serviceRegistry serviceregistry.ServiceRegistry) error {
-	waitForNsmdAvailable()
+func NewNSMDeviceServer(ctx context.Context, serviceRegistry serviceregistry.ServiceRegistry) error {
+	span := spanhelper.SpanHelperFromContext(ctx, "start.device.server")
+	defer span.Finish()
+	waitForNsmdAvailable(span.Context())
 
 	insecure, err := tools.IsInsecure()
 	if err != nil {
@@ -225,25 +236,27 @@ func NewNSMDeviceServer(serviceRegistry serviceregistry.ServiceRegistry) error {
 		resp:            new(pluginapi.ListAndWatchResponse),
 		devs:            map[string]*pluginapi.Device{},
 		insecure:        insecure,
+		span:            span,
 	}
 
 	for i := 0; i < DeviceBuffer; i++ {
-		nsm.addClientDevice()
+		nsm.addClientDevice(span)
 	}
 
-	if err := startDeviceServer(nsm); err != nil {
+	if err := startDeviceServer(span.Context(), nsm); err != nil {
 		return err
 	}
 	// Registers with Kubelet.
-	return Register(pluginapi.KubeletSocket)
+	return Register(span.Context(), pluginapi.KubeletSocket)
 }
 
-func (nsm *nsmClientEndpoints) addClientDevice() {
+func (nsm *nsmClientEndpoints) addClientDevice(span spanhelper.SpanHelper) {
 	nsm.mutext.Lock()
 	defer nsm.mutext.Unlock()
 
 	for {
 		nsm.clientId++
+		span.LogObject("clientId", nsm.clientId)
 
 		id := fmt.Sprintf("nsm-%d", nsm.clientId)
 		if _, ok := nsm.devs[id]; ok {
@@ -255,6 +268,7 @@ func (nsm *nsmClientEndpoints) addClientDevice() {
 			ID:     id,
 			Health: pluginapi.Healthy,
 		}
+		span.LogObject("device", dev)
 		nsm.devs[id] = dev
 		nsm.resp.Devices = append(nsm.resp.Devices, dev)
 		break
@@ -267,18 +281,18 @@ func (n *nsmClientEndpoints) sendDeviceUpdate() {
 	defer n.mutext.Unlock()
 	if n.pluginApi != nil {
 		api := *n.pluginApi
-		logrus.Infof("Send device plugins intfo %v", n.resp)
+		n.span.Logger().Infof("Send device plugins intfo %v", n.resp)
 		if err := api.Send(n.resp); err != nil {
-			logrus.Errorf("Failed to send response to kubelet: %v\n", err)
+			n.span.Logger().Errorf("Failed to send response to kubelet: %v\n", err)
 		}
 	}
 }
 
 func (n *nsmClientEndpoints) receiveWorkspaces() {
 	for {
-		reply, err := enumWorkspaces(n.serviceRegistry)
+		reply, err := enumWorkspaces(n.span.Context(), n.serviceRegistry)
 		if err != nil {
-			logrus.Errorf("Error receive devices from NSM. %v", err)
+			n.span.Logger().Errorf("Error receive devices from NSM. %v", err)
 			// Make a fast delay to faster startup of NSMD.
 			<-time.After(100 * time.Millisecond)
 			continue
@@ -303,7 +317,7 @@ func (n *nsmClientEndpoints) receiveWorkspaces() {
 		n.mutext.Unlock()
 		// Be sure we have enought deviced ids allocated.
 		for len(n.resp.Devices) < len(reply.GetWorkspace())+DeviceBuffer {
-			n.addClientDevice()
+			n.addClientDevice(n.span)
 		}
 
 		break
