@@ -14,6 +14,7 @@ spec:
         networkservicemesh.io/app: "vppagent-nsc"
     spec:
       hostPID: true
+      serviceAccount: nsc-acc
       containers:
         - name: vppagent-nsc
           image: {{ .Values.registry }}/{{ .Values.org }}/vpp-test-common:{{ .Values.tag }}
@@ -30,4 +31,4 @@ spec:
               networkservicemesh.io/socket: 1
 metadata:
   name: vppagent-nsc
-namespace: {{ .Release.Namespace }}
+  namespace: {{ .Release.Namespace }}

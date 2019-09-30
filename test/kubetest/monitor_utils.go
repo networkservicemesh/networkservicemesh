@@ -16,7 +16,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 )
 
 const (
@@ -147,7 +146,7 @@ func (e *OrEventChecker) Check(eventCh <-chan *crossconnect.CrossConnectEvent, n
 
 // CrossConnectClientAt returns channel of CrossConnectEvents from passed nsmgr pod
 func CrossConnectClientAt(k8s *K8s, pod *v1.Pod, suffix string) (<-chan *crossconnect.CrossConnectEvent, func()) {
-	fwd, err := k8s.NewPortForwarder(pod, 6001)
+	fwd, err := k8s.NewPortForwarder(pod, 5001)
 	k8s.g.Expect(err).To(BeNil())
 
 	err = fwd.Start()

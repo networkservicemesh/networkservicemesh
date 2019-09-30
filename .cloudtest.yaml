@@ -48,6 +48,7 @@ executions:
     env:
       - STORE_POD_LOGS_IN_FILES=true
       - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)
+      - INSECURE=true
     tags:
       - interdomain
     root: ./test/integration
@@ -65,6 +66,7 @@ executions:
     env:
       - STORE_POD_LOGS_IN_FILES=true
       - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)
+      - INSECURE=true
     tags:
       - interdomain
     root: ./test/integration
@@ -82,6 +84,7 @@ executions:
     env:
       - STORE_POD_LOGS_IN_FILES=true
       - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)
+      - INSECURE=true
     tags:
       - interdomain
     root: ./test/integration
@@ -99,6 +102,7 @@ executions:
     env:
       - STORE_POD_LOGS_IN_FILES=true
       - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)
+      - INSECURE=true
     tags:
       - interdomain
     root: ./test/integration
@@ -120,6 +124,7 @@ executions:
       - CLUSTER_RULES_PREFIX=null
       - STORE_POD_LOGS_IN_FILES=true
       - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/vpn-example
+      - SPIRE_ENABLED=false  # because spire is already installed
     kubernetes-env:
       - KUBECONFIG
     run: |
@@ -146,6 +151,7 @@ executions:
       - CLUSTER_RULES_PREFIX=null
       - STORE_POD_LOGS_IN_FILES=true
       - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/icmp-example
+      - SPIRE_ENABLED=false  # because spire is already installed
     kubernetes-env:
       - KUBECONFIG
     run: |

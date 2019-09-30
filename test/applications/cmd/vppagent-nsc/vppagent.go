@@ -14,7 +14,7 @@ import (
 )
 
 func CreateVppInterface(nscConnection *connection.Connection, baseDir string, vppAgentEndpoint string) error {
-	conn, err := tools.DialTCP(vppAgentEndpoint)
+	conn, err := tools.DialTCPInsecure(vppAgentEndpoint)
 	if err != nil {
 		logrus.Errorf("can't dial grpc server: %v", err)
 		return err
@@ -48,7 +48,7 @@ func Reset(vppAgentEndpoint string) error {
 	defer cancel()
 	tools.WaitForPortAvailable(ctx, "tcp", vppAgentEndpoint, 100*time.Millisecond)
 
-	conn, err := tools.DialTCP(vppAgentEndpoint)
+	conn, err := tools.DialTCPInsecure(vppAgentEndpoint)
 	if err != nil {
 		logrus.Errorf("can't dial grpc server: %v", err)
 		return err

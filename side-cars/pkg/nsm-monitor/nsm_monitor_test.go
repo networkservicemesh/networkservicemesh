@@ -52,7 +52,6 @@ func TestNSMMonitorInit(t *testing.T) {
 		NsmServerSocket: response.HostBasedir + "/" + response.Workspace + "/" + response.NsmServerSocket,
 		Workspace:       response.HostBasedir + "/" + response.Workspace,
 	})
-
 	// Now we could try to connect via Client API
 	nsmClient, conn := srv.CreateNSClient(response)
 	defer func() {
