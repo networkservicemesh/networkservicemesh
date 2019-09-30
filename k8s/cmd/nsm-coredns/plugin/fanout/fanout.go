@@ -78,7 +78,7 @@ func (f *Fanout) ServeDNS(ctx context.Context, w dns.ResponseWriter, m *dns.Msg)
 		case <-timeoutContext.Done():
 			return dns.RcodeServerFailure, errContextDone
 		case conn := <-result:
-			if conn.err != nil {
+			if conn.err != nil || conn.response.MsgHdr.Rcode == dns.RcodeNameError {
 				clientCount--
 				if clientCount == 0 {
 					return dns.RcodeServerFailure, errNoHealthy
