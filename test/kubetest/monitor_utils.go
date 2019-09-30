@@ -145,7 +145,7 @@ func (e *OrEventChecker) Check(eventCh <-chan *crossconnect.CrossConnectEvent, n
 }
 
 // CrossConnectClientAt returns channel of CrossConnectEvents from passed nsmgr pod
-func CrossConnectClientAt(k8s *K8s, pod *v1.Pod, suffix string) (<-chan *crossconnect.CrossConnectEvent, func()) {
+func CrossConnectClientAt(k8s *K8s, pod *v1.Pod) (<-chan *crossconnect.CrossConnectEvent, func()) {
 	fwd, err := k8s.NewPortForwarder(pod, 5001)
 	k8s.g.Expect(err).To(BeNil())
 
@@ -163,7 +163,7 @@ func CrossConnectClientAt(k8s *K8s, pod *v1.Pod, suffix string) (<-chan *crossco
 		fwd.Stop()
 	}
 
-	return getEventCh(client, cancel, stopCh, suffix), closeFunc
+	return getEventCh(client, cancel, stopCh, pod.Name), closeFunc
 }
 
 // NewEventChecker starts goroutine that read events from actualCh and

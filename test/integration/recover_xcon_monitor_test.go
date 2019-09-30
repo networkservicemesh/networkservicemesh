@@ -32,7 +32,7 @@ func TestXconMonitorSingleNodeHealFailed(t *testing.T) {
 	nscPodNode := kubetest.DeployNSC(k8s, nodesConf[0].Node, "nsc-0", defaultTimeout)
 	g.Expect(nscPodNode).ToNot(BeNil())
 
-	eventCh, closeFunc := kubetest.CrossConnectClientAt(k8s, nodesConf[0].Nsmd, tests.Master)
+	eventCh, closeFunc := kubetest.CrossConnectClientAt(k8s, nodesConf[0].Nsmd)
 	defer closeFunc()
 
 	expectedFunc, waitFunc := kubetest.NewEventChecker(t, eventCh, tests.Master)
@@ -78,7 +78,7 @@ func TestXconMonitorSingleNodeHealSuccess(t *testing.T) {
 	nsc := kubetest.DeployNSC(k8s, nodesConf[0].Node, "nsc-0", defaultTimeout)
 	g.Expect(nsc).ToNot(BeNil())
 
-	eventCh, closeFunc := kubetest.CrossConnectClientAt(k8s, nodesConf[0].Nsmd, tests.Master)
+	eventCh, closeFunc := kubetest.CrossConnectClientAt(k8s, nodesConf[0].Nsmd)
 	defer closeFunc()
 
 	expectedFunc, waitFunc := kubetest.NewEventChecker(t, eventCh, tests.Master)
@@ -129,11 +129,11 @@ func TestXconMonitorMultiNodeHealFail(t *testing.T) {
 	g.Expect(nsc).ToNot(BeNil())
 
 	// monitor client for node0
-	eventCh0, closeFunc0 := kubetest.CrossConnectClientAt(k8s, nodesConf[0].Nsmd, tests.Master)
+	eventCh0, closeFunc0 := kubetest.CrossConnectClientAt(k8s, nodesConf[0].Nsmd)
 	defer closeFunc0()
 
 	// monitor client for node1
-	eventCh1, closeFunc1 := kubetest.CrossConnectClientAt(k8s, nodesConf[1].Nsmd, tests.Worker)
+	eventCh1, closeFunc1 := kubetest.CrossConnectClientAt(k8s, nodesConf[1].Nsmd)
 	defer closeFunc1()
 
 	// checking goroutine for node0
@@ -207,11 +207,11 @@ func TestXconMonitorMultiNodeHealSuccess(t *testing.T) {
 	g.Expect(nsc).ToNot(BeNil())
 
 	// monitor client for node0
-	eventCh0, closeFunc0 := kubetest.CrossConnectClientAt(k8s, nodesConf[0].Nsmd, tests.Master)
+	eventCh0, closeFunc0 := kubetest.CrossConnectClientAt(k8s, nodesConf[0].Nsmd)
 	defer closeFunc0()
 
 	// monitor client for node1
-	eventCh1, closeFunc1 := kubetest.CrossConnectClientAt(k8s, nodesConf[1].Nsmd, tests.Worker)
+	eventCh1, closeFunc1 := kubetest.CrossConnectClientAt(k8s, nodesConf[1].Nsmd)
 	defer closeFunc1()
 
 	// checking goroutine for node0
@@ -286,7 +286,7 @@ func TestXconMonitorNsmgrRestart(t *testing.T) {
 	nsc := kubetest.DeployNSC(k8s, nodesConf[0].Node, "nsc-0", defaultTimeout)
 	g.Expect(nsc).ToNot(BeNil())
 
-	eventCh, closeFunc := kubetest.CrossConnectClientAt(k8s, nodesConf[0].Nsmd, tests.Master)
+	eventCh, closeFunc := kubetest.CrossConnectClientAt(k8s, nodesConf[0].Nsmd)
 	expectFunc, waitFunc := kubetest.NewEventChecker(t, eventCh, tests.Master)
 
 	expectFunc(&kubetest.SingleEventChecker{
@@ -303,7 +303,7 @@ func TestXconMonitorNsmgrRestart(t *testing.T) {
 		&pods.NSMgrPodConfig{Namespace: k8s.GetK8sNamespace()})) // Recovery NSEs
 	k8s.WaitLogsContains(nodesConf[0].Nsmd, "nsmd", "All connections are recovered...", defaultTimeout)
 
-	eventChR, closeFuncR := kubetest.CrossConnectClientAt(k8s, nodesConf[0].Nsmd, tests.Master)
+	eventChR, closeFuncR := kubetest.CrossConnectClientAt(k8s, nodesConf[0].Nsmd)
 	defer closeFuncR()
 	expectFuncR, waitFuncR := kubetest.NewEventChecker(t, eventChR, tests.Master)
 
