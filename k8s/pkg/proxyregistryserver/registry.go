@@ -65,7 +65,7 @@ func (rs *nseRegistryService) RegisterNSE(ctx context.Context, request *registry
 	remoteRegistry := nsmd.NewServiceRegistryAt(nsmrsURL + ":80")
 	defer remoteRegistry.Stop()
 
-	nseRegistryClient, err := remoteRegistry.NseRegistryClient()
+	nseRegistryClient, err := remoteRegistry.NseRegistryClient(context.Background())
 	if err != nil {
 		logrus.Warnf(fmt.Sprintf("%s: Cannot register network service endpoint in NSMRS: %v", NSRegistryForwarderLogPrefix, err))
 		return request, err
@@ -94,7 +94,7 @@ func (rs *nseRegistryService) RemoveNSE(ctx context.Context, request *registry.R
 	remoteRegistry := nsmd.NewServiceRegistryAt(nsmrsURL + ":80")
 	defer remoteRegistry.Stop()
 
-	nseRegistryClient, err := remoteRegistry.NseRegistryClient()
+	nseRegistryClient, err := remoteRegistry.NseRegistryClient(context.Background())
 	if err != nil {
 		logrus.Warnf(fmt.Sprintf("%s: Cannot register network service endpoint in NSMRS: %v", NSRegistryForwarderLogPrefix, err))
 		return &empty.Empty{}, err

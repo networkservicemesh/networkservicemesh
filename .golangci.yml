@@ -135,6 +135,9 @@ issues:
     - path: integration/interdomain_floating_interdomain_die_test.go
       linters:
         - funlen
+    - path: pkg/registryserver/nse.go
+      linters:
+        - funlen
     - path: probes/health/serve_mux_health.go
       linters:
         - gosec
