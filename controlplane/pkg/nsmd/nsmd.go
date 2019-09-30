@@ -245,7 +245,7 @@ func (nsm *nsmServer) restoreClients(ctx context.Context, clients []string) []st
 		}
 		workspace, err := NewWorkSpace(span.Context(), nsm, client, true)
 		if err != nil {
-			span.LogError(fmt.Errorf("error NSMServer: Failed to create workspace %s %v. Ignoring...", client, err))
+			span.LogError(fmt.Errorf("error NSMServer: Failed to create workspace %s %v. Ignoring", client, err))
 			continue
 		}
 		nsm.workspaces[workspace.Name()] = workspace

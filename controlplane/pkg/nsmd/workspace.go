@@ -57,6 +57,7 @@ type Workspace struct {
 	ctx              context.Context
 }
 
+// NewWorkSpace - constructs a new workspace.
 func NewWorkSpace(ctx context.Context, nsm *nsmServer, name string, restore bool) (*Workspace, error) {
 	span := spanhelper.FromContext(ctx, fmt.Sprintf("Workspace:%v", name))
 	defer span.Finish()

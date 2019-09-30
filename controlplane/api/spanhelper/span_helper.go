@@ -112,6 +112,7 @@ func (s *spanHelper) Logger() logrus.FieldLogger {
 	return s.logger
 }
 
+// NewSpanHelper - constructs a span helper from context/snap and opertaion name.
 func NewSpanHelper(ctx context.Context, span opentracing.Span, operation string) SpanHelper {
 	return &spanHelper{
 		ctx:       ctx,
