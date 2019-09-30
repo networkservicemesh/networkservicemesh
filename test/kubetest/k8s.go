@@ -836,6 +836,8 @@ func (k8s *K8s) waitLogsMatch(ctx context.Context, pod *v1.Pod, container string
 				logrus.Warnf("Error on get logs: %v retrying", err)
 			} else {
 				logrus.Warnf("Reached end of logs for %v::%v", pod.GetName(), container)
+				logrus.Errorf("%v Last logs: %v", description, builder.String())
+				k8s.g.Expect(false).To(BeTrue())
 			}
 			<-time.After(100 * time.Millisecond)
 			linesChan, errChan = k8s.GetLogsChannel(ctx, pod, options)
