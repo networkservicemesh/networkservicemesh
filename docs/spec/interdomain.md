@@ -28,6 +28,16 @@ Interdomain NSM does not have central registry. All clusters are communicate jus
 
 Network service can be reached by ipv4 format address and domain name. Currently domain name will be resolved by local DNS resolver and can be changed to any custom resolver ([func ResolveDomain(remoteDomain string)](../../k8s/pkg/utils/interdomainutils.go)).
 
+Floating Interdomain
+------------------------
+
+Floating interdomain provides an ability to register Network Service Endpoints from any domain at one place, available from any another domain.
+
+* NSMRS (Network Service Mesh Registry Server) is used as interdomain NSE registry server. 
+* Floating Interdomain handle Network Services requests the same way as regular Interdomain request (for example request for Network Service of the form *network-service@nsmrs-domain.com*)
+* NSMRS is independent from kubernetes.
+* Proxy NSMD-K8S should be configured to forward registry packets to the NSMRS (Environment variable "*NSMRS_ADDRESS*").
+
 Example usage
 ------------------------
 
