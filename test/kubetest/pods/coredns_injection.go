@@ -3,6 +3,8 @@ package pods
 import (
 	"strings"
 
+	"k8s.io/apimachinery/pkg/api/resource"
+
 	v1 "k8s.io/api/core/v1"
 
 	"github.com/networkservicemesh/networkservicemesh/k8s/cmd/nsm-coredns/env"
@@ -29,6 +31,11 @@ func InjectNSMCorednsWithSharedFolder(template *v1.Pod, defaultDNSIPs ...string)
 				{
 					Name:  env.DefaultDNSServerIPList.Name(),
 					Value: strings.Join(defaultDNSIPs, " "),
+				},
+			},
+			Resources: v1.ResourceRequirements{
+				Limits: v1.ResourceList{
+					"networkservicemesh.io/socket": resource.NewQuantity(1, resource.DecimalSI).DeepCopy(),
 				},
 			},
 		}))
@@ -67,6 +74,11 @@ func InjectNSMCoredns(pod *v1.Pod, corednsConfigName string) *v1.Pod {
 				Name:      "config-volume",
 				MountPath: "/etc/coredns",
 			}},
+			Resources: v1.ResourceRequirements{
+				Limits: v1.ResourceList{
+					"networkservicemesh.io/socket": resource.NewQuantity(1, resource.DecimalSI).DeepCopy(),
+				},
+			},
 		}))
 
 	pod.Spec.Volumes = append(pod.Spec.Volumes, v1.Volume{

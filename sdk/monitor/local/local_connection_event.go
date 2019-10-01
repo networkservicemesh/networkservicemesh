@@ -1,10 +1,10 @@
-package remote
+package local
 
 import (
 	"fmt"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
+	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
 )
 
 type event struct {
@@ -64,7 +64,7 @@ func eventTypeToConnectionEventType(eventType monitor.EventType) (connection.Con
 	case monitor.EventTypeDelete:
 		return connection.ConnectionEventType_DELETE, nil
 	default:
-		return 0, fmt.Errorf("unable to cast %v to remote.ConnectionEventType", eventType)
+		return 0, fmt.Errorf("unable to cast %v to local.ConnectionEventType", eventType)
 	}
 }
 
@@ -88,7 +88,7 @@ func connectionsFromEntities(entities map[string]monitor.Entity) (map[string]*co
 		if conn, ok := v.(*connection.Connection); ok {
 			connections[k] = conn
 		} else {
-			return nil, fmt.Errorf("unable to cast Entity to remote.Connection")
+			return nil, fmt.Errorf("unable to cast Entity to local.Connection")
 		}
 	}
 

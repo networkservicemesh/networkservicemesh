@@ -1,7 +1,8 @@
-FROM golang:alpine as build
-
 ARG VENDORING
 ARG GOPROXY
+ARG GO_VERSION
+
+FROM golang:${GO_VERSION}-alpine as build
 
 ENV GOPROXY=${GOPROXY}
 ENV PACKAGEPATH=github.com/networkservicemesh/networkservicemesh/dataplane

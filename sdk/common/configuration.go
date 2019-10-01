@@ -18,7 +18,6 @@ package common
 import (
 	"strings"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
@@ -46,19 +45,27 @@ type NSConfiguration struct {
 	Routes             []string
 }
 
-// CompleteNSConfiguration fills all unset options from the env variables
-func (configuration *NSConfiguration) CompleteNSConfiguration() {
+// FromEnv creates a new NSConfiguration and fills all unset options from the env variables
+func FromEnv() *NSConfiguration {
+	return (&NSConfiguration{}).FromEnv()
+}
+
+// FromEnv fills all unset options from the env variables
+func (configuration *NSConfiguration) FromEnv() *NSConfiguration {
+	if configuration == nil {
+		return nil
+	}
 
 	if configuration.NsmServerSocket == "" {
-		configuration.NsmServerSocket = getEnv(nsmd.NsmServerSocketEnv, "nsmServerSocket", true)
+		configuration.NsmServerSocket = getEnv(NsmServerSocketEnv, "nsmServerSocket", true)
 	}
 
 	if configuration.NsmClientSocket == "" {
-		configuration.NsmClientSocket = getEnv(nsmd.NsmClientSocketEnv, "nsmClientSocket", true)
+		configuration.NsmClientSocket = getEnv(NsmClientSocketEnv, "nsmClientSocket", true)
 	}
 
 	if configuration.Workspace == "" {
-		configuration.Workspace = getEnv(nsmd.WorkspaceEnv, "workspace", true)
+		configuration.Workspace = getEnv(WorkspaceEnv, "workspace", true)
 	}
 
 	if configuration.AdvertiseNseName == "" {
@@ -91,14 +98,18 @@ func (configuration *NSConfiguration) CompleteNSConfiguration() {
 			configuration.Routes = strings.Split(raw, ",")
 		}
 	}
+	return configuration
 }
 
-func NSConfigurationFromUrl(configuration *NSConfiguration, url *tools.NSUrl) *NSConfiguration {
-	var conf NSConfiguration
-	if configuration != nil {
-		conf = *configuration
+func FromNSUrl(url *tools.NSUrl) *NSConfiguration {
+	return (&NSConfiguration{}).FromNSUrl(url)
+}
+
+func (configuration *NSConfiguration) FromNSUrl(url *tools.NSUrl) *NSConfiguration {
+	if configuration == nil {
+		return nil
 	}
-	conf.OutgoingNscName = url.NsName
+	configuration.OutgoingNscName = url.NsName
 	var labels strings.Builder
 	separator := false
 	for k, v := range url.Params {
@@ -111,6 +122,6 @@ func NSConfigurationFromUrl(configuration *NSConfiguration, url *tools.NSUrl) *N
 		labels.WriteRune('=')
 		labels.WriteString(v[0])
 	}
-	conf.OutgoingNscLabels = labels.String()
-	return &conf
+	configuration.OutgoingNscLabels = labels.String()
+	return configuration
 }

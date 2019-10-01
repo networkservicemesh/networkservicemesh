@@ -7,7 +7,7 @@ import (
 )
 
 // TestCommonPod creates a new alpine-based testing pod
-func TestCommonPod(name string, command []string, node *v1.Node, env map[string]string) *v1.Pod {
+func TestCommonPod(name string, command []string, node *v1.Node, env map[string]string, sa string) *v1.Pod {
 	envVars := []v1.EnvVar{}
 	for k, v := range env {
 		envVars = append(envVars,
@@ -25,6 +25,7 @@ func TestCommonPod(name string, command []string, node *v1.Node, env map[string]
 			Kind: "Deployment",
 		},
 		Spec: v1.PodSpec{
+			ServiceAccountName: sa,
 			Containers: []v1.Container{
 				containerMod(&v1.Container{
 					Name:            name,

@@ -11,6 +11,7 @@ spec:
       labels:
         networkservicemesh.io/app: "icmp-responder-nsc"
     spec:
+      serviceAccount: nsc-acc
       containers:
         - name: alpine-img
           image: alpine:latest

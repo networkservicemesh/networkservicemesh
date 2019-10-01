@@ -1,20 +1,9 @@
 module github.com/networkservicemesh/networkservicemesh
 
-require (
-	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
-	github.com/go-errors/errors v1.0.1
-	github.com/grpc-ecosystem/grpc-opentracing v0.0.0-20180507213350-8e809c8a8645
-	github.com/networkservicemesh/networkservicemesh/test v0.2.0
-	github.com/onsi/gomega v1.7.0
-	github.com/opentracing/opentracing-go v1.1.0
-	github.com/pkg/errors v0.8.1
-	github.com/sirupsen/logrus v1.4.2
-	github.com/uber-go/atomic v1.4.0 // indirect
-	github.com/uber/jaeger-client-go v2.17.0+incompatible
-	google.golang.org/grpc v1.23.1
-)
-
 replace (
+	// ./scripts/switch_k8s_version.sh to change k8s version
+	git.apache.org/thrift.git => github.com/apache/thrift v0.0.0-20180902110319-2566ecd5d999
+	github.com/census-instrumentation/opencensus-proto v0.1.0-0.20181214143942-ba49f56771b8 => github.com/census-instrumentation/opencensus-proto v0.0.3-0.20181214143942-ba49f56771b8
 	gonum.org/v1/gonum => github.com/gonum/gonum v0.0.0-20190331200053-3d26580ed485
 	gonum.org/v1/netlib => github.com/gonum/netlib v0.0.0-20190331212654-76723241ea4e
 	k8s.io/api => k8s.io/api v0.0.0-20190819141258-3544db3b9e44
@@ -45,6 +34,7 @@ replace (
 
 replace (
 	github.com/networkservicemesh/networkservicemesh => ./
+	github.com/networkservicemesh/networkservicemesh/controllers/sriov-controller => ./controllers/sriov-controller
 	github.com/networkservicemesh/networkservicemesh/controlplane => ./controlplane
 	github.com/networkservicemesh/networkservicemesh/controlplane/api => ./controlplane/api
 	github.com/networkservicemesh/networkservicemesh/dataplane => ./dataplane
@@ -52,8 +42,13 @@ replace (
 	github.com/networkservicemesh/networkservicemesh/k8s => ./k8s
 	github.com/networkservicemesh/networkservicemesh/k8s/api => ./k8s/api
 	github.com/networkservicemesh/networkservicemesh/pkg => ./pkg
+	github.com/networkservicemesh/networkservicemesh/scripts/aws => ./scripts/aws
 	github.com/networkservicemesh/networkservicemesh/sdk => ./sdk
 	github.com/networkservicemesh/networkservicemesh/side-cars => ./side-cars
 	github.com/networkservicemesh/networkservicemesh/test => ./test
 	github.com/networkservicemesh/networkservicemesh/utils => ./utils
 )
+
+go 1.13
+
+require github.com/networkservicemesh/networkservicemesh/dataplane v0.0.0-00010101000000-000000000000 // indirect

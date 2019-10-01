@@ -4,13 +4,14 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+
 	"github.com/networkservicemesh/networkservicemesh/utils/interdomain"
 
 	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor"
+	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
 )
 
 const (
@@ -77,7 +78,7 @@ func (s *proxyMonitorServer) monitorConnection(
 	quit chan error) {
 	logrus.Infof(proxyLogFormat, name, "Added")
 
-	conn, err := grpc.Dial(remotePeerURL, grpc.WithInsecure())
+	conn, err := tools.DialTCPInsecure(remotePeerURL)
 	if err != nil {
 		logrus.Errorf(proxyLogWithParamFormat, name, "Failed to connect", err)
 		quit <- err

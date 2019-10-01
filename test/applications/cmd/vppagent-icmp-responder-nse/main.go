@@ -27,21 +27,21 @@ import (
 var version string
 
 func main() {
-	logrus.Info("Starting vppagent-icmp-responder-nse...")
-	logrus.Infof("Version: %v", version)
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
+	logrus.Info("Starting vppagent-icmp-responder-nse...")
+	logrus.Infof("Version: %v", version)
 
-	configuration := &common.NSConfiguration{
+	configuration := (&common.NSConfiguration{
 		MechanismType: "mem",
-	}
+	}).FromEnv()
 
 	composite := endpoint.NewCompositeEndpoint(
 		endpoint.NewMonitorEndpoint(configuration),
 		endpoint.NewConnectionEndpoint(configuration),
-		endpoint.NewIpamEndpoint(nil),
+		endpoint.NewIpamEndpoint(configuration),
 		vppagent.NewMemifConnect(configuration),
-		vppagent.NewCommit(configuration, "localhost:9112", true),
+		vppagent.NewCommit("localhost:9112", true),
 	)
 
 	nsmEndpoint, err := endpoint.NewNSMEndpoint(nil, configuration, composite)

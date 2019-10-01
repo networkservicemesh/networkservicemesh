@@ -141,7 +141,7 @@ func (si *shellInstance) Start(timeout time.Duration) (string, error) {
 
 	if si.configLocation == "" {
 		var output []string
-		output, err = utils.ExecRead(context, strings.Split(si.configScript, " "))
+		output, err = utils.ExecRead(context, "", strings.Split(si.configScript, " "))
 		if err != nil {
 			msg := fmt.Sprintf("Failed to retrieve configuration location %v", err)
 			logrus.Errorf(msg)

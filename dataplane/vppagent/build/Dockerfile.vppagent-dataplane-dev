@@ -1,8 +1,9 @@
 ARG VPP_AGENT
 ARG VPP_DEV
 ARG REPO
+ARG GO_VERSION
 
-FROM golang:alpine as build
+FROM golang:${GO_VERSION}-alpine as build
 FROM ${VPP_DEV} as vpp_dev
 FROM ${VPP_AGENT} as vpp_agent
 
@@ -24,11 +25,11 @@ RUN apt-get update && apt-get install -y zip python python-cffi python-enum34 py
   && dpkg -i libvppinfra-dev_*.deb vpp-dev_*.deb vpp-dbg_*.deb vpp-api-python_*.deb \
   && rm *.deb
 
-RUN rm /opt/vpp-agent/dev/etcd.conf; echo 'Endpoint: "localhost:9111"' > /opt/vpp-agent/dev/grpc.conf
+RUN rm /opt/vpp-agent/dev/etcd.conf; echo 'Endpoint: "localhost:9111"' > /opt/vpp-agent/dev/grpc.conf;echo "disabled: true" > /opt/vpp-agent/dev/telemetry.conf
 COPY dataplane/vppagent/conf/vpp/startup.conf /etc/vpp/vpp.conf
 COPY dataplane/vppagent/conf/supervisord/supervisord.conf /etc/supervisord/supervisord.conf
 
-FROM golang:alpine as build_vpp
+FROM golang:${GO_VERSION}-alpine as build_vpp
 ARG VERSION=unspecified
 ARG VENDORING
 ARG GOPROXY

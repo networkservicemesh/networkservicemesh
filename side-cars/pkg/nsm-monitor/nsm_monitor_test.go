@@ -34,14 +34,6 @@ func (h *nsmHelper) Healing(conn *connection.Connection) {
 	h.healing <- true
 }
 
-func (h *nsmHelper) GetConfiguration() *common.NSConfiguration {
-	return &common.NSConfiguration{
-		NsmClientSocket: h.response.HostBasedir + "/" + h.response.Workspace + "/" + h.response.NsmClientSocket,
-		NsmServerSocket: h.response.HostBasedir + "/" + h.response.Workspace + "/" + h.response.NsmServerSocket,
-		Workspace:       h.response.HostBasedir + "/" + h.response.Workspace,
-	}
-}
-
 func TestNSMMonitorInit(t *testing.T) {
 	g := NewWithT(t)
 
@@ -52,9 +44,13 @@ func TestNSMMonitorInit(t *testing.T) {
 
 	srv.TestModel.AddEndpoint(srv.RegisterFakeEndpoint("golden_network", "test", tests.Master))
 
-	monitorApp := NewNSMMonitorApp()
-
 	response := srv.RequestNSM("nsm")
+
+	monitorApp := NewNSMMonitorApp(&common.NSConfiguration{
+		NsmClientSocket: response.HostBasedir + "/" + response.Workspace + "/" + response.NsmClientSocket,
+		NsmServerSocket: response.HostBasedir + "/" + response.Workspace + "/" + response.NsmServerSocket,
+		Workspace:       response.HostBasedir + "/" + response.Workspace,
+	})
 	// Now we could try to connect via Client API
 	nsmClient, conn := srv.CreateNSClient(response)
 	defer func() {

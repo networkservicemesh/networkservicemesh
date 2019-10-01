@@ -13,6 +13,7 @@ spec:
         networkservicemesh.io/app: "passthrough"
         networkservicemesh.io/impl: "secure-intranet-connectivity"
     spec:
+      serviceAccount: nse-acc
       containers:
         - name: passthrough-nse
           image: {{ .Values.registry }}/{{ .Values.org }}/vpp-test-common:{{ .Values.tag }}
@@ -51,6 +52,7 @@ spec:
         networkservicemesh.io/app: "passthrough"
         networkservicemesh.io/impl: "secure-intranet-connectivity"
     spec:
+      serviceAccount: nse-acc
       containers:
         - name: passthrough-nse
           image: {{ .Values.registry }}/{{ .Values.org }}/vpp-test-common:{{ .Values.tag }}
@@ -89,6 +91,7 @@ spec:
         networkservicemesh.io/app: "passthrough"
         networkservicemesh.io/impl: "secure-intranet-connectivity"
     spec:
+      serviceAccount: nse-acc
       containers:
         - name: passthrough-nse
           image: {{ .Values.registry }}/{{ .Values.org }}/vpp-test-common:{{ .Values.tag }}

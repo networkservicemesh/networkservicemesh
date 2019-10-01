@@ -31,8 +31,8 @@ func (w *ProcWrapper) ExitCode() int {
 }
 
 // ExecRead - execute command and return output as result, stderr is ignored.
-func ExecRead(ctx context.Context, args []string) ([]string, error) {
-	proc, error := ExecProc(ctx, "", args, nil)
+func ExecRead(ctx context.Context, dir string, args []string) ([]string, error) {
+	proc, error := ExecProc(ctx, dir, args, nil)
 	if error != nil {
 		return nil, error
 	}

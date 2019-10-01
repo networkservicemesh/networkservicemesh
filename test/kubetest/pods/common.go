@@ -14,6 +14,14 @@ const (
 	EnvForwardingPlaneKernel = "kernel-forwarder"
 	// EnvForwardingPlaneDefault is the default forwarding plane
 	EnvForwardingPlaneDefault = EnvForwardingPlaneVPP
+	// NSEServiceAccount service account for Network Service Endpoints
+	NSEServiceAccount = "nse-acc"
+	// NSCServiceAccount service account for Network Service Clients
+	NSCServiceAccount = "nsc-acc"
+	// NSMgrServiceAccount service account for Network Service Managers
+	NSMgrServiceAccount = "nsmgr-acc"
+	// ForwardPlaneServiceAccount service account for Forwarding Plane
+	ForwardPlaneServiceAccount = "forward-plane-acc"
 )
 
 // ForwardingPlane - Wrapper for getting a forwarding plane pod

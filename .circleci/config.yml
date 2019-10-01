@@ -8,7 +8,7 @@ jobs:
     resource_class: xlarge
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh
     docker:
-      - image: circleci/golang:1.12-stretch
+      - image: circleci/golang:1.13-stretch
     steps:
       - checkout
       - run:
@@ -47,7 +47,8 @@ jobs:
             export CONTAINER_TAG="${COMMIT}"
             export CONTAINER_REPO="networkservicemeshci"
             export CONTAINER_FORCE_PULL="true"
-            gotestsum --junitfile ~/junit/unit-tests.xml -- -short `go list ./... | grep -v -e "sample"`
+            export INSECURE="true"
+            ./scripts/run_unit_tests.sh
       - store_test_results:
           path: ~/junit
       - store_artifacts:
@@ -59,7 +60,7 @@ jobs:
   test-static-code-analysis:
     resource_class: large
     docker:
-      - image: circleci/golang:1.12-stretch
+      - image: circleci/golang:1.13-stretch
     steps:
       - checkout
       - run:
@@ -74,7 +75,7 @@ jobs:
 # integration
   integration-tests:
     docker:
-      - image: circleci/golang:1.12-stretch
+      - image: circleci/golang:1.13-stretch
     steps:
       - checkout
       - setup_remote_docker:
@@ -146,7 +147,7 @@ jobs:
       container:
         type: string
     docker:
-      - image: circleci/golang:1.12-stretch
+      - image: circleci/golang:1.13-stretch
     steps:
       - checkout
       - setup_remote_docker:
@@ -162,7 +163,7 @@ jobs:
 # build ready - empty job
   build-container-success:
     docker:
-      - image: circleci/golang:1.12-stretch
+      - image: circleci/golang:1.13-stretch
     steps:
       - run:
           command: |
@@ -171,7 +172,7 @@ jobs:
 # docker push
   docker-push-tag:
     docker:
-      - image: circleci/golang:1.12-stretch
+      - image: circleci/golang:1.13-stretch
     parameters:
       tag:
         type: string
@@ -192,6 +193,7 @@ jobs:
             export CONTAINERS=(${CONTAINERS[@]} vppagent-dataplane vppagent-dataplane-dev)
             export CONTAINERS=(${CONTAINERS[@]} test-common vpp-test-common nsm-coredns)
             export CONTAINERS=(${CONTAINERS[@]} kernel-forwarder)
+            export CONTAINERS=(${CONTAINERS[@]} spire-registration)
             echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
             for c in ${CONTAINERS[@]}; do
               docker pull ${PULL_REPO}/${c}:${PULL_TAG}
@@ -296,6 +298,11 @@ workflows:
           container: "kernel-forwarder"
           requires:
             - test-sanity-check
+      - build-container:
+          name: "build-spire-registration"
+          container: "spire-registration"
+          requires:
+            - test-sanity-check
       - build-container-success:
           requires:
             - build-nsmd
@@ -313,6 +320,7 @@ workflows:
             - build-vppagent-dataplane-dev
             - build-kernel-forwarding-plane
             - build-nsm-coredns
+            - build-spire-registration
 
 # Integration testing
       - integration-tests:

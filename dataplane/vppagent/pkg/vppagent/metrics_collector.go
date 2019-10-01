@@ -6,14 +6,15 @@ import (
 	"io"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+
 	"github.com/gogo/protobuf/proto"
 	rpc "github.com/ligato/vpp-agent/api/configurator"
 	interfaces "github.com/ligato/vpp-agent/api/models/vpp/interfaces"
 	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/metrics"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/metrics"
 )
 
 type MetricsCollector struct {
@@ -33,7 +34,7 @@ func (m *MetricsCollector) CollectAsync(monitor metrics.MetricsMonitor, endpoint
 }
 
 func (m *MetricsCollector) collect(monitor metrics.MetricsMonitor, endpoint string) {
-	conn, err := tools.DialTCP(endpoint)
+	conn, err := tools.DialTCPInsecure(endpoint)
 	if err != nil {
 		logrus.Errorf("Metrics collector: can't dial %v", err)
 		return

@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"net"
 	"path"
+	"strconv"
 	"sync"
 	"time"
 
@@ -31,6 +32,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 )
 
 const (
@@ -53,11 +55,22 @@ type nsmClientEndpoints struct {
 	pluginApi       *pluginapi.DevicePlugin_ListAndWatchServer
 	mutext          sync.Mutex
 	clientId        int
+	insecure        bool
 }
 
 func (n *nsmClientEndpoints) Allocate(ctx context.Context, reqs *pluginapi.AllocateRequest) (*pluginapi.AllocateResponse, error) {
 	logrus.Infof("Client request for nsmdp resource... %v", proto.MarshalTextString(reqs))
 	responses := &pluginapi.AllocateResponse{}
+
+	var mounts []*pluginapi.Mount
+	if !n.insecure {
+		mounts = append(mounts, &pluginapi.Mount{
+			ContainerPath: "/run/spire/sockets",
+			HostPath:      "/run/spire/sockets",
+			ReadOnly:      true,
+		})
+	}
+
 	for _, req := range reqs.ContainerRequests {
 		id := req.DevicesIDs[0]
 		logrus.Infof("Requesting Workspace, device ID: %s", id)
@@ -71,14 +84,20 @@ func (n *nsmClientEndpoints) Allocate(ctx context.Context, reqs *pluginapi.Alloc
 				HostPath:      workspace.HostBasedir + workspace.Workspace,
 				ReadOnly:      false,
 			}
+			envs := map[string]string{
+				nsmd.NsmDevicePluginEnv:   "true",
+				common.NsmServerSocketEnv: mount.ContainerPath + workspace.NsmServerSocket,
+				common.NsmClientSocketEnv: mount.ContainerPath + workspace.NsmClientSocket,
+				common.WorkspaceEnv:       workspace.ClientBaseDir,
+			}
+
+			if n.insecure {
+				envs[tools.InsecureEnv] = strconv.FormatBool(true)
+			}
+
 			responses.ContainerResponses = append(responses.ContainerResponses, &pluginapi.ContainerAllocateResponse{
-				Mounts: []*pluginapi.Mount{mount},
-				Envs: map[string]string{
-					nsmd.NsmDevicePluginEnv: "true",
-					nsmd.NsmServerSocketEnv: mount.ContainerPath + workspace.NsmServerSocket,
-					nsmd.NsmClientSocketEnv: mount.ContainerPath + workspace.NsmClientSocket,
-					nsmd.WorkspaceEnv:       workspace.ClientBaseDir,
-				},
+				Mounts: append(mounts, mount),
+				Envs:   envs,
 			})
 		}
 	}
@@ -88,7 +107,7 @@ func (n *nsmClientEndpoints) Allocate(ctx context.Context, reqs *pluginapi.Alloc
 
 // Register registers
 func Register(kubeletEndpoint string) error {
-	conn, err := tools.DialUnix(kubeletEndpoint)
+	conn, err := tools.DialUnixInsecure(kubeletEndpoint)
 	if err != nil {
 		return fmt.Errorf("device-plugin: cannot connect to kubelet service: %v", err)
 	}
@@ -164,7 +183,8 @@ func startDeviceServer(nsm *nsmClientEndpoints) error {
 		return err
 	}
 
-	grpcServer := tools.NewServer()
+	grpcServer := tools.NewServerInsecure()
+
 	pluginapi.RegisterDevicePluginServer(grpcServer, nsm)
 
 	logrus.Infof("Starting Device Plugin's gRPC server listening on socket: %s", ServerSock)
@@ -174,7 +194,7 @@ func startDeviceServer(nsm *nsmClientEndpoints) error {
 		}
 	}()
 	// Check if the socket of device plugin server is operation
-	conn, err := tools.DialUnix(listenEndpoint)
+	conn, err := tools.DialUnixInsecure(listenEndpoint)
 	if err != nil {
 		return err
 	}
@@ -194,10 +214,17 @@ func waitForNsmdAvailable() {
 // NewNSMDeviceServer registers and starts Kubelet's device plugin
 func NewNSMDeviceServer(serviceRegistry serviceregistry.ServiceRegistry) error {
 	waitForNsmdAvailable()
+
+	insecure, err := tools.IsInsecure()
+	if err != nil {
+		return err
+	}
+
 	nsm := &nsmClientEndpoints{
 		serviceRegistry: serviceRegistry,
 		resp:            new(pluginapi.ListAndWatchResponse),
 		devs:            map[string]*pluginapi.Device{},
+		insecure:        insecure,
 	}
 
 	for i := 0; i < DeviceBuffer; i++ {
@@ -208,9 +235,7 @@ func NewNSMDeviceServer(serviceRegistry serviceregistry.ServiceRegistry) error {
 		return err
 	}
 	// Registers with Kubelet.
-	err := Register(pluginapi.KubeletSocket)
-
-	return err
+	return Register(pluginapi.KubeletSocket)
 }
 
 func (nsm *nsmClientEndpoints) addClientDevice() {

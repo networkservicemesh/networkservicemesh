@@ -79,12 +79,6 @@ func (mc *MemifConnect) Name() string {
 
 // NewMemifConnect creates a MemifConnect
 func NewMemifConnect(configuration *common.NSConfiguration) *MemifConnect {
-	// ensure the env variables are processed
-	if configuration == nil {
-		configuration = &common.NSConfiguration{}
-	}
-	configuration.CompleteNSConfiguration()
-
 	return &MemifConnect{
 		Workspace: configuration.Workspace,
 	}

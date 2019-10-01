@@ -23,8 +23,8 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/local"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
+	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/local"
 )
 
 // MonitorEndpoint is a monitoring composite
@@ -93,7 +93,6 @@ func NewMonitorEndpoint(configuration *common.NSConfiguration) *MonitorEndpoint 
 	if configuration == nil {
 		configuration = &common.NSConfiguration{}
 	}
-	configuration.CompleteNSConfiguration()
 
 	self := &MonitorEndpoint{
 		monitorConnectionServer: local.NewMonitorServer(),

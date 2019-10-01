@@ -8,6 +8,7 @@
 **NSMD**
 
 * *NSMD_API_ADDRESS* - Specifies IP address and port to start NSMD server (default ":5001")
+* *INSECURE* - Allows to start NSMD in insecure mode (all `grpc.Dial()` will be called with `grpc.WithInsecure()`)
 
 **NSMD-K8S**
 

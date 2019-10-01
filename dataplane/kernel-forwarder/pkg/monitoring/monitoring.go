@@ -26,7 +26,7 @@ import (
 	"github.com/vishvananda/netns"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/metrics"
+	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/metrics"
 	"github.com/networkservicemesh/networkservicemesh/utils/fs"
 )
 
