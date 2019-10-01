@@ -5,10 +5,11 @@ import (
 	"fmt"
 
 	"github.com/golang/protobuf/ptypes/empty"
+	"google.golang.org/grpc"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	remote "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
-	"google.golang.org/grpc"
 )
 
 type localMonitorAdapter struct {

@@ -4,12 +4,13 @@ import (
 	"context"
 
 	"github.com/golang/protobuf/ptypes/empty"
+	"google.golang.org/grpc"
+
 	local_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	remote_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
 	remote "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
-	"google.golang.org/grpc"
 )
 
 type localClientAdapter struct {
