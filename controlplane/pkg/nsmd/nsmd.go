@@ -63,7 +63,7 @@ type nsmServer struct {
 	localRegistry    *nseregistry.NSERegistry
 	registerServer   *grpc.Server
 	registerSock     net.Listener
-	regServer        *dataplaneRegistrarServer
+	regServer        *DataplaneRegistrarServer
 
 	xconManager             *services.ClientConnectionManager
 	crossConnectMonitor     monitor_crossconnect.MonitorServer

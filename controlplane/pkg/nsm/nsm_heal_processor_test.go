@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	nsm2 "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
+	nsm_api "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
 
 	"github.com/golang/protobuf/ptypes/empty"
 
@@ -111,7 +111,7 @@ func newHealTestData() *healTestData {
 	data.healProcessor = &healProcessor{
 		serviceRegistry: data.serviceRegistry,
 		model:           data.model,
-		properties: &nsm2.Properties{
+		properties: &nsm_api.Properties{
 			HealEnabled: true,
 		},
 		nseManager: data.nseManager,

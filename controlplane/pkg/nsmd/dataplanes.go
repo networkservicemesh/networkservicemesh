@@ -17,10 +17,11 @@ package nsmd
 import (
 	"context"
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
 	"net"
 	"path"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/sirupsen/logrus"
@@ -43,7 +44,8 @@ const (
 	livenessInterval         = 5
 )
 
-type dataplaneRegistrarServer struct {
+// DataplaneRegistrarServer - NSMgr registration service
+type DataplaneRegistrarServer struct {
 	model                        model.Model
 	grpcServer                   *grpc.Server
 	dataplaneRegistrarSocketPath string
@@ -97,7 +99,7 @@ func dataplaneMonitor(model model.Model, dataplaneName string) {
 // RequestLiveness is a stream initiated by NSM to inform the dataplane that NSM is still alive and
 // no re-registration is required. Detection a failure on this "channel" will mean
 // that NSM is gone and the dataplane needs to start re-registration logic.
-func (r *dataplaneRegistrarServer) RequestLiveness(liveness dataplaneregistrarapi.DataplaneRegistration_RequestLivenessServer) error {
+func (r *DataplaneRegistrarServer) RequestLiveness(liveness dataplaneregistrarapi.DataplaneRegistration_RequestLivenessServer) error {
 	logrus.Infof("Liveness Request received")
 	for {
 		if err := liveness.SendMsg(&empty.Empty{}); err != nil {
@@ -108,7 +110,8 @@ func (r *dataplaneRegistrarServer) RequestLiveness(liveness dataplaneregistrarap
 	}
 }
 
-func (r *dataplaneRegistrarServer) RequestDataplaneRegistration(ctx context.Context, req *dataplaneregistrarapi.DataplaneRegistrationRequest) (*dataplaneregistrarapi.DataplaneRegistrationReply, error) {
+// RequestDataplaneRegistration - request dataplane to be registered.
+func (r *DataplaneRegistrarServer) RequestDataplaneRegistration(ctx context.Context, req *dataplaneregistrarapi.DataplaneRegistrationRequest) (*dataplaneregistrarapi.DataplaneRegistrationReply, error) {
 	logrus.Infof("Received new dataplane registration requests from %s", req.DataplaneName)
 	// Need to check if name of dataplane already exists in the object store
 	if r.model.GetDataplane(req.DataplaneName) != nil {
@@ -132,7 +135,8 @@ func (r *dataplaneRegistrarServer) RequestDataplaneRegistration(ctx context.Cont
 	return &dataplaneregistrarapi.DataplaneRegistrationReply{Registered: true}, nil
 }
 
-func (r *dataplaneRegistrarServer) RequestDataplaneUnRegistration(ctx context.Context, req *dataplaneregistrarapi.DataplaneUnRegistrationRequest) (*dataplaneregistrarapi.DataplaneUnRegistrationReply, error) {
+// RequestDataplaneUnRegistration - request dataplane to be unregistered
+func (r *DataplaneRegistrarServer) RequestDataplaneUnRegistration(ctx context.Context, req *dataplaneregistrarapi.DataplaneUnRegistrationRequest) (*dataplaneregistrarapi.DataplaneUnRegistrationReply, error) {
 	logrus.Infof("Received dataplane un-registration requests from %s", req.DataplaneName)
 
 	// Removing dataplane from the store, if it does not exists, it does not matter as long as it is no longer there.
@@ -143,11 +147,11 @@ func (r *dataplaneRegistrarServer) RequestDataplaneUnRegistration(ctx context.Co
 
 // startDataplaneServer starts for a server listening for local NSEs advertise/remove
 // dataplane registrar calls
-func (dataplaneRegistrarServer *dataplaneRegistrarServer) startDataplaneRegistrarServer(ctx context.Context) error {
+func (r *DataplaneRegistrarServer) startDataplaneRegistrarServer(ctx context.Context) error {
 	span := spanhelper.FromContext(ctx, "StartDataplaneRegistrarServer")
 	defer span.Finish()
 
-	dataplaneRegistrar := dataplaneRegistrarServer.dataplaneRegistrarSocketPath
+	dataplaneRegistrar := r.dataplaneRegistrarSocketPath
 	span.LogValue("path", dataplaneRegistrar)
 	if err := tools.SocketCleanup(dataplaneRegistrar); err != nil {
 		return err
@@ -155,29 +159,29 @@ func (dataplaneRegistrarServer *dataplaneRegistrarServer) startDataplaneRegistra
 
 	unix.Umask(socketMask)
 	var err error
-	dataplaneRegistrarServer.sock, err = net.Listen("unix", dataplaneRegistrar)
+	r.sock, err = net.Listen("unix", dataplaneRegistrar)
 	if err != nil {
 		span.LogError(fmt.Errorf("failure to listen on socket %s with error: %+v", dataplaneRegistrar, err))
 		return err
 	}
 
 	// Plugging dataplane registrar operations methods
-	dataplaneregistrarapi.RegisterDataplaneRegistrationServer(dataplaneRegistrarServer.grpcServer, dataplaneRegistrarServer)
+	dataplaneregistrarapi.RegisterDataplaneRegistrationServer(r.grpcServer, r)
 	// Plugging dataplane registrar operations methods
-	dataplaneregistrarapi.RegisterDataplaneUnRegistrationServer(dataplaneRegistrarServer.grpcServer, dataplaneRegistrarServer)
+	dataplaneregistrarapi.RegisterDataplaneUnRegistrationServer(r.grpcServer, r)
 
 	span.Logger().Infof("Starting Dataplane Registrar gRPC server listening on socket: %s", dataplaneRegistrar)
 	go func() {
-		if err := dataplaneRegistrarServer.grpcServer.Serve(dataplaneRegistrarServer.sock); err != nil {
-			err = fmt.Errorf("unable to start dataplane registrar grpc server: %v %v", dataplaneRegistrar, err)
-			span.LogError(err)
-			span.Logger().Fatalln(err)
+		if serverErr := r.grpcServer.Serve(r.sock); serverErr != nil {
+			serverErr = fmt.Errorf("unable to start dataplane registrar grpc server: %v %v", dataplaneRegistrar, serverErr)
+			span.LogError(serverErr)
+			span.Logger().Fatalln(serverErr)
 		}
 	}()
 
-	conn, err := tools.DialContextUnix(span.Context(), dataplaneRegistrar)
-	if err != nil {
-		span.Logger().Errorf("failure to communicate with the socket %s with error: %+v", dataplaneRegistrar, err)
+	conn, dialErr := tools.DialContextUnix(span.Context(), dataplaneRegistrar)
+	if dialErr != nil {
+		span.LogError(fmt.Errorf("failure to communicate with the socket %s with error: %+v", dataplaneRegistrar, dialErr))
 		return err
 	}
 	_ = conn.Close()
@@ -186,19 +190,20 @@ func (dataplaneRegistrarServer *dataplaneRegistrarServer) startDataplaneRegistra
 	return nil
 }
 
-func (dataplaneRegistrarServer *dataplaneRegistrarServer) Stop() {
-	dataplaneRegistrarServer.grpcServer.GracefulStop()
-	_ = dataplaneRegistrarServer.sock.Close()
+// Stop - stop dataplane registration socket.
+func (r *DataplaneRegistrarServer) Stop() {
+	r.grpcServer.GracefulStop()
+	_ = r.sock.Close()
 }
 
-// StartDataplaneRegistrarServer registers and starts gRPC server which is listening for
+// StartDataplaneRegistrarServer -  registers and starts gRPC server which is listening for
 // Network Service Dataplane Registrar requests.
-func StartDataplaneRegistrarServer(ctx context.Context, model model.Model) (*dataplaneRegistrarServer, error) {
+func StartDataplaneRegistrarServer(ctx context.Context, model model.Model) (*DataplaneRegistrarServer, error) {
 	span := spanhelper.FromContext(ctx, "DataplaneRegistrarServer")
 	defer span.Finish()
 	server := tools.NewServer(span.Context())
 
-	dataplaneRegistrarServer := &dataplaneRegistrarServer{
+	dataplaneRegistrarServer := &DataplaneRegistrarServer{
 		grpcServer:                   server,
 		dataplaneRegistrarSocketPath: path.Join(DataplaneRegistrarSocketBaseDir, DataplaneRegistrarSocket),
 		model:                        model,

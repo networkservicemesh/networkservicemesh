@@ -9,8 +9,6 @@ import (
 	"sync"
 	"time"
 
-	context2 "golang.org/x/net/context"
-
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
 
 	"github.com/sirupsen/logrus"
@@ -102,7 +100,7 @@ func (impl *nsmdServiceRegistry) DataplaneConnection(ctx context.Context, datapl
 	return dpClient, dataplaneConn, nil
 }
 
-func (impl *nsmdServiceRegistry) NSMDApiClient(context2.Context) (nsmdapi.NSMDClient, *grpc.ClientConn, error) {
+func (impl *nsmdServiceRegistry) NSMDApiClient(context.Context) (nsmdapi.NSMDClient, *grpc.ClientConn, error) {
 	logrus.Infof("Connecting to nsmd on socket: %s...", ServerSock)
 	if _, err := os.Stat(ServerSock); err != nil {
 		return nil, nil, err

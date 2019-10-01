@@ -64,7 +64,7 @@ func NewServer(ctx context.Context, opts ...grpc.ServerOption) *grpc.Server {
 	if GetConfig().SecurityManager != nil {
 		var securitySpan opentracing.Span
 		if GetConfig().OpenTracing {
-			securitySpan, ctx = opentracing.StartSpanFromContext(ctx, "UpdateSecurity")
+			securitySpan, _ = opentracing.StartSpanFromContext(ctx, "UpdateSecurity")
 		}
 		certificate := GetConfig().SecurityManager.GetCertificate()
 		cred := credentials.NewTLS(&tls.Config{
