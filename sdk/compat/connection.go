@@ -119,3 +119,63 @@ func ConnectionUnifiedToRemote(c *unified.Connection) *remote.Connection {
 		State:                                remote.State(c.GetState()),
 	}
 }
+
+func MonitorScopeSelectorUnifiedToRemote(c *unified.MonitorScopeSelector) *remote.MonitorScopeSelector {
+	return &remote.MonitorScopeSelector{
+		NetworkServiceManagerName:            c.GetNetworkServiceManagers()[0],
+		DestinationNetworkServiceManagerName: c.GetNetworkServiceManagers()[1],
+	}
+}
+
+func MonitorScopeSelectorRemoteToUnified(c *remote.MonitorScopeSelector) *unified.MonitorScopeSelector {
+	return &unified.MonitorScopeSelector{
+		NetworkServiceManagers: []string{
+			c.GetNetworkServiceManagerName(),
+			c.GetDestinationNetworkServiceManagerName(),
+		},
+	}
+}
+
+func ConnectionEventLocalToUnified(c *local.ConnectionEvent) *unified.ConnectionEvent {
+	rv := &unified.ConnectionEvent{
+		Type:        unified.ConnectionEventType(c.GetType()),
+		Connections: make(map[string]*unified.Connection, len(c.GetConnections())),
+	}
+	for k, v := range c.GetConnections() {
+		rv.GetConnections()[k] = ConnectionLocalToUnified(v)
+	}
+	return rv
+}
+
+func ConnectionEventUnifiedToLocal(c *unified.ConnectionEvent) *local.ConnectionEvent {
+	rv := &local.ConnectionEvent{
+		Type:        local.ConnectionEventType(c.GetType()),
+		Connections: make(map[string]*local.Connection, len(c.GetConnections())),
+	}
+	for k, v := range c.GetConnections() {
+		rv.GetConnections()[k] = ConnectionUnifiedToLocal(v)
+	}
+	return rv
+}
+
+func ConnectionEventRemoteToUnified(c *remote.ConnectionEvent) *unified.ConnectionEvent {
+	rv := &unified.ConnectionEvent{
+		Type:        unified.ConnectionEventType(c.GetType()),
+		Connections: make(map[string]*unified.Connection, len(c.GetConnections())),
+	}
+	for k, v := range c.GetConnections() {
+		rv.GetConnections()[k] = ConnectionRemoteToUnified(v)
+	}
+	return rv
+}
+
+func ConnectionEventUnifiedToRemote(c *unified.ConnectionEvent) *remote.ConnectionEvent {
+	rv := &remote.ConnectionEvent{
+		Type:        remote.ConnectionEventType(c.GetType()),
+		Connections: make(map[string]*remote.Connection, len(c.GetConnections())),
+	}
+	for k, v := range c.GetConnections() {
+		rv.GetConnections()[k] = ConnectionUnifiedToRemote(v)
+	}
+	return rv
+}
