@@ -320,6 +320,7 @@ workflows:
             - build-vppagent-dataplane-dev
             - build-kernel-forwarding-plane
             - build-nsm-coredns
+            - build-spire-registration
 
 # Integration testing
       - integration-tests:
