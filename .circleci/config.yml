@@ -213,7 +213,7 @@ jobs:
             export CONTAINERS=(nsmd nsmd-k8s nsmdp)
             export CONTAINERS=(${CONTAINERS[@]} proxy-nsmd proxy-nsmd-k8s)
             export CONTAINERS=(${CONTAINERS[@]} crossconnect-monitor nsm-init nsm-monitor admission-webhook)
-            export CONTAINERS=(${CONTAINERS[@]} vppagent-dataplane vppagent-dataplane-dev)
+            export CONTAINERS=(${CONTAINERS[@]} vppagent-dataplane)
             export CONTAINERS=(${CONTAINERS[@]} test-common vpp-test-common nsm-coredns)
             export CONTAINERS=(${CONTAINERS[@]} kernel-forwarder)
             export CONTAINERS=(${CONTAINERS[@]} spire-registration)
@@ -338,7 +338,6 @@ workflows:
             - build-nsm-init
             - build-nsm-monitor
             - build-vppagent-dataplane
-            - build-vppagent-dataplane-dev
             - build-kernel-forwarding-plane
             - build-nsm-coredns
             - build-spire-registration
