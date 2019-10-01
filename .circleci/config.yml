@@ -179,6 +179,7 @@ jobs:
             export COMMIT="${CIRCLE_SHA1:8:8}"
             export TAG="${COMMIT}"
             export CONTAINER_REPO="networkservicemeshci"
+            export GOPROXY=https://proxy.golang.org,direct
             make docker-<< parameters.container >>-build
             make docker-<< parameters.container >>-push
 
@@ -311,11 +312,6 @@ workflows:
       - build-container:
           name: "build-vppagent-dataplane"
           container: "vppagent-dataplane"
-          requires:
-            - test-sanity-check
-      - build-container:
-          name: "build-vppagent-dataplane-dev"
-          container: "vppagent-dataplane-dev"
           requires:
             - test-sanity-check
       - build-container:

@@ -37,6 +37,7 @@ include .mk/monitor.mk
 include .mk/integration.mk
 include .mk/helm.mk
 include .mk/spire.mk
+include .mk/build.mk
 
 GOPATH?=$(shell go env GOPATH 2>/dev/null)
 GOCMD=go
