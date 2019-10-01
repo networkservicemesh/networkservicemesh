@@ -63,7 +63,7 @@ func (pr *pluginRegistry) Start(ctx context.Context) error {
 		return err
 	}
 
-	server := tools.NewServer()
+	server := tools.NewServer(span.Context())
 	plugins.RegisterPluginRegistryServer(server, pr)
 
 	go func() {

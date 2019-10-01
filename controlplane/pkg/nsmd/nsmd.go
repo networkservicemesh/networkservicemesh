@@ -43,7 +43,7 @@ const (
 
 type NSMServer interface {
 	Stop()
-	StartDataplaneRegistratorServer() error
+	StartDataplaneRegistratorServer(ctx context.Context) error
 	StartAPIServerAt(ctx context.Context, sock net.Listener, probes probes.Probes)
 
 	XconManager() *services.ClientConnectionManager
@@ -452,7 +452,7 @@ func StartNSMServer(ctx context.Context, model model.Model, manager nsm.NetworkS
 
 	span.Logger().Infof("Starting NSM server")
 
-	nsm.registerServer = tools.NewServer()
+	nsm.registerServer = tools.NewServer(span.Context())
 	nsmdapi.RegisterNSMDServer(nsm.registerServer, nsm)
 
 	nsm.registerSock, err = apiRegistry.NewNSMServerListener()
@@ -516,9 +516,9 @@ func (nsm *nsmServer) initMonitorServers() {
 	nsm.remoteConnectionMonitor = remote.NewMonitorServer(nsm.xconManager)
 }
 
-func (nsm *nsmServer) StartDataplaneRegistratorServer() error {
+func (nsm *nsmServer) StartDataplaneRegistratorServer(ctx context.Context) error {
 	var err error
-	nsm.regServer, err = StartDataplaneRegistrarServer(nsm.model)
+	nsm.regServer, err = StartDataplaneRegistrarServer(ctx, nsm.model)
 	return err
 }
 
@@ -556,7 +556,7 @@ func (nsm *nsmServer) StartAPIServerAt(ctx context.Context, sock net.Listener, p
 	span := spanhelper.FromContext(ctx, "start-public-api-server")
 	defer span.Finish()
 
-	grpcServer := tools.NewServer()
+	grpcServer := tools.NewServer(context.Background())
 
 	crossconnect.RegisterMonitorCrossConnectServer(grpcServer, nsm.crossConnectMonitor)
 	connection.RegisterMonitorConnectionServer(grpcServer, nsm.remoteConnectionMonitor)

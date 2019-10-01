@@ -17,6 +17,7 @@ package nsmd
 import (
 	"context"
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
 	"net"
 	"path"
 	"time"
@@ -142,8 +143,12 @@ func (r *dataplaneRegistrarServer) RequestDataplaneUnRegistration(ctx context.Co
 
 // startDataplaneServer starts for a server listening for local NSEs advertise/remove
 // dataplane registrar calls
-func (dataplaneRegistrarServer *dataplaneRegistrarServer) startDataplaneRegistrarServer() error {
+func (dataplaneRegistrarServer *dataplaneRegistrarServer) startDataplaneRegistrarServer(ctx context.Context) error {
+	span := spanhelper.FromContext(ctx, "StartDataplaneRegistrarServer")
+	defer span.Finish()
+
 	dataplaneRegistrar := dataplaneRegistrarServer.dataplaneRegistrarSocketPath
+	span.LogValue("path", dataplaneRegistrar)
 	if err := tools.SocketCleanup(dataplaneRegistrar); err != nil {
 		return err
 	}
@@ -152,7 +157,7 @@ func (dataplaneRegistrarServer *dataplaneRegistrarServer) startDataplaneRegistra
 	var err error
 	dataplaneRegistrarServer.sock, err = net.Listen("unix", dataplaneRegistrar)
 	if err != nil {
-		logrus.Errorf("failure to listen on socket %s with error: %+v", dataplaneRegistrar, err)
+		span.LogError(fmt.Errorf("failure to listen on socket %s with error: %+v", dataplaneRegistrar, err))
 		return err
 	}
 
@@ -161,20 +166,22 @@ func (dataplaneRegistrarServer *dataplaneRegistrarServer) startDataplaneRegistra
 	// Plugging dataplane registrar operations methods
 	dataplaneregistrarapi.RegisterDataplaneUnRegistrationServer(dataplaneRegistrarServer.grpcServer, dataplaneRegistrarServer)
 
-	logrus.Infof("Starting Dataplane Registrar gRPC server listening on socket: %s", dataplaneRegistrar)
+	span.Logger().Infof("Starting Dataplane Registrar gRPC server listening on socket: %s", dataplaneRegistrar)
 	go func() {
 		if err := dataplaneRegistrarServer.grpcServer.Serve(dataplaneRegistrarServer.sock); err != nil {
-			logrus.Fatalln("unable to start dataplane registrar grpc server: ", dataplaneRegistrar, err)
+			err = fmt.Errorf("unable to start dataplane registrar grpc server: %v %v", dataplaneRegistrar, err)
+			span.LogError(err)
+			span.Logger().Fatalln(err)
 		}
 	}()
 
-	conn, err := tools.DialUnix(dataplaneRegistrar)
+	conn, err := tools.DialContextUnix(span.Context(), dataplaneRegistrar)
 	if err != nil {
-		logrus.Errorf("failure to communicate with the socket %s with error: %+v", dataplaneRegistrar, err)
+		span.Logger().Errorf("failure to communicate with the socket %s with error: %+v", dataplaneRegistrar, err)
 		return err
 	}
 	_ = conn.Close()
-	logrus.Infof("dataplane registrar Server socket: %s is operational", dataplaneRegistrar)
+	span.Logger().Infof("dataplane registrar Server socket: %s is operational", dataplaneRegistrar)
 
 	return nil
 }
@@ -186,8 +193,10 @@ func (dataplaneRegistrarServer *dataplaneRegistrarServer) Stop() {
 
 // StartDataplaneRegistrarServer registers and starts gRPC server which is listening for
 // Network Service Dataplane Registrar requests.
-func StartDataplaneRegistrarServer(model model.Model) (*dataplaneRegistrarServer, error) {
-	server := tools.NewServer()
+func StartDataplaneRegistrarServer(ctx context.Context, model model.Model) (*dataplaneRegistrarServer, error) {
+	span := spanhelper.FromContext(ctx, "DataplaneRegistrarServer")
+	defer span.Finish()
+	server := tools.NewServer(span.Context())
 
 	dataplaneRegistrarServer := &dataplaneRegistrarServer{
 		grpcServer:                   server,
@@ -197,7 +206,7 @@ func StartDataplaneRegistrarServer(model model.Model) (*dataplaneRegistrarServer
 
 	var err error
 	// Starting dataplane registrar server, if it fails to start, inform Plugin by returning error
-	err = dataplaneRegistrarServer.startDataplaneRegistrarServer()
-
+	err = dataplaneRegistrarServer.startDataplaneRegistrarServer(span.Context())
+	span.LogError(err)
 	return dataplaneRegistrarServer, err
 }

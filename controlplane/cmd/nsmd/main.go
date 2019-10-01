@@ -91,7 +91,7 @@ func main() {
 
 	// Starting dataplane
 	logrus.Info("Starting Dataplane registration server...")
-	if err := server.StartDataplaneRegistratorServer(); err != nil {
+	if err := server.StartDataplaneRegistratorServer(span.Context()); err != nil {
 		span.LogError(fmt.Errorf("error starting dataplane service: %+v", err))
 		return
 	}

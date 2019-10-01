@@ -1,6 +1,7 @@
 package registryserver
 
 import (
+	"context"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 
@@ -15,7 +16,7 @@ import (
 )
 
 func New(clientset *nsmClientset.Clientset, nsmName string) *grpc.Server {
-	server := tools.NewServer()
+	server := tools.NewServer(context.Background())
 
 	cache := NewRegistryCache(clientset, &ResourceFilterConfig{
 		NetworkServiceManagerPolicy: resourcecache.FilterByNamespacePolicy(namespace.GetNamespace(), func(resource interface{}) string {

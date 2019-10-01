@@ -87,7 +87,7 @@ func (nsme *nsmEndpoint) Start() error {
 		}
 	}
 
-	nsme.grpcServer = tools.NewServer()
+	nsme.grpcServer = tools.NewServer(context.Background())
 	networkservice.RegisterNetworkServiceServer(nsme.grpcServer, nsme)
 
 	listener, err := nsme.setupNSEServerConnection()

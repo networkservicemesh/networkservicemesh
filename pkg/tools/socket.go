@@ -55,14 +55,27 @@ func InitConfig(c DialConfig) {
 }
 
 // NewServer checks DialConfig and calls grpc.NewServer with certain grpc.ServerOption
-func NewServer(opts ...grpc.ServerOption) *grpc.Server {
+func NewServer(ctx context.Context, opts ...grpc.ServerOption) *grpc.Server {
+	var span opentracing.Span
+	if GetConfig().OpenTracing {
+		span, ctx = opentracing.StartSpanFromContext(ctx, "NewServer")
+		defer span.Finish()
+	}
 	if GetConfig().SecurityManager != nil {
+		var securitySpan opentracing.Span
+		if GetConfig().OpenTracing {
+			securitySpan, ctx = opentracing.StartSpanFromContext(ctx, "UpdateSecurity")
+		}
+		certificate := GetConfig().SecurityManager.GetCertificate()
 		cred := credentials.NewTLS(&tls.Config{
 			ClientAuth:   tls.RequireAndVerifyClientCert,
-			Certificates: []tls.Certificate{*GetConfig().SecurityManager.GetCertificate()},
+			Certificates: []tls.Certificate{*certificate},
 			ClientCAs:    GetConfig().SecurityManager.GetCABundle(),
 		})
 		opts = append(opts, grpc.Creds(cred))
+		if securitySpan != nil {
+			securitySpan.Finish()
+		}
 	}
 
 	if GetConfig().OpenTracing {
@@ -169,6 +182,11 @@ func (b *dialBuilder) Timeout(t time.Duration) *dialBuilder {
 
 func (b *dialBuilder) DialContextFunc() dialContextFunc {
 	return func(ctx context.Context, target string, opts ...grpc.DialOption) (conn *grpc.ClientConn, err error) {
+		var certificate *tls.Certificate
+
+		if !b.insecure && GetConfig().SecurityManager != nil {
+			certificate = GetConfig().SecurityManager.GetCertificate()
+		}
 		if b.t != 0 {
 			var cancel context.CancelFunc
 			ctx, cancel = context.WithTimeout(ctx, b.t)
@@ -182,7 +200,7 @@ func (b *dialBuilder) DialContextFunc() dialContextFunc {
 		if !b.insecure && GetConfig().SecurityManager != nil {
 			cred := credentials.NewTLS(&tls.Config{
 				InsecureSkipVerify: true,
-				Certificates:       []tls.Certificate{*GetConfig().SecurityManager.GetCertificate()},
+				Certificates:       []tls.Certificate{*certificate},
 				RootCAs:            GetConfig().SecurityManager.GetCABundle(),
 			})
 			opts = append(opts, grpc.WithTransportCredentials(cred))

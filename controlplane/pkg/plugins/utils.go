@@ -63,7 +63,7 @@ func createPlugin(name, endpoint string, services map[plugins.PluginCapability]i
 		return err
 	}
 
-	server := tools.NewServer()
+	server := tools.NewServer(context.Background())
 
 	for capability, service := range services {
 		switch capability {

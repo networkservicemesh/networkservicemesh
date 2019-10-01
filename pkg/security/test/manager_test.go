@@ -1,6 +1,7 @@
 package testsec
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"testing"
