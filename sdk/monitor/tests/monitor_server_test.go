@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"os"
 	"sync"
 	"testing"
 
@@ -18,6 +19,7 @@ import (
 )
 
 func startClient(g *WithT, target string) {
+	_ = os.Setenv(tools.InsecureEnv, "true")
 	conn, err := tools.DialTCP(target)
 	defer conn.Close()
 

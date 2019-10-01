@@ -102,8 +102,7 @@ func NewMonitorCrossConnectClient(model model.Model, monitorManager nsm.MonitorM
 
 // EndpointAdded implements method from Listener
 func (client *NsmMonitorCrossConnectClient) EndpointAdded(ctx context.Context, endpoint *model.Endpoint) {
-	var cancel context.CancelFunc
-	ctx, cancel = context.WithCancel(ctx)
+	ctx, cancel := context.WithCancel(ctx)
 	client.endpoints.Store(endpoint.EndpointName(), cancel)
 	go client.endpointConnectionMonitor(ctx, endpoint)
 }

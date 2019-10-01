@@ -1,6 +1,8 @@
 package proxyregistryserver
 
 import (
+	"context"
+
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
@@ -28,7 +30,7 @@ func New(clientset *nsmClientset.Clientset, clusterInfoService clusterinfo.Clust
 	registry.RegisterNetworkServiceDiscoveryServer(server, discovery)
 	clusterinfo.RegisterClusterInfoServer(server, clusterInfoService)
 
-	if err := cache.Start(); err != nil {
+	if err := cache.Start(context.Background()); err != nil {
 		logrus.Error(err)
 	}
 	logrus.Info("RegistryCache started")

@@ -1,20 +1,10 @@
 #!/bin/bash
 
+CMD=$*
 res=0
-cmd=$1
-
-exec_command () {
-    d=$(dirname "$0")
-    pushd "$d" || exit 1
     
-    if ! $1; then
-        res=1
-    fi
-
-    popd || exit 1
-}
-
-export -f exec_command
-find . -path "*vendor" -prune -o -name "go.mod" \( -exec bash -c "exec_command \"${cmd}\" " {} \; \)
+while read -r f; do
+    ( d=$(dirname "$f") && pushd "$d" && $CMD; ) || res=1
+done <<< "$(find . -path "*vendor" -prune -o -name 'go.mod')"
 
 exit $res

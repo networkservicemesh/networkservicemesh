@@ -350,7 +350,7 @@ func (impl *nsmdTestServiceRegistry) NSMDApiClient(ctx context.Context) (nsmdapi
 	}
 	conn, err := tools.DialContextTCP(span.Context(), addr)
 	if err != nil {
-		err = fmt.Errorf("Failed to dial Network Service Registry at %s: %s", addr, err)
+		err = fmt.Errorf("failed to dial Network Service Registry at %s: %s", addr, err)
 		span.LogError(err)
 		return nil, nil, err
 	}

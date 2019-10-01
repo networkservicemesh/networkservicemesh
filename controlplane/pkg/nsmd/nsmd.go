@@ -69,7 +69,6 @@ type nsmServer struct {
 	crossConnectMonitor     monitor_crossconnect.MonitorServer
 	remoteConnectionMonitor remote.MonitorServer
 	remoteServer            remote_networkservice.NetworkServiceServer
-	ctx                     context.Context
 }
 
 func (nsm *nsmServer) XconManager() *services.ClientConnectionManager {

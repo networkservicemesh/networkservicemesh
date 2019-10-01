@@ -18,6 +18,7 @@ import (
 	nsmClientset "github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
 )
 
+// New - construct a registration server
 func New(ctx context.Context, clientset *nsmClientset.Clientset, nsmName string) *grpc.Server {
 	span := spanhelper.FromContext(ctx, "K8SServer.New")
 	defer span.Finish()

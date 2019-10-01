@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"io/ioutil"
@@ -85,7 +86,7 @@ func TestCreateOrUpdateNetworkServiceManager(t *testing.T) {
 	serverData.Store("fake", nsm)
 	fakeRest := fakeNsmRest(g, &serverData)
 	cache := registryserver.NewRegistryCache(versioned.New(fakeRest), nil)
-	err := cache.Start()
+	err := cache.Start(context.Background())
 	g.Expect(err).Should(BeNil())
 	_, err = cache.CreateOrUpdateNetworkServiceManager(FakeNsm("fake"))
 	defer cache.Stop()
@@ -98,7 +99,7 @@ func TestConcurrentCreateOrUpdateNetworkServiceManager(t *testing.T) {
 	fakeRest := fakeNsmRest(g, &serverData)
 	for i := 0; i < 10; i++ {
 		cache := registryserver.NewRegistryCache(versioned.New(fakeRest), nil)
-		err := cache.Start()
+		err := cache.Start(context.Background())
 		g.Expect(err).Should(BeNil())
 		defer cache.Stop()
 		stopClient1 := RepeatAsync(func() {
@@ -122,7 +123,7 @@ func TestUpdatingExistingNetworkServiceManager(t *testing.T) {
 	serverData := sync.Map{}
 	fakeRest := fakeNsmRest(g, &serverData)
 	cache := registryserver.NewRegistryCache(versioned.New(fakeRest), nil)
-	err := cache.Start()
+	err := cache.Start(context.Background())
 	g.Expect(err).Should(BeNil())
 	defer cache.Stop()
 	nsm := FakeNsm("fake")
@@ -141,7 +142,7 @@ func TestUpdatingNotExistingNetworkServiceManager(t *testing.T) {
 	serverData := sync.Map{}
 	fakeRest := fakeNsmRest(g, &serverData)
 	cache := registryserver.NewRegistryCache(versioned.New(fakeRest), nil)
-	err := cache.Start()
+	err := cache.Start(context.Background())
 	g.Expect(err).Should(BeNil())
 	defer cache.Stop()
 	nsm := FakeNsm("fake")

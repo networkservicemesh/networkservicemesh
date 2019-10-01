@@ -15,6 +15,7 @@ import (
 )
 
 func TestGrpcHealth(t *testing.T) {
+	_ = os.Setenv(tools.InsecureEnv, "true")
 	assert := gomega.NewWithT(t)
 	_ = os.Remove("soc")
 	sock, err := net.Listen("unix", "soc")

@@ -21,6 +21,8 @@ import (
 	"io"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
+
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
 
 	"github.com/opentracing/opentracing-go/log"
@@ -60,25 +62,20 @@ func (nsmc *NsmClient) Connect(ctx context.Context, name, mechanism, description
 
 // Connect implements the business logic
 func (nsmc *NsmClient) ConnectRetry(ctx context.Context, name, mechanism, description string, retryCount int, retryDelay time.Duration) (*connection.Connection, error) {
-
-	var span opentracing.Span
-	if opentracing.IsGlobalTracerRegistered() {
-		span, ctx = opentracing.StartSpanFromContext(ctx, "nsmClient.Connect")
+	span := spanhelper.FromContext(ctx, "nsmClient.Connect")
 		defer span.Finish()
-	}
 
-	logger := common.LogFromSpan(span)
-
-	logger.Infof("Initiating an outgoing connection.")
+	span.Logger().Infof("Initiating an outgoing connection.")
 	nsmc.Lock()
 	defer nsmc.Unlock()
 	mechanismType := common.MechanismFromString(mechanism)
 	outgoingMechanism, err := connection.NewMechanism(mechanismType, name, description)
 
-	logger.Infof("Selected mechanism: %v", outgoingMechanism)
+	span.LogObject("Selected mechanism", outgoingMechanism)
 
 	if err != nil {
-		logger.Errorf("Failure to prepare the outgoing mechanism preference with error: %+v", err)
+		err = fmt.Errorf("failure to prepare the outgoing mechanism preference with error: %+v", err)
+		span.LogError(err)
 		return nil, err
 	}
 
@@ -138,7 +135,8 @@ func (nsmc *NsmClient) ConnectRetry(ctx context.Context, name, mechanism, descri
 		}
 		break
 	}
-	logger.Infof("Success connection: %v", outgoingConnection)
+	span.Logger().Infof("Success connection: %v")
+	span.LogObject("connection", outgoingConnection)
 	nsmc.OutgoingConnections = append(nsmc.OutgoingConnections, outgoingConnection)
 	return outgoingConnection, nil
 }
@@ -148,7 +146,13 @@ func (nsmc *NsmClient) Close(ctx context.Context, outgoingConnection *connection
 	nsmc.Lock()
 	defer nsmc.Unlock()
 
-	_, err := nsmc.NsClient.Close(ctx, outgoingConnection)
+	span := spanhelper.FromContext(ctx, "Client.Close")
+	defer span.Finish()
+	span.LogObject("connection", outgoingConnection)
+
+	_, err := nsmc.NsClient.Close(span.Context(), outgoingConnection)
+
+	span.LogError(err)
 
 	arr := nsmc.OutgoingConnections
 	for i, c := range arr {
@@ -162,18 +166,22 @@ func (nsmc *NsmClient) Close(ctx context.Context, outgoingConnection *connection
 }
 
 // Destroy - Destroy stops the whole module
-func (nsmc *NsmClient) Destroy(_ context.Context) error {
+func (nsmc *NsmClient) Destroy(ctx context.Context) error {
 	nsmc.Lock()
 	defer nsmc.Unlock()
 
+	span := spanhelper.FromContext(ctx, "Client.Destroy")
+	defer span.Finish()
+
+	err := nsmc.NsmConnection.Close()
+	span.LogError(fmt.Errorf("failed to close opentracing context %v", err))
 	if nsmc.tracerCloser != nil {
-		err := nsmc.tracerCloser.Close()
-		if err != nil {
-			logrus.Errorf("failed to close opentracing context %v", err)
+		trErr := nsmc.tracerCloser.Close()
+		if trErr != nil {
+			logrus.Error(trErr)
 		}
 	}
-
-	return nsmc.NsmConnection.Close()
+	return err
 }
 
 // NewNSMClient creates the NsmClient
