@@ -18,9 +18,10 @@ import (
 	"context"
 	"os"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
 
-	"github.com/opentracing/opentracing-go"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
+
 	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
@@ -36,15 +37,8 @@ func main() {
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
 
-	if tools.IsOpentracingEnabled() {
-		tracer, closer := tools.InitJaeger("nsmdp")
-		defer func() {
-			if err := closer.Close(); err != nil {
-				logrus.Errorf("An error during closing: %v", err)
-			}
-		}()
-		opentracing.SetGlobalTracer(tracer)
-	}
+	closer := jaeger.InitJaeger("nsmdp")
+	defer func() { _ = closer.Close() }()
 
 	span := spanhelper.FromContext(context.Background(), "NSMgr.Device.Plugin")
 	serviceRegistry := nsmd.NewServiceRegistry()

@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
+
 	utils "github.com/networkservicemesh/networkservicemesh/utils/interdomain"
 
 	"github.com/sirupsen/logrus"
@@ -32,22 +34,26 @@ func newDiscoveryService(cache RegistryCache) *discoveryService {
 }
 
 func (d *discoveryService) FindNetworkService(ctx context.Context, request *registry.FindNetworkServiceRequest) (*registry.FindNetworkServiceResponse, error) {
+	span := spanhelper.FromContext(ctx, "discovery.FindNetworkService")
+	defer span.Finish()
+	span.LogObject("request", request)
 	if _, _, err := utils.ParseNsmURL(request.NetworkServiceName); err == nil {
 		nsrURL := os.Getenv(ProxyNsmdK8sAddressEnv)
 		if strings.TrimSpace(nsrURL) == "" {
 			nsrURL = ProxyNsmdK8sAddressDefaults
 		}
+		span.LogObject("nsrURL", nsrURL)
 		remoteRegistry := nsmd.NewServiceRegistryAt(nsrURL)
 		defer remoteRegistry.Stop()
 
-		discoveryClient, err := remoteRegistry.DiscoveryClient(ctx)
+		discoveryClient, err := remoteRegistry.DiscoveryClient(span.Context())
 		if err != nil {
 			logrus.Error(err)
 			return nil, err
 		}
 
 		logrus.Infof("Transfer request to proxy nsmd-k8s: %v", request)
-		return discoveryClient.FindNetworkService(ctx, request)
+		return discoveryClient.FindNetworkService(span.Context(), request)
 	}
 
 	return FindNetworkServiceWithCache(d.cache, request.NetworkServiceName)

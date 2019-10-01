@@ -22,7 +22,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	"google.golang.org/grpc"
 

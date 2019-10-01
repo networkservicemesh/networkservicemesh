@@ -11,6 +11,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
+
 	"github.com/networkservicemesh/networkservicemesh/pkg/probes"
 
 	"github.com/golang/protobuf/ptypes/empty"
@@ -229,15 +231,18 @@ func (impl *nsmdTestServiceRegistry) WorkspaceName(endpoint *registry.NSERegistr
 }
 
 func (impl *nsmdTestServiceRegistry) RemoteNetworkServiceClient(ctx context.Context, nsm *registry.NetworkServiceManager) (remote_networkservice.NetworkServiceClient, *grpc.ClientConn, error) {
-	err := tools.WaitForPortAvailable(context.Background(), "tcp", nsm.Url, 100*time.Millisecond)
+	span := spanhelper.FromContext(ctx, "RemoteNetworkServiceClient")
+	defer span.Finish()
+	err := tools.WaitForPortAvailable(span.Context(), "tcp", nsm.Url, 100*time.Millisecond)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	logrus.Println("Remote Network Service is available, attempting to connect...")
-	conn, err := tools.DialTCP(nsm.GetUrl())
+	span.Logger().Info("Remote Network Service is available, attempting to connect...")
+	conn, err := tools.DialContextTCP(span.Context(), nsm.GetUrl())
+	span.LogError(err)
 	if err != nil {
-		logrus.Errorf("Failed to dial Network Service Registry at %s: %s", nsm.Url, err)
+		span.Logger().Errorf("Failed to dial Network Service Registry at %s: %s", nsm.Url, err)
 		return nil, nil, err
 	}
 	client := remote_networkservice.NewNetworkServiceClient(conn)
@@ -331,22 +336,26 @@ func (impl *nsmdTestServiceRegistry) DataplaneConnection(ctx context.Context, da
 	return impl.testDataplaneConnection, nil, nil
 }
 
-func (impl *nsmdTestServiceRegistry) NSMDApiClient(context.Context) (nsmdapi.NSMDClient, *grpc.ClientConn, error) {
+func (impl *nsmdTestServiceRegistry) NSMDApiClient(ctx context.Context) (nsmdapi.NSMDClient, *grpc.ClientConn, error) {
+	span := spanhelper.FromContext(ctx, "NSMDApiClient")
+	defer span.Finish()
 	addr := fmt.Sprintf("%s:%d", "127.0.0.1", impl.apiRegistry.nsmdPort)
-	logrus.Infof("Connecting to nsmd on socket: %s...", addr)
+	span.Logger().Infof("Connecting to nsmd on socket: %s...", addr)
 
 	// Wait to be sure it is already initialized
-	err := tools.WaitForPortAvailable(context.Background(), "tcp", addr, 100*time.Millisecond)
+	err := tools.WaitForPortAvailable(span.Context(), "tcp", addr, 100*time.Millisecond)
+	span.LogError(err)
 	if err != nil {
 		return nil, nil, err
 	}
-	conn, err := tools.DialTCP(addr)
+	conn, err := tools.DialContextTCP(span.Context(), addr)
 	if err != nil {
-		logrus.Errorf("Failed to dial Network Service Registry at %s: %s", addr, err)
+		err = fmt.Errorf("Failed to dial Network Service Registry at %s: %s", addr, err)
+		span.LogError(err)
 		return nil, nil, err
 	}
 
-	logrus.Info("Requesting nsmd for client connection...")
+	span.Logger().Info("Requesting nsmd for client connection...")
 	return nsmdapi.NewNSMDClient(conn), conn, nil
 }
 

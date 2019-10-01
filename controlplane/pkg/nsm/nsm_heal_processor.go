@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	local_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	local_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
@@ -173,10 +173,9 @@ func (p *healProcessor) healDstDown(ctx context.Context, cc *model.ClientConnect
 	logger.Infof("NSM_Heal(1.1.1) Checking if DST die is NSMD/DST die...")
 	// Check if this is a really HealStateDstDown or HealStateDstNmgrDown
 	if !p.nseManager.IsLocalEndpoint(cc.Endpoint) {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, p.properties.HealTimeout*3)
-		defer cancel()
-		remoteNsmClient, err := p.nseManager.CreateNSEClient(ctx, cc.Endpoint)
+		waitCtx, waitCancel := context.WithTimeout(ctx, p.properties.HealTimeout*3)
+		defer waitCancel()
+		remoteNsmClient, err := p.nseManager.CreateNSEClient(waitCtx, cc.Endpoint)
 		if remoteNsmClient != nil {
 			_ = remoteNsmClient.Cleanup()
 		}

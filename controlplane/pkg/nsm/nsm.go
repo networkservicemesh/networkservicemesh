@@ -19,7 +19,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	unified_nsm "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
 
@@ -168,12 +168,10 @@ func (srv *networkServiceManager) WaitForDataplane(ctx context.Context, timeout 
 }
 
 func (srv *networkServiceManager) RestoreConnections(xcons []*crossconnect.CrossConnect, dataplane string, manager nsm.MonitorManager) {
-	ctx := context.Background()
-	span := spanhelper.FromContext(ctx, "Nsmgr.RestoreConnections")
-	ctx = span.Context()
+	span := spanhelper.FromContext(srv.Context(), "Nsmgr.RestoreConnections")
 	logger := span.Logger()
 	for _, xcon := range xcons {
-		srv.restoreXconnection(ctx, xcon, logger, dataplane, manager)
+		srv.restoreXconnection(span.Context(), xcon, logger, dataplane, manager)
 	}
 	logger.Infof("All connections are recovered...")
 	// Notify state is restored
@@ -298,7 +296,7 @@ func (srv *networkServiceManager) getEndpoint(ctx context.Context, networkServic
 		endpoint = localEndpoint.Endpoint
 		span.LogObject("endpoint", endpoint)
 	} else {
-		endpoints, err := discovery.FindNetworkService(context.Background(), &registry.FindNetworkServiceRequest{
+		endpoints, err := discovery.FindNetworkService(span.Context(), &registry.FindNetworkServiceRequest{
 			NetworkServiceName: networkServiceName,
 		})
 		span.LogError(err)

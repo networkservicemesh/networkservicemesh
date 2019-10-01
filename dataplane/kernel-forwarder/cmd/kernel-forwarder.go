@@ -18,10 +18,11 @@ package main
 import (
 	"context"
 
-	"github.com/opentracing/opentracing-go"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
+
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/probes"
 
@@ -34,11 +35,9 @@ func main() {
 	// Capture signals to cleanup before exiting
 	logrus.Info("Starting the Kernel-based forwarding plane!")
 
-	if tools.IsOpentracingEnabled() {
-		tracer, closer := tools.InitJaeger("kernel-forwarder")
-		opentracing.SetGlobalTracer(tracer)
-		defer func() { _ = closer.Close() }()
-	}
+	closer := jaeger.InitJaeger("kernel-forwarder")
+	defer func() { _ = closer.Close() }()
+
 	span := spanhelper.FromContext(context.Background(), "Start.KernelForwarder.Dataplane")
 	defer span.Finish()
 	c := tools.NewOSSignalChannel()

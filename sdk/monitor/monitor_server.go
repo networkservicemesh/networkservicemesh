@@ -4,12 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/opentracing/opentracing-go"
-	"github.com/opentracing/opentracing-go/log"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
+
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
-
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
 const (
@@ -125,16 +123,12 @@ func (s *server) Serve() {
 }
 
 func (s *server) sendTrace(event Event, operation string) {
-	if tools.IsOpentracingEnabled() && event.Context() != nil {
-		span, _ := opentracing.StartSpanFromContext(event.Context(), operation)
-		span.LogFields(log.Object("eventType", event.EventType()))
-		msg, err := event.Message()
-		span.LogFields(log.Object("msg", msg))
-		if err != nil {
-			span.LogFields(log.Error(err))
-		}
-		span.Finish()
-	}
+	span := spanhelper.FromContext(event.Context(), operation)
+	defer span.Finish()
+	span.LogObject("eventType", event.EventType())
+	msg, err := event.Message()
+	span.LogObject("msg", msg)
+	span.LogError(err)
 }
 
 // Entities returns server entities

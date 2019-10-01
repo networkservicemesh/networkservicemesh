@@ -19,7 +19,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/empty"
@@ -28,7 +30,6 @@ import (
 	vpp_acl "github.com/ligato/vpp-agent/api/models/vpp/acl"
 	vpp_interfaces "github.com/ligato/vpp-agent/api/models/vpp/interfaces"
 	vpp_l3 "github.com/ligato/vpp-agent/api/models/vpp/l3"
-	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/status"
 
@@ -306,11 +307,10 @@ func (v *VPPAgent) Close(ctx context.Context, crossConnect *crossconnect.CrossCo
 // Init makes setup for the VPPAgent
 func (v *VPPAgent) Init(common *common.DataplaneConfig) error {
 	v.common = common
-	if tools.IsOpentracingEnabled() {
-		tracer, closer := tools.InitJaeger(v.common.Name)
-		opentracing.SetGlobalTracer(tracer)
-		defer closer.Close()
-	}
+
+	closer := jaeger.InitJaeger(v.common.Name)
+	defer func() { _ = closer.Close() }()
+
 	err := v.configureVPPAgent()
 	if err != nil {
 		logrus.Errorf("Error configuring the VPP Agent: %s", err)

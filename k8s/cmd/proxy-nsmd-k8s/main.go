@@ -5,9 +5,10 @@ import (
 	"os"
 	"strings"
 
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
+
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/utils"
 
-	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/proxyregistryserver"
@@ -22,15 +23,10 @@ func main() {
 
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
-	if tools.IsOpentracingEnabled() {
-		tracer, closer := tools.InitJaeger("proxy-nsmd-k8s")
-		opentracing.SetGlobalTracer(tracer)
-		defer func() {
-			if err := closer.Close(); err != nil {
-				logrus.Errorf("Failed to close tracer: %v", err)
-			}
-		}()
-	}
+
+	closer := jaeger.InitJaeger("proxy-nsmd-k8s")
+	defer func() { _ = closer.Close() }()
+
 	address := os.Getenv("PROXY_NSMD_K8S_ADDRESS")
 	if strings.TrimSpace(address) == "" {
 		address = "0.0.0.0:5005"

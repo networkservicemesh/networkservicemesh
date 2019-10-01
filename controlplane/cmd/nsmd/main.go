@@ -7,11 +7,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/probes"
 
-	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 
 	pluginsapi "github.com/networkservicemesh/networkservicemesh/controlplane/api/plugins"
@@ -38,11 +39,8 @@ func main() {
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
 
-	if tools.IsOpentracingEnabled() {
-		tracer, closer := tools.InitJaeger("nsmd")
-		opentracing.SetGlobalTracer(tracer)
-		defer closer.Close()
-	}
+	closer := jaeger.InitJaeger("nsmd")
+	defer func() { _ = closer.Close() }()
 
 	// Global NSMgr server span holder
 	span := spanhelper.FromContext(context.Background(), "nsmd.server")

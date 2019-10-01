@@ -17,8 +17,8 @@ package common
 import (
 	"context"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 )
 
 // SpanHelperFromConnection - construct new span helper with span from context is pressent or span from connection object

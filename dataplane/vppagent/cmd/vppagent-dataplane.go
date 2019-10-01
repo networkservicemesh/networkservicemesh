@@ -17,10 +17,11 @@ package main
 import (
 	"context"
 
-	"github.com/opentracing/opentracing-go"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
+
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/probes"
 
@@ -35,11 +36,9 @@ func main() {
 	logrus.Info("Starting vppagent-dataplane...")
 	logrus.Infof("Version: %v", version)
 
-	if tools.IsOpentracingEnabled() {
-		tracer, closer := tools.InitJaeger("vppagent-dataplane")
-		opentracing.SetGlobalTracer(tracer)
-		defer func() { _ = closer.Close() }()
-	}
+	closer := jaeger.InitJaeger("vppagent-dataplane")
+	defer func() { _ = closer.Close() }()
+
 	span := spanhelper.FromContext(context.Background(), "Start.VPPAgent.Dataplane")
 	defer span.Finish()
 	// Capture signals to cleanup before exiting

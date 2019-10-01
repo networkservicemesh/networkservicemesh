@@ -23,7 +23,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/sirupsen/logrus"
@@ -58,11 +58,10 @@ type nsmClientEndpoints struct {
 	mutext          sync.Mutex
 	clientId        int
 	insecure        bool
-	ctx             context.Context
 }
 
 func (n *nsmClientEndpoints) Allocate(ctx context.Context, reqs *pluginapi.AllocateRequest) (*pluginapi.AllocateResponse, error) {
-	span := spanhelper.FromContext(n.ctx, "Allocate")
+	span := spanhelper.FromContext(ctx, "Allocate")
 	defer span.Finish()
 
 	span.Logger().Infof("Client request for nsmdp resource... %v", proto.MarshalTextString(reqs))
@@ -176,7 +175,7 @@ func indexOf(slice []string, value string) int {
 }
 
 func (n *nsmClientEndpoints) ListAndWatch(e *pluginapi.Empty, s pluginapi.DevicePlugin_ListAndWatchServer) error {
-	span := spanhelper.FromContext(n.ctx, "ListAndWatch")
+	span := spanhelper.FromContext(context.Background(), "ListAndWatch")
 	defer span.Finish()
 	span.Logger().Infof("ListAndWatch was called with s: %+v. Start sending updates...", s)
 	n.pluginApi = &s
@@ -258,7 +257,6 @@ func NewNSMDeviceServer(ctx context.Context, serviceRegistry serviceregistry.Ser
 		resp:            new(pluginapi.ListAndWatchResponse),
 		devs:            map[string]*pluginapi.Device{},
 		insecure:        insecure,
-		ctx:             ctx,
 	}
 
 	for i := 0; i < DeviceBuffer; i++ {

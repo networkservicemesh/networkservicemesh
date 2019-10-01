@@ -6,9 +6,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
 
-	"github.com/opentracing/opentracing-go"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
+
 	"github.com/sirupsen/logrus"
 
 	pluginsapi "github.com/networkservicemesh/networkservicemesh/controlplane/api/plugins"
@@ -26,15 +27,9 @@ func main() {
 	logrus.Infof("Version: %v", version)
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
-	if tools.IsOpentracingEnabled() {
-		tracer, closer := tools.InitJaeger("nsmd-k8s")
-		opentracing.SetGlobalTracer(tracer)
-		defer func() {
-			if err := closer.Close(); err != nil {
-				logrus.Errorf("An error during closing: %v", err)
-			}
-		}()
-	}
+
+	closer := jaeger.InitJaeger("nsmd-k8s")
+	defer func() { _ = closer.Close() }()
 
 	span := spanhelper.FromContext(context.Background(), "nsmd-k8s")
 	defer span.Finish()
@@ -60,7 +55,7 @@ func main() {
 		span.Logger().Fatalln("Fail to start NSMD Kubernetes service", err)
 	}
 
-	server := registryserver.New(nsmClientSet, nsmName)
+	server := registryserver.New(span.Context(), nsmClientSet, nsmName)
 
 	listener, err := net.Listen("tcp", address)
 	if err != nil {

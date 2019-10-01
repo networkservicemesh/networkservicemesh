@@ -20,7 +20,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
 
@@ -101,8 +101,9 @@ func NewMonitorCrossConnectClient(model model.Model, monitorManager nsm.MonitorM
 }
 
 // EndpointAdded implements method from Listener
-func (client *NsmMonitorCrossConnectClient) EndpointAdded(_ context.Context, endpoint *model.Endpoint) {
-	ctx, cancel := context.WithCancel(context.Background())
+func (client *NsmMonitorCrossConnectClient) EndpointAdded(ctx context.Context, endpoint *model.Endpoint) {
+	var cancel context.CancelFunc
+	ctx, cancel = context.WithCancel(ctx)
 	client.endpoints.Store(endpoint.EndpointName(), cancel)
 	go client.endpointConnectionMonitor(ctx, endpoint)
 }
@@ -116,8 +117,8 @@ func (client *NsmMonitorCrossConnectClient) EndpointDeleted(_ context.Context, e
 }
 
 // DataplaneAdded implements method from Listener
-func (client *NsmMonitorCrossConnectClient) DataplaneAdded(_ context.Context, dp *model.Dataplane) {
-	ctx, cancel := context.WithCancel(client.xconManager.Context())
+func (client *NsmMonitorCrossConnectClient) DataplaneAdded(ctx context.Context, dp *model.Dataplane) {
+	ctx, cancel := context.WithCancel(ctx)
 	client.dataplanes.Store(dp.RegisteredName, cancel)
 
 	go client.dataplaneCrossConnectMonitor(ctx, dp)
@@ -142,7 +143,7 @@ func (client *NsmMonitorCrossConnectClient) startPeerMonitor(clientConnection *m
 		remotePeer.connections[clientConnection.ConnectionID] = clientConnection
 		return
 	}
-	ctx, cancel := context.WithCancel(client.xconManager.Context())
+	ctx, cancel := context.WithCancel(context.Background())
 	client.remotePeers[clientConnection.RemoteNsm.Name] = &remotePeerDescriptor{
 		cancel: cancel,
 		connections: map[string]*model.ClientConnection{
@@ -302,7 +303,7 @@ func (client *NsmMonitorCrossConnectClient) handleLocalConnection(entity monitor
 
 	// We could do so because for local NSE connections ID is assigned by NSMgr itself.
 	if cc := client.xconManager.GetClientConnectionByLocalDst(localConnection.GetId()); cc != nil {
-		span := common.SpanHelperFromConnection(client.xconManager.Context(), cc, "handleLocalConnection")
+		span := common.SpanHelperFromConnection(context.Background(), cc, "handleLocalConnection")
 		defer span.Finish()
 		ctx := span.Context()
 		span.LogObject("clientConnection", cc)
@@ -358,7 +359,7 @@ func (client *NsmMonitorCrossConnectClient) handleXcon(entity monitor.Entity, ev
 
 	client.xconManager.CleanupDeletedConnections()
 
-	span := common.SpanHelperFromConnection(client.xconManager.Context(), clientConnection, "CrossConnectUpdate")
+	span := common.SpanHelperFromConnection(context.Background(), clientConnection, "CrossConnectUpdate")
 	defer span.Finish()
 	span.LogObject("clientConnection", clientConnection)
 	span.LogValue("event", entity)
@@ -446,7 +447,7 @@ func (client *NsmMonitorCrossConnectClient) handleRemoteConnection(entity monito
 	}
 	peerName := parameters[peerName]
 	if cc := client.xconManager.GetClientConnectionByRemoteDst(remoteConnection.GetId(), peerName); cc != nil {
-		span := common.SpanHelperFromConnection(client.xconManager.Context(), cc, "handleRemoteConnection")
+		span := common.SpanHelperFromConnection(context.Background(), cc, "handleRemoteConnection")
 		defer span.Finish()
 		ctx := span.Context()
 		span.LogObject("clientConnection", cc)
@@ -461,7 +462,7 @@ func (client *NsmMonitorCrossConnectClient) handleRemoteConnection(entity monito
 		// Or they will be removed.
 		logrus.Errorf("No remote destination found %v. Will wait for pending connections to match", cc)
 		go func() {
-			ctx, cancel := context.WithTimeout(client.xconManager.Context(), eventConnectionTimeout)
+			ctx, cancel := context.WithTimeout(context.Background(), eventConnectionTimeout)
 			defer cancel()
 
 			currentTime := time.Now()

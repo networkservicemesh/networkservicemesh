@@ -18,8 +18,9 @@ package kernelforwarder
 import (
 	"context"
 
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
+
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/status"
 
@@ -29,7 +30,6 @@ import (
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	remote "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/api/dataplane"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
 // KernelForwarder instance
@@ -112,15 +112,9 @@ func (v *KernelForwarder) Init(common *common.DataplaneConfig) error {
 	v.common = common
 	v.common.Name = "kernel-forwarder"
 
-	if tools.IsOpentracingEnabled() {
-		tracer, closer := tools.InitJaeger(v.common.Name)
-		opentracing.SetGlobalTracer(tracer)
-		defer func() {
-			if err := closer.Close(); err != nil {
-				logrus.Error("error when closing:", err)
-			}
-		}()
-	}
+	closer := jaeger.InitJaeger(v.common.Name)
+	defer func() { _ = closer.Close() }()
+
 	v.configureKernelForwarder()
 	return nil
 }

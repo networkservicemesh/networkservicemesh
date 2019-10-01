@@ -18,7 +18,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
 

@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/sirupsen/logrus"
@@ -91,7 +91,7 @@ func (pr *pluginRegistry) Stop() error {
 }
 
 func (pr *pluginRegistry) Register(ctx context.Context, info *plugins.PluginInfo) (*empty.Empty, error) {
-	span := spanhelper.CopySpan(ctx, spanhelper.GetSpanHelper(pr.ctx), "RegisterPlugin")
+	span := spanhelper.FromContext(ctx, "RegisterPlugin")
 	defer span.Finish()
 	span.LogObject("info", info)
 	if info.GetName() == "" || info.GetEndpoint() == "" || len(info.Capabilities) == 0 {

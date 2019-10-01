@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/probes"
 	"github.com/networkservicemesh/networkservicemesh/pkg/probes/health"
@@ -331,14 +331,14 @@ func (nsm *nsmServer) restoreEndpoint(ctx context.Context,
 
 	if networkService, ok := registeredNSEs[name]; ok {
 		if networkServices[networkService] {
-			nsm.restoreRegisteredEndpoint(nse, ws)
+			nsm.restoreRegisteredEndpoint(span.Context(), nse, ws)
 			return name, nse, nil
 		}
 
 		if _, err := discoveryClient.FindNetworkService(span.Context(), &registry.FindNetworkServiceRequest{
 			NetworkServiceName: networkService,
 		}); err == nil {
-			nsm.restoreRegisteredEndpoint(nse, ws)
+			nsm.restoreRegisteredEndpoint(span.Context(), nse, ws)
 			return name, nse, nil
 		}
 
@@ -350,11 +350,11 @@ func (nsm *nsmServer) restoreEndpoint(ctx context.Context,
 	return nsm.restoreNotRegisteredEndpoint(span.Context(), registryClient, nse, ws)
 }
 
-func (nsm *nsmServer) restoreRegisteredEndpoint(nse nseregistry.NSEEntry, ws *Workspace) {
+func (nsm *nsmServer) restoreRegisteredEndpoint(ctx context.Context, nse nseregistry.NSEEntry, ws *Workspace) {
 	nse.NseReg.NetworkServiceManager = nsm.model.GetNsm()
 	nse.NseReg.NetworkServiceEndpoint.NetworkServiceManagerName = nse.NseReg.GetNetworkServiceManager().GetName()
 
-	nsm.model.AddEndpoint(context.Background(), &model.Endpoint{
+	nsm.model.AddEndpoint(ctx, &model.Endpoint{
 		Endpoint:       nse.NseReg,
 		Workspace:      nse.Workspace,
 		SocketLocation: ws.NsmClientSocket(),
@@ -407,6 +407,8 @@ func (nsm *nsmServer) deleteEndpointWithClient(ctx context.Context, name string,
 
 // DeleteEndpointWithBrokenConnection deletes endpoint if it has no active connections
 func (nsm *nsmServer) DeleteEndpointWithBrokenConnection(ctx context.Context, endpoint *model.Endpoint) error {
+	span := spanhelper.FromContext(ctx, "DeleteEndpointWithBrokenConnection")
+	defer span.Finish()
 	// If endpoint has active client connection, it should be handled by MonitorNetNsInodeServer
 	for _, clientConnection := range nsm.model.GetAllClientConnections() {
 		if endpoint.EndpointName() == clientConnection.Endpoint.GetNetworkServiceEndpoint().GetName() {
@@ -414,12 +416,12 @@ func (nsm *nsmServer) DeleteEndpointWithBrokenConnection(ctx context.Context, en
 		}
 	}
 
-	client, err := nsm.serviceRegistry.NseRegistryClient(context.Background())
+	client, err := nsm.serviceRegistry.NseRegistryClient(span.Context())
 	if err != nil {
 		return err
 	}
 
-	return nsm.deleteEndpointWithClient(ctx, endpoint.EndpointName(), client)
+	return nsm.deleteEndpointWithClient(span.Context(), endpoint.EndpointName(), client)
 }
 
 func (nsm *nsmServer) Stop() {
@@ -448,7 +450,7 @@ func StartNSMServer(ctx context.Context, model model.Model, manager nsm.NetworkS
 
 	locationProvider := manager.ServiceRegistry().NewWorkspaceProvider()
 
-	nsm := createNsmServer(ctx, model, manager, locationProvider)
+	nsm := createNsmServer(model, manager, locationProvider)
 
 	span.Logger().Infof("Starting NSM server")
 
@@ -495,7 +497,7 @@ func StartNSMServer(ctx context.Context, model model.Model, manager nsm.NetworkS
 	return nsm, nil
 }
 
-func createNsmServer(ctx context.Context, model model.Model, manager nsm.NetworkServiceManager, locationProvider serviceregistry.WorkspaceLocationProvider) *nsmServer {
+func createNsmServer(model model.Model, manager nsm.NetworkServiceManager, locationProvider serviceregistry.WorkspaceLocationProvider) *nsmServer {
 	nsm := &nsmServer{
 		workspaces:       make(map[string]*Workspace),
 		model:            model,
@@ -503,7 +505,6 @@ func createNsmServer(ctx context.Context, model model.Model, manager nsm.Network
 		manager:          manager,
 		locationProvider: locationProvider,
 		localRegistry:    nseregistry.NewNSERegistry(locationProvider.NsmNSERegistryFile()),
-		ctx:              ctx,
 	}
 	return nsm
 }
@@ -556,7 +557,7 @@ func (nsm *nsmServer) StartAPIServerAt(ctx context.Context, sock net.Listener, p
 	span := spanhelper.FromContext(ctx, "start-public-api-server")
 	defer span.Finish()
 
-	grpcServer := tools.NewServer(context.Background())
+	grpcServer := tools.NewServer(span.Context())
 
 	crossconnect.RegisterMonitorCrossConnectServer(grpcServer, nsm.crossConnectMonitor)
 	connection.RegisterMonitorConnectionServer(grpcServer, nsm.remoteConnectionMonitor)
@@ -571,8 +572,4 @@ func (nsm *nsmServer) StartAPIServerAt(ctx context.Context, sock net.Listener, p
 		}
 	}()
 	span.Logger().Infof("NSM gRPC API Server: %s is operational", sock.Addr().String())
-}
-
-func (nsm *nsmServer) Context() context.Context {
-	return nsm.ctx
 }

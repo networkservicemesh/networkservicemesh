@@ -21,10 +21,10 @@ import (
 	"io"
 	"net"
 
-	"github.com/opentracing/opentracing-go/log"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 
@@ -75,19 +75,9 @@ func (nsme *nsmEndpoint) serve(listener net.Listener) {
 }
 
 func (nsme *nsmEndpoint) Start() error {
-	if tools.IsOpentracingEnabled() && !opentracing.IsGlobalTracerRegistered() {
-		tracer, closer := tools.InitJaeger(nsme.Configuration.AdvertiseNseName)
-		opentracing.SetGlobalTracer(tracer)
-		nsme.tracerCloser = closer
+	nsme.tracerCloser = jaeger.InitJaeger(nsme.Configuration.AdvertiseNseName)
 
-		span := opentracing.StartSpan(fmt.Sprintf("Endpoint-%v", nsme.Configuration.AdvertiseNseName))
-		span.LogFields(log.Object("labels", nsme.Configuration.AdvertiseNseLabels))
-		if nsme.Context != nil {
-			nsme.Context = opentracing.ContextWithSpan(nsme.Context, span)
-		}
-	}
-
-	nsme.grpcServer = tools.NewServer(context.Background())
+	nsme.grpcServer = tools.NewServer(nsme.Context)
 	networkservice.RegisterNetworkServiceServer(nsme.grpcServer, nsme)
 
 	listener, err := nsme.setupNSEServerConnection()
@@ -107,6 +97,10 @@ func (nsme *nsmEndpoint) Start() error {
 	// spawn the listnening thread
 	nsme.serve(listener)
 
+	span := spanhelper.FromContext(nsme.Context, fmt.Sprintf("Endpoint-%v-Start", nsme.Configuration.AdvertiseNseName))
+	span.LogObject("labels", nsme.Configuration.AdvertiseNseLabels)
+	defer span.Finish()
+
 	// Registering NSE API, it will listen for Connection requests from NSM and return information
 	// needed for NSE's dataplane programming.
 	nse := &registry.NetworkServiceEndpoint{
@@ -121,43 +115,45 @@ func (nsme *nsmEndpoint) Start() error {
 		},
 		NetworkServiceEndpoint: nse,
 	}
+	span.LogObject("nse-request", registration)
 
 	nsme.registryClient = registry.NewNetworkServiceRegistryClient(nsme.GrpcClient)
-	registeredNSE, err := nsme.registryClient.RegisterNSE(nsme.Context, registration)
+	registeredNSE, err := nsme.registryClient.RegisterNSE(span.Context(), registration)
 	if err != nil {
-		logrus.Fatalln("unable to register endpoint", err)
+		span.Logger().Fatalln("unable to register endpoint", err)
 	}
 	nsme.endpointName = registeredNSE.GetNetworkServiceEndpoint().GetName()
-	logrus.Infof("NSE registered: %v", registeredNSE)
-	logrus.Infof("NSE: channel has been successfully advertised, waiting for connection from NSM...")
+	span.LogObject("endpoint-name", nsme.endpointName)
+	span.Logger().Infof("NSE registered: %v", registeredNSE)
+	span.Logger().Infof("NSE: channel has been successfully advertised, waiting for connection from NSM...")
 
 	return nil
 }
 
 func (nsme *nsmEndpoint) Delete() error {
-	if tools.IsOpentracingEnabled() {
-		_ = nsme.tracerCloser.Close()
-	}
+	span := spanhelper.FromContext(context.Background(), fmt.Sprintf("Endpoint-%v-Delete", nsme.Configuration.AdvertiseNseName))
+	defer span.Finish()
 	// prepare and defer removing of the advertised endpoint
 	removeNSE := &registry.RemoveNSERequest{
 		NetworkServiceEndpointName: nsme.endpointName,
 	}
-	_, err := nsme.registryClient.RemoveNSE(context.Background(), removeNSE)
+	span.LogObject("delete-request", removeNSE)
+	_, err := nsme.registryClient.RemoveNSE(span.Context(), removeNSE)
 	if err != nil {
-		logrus.Errorf("Failed removing NSE: %v, with %v", removeNSE, err)
+		span.Logger().Errorf("Failed removing NSE: %v, with %v", removeNSE, err)
 	}
 	nsme.grpcServer.Stop()
+	_ = nsme.tracerCloser.Close()
 
 	return err
 }
 
 func (nsme *nsmEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
-	var span opentracing.Span
-	if opentracing.IsGlobalTracerRegistered() {
-		span, ctx = opentracing.StartSpanFromContext(ctx, "endpoint.request")
-		defer span.Finish()
-	}
-	logger := common.LogFromSpan(span)
+	span := spanhelper.FromContext(ctx, "Endpoint.Request")
+	defer span.Finish()
+	span.LogObject("request", request)
+
+	logger := span.Logger()
 	logger.Infof("Request for Network Service received %v", request)
 
 	incomingConnection, err := nsme.service.Request(ctx, request)
@@ -171,6 +167,9 @@ func (nsme *nsmEndpoint) Request(ctx context.Context, request *networkservice.Ne
 }
 
 func (nsme *nsmEndpoint) Close(ctx context.Context, incomingConnection *connection.Connection) (*empty.Empty, error) {
+	span := spanhelper.FromContext(ctx, "Endpoint.Close")
+	defer span.Finish()
+	span.LogObject("connection", incomingConnection)
 	_, _ = nsme.service.Close(ctx, incomingConnection)
 	_, _ = nsme.NsClient.Close(ctx, incomingConnection)
 

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	"github.com/sirupsen/logrus"
 
@@ -396,9 +396,4 @@ func (m *ClientConnectionManager) CleanupDeletedConnections() {
 // MarkConnectionAdded - remember we have connection to send events from.
 func (m *ClientConnectionManager) MarkConnectionAdded(clientConnection *model.ClientConnection) {
 	m.clientConnections[clientConnection.GetID()] = &managedClientConnection{clientConnection: clientConnection, deleted: false}
-}
-
-// Context - return a global context for NSManager.
-func (m *ClientConnectionManager) Context() context.Context {
-	return m.manager.Context()
 }

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/spanhelper"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	nsm_properties "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
 
@@ -26,8 +26,13 @@ type nseManager struct {
 
 func (nsem *nseManager) GetEndpoint(ctx context.Context, requestConnection connection.Connection, ignoreEndpoints map[string]*registry.NSERegistration) (*registry.NSERegistration, error) {
 
+	span := spanhelper.FromContext(ctx, "GetEndpoint")
+	defer span.Finish()
+	span.LogObject("request", requestConnection)
+	span.LogObject("ignores", ignoreEndpoints)
 	// Handle case we are remote NSM and asked for particular endpoint to connect to.
 	targetEndpoint := requestConnection.GetNetworkServiceEndpointName()
+	span.LogObject("targetEndpoint", targetEndpoint)
 	if len(targetEndpoint) > 0 {
 		endpoint := nsem.model.GetEndpoint(targetEndpoint)
 		if endpoint != nil && ignoreEndpoints[endpoint.EndpointName()] == nil {
@@ -40,28 +45,34 @@ func (nsem *nseManager) GetEndpoint(ctx context.Context, requestConnection conne
 	// Get endpoints, do it every time since we do not know if list are changed or not.
 	discoveryClient, err := nsem.serviceRegistry.DiscoveryClient(ctx)
 	if err != nil {
-		logrus.Error(err)
+		span.LogError(err)
 		return nil, err
 	}
 	nseRequest := &registry.FindNetworkServiceRequest{
 		NetworkServiceName: requestConnection.GetNetworkService(),
 	}
+	span.LogObject("nseRequest", nseRequest)
 	endpointResponse, err := discoveryClient.FindNetworkService(ctx, nseRequest)
+	span.LogObject("nseResponse", endpointResponse)
 	if err != nil {
-		logrus.Error(err)
+		span.LogError(err)
 		return nil, err
 	}
 	endpoints := nsem.filterEndpoints(endpointResponse.GetNetworkServiceEndpoints(), ignoreEndpoints)
 
 	if len(endpoints) == 0 {
-		return nil, fmt.Errorf("failed to find NSE for NetworkService %s. Checked: %d of total NSEs: %d",
+		err = fmt.Errorf("failed to find NSE for NetworkService %s. Checked: %d of total NSEs: %d",
 			requestConnection.GetNetworkService(), len(ignoreEndpoints), len(endpoints))
+		span.LogError(err)
+		return nil, err
 	}
 
 	endpoint := nsem.model.GetSelector().SelectEndpoint(requestConnection.(*local.Connection), endpointResponse.GetNetworkService(), endpoints)
 	if endpoint == nil {
-		return nil, fmt.Errorf("failed to find NSE for NetworkService %s. Checked: %d of total NSEs: %d",
+		err = fmt.Errorf("failed to find NSE for NetworkService %s. Checked: %d of total NSEs: %d",
 			requestConnection.GetNetworkService(), len(ignoreEndpoints), len(endpoints))
+		span.LogError(err)
+		return nil, err
 	}
 
 	return &registry.NSERegistration{

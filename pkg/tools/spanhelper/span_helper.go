@@ -9,7 +9,7 @@ import (
 	"github.com/opentracing/opentracing-go/log"
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
 )
 
 // LogFromSpan - return a logger that has a TraceHook to also log messages to the span
@@ -122,7 +122,7 @@ func NewSpanHelper(ctx context.Context, span opentracing.Span, operation string)
 }
 
 func (s *spanHelper) startSpan(operation string) SpanHelper {
-	if s.ctx != nil && tools.IsOpentracingEnabled() {
+	if s.ctx != nil && jaeger.IsOpentracingEnabled() {
 		newSpan, newCtx := opentracing.StartSpanFromContext(s.ctx, operation)
 		return NewSpanHelper(newCtx, newSpan, operation)
 	}
@@ -135,7 +135,7 @@ func (s *spanHelper) Context() context.Context {
 
 // FromContext - return span helper from context and if opentracing is enabled start new span
 func FromContext(ctx context.Context, operation string) SpanHelper {
-	if tools.IsOpentracingEnabled() {
+	if jaeger.IsOpentracingEnabled() {
 		newSpan, newCtx := opentracing.StartSpanFromContext(ctx, operation)
 		return NewSpanHelper(newCtx, newSpan, operation)
 	}
@@ -145,7 +145,7 @@ func FromContext(ctx context.Context, operation string) SpanHelper {
 
 // GetSpanHelper - construct a span helper object from current context span
 func GetSpanHelper(ctx context.Context) SpanHelper {
-	if tools.IsOpentracingEnabled() {
+	if jaeger.IsOpentracingEnabled() {
 		span := opentracing.SpanFromContext(ctx)
 		return NewSpanHelper(ctx, span, "")
 	}
@@ -165,7 +165,7 @@ func CopySpan(ctx context.Context, spanContext SpanHelper, operation string) Spa
 // WithSpan - construct span helper object with ctx and copy spanid from span
 // Will start new operation on span
 func WithSpan(ctx context.Context, span opentracing.Span, operation string) SpanHelper {
-	if tools.IsOpentracingEnabled() && span != nil {
+	if jaeger.IsOpentracingEnabled() && span != nil {
 		ctx = opentracing.ContextWithSpan(ctx, span)
 		newSpan, newCtx := opentracing.StartSpanFromContext(ctx, operation)
 		return NewSpanHelper(newCtx, newSpan, operation)

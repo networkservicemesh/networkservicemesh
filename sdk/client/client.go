@@ -21,6 +21,8 @@ import (
 	"io"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
+
 	"github.com/opentracing/opentracing-go/log"
 
 	"github.com/opentracing/opentracing-go"
@@ -185,15 +187,7 @@ func NewNSMClient(ctx context.Context, configuration *common.NSConfiguration) (*
 		OutgoingNscLabels: tools.ParseKVStringToMap(configuration.OutgoingNscLabels, ",", "="),
 	}
 
-	if tools.IsOpentracingEnabled() {
-		if !opentracing.IsGlobalTracerRegistered() {
-			tracer, closer := tools.InitJaeger("nsm-client")
-			opentracing.SetGlobalTracer(tracer)
-			client.tracerCloser = closer
-		} else {
-			logrus.Infof("Use already initialized global gracer")
-		}
-	}
+	client.tracerCloser = jaeger.InitJaeger("nsm-client")
 
 	nsmConnection, err := common.NewNSMConnection(ctx, configuration)
 	if err != nil {
