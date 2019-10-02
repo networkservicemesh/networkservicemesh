@@ -2,6 +2,7 @@ package fanout
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"sync"
 	"testing"
@@ -21,8 +22,8 @@ type cachedDNSWriter struct {
 
 func (w *cachedDNSWriter) WriteMsg(m *dns.Msg) error {
 	w.mutex.Lock()
-	w.answers = append(w.answers, m)
 	defer w.mutex.Unlock()
+	w.answers = append(w.answers, m)
 	return w.ResponseWriter.WriteMsg(m)
 }
 
@@ -62,11 +63,36 @@ func makeRecordA(rr string) *dns.A {
 	return r.(*dns.A)
 }
 
-func TestFanoutTwoServersNxdomain(t *testing.T) {
+func TestFanoutCanReturnUnsuccessRespnse(t *testing.T) {
+	s := newServer(func(w dns.ResponseWriter, r *dns.Msg) {
+		msg := testNxdomainMsg()
+		msg.SetRcode(r, msg.Rcode)
+		w.WriteMsg(msg)
+	})
+	f := NewFanout()
+	c := createFanoutClient(s.Addr)
+	f.addClient(c)
+	defer f.Close()
+	req := new(dns.Msg)
+	req.SetQuestion("example1.", dns.TypeA)
+	writer := &cachedDNSWriter{ResponseWriter: new(test.ResponseWriter)}
+	f.ServeDNS(context.TODO(), writer, req)
+	if len(writer.answers) != 1 {
+		fmt.Println(len(writer.answers))
+		t.FailNow()
+	}
+	if writer.answers[0].MsgHdr.Rcode != dns.RcodeNameError {
+		t.Error("fanout plugin returns first negative answer if other answers on request are negative")
+	}
+}
+func TestFanoutTwoServersNotSuccessResponse(t *testing.T) {
+	rcode := 1
 	s1 := newServer(func(w dns.ResponseWriter, r *dns.Msg) {
 		if r.Question[0].Name == "example1." {
 			msg := testNxdomainMsg()
-			msg.SetReply(r)
+			msg.SetRcode(r, rcode)
+			rcode++
+			rcode %= dns.RcodeNotZone
 			w.WriteMsg(msg)
 			//let another server answer
 			<-time.After(time.Millisecond * 100)
@@ -98,7 +124,7 @@ func TestFanoutTwoServersNxdomain(t *testing.T) {
 		f.ServeDNS(context.TODO(), writer, req)
 	}
 	for _, m := range writer.answers {
-		if m.MsgHdr.Rcode == dns.RcodeNameError {
+		if m.MsgHdr.Rcode != dns.RcodeSuccess {
 			t.Error("fanout should return only positive answers")
 		}
 	}
