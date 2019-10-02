@@ -63,7 +63,7 @@ func (nsmc *NsmClient) Connect(ctx context.Context, name, mechanism, description
 // Connect implements the business logic
 func (nsmc *NsmClient) ConnectRetry(ctx context.Context, name, mechanism, description string, retryCount int, retryDelay time.Duration) (*connection.Connection, error) {
 	span := spanhelper.FromContext(ctx, "nsmClient.Connect")
-		defer span.Finish()
+	defer span.Finish()
 
 	span.Logger().Infof("Initiating an outgoing connection.")
 	nsmc.Lock()
