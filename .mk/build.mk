@@ -43,7 +43,10 @@ $(module)-%-build:
 endef
 
 define docker_build
-	docker build --build-arg VPP_AGENT=$(VPP_AGENT) --build-arg ENTRY=$1 --network="host" -t $(ORG)/$1 -f $(DOCKER)/$2 $3
+	docker build --build-arg VPP_AGENT=$(VPP_AGENT) --build-arg ENTRY=$1 --network="host" -t $(ORG)/$1 -f $(DOCKER)/$2 $3; \
+	if [ "x${COMMIT}" != "x" ] ; then \
+		docker tag $(ORG)/$1 $(ORG)/$1:${COMMIT} ;\
+	fi
 endef
 
 $(foreach module, $(modules), $(eval $(call build_rule, $(module))))
