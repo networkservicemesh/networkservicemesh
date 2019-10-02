@@ -16,18 +16,25 @@
 # after fixing 'kernel-forwarder' and 'vppagent-dataplane' targets could be eliminated
 .PHONY: go-kernel-forwarder-build
 go-kernel-forwarder-build: go-%-build:
-	./scripts/build.sh $* dataplane ./$*/cmd $(BIN_DIR)/$* $(VERSION)
+	$(info ----------------------  Building dataplane::$* via Cross compile ----------------------)
+	@pushd ./dataplane && \
+	CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) go build \
+    	-ldflags "-extldflags '-static' -X  main.version=$(VERSION)" -o $(BIN_DIR)/$*/$* ./kernel-forwarder/cmd/ && \
+	popd
 
 .PHONY: go-vppagent-dataplane-build
 go-vppagent-dataplane-build: go-%-build:
-	./scripts/build.sh $* dataplane ./vppagent/cmd $(BIN_DIR)/$* $(VERSION)
+	$(info ----------------------  Building dataplane::$* via Cross compile ----------------------)
+	@pushd ./dataplane && \
+	CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) go build \
+    	-ldflags "-extldflags '-static' -X  main.version=$(VERSION)" -o $(BIN_DIR)/$*/$* ./vppagent/cmd/ && \
+	popd
 
-docker-vppagent-dataplane-build: docker-%-build: go-vppagent-dataplane-build
+docker-vppagent-dataplane-prepare: docker-%-prepare: go-%-build
+	$(info Preparing files for docker...)
 	$(call docker_prepare, $(BIN_DIR)/$*, \
-		$(foreach app, $^, $(BIN_DIR)/$(app)/$(app)) \
 		dataplane/vppagent/conf/vpp/startup.conf \
 		dataplane/vppagent/conf/supervisord/supervisord.conf)
-	./scripts/build_image.sh -o ${ORG} -a $* -b $(BIN_DIR)/$* -g VPP_AGENT=$(VPP_AGENT)
 
 .PHONY: docker-dataplane-build
 docker-dataplane-build: docker-vppagent-dataplane-build docker-kernel-forwarder-build

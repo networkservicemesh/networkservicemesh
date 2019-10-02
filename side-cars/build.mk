@@ -16,8 +16,7 @@ sidecars_apps = $(shell ls ./side-cars/cmd/)
 sidecars_targets = $(addsuffix -build, $(addprefix go-, $(sidecars_apps)))
 
 .PHONY: $(sidecars_targets)
-$(sidecars_targets): go-%-build:
-	./scripts/build.sh $* ./side-cars ./cmd/$* $(BIN_DIR)/$* $(VERSION)
+$(sidecars_targets): go-%-build: side-cars-%-build
 
 .PHONY: docker-side-cars-build
 docker-side-cars-build: $(addsuffix -build, $(addprefix docker-, $(sidecars_apps)))

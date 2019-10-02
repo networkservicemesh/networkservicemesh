@@ -16,8 +16,7 @@ controlplane_apps = $(shell ls ./controlplane/cmd/)
 controlplane_targets = $(addsuffix -build, $(addprefix go-, $(controlplane_apps)))
 
 .PHONY: $(controlplane_targets)
-$(controlplane_targets): go-%-build:
-	./scripts/build.sh $* ./controlplane ./cmd/$* $(BIN_DIR)/$* $(VERSION)
+$(controlplane_targets): go-%-build: controlplane-%-build
 
 .PHONY: docker-controlplane-build
 docker-controlplane-build: $(addsuffix -build, $(addprefix docker-, $(controlplane_apps)))
