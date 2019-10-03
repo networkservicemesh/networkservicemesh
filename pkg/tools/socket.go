@@ -23,7 +23,7 @@ const (
 	opentracingEnv     = "TRACER_ENABLED"
 	opentracingDefault = false
 	insecureDefault    = false
-	dialTimeoutDefault = 5 * time.Second
+	dialTimeoutDefault = 15 * time.Second
 )
 
 // DialConfig represents configuration of grpc connection, one per instance
@@ -169,12 +169,6 @@ func (b *dialBuilder) Timeout(t time.Duration) *dialBuilder {
 
 func (b *dialBuilder) DialContextFunc() dialContextFunc {
 	return func(ctx context.Context, target string, opts ...grpc.DialOption) (conn *grpc.ClientConn, err error) {
-		if b.t != 0 {
-			var cancel context.CancelFunc
-			ctx, cancel = context.WithTimeout(ctx, b.t)
-			defer cancel()
-		}
-
 		if GetConfig().OpenTracing {
 			b.opts = append(b.opts, OpenTracingDialOptions()...)
 		}
@@ -191,6 +185,12 @@ func (b *dialBuilder) DialContextFunc() dialContextFunc {
 		}
 
 		b.opts = append(b.opts, grpc.WithBlock())
+
+		if b.t != 0 {
+			var cancel context.CancelFunc
+			ctx, cancel = context.WithTimeout(ctx, b.t)
+			defer cancel()
+		}
 
 		return grpc.DialContext(ctx, target, append(opts, b.opts...)...)
 	}
