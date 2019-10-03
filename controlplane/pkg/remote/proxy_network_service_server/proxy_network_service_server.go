@@ -125,6 +125,14 @@ func (srv *proxyNetworkServiceServer) Request(ctx context.Context, request *remo
 		}
 	}
 
+	originalNetworkService := request.Connection.NetworkService
+	networkService, _, err := interdomain.ParseNsmURL(originalNetworkService)
+	if err == nil {
+		request.Connection.NetworkService = networkService
+	} else {
+		logrus.Warnf("Cannot parse Network Service name %s, keep original", originalNetworkService)
+	}
+
 	logrus.Infof("ProxyNSMD: Sending request to remote network service: %v", request)
 
 	response, err := client.Request(ctx, request)
@@ -142,6 +150,7 @@ func (srv *proxyNetworkServiceServer) Request(ctx context.Context, request *remo
 
 	response.Mechanism.Parameters["src_ip"] = localSrcIP
 	response.DestinationNetworkServiceManagerName = destNsmName
+	response.NetworkService = originalNetworkService
 
 	logrus.Infof("ProxyNSMD: Received response from remote network service: %v", response)
 
