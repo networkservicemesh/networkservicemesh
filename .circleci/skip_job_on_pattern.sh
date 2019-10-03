@@ -3,7 +3,7 @@ set -eo pipefail
 BRANCH="${1}"
 PATTERN=".md$|.circleci/skip_job_on_pattern.sh"
 
-if [ ! -z "$(echo ${CIRCLE_BRANCH} | grep -v "^pull/")" ]; then echo Do not skip on non pull branch: ${CIRCLE_BRANCH};exit 0;fi
+if $(echo "${CIRCLE_BRANCH}" | grep -q -v "^pull/") ; then echo Do not skip on non pull branch: ""${CIRCLE_BRANCH}"";exit 0;fi
 FILES_CHANGED=$(git diff "${BRANCH}"... --name-only)
 NOT_MATCHING_PATTERN_FILES_CHANGED=$(git diff "${BRANCH}"... --name-only| grep -E -v "${PATTERN}" || true)
 if [ -z "${NOT_MATCHING_PATTERN_FILES_CHANGED}" ]; then
