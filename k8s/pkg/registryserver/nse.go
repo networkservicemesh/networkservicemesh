@@ -14,7 +14,8 @@ import (
 )
 
 const (
-	NodeNameLabelKey = "nodeName"
+	// ForwardingTimeout - Timeout waiting for Proxy NseRegistryClient
+	ForwardingTimeout = 15 * time.Second
 )
 
 type nseRegistryService struct {

@@ -48,7 +48,7 @@ func (es *registryServer) RegisterNSE(ctx context.Context, request *registry.NSE
 
 	// Check if there is already Network Service Endpoint object with the same name, if there is
 	// success will be returned to NSE, since it is a case of NSE pod coming back up.
-	client, err := es.nsm.serviceRegistry.NseRegistryClient()
+	client, err := es.nsm.serviceRegistry.NseRegistryClient(context.Background())
 	if err != nil {
 		err = fmt.Errorf("attempt to connect to upstream registry failed with: %v", err)
 		logrus.Error(err)
@@ -104,7 +104,7 @@ func (es *registryServer) RemoveNSE(ctx context.Context, request *registry.Remov
 	// TODO make sure we track which registry server we got the RegisterNSE from so we can only allow a deletion
 	// of what you advertised
 	logrus.Infof("Received Endpoint Remove request: %+v", request)
-	client, err := es.nsm.serviceRegistry.NseRegistryClient()
+	client, err := es.nsm.serviceRegistry.NseRegistryClient(context.Background())
 	if err != nil {
 		err = fmt.Errorf("attempt to pass through from nsm to upstream registry failed with: %v", err)
 		logrus.Error(err)

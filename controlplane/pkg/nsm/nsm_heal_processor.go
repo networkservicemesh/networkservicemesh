@@ -330,7 +330,7 @@ func (p *healProcessor) nseIsSameAndAvailable(ctx context.Context, endpointName 
 }
 
 func (p *healProcessor) waitNSE(ctx context.Context, cc *model.ClientConnection, endpointName, networkService string, nseValidator nseValidator) bool {
-	discoveryClient, err := p.serviceRegistry.DiscoveryClient()
+	discoveryClient, err := p.serviceRegistry.DiscoveryClient(context.Background())
 	if err != nil {
 		logrus.Errorf("Failed to connect to Registry... %v", err)
 		// Still try to recovery

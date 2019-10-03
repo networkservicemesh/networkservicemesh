@@ -28,9 +28,9 @@ A method to obtain different connectivity mechanism for parts of model
 type ServiceRegistry interface {
 	GetPublicAPI() string
 
-	DiscoveryClient() (registry.NetworkServiceDiscoveryClient, error)
-	NseRegistryClient() (registry.NetworkServiceRegistryClient, error)
-	NsmRegistryClient() (registry.NsmRegistryClient, error)
+	DiscoveryClient(ctx context.Context) (registry.NetworkServiceDiscoveryClient, error)
+	NseRegistryClient(ctx context.Context) (registry.NetworkServiceRegistryClient, error)
+	NsmRegistryClient(ctx context.Context) (registry.NsmRegistryClient, error)
 
 	Stop()
 	NSMDApiClient() (nsmdapi.NSMDClient, *grpc.ClientConn, error)
