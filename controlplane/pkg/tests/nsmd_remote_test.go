@@ -27,14 +27,14 @@ func TestNSMDRequestClientRemoteNSMD(t *testing.T) {
 	defer srv.Stop()
 	defer srv2.Stop()
 
-	srv.TestModel.AddDataplane(testDataplane1)
+	srv.TestModel.AddDataplane(context.Background(), testDataplane1)
 
-	srv2.TestModel.AddDataplane(testDataplane2)
+	srv2.TestModel.AddDataplane(context.Background(), testDataplane2)
 
 	// Register in both
 	nseReg := srv2.RegisterFakeEndpoint("golden_network", "test", Worker)
 	// Add to local endpoints for Server2
-	srv2.TestModel.AddEndpoint(nseReg)
+	srv2.TestModel.AddEndpoint(context.Background(), nseReg)
 
 	// Now we could try to connect via Client API
 	nsmClient, conn := srv.requestNSMConnection("nsm-1")
@@ -80,7 +80,7 @@ func TestNSMDCloseCrossConnection(t *testing.T) {
 	srv2 := NewNSMDFullServer(Worker, storage)
 	defer srv.Stop()
 	defer srv2.Stop()
-	srv.TestModel.AddDataplane(&model.Dataplane{
+	srv.TestModel.AddDataplane(context.Background(), &model.Dataplane{
 		RegisteredName: "test_data_plane",
 		SocketLocation: "tcp:some_addr",
 		LocalMechanisms: []connection.Mechanism{
@@ -100,7 +100,7 @@ func TestNSMDCloseCrossConnection(t *testing.T) {
 		MechanismsConfigured: true,
 	})
 
-	srv2.TestModel.AddDataplane(&model.Dataplane{
+	srv2.TestModel.AddDataplane(context.Background(), &model.Dataplane{
 		RegisteredName: "test_data_plane",
 		SocketLocation: "tcp:some_addr",
 		RemoteMechanisms: []connection.Mechanism{
@@ -118,7 +118,7 @@ func TestNSMDCloseCrossConnection(t *testing.T) {
 	// Register in both
 	nseReg := srv2.RegisterFakeEndpoint("golden_network", "test", Worker)
 	// Add to local endpoints for Server2
-	srv2.TestModel.AddEndpoint(nseReg)
+	srv2.TestModel.AddEndpoint(context.Background(), nseReg)
 
 	// Now we could try to connect via Client API
 	nsmClient, conn := srv.requestNSMConnection("nsm-1")
@@ -181,19 +181,19 @@ func TestNSMDDelayRemoteMechanisms(t *testing.T) {
 	defer srv.Stop()
 	defer srv2.Stop()
 
-	srv.TestModel.AddDataplane(testDataplane1)
+	srv.TestModel.AddDataplane(context.Background(), testDataplane1)
 
 	testDataplane2_2 := &model.Dataplane{
 		RegisteredName: "test_data_plane2",
 		SocketLocation: "tcp:some_addr",
 	}
 
-	srv2.TestModel.AddDataplane(testDataplane2_2)
+	srv2.TestModel.AddDataplane(context.Background(), testDataplane2_2)
 
 	// Register in both
 	nseReg := srv2.RegisterFakeEndpoint("golden_network", "test", Worker)
 	// Add to local endpoints for Server2
-	srv2.TestModel.AddEndpoint(nseReg)
+	srv2.TestModel.AddEndpoint(context.Background(), nseReg)
 
 	// Now we could try to connect via Client API
 	nsmClient, conn := srv.requestNSMConnection("nsm-1")
@@ -232,12 +232,12 @@ func TestNSMDDelayRemoteMechanisms(t *testing.T) {
 		resultChan <- &Response{nsmResponse: nsmResponse, err: err}
 	}(context.Background(), request)
 
-	<-time.After(1 * time.Second)
+	<-time.After(100 * time.Millisecond)
 
 	testDataplane2_2.LocalMechanisms = testDataplane2.LocalMechanisms
 	testDataplane2_2.RemoteMechanisms = testDataplane2.RemoteMechanisms
 	testDataplane2_2.MechanismsConfigured = true
-	srv2.TestModel.UpdateDataplane(testDataplane2_2)
+	srv2.TestModel.UpdateDataplane(context.Background(), testDataplane2_2)
 
 	res := <-resultChan
 	g.Expect(res.err).To(BeNil())

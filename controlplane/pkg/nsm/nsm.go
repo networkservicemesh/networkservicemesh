@@ -139,7 +139,7 @@ func (srv *networkServiceManager) request(ctx context.Context, request networkse
 			return nil, err
 		}
 
-		srv.model.ApplyClientConnectionChanges(existingCC.GetID(), func(modelCC *model.ClientConnection) {
+		srv.model.ApplyClientConnectionChanges(ctx, existingCC.GetID(), func(modelCC *model.ClientConnection) {
 			modelCC.ConnectionState = model.ClientConnectionRequesting
 		})
 	}
@@ -247,10 +247,10 @@ func (srv *networkServiceManager) request(ctx context.Context, request networkse
 	}
 
 	// 7.4 replace currently existing clientConnection or create new if it is absent
-	srv.model.UpdateClientConnection(cc)
+	srv.model.UpdateClientConnection(ctx, cc)
 
 	// 8. Remember original Request for Heal cases.
-	cc = srv.model.ApplyClientConnectionChanges(cc.GetID(), func(cc *model.ClientConnection) {
+	cc = srv.model.ApplyClientConnectionChanges(ctx, cc.GetID(), func(cc *model.ClientConnection) {
 		cc.Request = request
 	})
 
@@ -292,7 +292,7 @@ func (srv *networkServiceManager) request(ctx context.Context, request networkse
 	}
 
 	// 10. Send update for client connection
-	srv.model.ApplyClientConnectionChanges(cc.GetID(), func(cc *model.ClientConnection) {
+	srv.model.ApplyClientConnectionChanges(ctx, cc.GetID(), func(cc *model.ClientConnection) {
 		cc.ConnectionState = model.ClientConnectionReady
 		cc.DataplaneState = model.DataplaneStateReady
 		cc.Xcon = newXcon
@@ -351,10 +351,10 @@ func (srv *networkServiceManager) requestFailed(ctx context.Context, requestID s
 
 	if existingCC == nil {
 		logger.Infof("Delete connection %v", cc.GetID())
-		srv.model.DeleteClientConnection(cc.GetID())
+		srv.model.DeleteClientConnection(ctx, cc.GetID())
 	}
 
-	srv.model.ApplyClientConnectionChanges(cc.GetID(), func(modelCC *model.ClientConnection) {
+	srv.model.ApplyClientConnectionChanges(ctx, cc.GetID(), func(modelCC *model.ClientConnection) {
 		modelCC.ConnectionState = model.ClientConnectionBroken
 	})
 }
@@ -440,7 +440,7 @@ func (srv *networkServiceManager) Close(ctx context.Context, clientConnection ns
 		return fmt.Errorf("closing already closed connection")
 	}
 
-	srv.model.ApplyClientConnectionChanges(cc.GetID(), func(modelCC *model.ClientConnection) {
+	srv.model.ApplyClientConnectionChanges(ctx, cc.GetID(), func(modelCC *model.ClientConnection) {
 		modelCC.ConnectionState = model.ClientConnectionClosing
 	})
 
@@ -450,7 +450,7 @@ func (srv *networkServiceManager) Close(ctx context.Context, clientConnection ns
 	dpErr := srv.closeDataplane(ctx, cc)
 
 	// TODO: We need to be sure Dataplane is respond well so we could delete connection.
-	srv.model.DeleteClientConnection(cc.GetID())
+	srv.model.DeleteClientConnection(ctx, cc.GetID())
 
 	if nseErr != nil || dpErr != nil {
 		return fmt.Errorf("NSM: Close error: %v", []error{nseErr, dpErr})
@@ -564,7 +564,7 @@ func (srv *networkServiceManager) closeDataplane(ctx context.Context, cc *model.
 		return err
 	}
 	logrus.Info("NSM.Dataplane: Cross connection successfully closed on dataplane")
-	srv.model.ApplyClientConnectionChanges(cc.GetID(), func(cc *model.ClientConnection) {
+	srv.model.ApplyClientConnectionChanges(ctx, cc.GetID(), func(cc *model.ClientConnection) {
 		cc.DataplaneState = model.DataplaneStateNone
 	})
 
@@ -799,7 +799,7 @@ func (srv *networkServiceManager) RestoreConnections(xcons []*crossconnect.Cross
 				DataplaneState:          model.DataplaneStateReady, // It is configured already.
 			}
 
-			srv.model.AddClientConnection(clientConnection)
+			srv.model.AddClientConnection(context.Background(), clientConnection)
 
 			// Add healing timer, for connection to be healed from source side.
 			if src := xcon.GetSourceConnection(); src.IsRemote() {
@@ -851,7 +851,7 @@ func (srv *networkServiceManager) closeLocalMissingNSE(cc *model.ClientConnectio
 func (srv *networkServiceManager) RemoteConnectionLost(clientConnection nsm.ClientConnection) {
 	logrus.Infof("NSM: Remote opened connection is not monitored and put into Healing state %v", clientConnection)
 
-	srv.model.ApplyClientConnectionChanges(clientConnection.GetID(), func(modelCC *model.ClientConnection) {
+	srv.model.ApplyClientConnectionChanges(context.Background(), clientConnection.GetID(), func(modelCC *model.ClientConnection) {
 		modelCC.ConnectionState = model.ClientConnectionHealing
 	})
 

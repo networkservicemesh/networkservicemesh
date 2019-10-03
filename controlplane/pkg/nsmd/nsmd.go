@@ -318,7 +318,7 @@ func (nsm *nsmServer) restoreRegisteredEndpoint(nse nseregistry.NSEEntry, ws *Wo
 	nse.NseReg.NetworkServiceManager = nsm.model.GetNsm()
 	nse.NseReg.NetworkServiceEndpoint.NetworkServiceManagerName = nse.NseReg.GetNetworkServiceManager().GetName()
 
-	nsm.model.AddEndpoint(&model.Endpoint{
+	nsm.model.AddEndpoint(context.Background(), &model.Endpoint{
 		Endpoint:       nse.NseReg,
 		Workspace:      nse.Workspace,
 		SocketLocation: ws.NsmClientSocket(),
@@ -356,7 +356,7 @@ func (nsm *nsmServer) deleteEndpointWithClient(name string, client registry.Netw
 		return err
 	}
 
-	nsm.model.DeleteEndpoint(name)
+	nsm.model.DeleteEndpoint(context.Background(), name)
 
 	return nil
 }
@@ -414,7 +414,7 @@ func StartNSMServer(ctx context.Context, model model.Model, manager nsm.NetworkS
 		localRegistry:    nseregistry.NewNSERegistry(locationProvider.NsmNSERegistryFile()),
 	}
 
-	nsm.registerServer = tools.NewServer()
+	nsm.registerServer = tools.NewServer(ctx)
 	nsmdapi.RegisterNSMDServer(nsm.registerServer, nsm)
 
 	nsm.registerSock, err = apiRegistry.NewNSMServerListener()
@@ -493,7 +493,7 @@ func setLocalNSM(model model.Model, serviceRegistry serviceregistry.ServiceRegis
 
 // StartAPIServerAt starts GRPC API server at sock
 func (nsm *nsmServer) StartAPIServerAt(ctx context.Context, sock net.Listener, probes probes.Probes) {
-	grpcServer := tools.NewServer()
+	grpcServer := tools.NewServer(ctx)
 
 	crossconnect.RegisterMonitorCrossConnectServer(grpcServer, nsm.crossConnectMonitor)
 	connection.RegisterMonitorConnectionServer(grpcServer, nsm.remoteConnectionMonitor)

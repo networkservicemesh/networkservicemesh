@@ -19,9 +19,10 @@ import (
 	"os"
 	"sync"
 
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
+
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 
-	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
@@ -62,15 +63,8 @@ func main() {
 	c := tools.NewOSSignalChannel()
 	logrus.Info("Starting vppagent-nsc...")
 	logrus.Infof("Version: %v", version)
-	if tools.IsOpentracingEnabled() {
-		tracer, closer := tools.InitJaeger("nsc")
-		opentracing.SetGlobalTracer(tracer)
-		defer func() {
-			if err := closer.Close(); err != nil {
-				logrus.Errorf("An error during cloasing: %v", err)
-			}
-		}()
-	}
+	closer := jaeger.InitJaeger("vppagent-nsc")
+	defer func() { _ = closer.Close() }()
 	workspace, ok := os.LookupEnv(common.WorkspaceEnv)
 	if !ok {
 		logrus.Fatalf("Failed getting %s", common.WorkspaceEnv)

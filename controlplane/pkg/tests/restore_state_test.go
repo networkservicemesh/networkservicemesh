@@ -37,9 +37,16 @@ func TestRestoreConnectionStateWrongDst(t *testing.T) {
 	srv.AddFakeDataplane("dp1", "tcp:some_address")
 	srv.registerFakeEndpointWithName("ns1", "IP", Worker, "ep2")
 
+	nsmClient := srv.RequestNSM("nsm1")
+
 	requestConnection := &connection.Connection{
 		Id:             "1",
 		NetworkService: "ns1",
+		Mechanism: &connection.Mechanism{
+			Parameters: map[string]string{
+				connection.Workspace: nsmClient.Workspace,
+			},
+		},
 	}
 
 	dstConnection := &connection.Connection{

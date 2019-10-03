@@ -20,9 +20,9 @@ import (
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/sdk/common"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
 
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 
 	"github.com/networkservicemesh/networkservicemesh/sdk/client"
 )
@@ -32,22 +32,21 @@ type nsmClientApp struct {
 }
 
 func (c *nsmClientApp) Run() {
-	if tools.IsOpentracingEnabled() {
-		tracer, closer := tools.InitJaeger("nsm-init")
-		opentracing.SetGlobalTracer(tracer)
-		defer func() { _ = closer.Close() }()
-	}
+	closer := jaeger.InitJaeger("nsm-init")
+	defer func() { _ = closer.Close() }()
 	span, ctx := opentracing.StartSpanFromContext(context.Background(), "RequestNetworkService")
 	defer span.Finish()
 
 	clientList, err := client.NewNSMClientList(ctx, c.configuration)
 	if err != nil {
-		logrus.Fatalf("nsm client: Unable to create the NSM client %v", err)
+		logrus.Errorf("nsm client: Unable to create the NSM client %v", err)
+		return
 	}
 
 	err = clientList.ConnectRetry(ctx, "nsm", "kernel", "Primary interface", client.ConnectionRetry, client.RequestDelay)
 	if err != nil {
-		logrus.Fatalf("nsm client: Unable to establish connection with network service")
+		logrus.Errorf("nsm client: Unable to establish connection with network service")
+		return
 	}
 	logrus.Info("nsm client: initialization is completed successfully")
 }

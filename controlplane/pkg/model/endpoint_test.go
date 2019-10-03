@@ -1,6 +1,7 @@
 package model
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"testing"
@@ -32,7 +33,7 @@ func TestAddAndGetEndpoint(t *testing.T) {
 	}
 
 	ed := newEndpointDomain()
-	ed.AddEndpoint(endp)
+	ed.AddEndpoint(context.Background(), endp)
 	getEndp := ed.GetEndpoint("endp1")
 
 	g.Expect(getEndp.SocketLocation).To(Equal(endp.SocketLocation))
@@ -55,7 +56,7 @@ func TestGetEndpointsByNs(t *testing.T) {
 	amount := 5
 
 	for i := 0; i < amount; i++ {
-		ed.AddEndpoint(&Endpoint{
+		ed.AddEndpoint(context.Background(), &Endpoint{
 			Endpoint: &registry.NSERegistration{
 				NetworkService: &registry.NetworkService{
 					Name: fmt.Sprintf("%d", i%2),
@@ -107,7 +108,7 @@ func TestDeleteEndpoint(t *testing.T) {
 	g := NewWithT(t)
 
 	ed := newEndpointDomain()
-	ed.AddEndpoint(&Endpoint{
+	ed.AddEndpoint(context.Background(), &Endpoint{
 		Endpoint: &registry.NSERegistration{
 			NetworkService: &registry.NetworkService{
 				Name: "ns1",
@@ -128,12 +129,12 @@ func TestDeleteEndpoint(t *testing.T) {
 	endp := ed.GetEndpoint("endp1")
 	g.Expect(endp).ToNot(BeNil())
 
-	ed.DeleteEndpoint("endp1")
+	ed.DeleteEndpoint(context.Background(), "endp1")
 
 	endpDel := ed.GetEndpoint("endp1")
 	g.Expect(endpDel).To(BeNil())
 
-	ed.DeleteEndpoint("NotExistingId")
+	ed.DeleteEndpoint(context.Background(), "NotExistingId")
 }
 
 func TestUpdateExistingEndpoint(t *testing.T) {
@@ -158,7 +159,7 @@ func TestUpdateExistingEndpoint(t *testing.T) {
 	}
 
 	ed := newEndpointDomain()
-	ed.AddEndpoint(endp)
+	ed.AddEndpoint(context.Background(), endp)
 
 	newUrl := "3.3.3.3"
 	newNs := "updatedNs"
@@ -169,7 +170,7 @@ func TestUpdateExistingEndpoint(t *testing.T) {
 	g.Expect(notUpdated.Endpoint.NetworkServiceManager.Url).ToNot(Equal(newUrl))
 	g.Expect(notUpdated.Endpoint.NetworkService.Name).ToNot(Equal(newNs))
 
-	ed.UpdateEndpoint(endp)
+	ed.UpdateEndpoint(context.Background(), endp)
 	updated := ed.GetEndpoint("endp1")
 	g.Expect(updated.Endpoint.NetworkServiceManager.Url).To(Equal(newUrl))
 	g.Expect(updated.Endpoint.NetworkService.Name).To(Equal(newNs))
@@ -198,7 +199,7 @@ func TestUpdateNotExisting(t *testing.T) {
 
 	ed := newEndpointDomain()
 
-	ed.UpdateEndpoint(endp)
+	ed.UpdateEndpoint(context.Background(), endp)
 	updated := ed.GetEndpoint("endp1")
 	g.Expect(updated.Endpoint.NetworkServiceManager.Url).To(Equal("2.2.2.2"))
 	g.Expect(updated.Endpoint.NetworkService.Name).To(Equal("ns1"))

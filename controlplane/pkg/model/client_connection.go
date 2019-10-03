@@ -1,6 +1,8 @@
 package model
 
 import (
+	"context"
+
 	"github.com/golang/protobuf/proto"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
@@ -115,8 +117,8 @@ func newClientConnectionDomain() clientConnectionDomain {
 	}
 }
 
-func (d *clientConnectionDomain) AddClientConnection(cc *ClientConnection) {
-	d.store(cc.ConnectionID, cc)
+func (d *clientConnectionDomain) AddClientConnection(ctx context.Context, cc *ClientConnection) {
+	d.store(ctx, cc.ConnectionID, cc)
 }
 
 func (d *clientConnectionDomain) GetClientConnection(id string) *ClientConnection {
@@ -136,16 +138,16 @@ func (d *clientConnectionDomain) GetAllClientConnections() []*ClientConnection {
 	return rv
 }
 
-func (d *clientConnectionDomain) DeleteClientConnection(id string) {
-	d.delete(id)
+func (d *clientConnectionDomain) DeleteClientConnection(ctx context.Context, id string) {
+	d.delete(ctx, id)
 }
 
-func (d *clientConnectionDomain) UpdateClientConnection(cc *ClientConnection) {
-	d.store(cc.ConnectionID, cc)
+func (d *clientConnectionDomain) UpdateClientConnection(ctx context.Context, cc *ClientConnection) {
+	d.store(ctx, cc.ConnectionID, cc)
 }
 
-func (d *clientConnectionDomain) ApplyClientConnectionChanges(id string, f func(*ClientConnection)) *ClientConnection {
-	upd := d.applyChanges(id, func(v interface{}) { f(v.(*ClientConnection)) })
+func (d *clientConnectionDomain) ApplyClientConnectionChanges(ctx context.Context, id string, f func(*ClientConnection)) *ClientConnection {
+	upd := d.applyChanges(ctx, id, func(v interface{}) { f(v.(*ClientConnection)) })
 	if upd != nil {
 		return upd.(*ClientConnection)
 	}

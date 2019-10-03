@@ -19,6 +19,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
+
 	"github.com/gogo/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/ligato/vpp-agent/api/configurator"
@@ -26,7 +28,6 @@ import (
 	vpp_acl "github.com/ligato/vpp-agent/api/models/vpp/acl"
 	vpp_interfaces "github.com/ligato/vpp-agent/api/models/vpp/interfaces"
 	vpp_l3 "github.com/ligato/vpp-agent/api/models/vpp/l3"
-	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/status"
 
@@ -95,7 +96,7 @@ func (v *VPPAgent) Request(ctx context.Context, crossConnect *crossconnect.Cross
 	if err != nil {
 		return nil, err
 	}
-	v.common.Monitor.Update(xcon)
+	v.common.Monitor.Update(ctx, xcon)
 	logrus.Infof("Request(ConnectRequest) called with %v returning: %v", crossConnect, xcon)
 	return xcon, err
 }
@@ -291,18 +292,17 @@ func (v *VPPAgent) Close(ctx context.Context, crossConnect *crossconnect.CrossCo
 	if err != nil {
 		logrus.Warn(err)
 	}
-	v.common.Monitor.Delete(xcon)
+	v.common.Monitor.Delete(ctx, xcon)
 	return &empty.Empty{}, err
 }
 
 // Init makes setup for the VPPAgent
 func (v *VPPAgent) Init(common *common.DataplaneConfig) error {
 	v.common = common
-	if tools.IsOpentracingEnabled() {
-		tracer, closer := tools.InitJaeger(v.common.Name)
-		opentracing.SetGlobalTracer(tracer)
-		defer closer.Close()
-	}
+
+	closer := jaeger.InitJaeger(v.common.Name)
+	defer func() { _ = closer.Close() }()
+
 	err := v.configureVPPAgent()
 	if err != nil {
 		logrus.Errorf("Error configuring the VPP Agent: %s", err)

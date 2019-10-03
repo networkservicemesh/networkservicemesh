@@ -1,6 +1,8 @@
 package pods
 
 import (
+	"os"
+
 	v1 "k8s.io/api/core/v1"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -49,14 +51,23 @@ func Jaeger() *v1.Pod {
 }
 
 func newJaegerEnvVar() []v1.EnvVar {
+	jaegerHost := "jaeger.nsm-system"
+	jaegerPort := "6831"
+
+	if value := os.Getenv("JAEGER_AGENT_HOST"); value != "" {
+		jaegerHost = value
+	}
+	if value := os.Getenv("JAEGER_AGENT_PORT"); value != "" {
+		jaegerPort = value
+	}
 	return []v1.EnvVar{
 		{
 			Name:  "JAEGER_AGENT_HOST",
-			Value: "jaeger.nsm-system",
+			Value: jaegerHost,
 		},
 		{
 			Name:  "JAEGER_AGENT_PORT",
-			Value: "6831",
+			Value: jaegerPort,
 		},
 		{
 			Name:  "TRACER_ENABLED",

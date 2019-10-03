@@ -34,8 +34,8 @@ func (m *ClientConnectionManager) GetNsmName() string {
 }
 
 // UpdateXcon handles case when xcon has been changed for NSMClientConnection
-func (m *ClientConnectionManager) UpdateXcon(cc nsm.ClientConnection, newXcon *crossconnect.CrossConnect) {
-	if upd := m.model.ApplyClientConnectionChanges(cc.GetID(), func(cc *model.ClientConnection) {
+func (m *ClientConnectionManager) UpdateXcon(ctx context.Context, cc nsm.ClientConnection, newXcon *crossconnect.CrossConnect) {
+	if upd := m.model.ApplyClientConnectionChanges(ctx, cc.GetID(), func(cc *model.ClientConnection) {
 		cc.Xcon = newXcon
 	}); upd != nil {
 		cc = upd
@@ -78,7 +78,7 @@ func (m *ClientConnectionManager) DataplaneDown(dataplane *model.Dataplane) {
 }
 
 // LocalDestinationUpdated handles case when local connection parameters changed
-func (m *ClientConnectionManager) LocalDestinationUpdated(cc *model.ClientConnection, localDst *local.Connection) {
+func (m *ClientConnectionManager) LocalDestinationUpdated(ctx context.Context, cc *model.ClientConnection, localDst *local.Connection) {
 	if cc.ConnectionState != model.ClientConnectionReady {
 		return
 	}
@@ -89,11 +89,11 @@ func (m *ClientConnectionManager) LocalDestinationUpdated(cc *model.ClientConnec
 	localDst.GetMechanism().GetParameters()[local.WorkspaceNSEName] =
 		cc.Xcon.GetLocalDestination().GetMechanism().GetParameters()[local.WorkspaceNSEName]
 
-	m.destinationUpdated(cc, localDst)
+	m.destinationUpdated(ctx, cc, localDst)
 }
 
 // RemoteDestinationUpdated handles case when remote connection parameters changed
-func (m *ClientConnectionManager) RemoteDestinationUpdated(cc *model.ClientConnection, remoteDst *remote.Connection) {
+func (m *ClientConnectionManager) RemoteDestinationUpdated(ctx context.Context, cc *model.ClientConnection, remoteDst *remote.Connection) {
 	if cc.ConnectionState != model.ClientConnectionReady {
 		return
 	}
@@ -104,17 +104,17 @@ func (m *ClientConnectionManager) RemoteDestinationUpdated(cc *model.ClientConne
 		return
 	}
 
-	m.destinationUpdated(cc, remoteDst)
+	m.destinationUpdated(ctx, cc, remoteDst)
 }
 
-func (m *ClientConnectionManager) destinationUpdated(cc nsm.ClientConnection, dst connection.Connection) {
+func (m *ClientConnectionManager) destinationUpdated(ctx context.Context, cc nsm.ClientConnection, dst connection.Connection) {
 	// Check if it update we already have
 	if dst.Equals(cc.GetConnectionDestination()) {
 		// Since they are same, we do not need to do anything.
 		return
 	}
 
-	if upd := m.model.ApplyClientConnectionChanges(cc.GetID(), func(cc *model.ClientConnection) {
+	if upd := m.model.ApplyClientConnectionChanges(ctx, cc.GetID(), func(cc *model.ClientConnection) {
 		cc.Xcon.SetDestinationConnection(dst)
 	}); upd != nil {
 		cc = upd

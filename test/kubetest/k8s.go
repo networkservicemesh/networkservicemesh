@@ -275,6 +275,62 @@ type K8s struct {
 	cleanupFunc        func()
 }
 
+type spanRecord struct {
+	spanPod map[string]*v1.Pod
+}
+
+func (k8s *K8s) reportSpans() {
+	if os.Getenv("TRACER_ENABLED") == "true" {
+		logrus.Infof("Finding spans")
+		// We need to find all Reporting span and print uniq to console for analysis.
+		pods := k8s.ListPods()
+		spans := map[string]*spanRecord{}
+		for i := 0; i < len(pods); i++ {
+			pod := pods[i]
+			for ci := 0; ci < len(pod.Spec.Containers); ci++ {
+				c := pod.Spec.Containers[ci]
+				k8s.findSpans(&pods[i], c, spans)
+			}
+			for ci := 0; ci < len(pod.Spec.InitContainers); ci++ {
+				c := pod.Spec.Containers[ci]
+				k8s.findSpans(&pods[i], c, spans)
+			}
+		}
+		for spanID, span := range spans {
+			keys := []string{}
+			for k := range span.spanPod {
+				keys = append(keys, k)
+			}
+			logrus.Infof("Span %v pods: %v", spanID, keys)
+		}
+	}
+}
+
+func (k8s *K8s) findSpans(pod *v1.Pod, c v1.Container, spans map[string]*spanRecord) {
+	content, err := k8s.GetLogs(pod, c.Name)
+	if err == nil {
+		lines := strings.Split(content, "\n")
+		for _, l := range lines {
+			pos := strings.Index(l, " Reporting span ")
+			if pos > 0 {
+				value := l[pos:]
+				pos = strings.Index(value, ":")
+				value = value[0:pos]
+				if value != "" {
+					podRecordID := fmt.Sprintf("%s:%s", pod.Name, c.Name)
+					if span, ok := spans[value]; ok {
+						span.spanPod[podRecordID] = pod
+					} else {
+						spans[value] = &spanRecord{
+							spanPod: map[string]*v1.Pod{podRecordID: pod},
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
 // ExtK8s - K8s ClientSet with nodes config
 type ExtK8s struct {
 	K8s        *K8s
@@ -345,7 +401,7 @@ func NewK8sWithoutRolesForConfig(g *WithT, prepare bool, kubeconfigPath string) 
 
 	if prepare {
 		start := time.Now()
-		client.Prepare("nsmgr", "nsmd", "vppagent", "vpn", "icmp", "nsc", "source", "dest", "spire-proxy")
+		client.Prepare("nsmgr", "nsmd", "vppagent", "vpn", "icmp", "nsc", "source", "dest", "xcon", "spire-proxy")
 		client.CleanupCRDs()
 		client.CleanupServices("nsm-admission-webhook-svc")
 		client.CleanupDeployments()
@@ -569,6 +625,8 @@ func (k8s *K8s) CleanupEndpointsCRDs() {
 // Cleanup cleans up
 func (k8s *K8s) Cleanup() {
 	st := time.Now()
+
+	k8s.reportSpans()
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
@@ -809,6 +867,8 @@ func (k8s *K8s) waitLogsMatch(ctx context.Context, pod *v1.Pod, container string
 				logrus.Warnf("Error on get logs: %v retrying", err)
 			} else {
 				logrus.Warnf("Reached end of logs for %v::%v", pod.GetName(), container)
+				logrus.Errorf("%v Last logs: %v", description, builder.String())
+				k8s.g.Expect(false).To(BeTrue())
 			}
 			<-time.After(100 * time.Millisecond)
 			linesChan, errChan = k8s.GetLogsChannel(ctx, pod, options)

@@ -46,7 +46,7 @@ func (srv *networkServiceServer) Request(ctx context.Context, request *networkse
 		return nil, err
 	}
 	result := conn.(*connection.Connection)
-	srv.workspace.MonitorConnectionServer().Update(result)
+	srv.workspace.MonitorConnectionServer().Update(ctx, result)
 	return result, nil
 }
 
@@ -73,6 +73,6 @@ func (srv *networkServiceServer) Close(ctx context.Context, connection *connecti
 	if err != nil {
 		logrus.Errorf("Error during connection close: %v", err)
 	}
-	srv.workspace.MonitorConnectionServer().Delete(connection)
+	srv.workspace.MonitorConnectionServer().Delete(ctx, connection)
 	return &empty.Empty{}, nil
 }

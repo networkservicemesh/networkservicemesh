@@ -16,7 +16,13 @@
 package main
 
 import (
+	"context"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
+
 	"github.com/sirupsen/logrus"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/probes"
 
@@ -28,6 +34,12 @@ import (
 func main() {
 	// Capture signals to cleanup before exiting
 	logrus.Info("Starting the Kernel-based forwarding plane!")
+
+	closer := jaeger.InitJaeger("kernel-forwarder")
+	defer func() { _ = closer.Close() }()
+
+	span := spanhelper.FromContext(context.Background(), "Start.KernelForwarder.Dataplane")
+	defer span.Finish()
 	c := tools.NewOSSignalChannel()
 	dataplaneGoals := &common.DataplaneProbeGoals{}
 	dataplaneProbes := probes.New("Kerner-based forwarding plane liveness/readiness healthcheck", dataplaneGoals)

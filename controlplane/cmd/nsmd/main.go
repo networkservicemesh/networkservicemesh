@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
+
 	"github.com/networkservicemesh/networkservicemesh/pkg/probes"
 
 	"github.com/opentracing/opentracing-go"
@@ -35,11 +37,8 @@ func main() {
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
 
-	if tools.IsOpentracingEnabled() {
-		tracer, closer := tools.InitJaeger("nsmd")
-		opentracing.SetGlobalTracer(tracer)
-		defer closer.Close()
-	}
+	closer := jaeger.InitJaeger("nsmd")
+	defer func() { _ = closer.Close() }()
 
 	span := opentracing.StartSpan("nsmd")
 	defer span.Finish()

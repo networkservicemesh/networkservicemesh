@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"context"
 	"sync"
 	"testing"
 	"time"
@@ -28,7 +29,7 @@ type testConnectionModelListener struct {
 	textMarshaler proto.TextMarshaler
 }
 
-func (impl *testConnectionModelListener) ClientConnectionAdded(clientConnection *model.ClientConnection) {
+func (impl *testConnectionModelListener) ClientConnectionAdded(_ context.Context, clientConnection *model.ClientConnection) {
 	impl.Lock()
 	defer impl.Unlock()
 
@@ -37,7 +38,7 @@ func (impl *testConnectionModelListener) ClientConnectionAdded(clientConnection 
 	logrus.Infof("ClientConnectionAdded: %v", clientConnection)
 }
 
-func (impl *testConnectionModelListener) ClientConnectionDeleted(clientConnection *model.ClientConnection) {
+func (impl *testConnectionModelListener) ClientConnectionDeleted(_ context.Context, clientConnection *model.ClientConnection) {
 	impl.Lock()
 	defer impl.Unlock()
 
@@ -46,7 +47,7 @@ func (impl *testConnectionModelListener) ClientConnectionDeleted(clientConnectio
 	delete(impl.connections, clientConnection.GetID())
 }
 
-func (impl *testConnectionModelListener) ClientConnectionUpdated(old, new *model.ClientConnection) {
+func (impl *testConnectionModelListener) ClientConnectionUpdated(_ context.Context, old, new *model.ClientConnection) {
 	impl.Lock()
 	defer impl.Unlock()
 
@@ -55,13 +56,13 @@ func (impl *testConnectionModelListener) ClientConnectionUpdated(old, new *model
 	logrus.Infof("ClientConnectionUpdated: %s %v", new.GetID(), impl.textMarshaler.Text(new.Xcon))
 }
 
-func (impl *testConnectionModelListener) EndpointAdded(endpoint *model.Endpoint) {
+func (impl *testConnectionModelListener) EndpointAdded(_ context.Context, endpoint *model.Endpoint) {
 	impl.Lock()
 	defer impl.Unlock()
 
 	impl.endpoints++
 }
-func (impl *testConnectionModelListener) EndpointDeleted(endpoint *model.Endpoint) {
+func (impl *testConnectionModelListener) EndpointDeleted(_ context.Context, endpoint *model.Endpoint) {
 	impl.Lock()
 	defer impl.Unlock()
 

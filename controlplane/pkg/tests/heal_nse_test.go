@@ -4,13 +4,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
+
 	. "github.com/onsi/gomega"
 	"golang.org/x/net/context"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 )
 
@@ -23,16 +24,16 @@ func TestHealRemoteNSE(t *testing.T) {
 	defer srv.Stop()
 	defer srv2.Stop()
 
-	srv.TestModel.AddDataplane(testDataplane1)
-	srv2.TestModel.AddDataplane(testDataplane2)
+	srv.TestModel.AddDataplane(context.Background(), testDataplane1)
+	srv2.TestModel.AddDataplane(context.Background(), testDataplane2)
 
 	// Register in both
 	nseReg := srv2.registerFakeEndpointWithName("golden_network", "test", Worker, "ep1")
 	nseReg2 := srv2.registerFakeEndpointWithName("golden_network", "test", Worker, "ep2")
 
 	// Add to local endpoints for Server2
-	srv2.TestModel.AddEndpoint(nseReg)
-	srv2.TestModel.AddEndpoint(nseReg2)
+	srv2.TestModel.AddEndpoint(context.Background(), nseReg)
+	srv2.TestModel.AddEndpoint(context.Background(), nseReg2)
 
 	l1 := newTestConnectionModelListener()
 	l2 := newTestConnectionModelListener()
@@ -90,7 +91,7 @@ func TestHealRemoteNSE(t *testing.T) {
 		t.Fatal("Err must be nil")
 	}
 
-	srv2.TestModel.DeleteEndpoint(epName)
+	srv2.TestModel.DeleteEndpoint(context.Background(), epName)
 
 	// Simlate delete
 	clientConnection2.Xcon.GetLocalDestination().State = connection.State_DOWN
