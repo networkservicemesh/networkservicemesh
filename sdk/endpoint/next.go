@@ -31,7 +31,7 @@ func (n *nextEndpoint) Request(ctx context.Context, request *networkservice.Netw
 
 	// Make sure we log to span
 
-	ctx = withLog(ctx, span.Logger())
+	ctx = withLog(span.Context(), span.Logger())
 	span.LogObject("request", request)
 
 	// Actually call the next
@@ -55,7 +55,7 @@ func (n *nextEndpoint) Close(ctx context.Context, connection *connection.Connect
 	span := spanhelper.FromContext(ctx, fmt.Sprintf("%s.Close", typeutils.GetTypeName(n.composite.endpoints[n.index])))
 	defer span.Finish()
 	// Make sure we log to span
-	ctx = withLog(ctx, span.Logger())
+	ctx = withLog(span.Context(), span.Logger())
 
 	span.LogObject("request", connection)
 	rv, err := n.composite.endpoints[n.index].Close(ctx, connection)

@@ -102,7 +102,7 @@ func (nsmc *NsmClient) ConnectRetry(ctx context.Context, name, mechanism, descri
 	var outgoingConnection *connection.Connection
 	maxRetry := retryCount
 	for retryCount >= 0 {
-		var attemptSpan = spanhelper.FromContext(ctx, fmt.Sprintf("nsmClient.Connect.attempt:%v", maxRetry-retryCount))
+		var attemptSpan = spanhelper.FromContext(span.Context(), fmt.Sprintf("nsmClient.Connect.attempt:%v", maxRetry-retryCount))
 		defer attemptSpan.Finish()
 
 		attempCtx, cancelProc := context.WithTimeout(attemptSpan.Context(), ConnectTimeout)
