@@ -156,7 +156,7 @@ func CreateEksCluster(eksClient *eks.EKS, clusterName *string, eksRoleArn *strin
 			EndpointPrivateAccess: &endpointPrivateAccess,
 			EndpointPublicAccess:  &endpointPublicAccess,
 		},
-		Version: aws.String("1.13"),
+		Version: aws.String("1.14"),
 	})
 	checkError(err)
 
@@ -227,10 +227,10 @@ func createEksWorkerNodes(cfClient *cloudformation.CloudFormation, nodesStackNam
 	s := string(sf)
 
 	// Base image for Amazon EKS worker nodes
-	// with Kubernetes version 1.13.7
+	// with Kubernetes version 1.14.7
 	// for region us-east-2.
 	// Amazon EKS-Optimized AMI list: https://docs.aws.amazon.com/eks/latest/userguide/eks-optimized-ami.html
-	eksAmi := aws.String("ami-0485258c2d1c3608f")
+	eksAmi := aws.String("ami-0b031080918049726")
 
 	_, err = cfClient.CreateStack(&cloudformation.CreateStackInput{
 		StackName:       nodesStackName,
