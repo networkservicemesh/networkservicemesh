@@ -37,7 +37,7 @@ func (n *nsmRegistryService) RegisterNSM(ctx context.Context, nsm *registry.Netw
 
 	span.LogObject("registered-nsm", registeredNsm)
 	if err != nil {
-		err = fmt.Errorf("Failed to create or update nsm: %s", err)
+		err = fmt.Errorf("failed to create or update nsm: %s", err)
 		span.LogError(err)
 		return nil, err
 	}
