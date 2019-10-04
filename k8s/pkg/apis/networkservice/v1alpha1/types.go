@@ -96,10 +96,10 @@ type NetworkServiceManagerList struct {
 }
 
 type NetworkServiceManagerSpec struct {
+	URL string `json:"url"`
 }
 
 type NetworkServiceManagerStatus struct {
 	LastSeen metaV1.Time `json:"lastseen"`
-	URL      string      `json:"url"`
 	State    State       `json:"state"`
 }

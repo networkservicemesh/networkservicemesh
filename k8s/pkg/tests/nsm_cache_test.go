@@ -82,11 +82,11 @@ func TestNsmCacheStartWithInit(t *testing.T) {
 	init := []v1.NetworkServiceManager{
 		{
 			ObjectMeta: metav1.ObjectMeta{Name: "nsm-1"},
-			Status:     v1.NetworkServiceManagerStatus{URL: "1.1.1.1"},
+			Spec:       v1.NetworkServiceManagerSpec{URL: "1.1.1.1"},
 		},
 		{
 			ObjectMeta: metav1.ObjectMeta{Name: "nsm-2"},
-			Status:     v1.NetworkServiceManagerStatus{URL: "2.2.2.2"},
+			Spec:       v1.NetworkServiceManagerSpec{URL: "2.2.2.2"},
 		},
 	}
 	stopFunc, err := c.Start(&fakeRegistry{}, init...)
