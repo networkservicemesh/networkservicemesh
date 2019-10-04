@@ -230,13 +230,13 @@ func (nsm *nsmServer) restoreClients(clients []string) []string {
 }
 
 func (nsm *nsmServer) restoreEndpoints(nses map[string]nseregistry.NSEEntry, registeredNSEs map[string]string) (map[string]nseregistry.NSEEntry, error) {
-	discoveryClient, err := nsm.serviceRegistry.DiscoveryClient()
+	discoveryClient, err := nsm.serviceRegistry.DiscoveryClient(context.Background())
 	if err != nil {
 		logrus.Errorf("Failed to get DiscoveryClient: %v", err)
 		return nil, err
 	}
 
-	registryClient, err := nsm.serviceRegistry.NseRegistryClient()
+	registryClient, err := nsm.serviceRegistry.NseRegistryClient(context.Background())
 	if err != nil {
 		logrus.Errorf("Failed to get RegistryClient: %v", err)
 		return nil, err
@@ -370,7 +370,7 @@ func (nsm *nsmServer) DeleteEndpointWithBrokenConnection(endpoint *model.Endpoin
 		}
 	}
 
-	client, err := nsm.serviceRegistry.NseRegistryClient()
+	client, err := nsm.serviceRegistry.NseRegistryClient(context.Background())
 	if err != nil {
 		return err
 	}
@@ -465,7 +465,7 @@ func (nsm *nsmServer) StartDataplaneRegistratorServer() error {
 }
 
 func setLocalNSM(model model.Model, serviceRegistry serviceregistry.ServiceRegistry) (*registry.NetworkServiceEndpointList, error) {
-	client, err := serviceRegistry.NsmRegistryClient()
+	client, err := serviceRegistry.NsmRegistryClient(context.Background())
 	if err != nil {
 		err = fmt.Errorf("Failed to get RegistryClient: %s", err)
 		return nil, err

@@ -699,7 +699,7 @@ func (srv *networkServiceManager) RestoreConnections(xcons []*crossconnect.Cross
 
 			dp := srv.model.GetDataplane(dataplane)
 
-			discovery, err := srv.serviceRegistry.DiscoveryClient()
+			discovery, err := srv.serviceRegistry.DiscoveryClient(context.Background())
 			if err != nil {
 				logrus.Errorf("Failed to find NSE to recovery: %v", err)
 			}

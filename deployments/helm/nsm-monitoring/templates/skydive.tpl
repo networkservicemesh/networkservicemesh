@@ -113,7 +113,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: skydive-agent-config-file
-  namespace: nsm-system
+  namespace: {{ .Release.Namespace }}
 data:
   skydive.yml: |
     logging:

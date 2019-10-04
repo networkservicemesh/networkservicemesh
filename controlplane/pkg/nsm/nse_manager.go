@@ -45,7 +45,7 @@ func (nsem *nseManager) getEndpoint(ctx context.Context, requestConnection conne
 	}
 
 	// Get endpoints, do it every time since we do not know if list are changed or not.
-	discoveryClient, err := nsem.serviceRegistry.DiscoveryClient()
+	discoveryClient, err := nsem.serviceRegistry.DiscoveryClient(context.Background())
 	if err != nil {
 		logrus.Error(err)
 		return nil, err
