@@ -14,6 +14,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
+
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	arv1beta1 "k8s.io/api/admissionregistration/v1beta1"
@@ -280,7 +282,7 @@ type spanRecord struct {
 }
 
 func (k8s *K8s) reportSpans() {
-	if os.Getenv("TRACER_ENABLED") != "true" {
+	if !jaeger.IsOpentracingEnabled() {
 		return
 	}
 	logrus.Infof("Finding spans")
