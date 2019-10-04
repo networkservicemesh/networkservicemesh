@@ -54,3 +54,4 @@ build/dist
 scripts/aws/aws
 controllers/sriov-controller/sriov-controller
 cmd
+!cmd/
