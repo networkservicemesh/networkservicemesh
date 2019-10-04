@@ -3,7 +3,6 @@ package tools
 import (
 	"context"
 	"crypto/tls"
-	"fmt"
 	"net"
 	"sync"
 	"time"
@@ -62,7 +61,6 @@ func NewServer(ctx context.Context, opts ...grpc.ServerOption) *grpc.Server {
 	defer span.Finish()
 	if GetConfig().SecurityManager != nil {
 		securitySpan := spanhelper.FromContext(span.Context(), "GetCertificate")
-		defer securitySpan.Finish()
 		certificate := GetConfig().SecurityManager.GetCertificate()
 		cred := credentials.NewTLS(&tls.Config{
 			ClientAuth:   tls.RequireAndVerifyClientCert,
@@ -70,9 +68,7 @@ func NewServer(ctx context.Context, opts ...grpc.ServerOption) *grpc.Server {
 			ClientCAs:    GetConfig().SecurityManager.GetCABundle(),
 		})
 		opts = append(opts, grpc.Creds(cred))
-		if securitySpan != nil {
-			securitySpan.Finish()
-		}
+		securitySpan.Finish()
 	}
 
 	if GetConfig().OpenTracing {
@@ -179,25 +175,6 @@ func (b *dialBuilder) Timeout(t time.Duration) *dialBuilder {
 
 func (b *dialBuilder) DialContextFunc() dialContextFunc {
 	return func(ctx context.Context, target string, opts ...grpc.DialOption) (conn *grpc.ClientConn, err error) {
-		span := spanhelper.FromContext(ctx, "NewConnection")
-		defer span.Finish()
-		span.LogObject("target", target)
-		span.LogObject("options", opts)
-		ctx = span.Context()
-		var certificate *tls.Certificate
-
-		if !b.insecure && GetConfig().SecurityManager != nil {
-			certSpan := spanhelper.FromContext(span.Context(), "GetCertificate")
-			defer certSpan.Finish()
-			certificate = GetConfig().SecurityManager.GetCertificate()
-		}
-		if b.t != 0 {
-			var cancel context.CancelFunc
-			span.LogValue("timeout", fmt.Sprintf("%v", b.t))
-			ctx, cancel = context.WithTimeout(ctx, b.t)
-			defer cancel()
-		}
-
 		if GetConfig().OpenTracing {
 			b.opts = append(b.opts, OpenTracingDialOptions()...)
 		}
@@ -205,16 +182,21 @@ func (b *dialBuilder) DialContextFunc() dialContextFunc {
 		if !b.insecure && GetConfig().SecurityManager != nil {
 			cred := credentials.NewTLS(&tls.Config{
 				InsecureSkipVerify: true,
-				Certificates:       []tls.Certificate{*certificate},
+				Certificates:       []tls.Certificate{*GetConfig().SecurityManager.GetCertificate()},
 				RootCAs:            GetConfig().SecurityManager.GetCABundle(),
 			})
 			opts = append(opts, grpc.WithTransportCredentials(cred))
 		} else {
-			span.LogObject("insecure", "true")
 			opts = append(opts, grpc.WithInsecure())
 		}
 
 		b.opts = append(b.opts, grpc.WithBlock())
+
+		if b.t != 0 {
+			var cancel context.CancelFunc
+			ctx, cancel = context.WithTimeout(ctx, b.t)
+			defer cancel()
+		}
 
 		return grpc.DialContext(ctx, target, append(opts, b.opts...)...)
 	}

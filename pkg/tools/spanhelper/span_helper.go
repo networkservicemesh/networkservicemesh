@@ -12,6 +12,23 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
 )
 
+type spanHelperKeyType string
+
+const (
+	spanHelperTraceDepth spanHelperKeyType = "spanHelperTraceDepth"
+)
+
+func withTraceDepth(parent context.Context, value int) context.Context {
+	return context.WithValue(parent, spanHelperTraceDepth, value)
+}
+
+func traceDepth(ctx context.Context) int {
+	if rv, ok := ctx.Value(spanHelperTraceDepth).(int); ok {
+		return rv
+	}
+	return 0
+}
+
 // LogFromSpan - return a logger that has a TraceHook to also log messages to the span
 func LogFromSpan(span opentracing.Span) logrus.FieldLogger {
 	if span != nil {
@@ -86,19 +103,20 @@ func (s *spanHelper) LogObject(attribute string, value interface{}) {
 
 	if s.span != nil {
 		s.span.LogFields(log.Object(attribute, msg))
-	} else {
-		s.Logger().Infof("%s %v", attribute, msg)
 	}
+	logrus.Infof(">><<%s %s=%v span=%v", getPrefix("--", traceDepth(s.ctx)), attribute, msg, s.span)
 }
 func (s *spanHelper) LogValue(attribute string, value interface{}) {
 	if s.span != nil {
 		s.span.LogFields(log.Object(attribute, value))
 	}
+	logrus.Infof(">><<%s %s=%v span=%v", getPrefix("--", traceDepth(s.ctx)), attribute, value, s.span)
 }
 
 func (s *spanHelper) Finish() {
 	if s.span != nil {
 		s.span.Finish()
+		s.span = nil
 	}
 }
 
@@ -115,18 +133,21 @@ func (s *spanHelper) Logger() logrus.FieldLogger {
 // NewSpanHelper - constructs a span helper from context/snap and opertaion name.
 func NewSpanHelper(ctx context.Context, span opentracing.Span, operation string) SpanHelper {
 	return &spanHelper{
-		ctx:       ctx,
+		ctx:       withTraceDepth(ctx, traceDepth(ctx)+1),
 		span:      span,
 		operation: operation,
 	}
 }
 
-func (s *spanHelper) startSpan(operation string) SpanHelper {
+func (s *spanHelper) startSpan(operation string) (result SpanHelper) {
 	if s.ctx != nil && jaeger.IsOpentracingEnabled() {
 		newSpan, newCtx := opentracing.StartSpanFromContext(s.ctx, operation)
-		return NewSpanHelper(newCtx, newSpan, operation)
+		result = NewSpanHelper(newCtx, newSpan, operation)
+	} else {
+		result = NewSpanHelper(context.Background(), nil, operation)
 	}
-	return NewSpanHelper(context.Background(), nil, operation)
+	result.Logger().Infof("===> %v()", operation)
+	return result
 }
 
 func (s *spanHelper) Context() context.Context {
@@ -134,13 +155,29 @@ func (s *spanHelper) Context() context.Context {
 }
 
 // FromContext - return span helper from context and if opentracing is enabled start new span
-func FromContext(ctx context.Context, operation string) SpanHelper {
+func FromContext(ctx context.Context, operation string) (result SpanHelper) {
 	if jaeger.IsOpentracingEnabled() {
 		newSpan, newCtx := opentracing.StartSpanFromContext(ctx, operation)
-		return NewSpanHelper(newCtx, newSpan, operation)
+		result = NewSpanHelper(newCtx, newSpan, operation)
+	} else {
+		// return just context
+		result = NewSpanHelper(ctx, nil, operation)
 	}
-	// return just context
-	return NewSpanHelper(ctx, nil, operation)
+	printStart(result, operation)
+	return result
+}
+
+func printStart(result SpanHelper, operation string) {
+	prefix := getPrefix("--", traceDepth(result.Context()))
+	logrus.Infof("==%s> %v() span:%v", prefix, operation, result.Span())
+}
+
+func getPrefix(c string, depth int) string {
+	prefix := ""
+	for i := 0; i < depth; i++ {
+		prefix += c
+	}
+	return prefix
 }
 
 // GetSpanHelper - construct a span helper object from current context span
@@ -164,11 +201,14 @@ func CopySpan(ctx context.Context, spanContext SpanHelper, operation string) Spa
 
 // WithSpan - construct span helper object with ctx and copy spanid from span
 // Will start new operation on span
-func WithSpan(ctx context.Context, span opentracing.Span, operation string) SpanHelper {
+func WithSpan(ctx context.Context, span opentracing.Span, operation string) (result SpanHelper) {
 	if jaeger.IsOpentracingEnabled() && span != nil {
 		ctx = opentracing.ContextWithSpan(ctx, span)
 		newSpan, newCtx := opentracing.StartSpanFromContext(ctx, operation)
-		return NewSpanHelper(newCtx, newSpan, operation)
+		result = NewSpanHelper(newCtx, newSpan, operation)
+	} else {
+		result = NewSpanHelper(ctx, nil, operation)
 	}
-	return NewSpanHelper(ctx, nil, operation)
+	printStart(result, operation)
+	return result
 }

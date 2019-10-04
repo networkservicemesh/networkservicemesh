@@ -280,29 +280,30 @@ type spanRecord struct {
 }
 
 func (k8s *K8s) reportSpans() {
-	if os.Getenv("TRACER_ENABLED") == "true" {
-		logrus.Infof("Finding spans")
-		// We need to find all Reporting span and print uniq to console for analysis.
-		pods := k8s.ListPods()
-		spans := map[string]*spanRecord{}
-		for i := 0; i < len(pods); i++ {
-			pod := pods[i]
-			for ci := 0; ci < len(pod.Spec.Containers); ci++ {
-				c := pod.Spec.Containers[ci]
-				k8s.findSpans(&pods[i], c, spans)
-			}
-			for ci := 0; ci < len(pod.Spec.InitContainers); ci++ {
-				c := pod.Spec.Containers[ci]
-				k8s.findSpans(&pods[i], c, spans)
-			}
+	if os.Getenv("TRACER_ENABLED") != "true" {
+		return
+	}
+	logrus.Infof("Finding spans")
+	// We need to find all Reporting span and print uniq to console for analysis.
+	pods := k8s.ListPods()
+	spans := map[string]*spanRecord{}
+	for i := 0; i < len(pods); i++ {
+		pod := pods[i]
+		for ci := 0; ci < len(pod.Spec.Containers); ci++ {
+			c := pod.Spec.Containers[ci]
+			k8s.findSpans(&pods[i], c, spans)
 		}
-		for spanID, span := range spans {
-			keys := []string{}
-			for k := range span.spanPod {
-				keys = append(keys, k)
-			}
-			logrus.Infof("Span %v pods: %v", spanID, keys)
+		for ci := 0; ci < len(pod.Spec.InitContainers); ci++ {
+			c := pod.Spec.Containers[ci]
+			k8s.findSpans(&pods[i], c, spans)
 		}
+	}
+	for spanID, span := range spans {
+		keys := []string{}
+		for k := range span.spanPod {
+			keys = append(keys, k)
+		}
+		logrus.Infof("Span %v pods: %v", spanID, keys)
 	}
 }
 
@@ -627,6 +628,15 @@ func (k8s *K8s) Cleanup() {
 	st := time.Now()
 
 	k8s.reportSpans()
+	k8s.cleanups()
+
+	logrus.Infof("Cleanup time: %v", time.Since(st))
+}
+
+func (k8s *K8s) cleanups() {
+	if os.Getenv("KUBETEST_NO_CLEANUP") == "true" {
+		return
+	}
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
@@ -666,21 +676,21 @@ func (k8s *K8s) Cleanup() {
 	wg.Wait()
 	k8s.pods = nil
 	_ = k8s.DeleteTestNamespace(k8s.namespace)
-
-	logrus.Infof("Cleanup time: %v", time.Since(st))
 }
 
 // Prepare prepares the pods
 func (k8s *K8s) Prepare(noPods ...string) {
+	pods := k8s.ListPods()
+	podsList := []*v1.Pod{}
 	for _, podName := range noPods {
-		pods := k8s.ListPods()
 		for i := range pods {
 			lpod := &pods[i]
 			if strings.Contains(lpod.Name, podName) {
-				k8s.DeletePods(lpod)
+				podsList = append(podsList, lpod)
 			}
 		}
 	}
+	k8s.DeletePods(podsList...)
 }
 
 // CreatePods create pods

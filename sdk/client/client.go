@@ -25,9 +25,6 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
 
-	"github.com/opentracing/opentracing-go/log"
-
-	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
@@ -105,24 +102,18 @@ func (nsmc *NsmClient) ConnectRetry(ctx context.Context, name, mechanism, descri
 	var outgoingConnection *connection.Connection
 	maxRetry := retryCount
 	for retryCount >= 0 {
-		attempCtx, cancelProc := context.WithTimeout(ctx, ConnectTimeout)
+		var attemptSpan = spanhelper.FromContext(ctx, fmt.Sprintf("nsmClient.Connect.attempt:%v", maxRetry-retryCount))
+		defer attemptSpan.Finish()
+
+		attempCtx, cancelProc := context.WithTimeout(attemptSpan.Context(), ConnectTimeout)
 		defer cancelProc()
 
-		var attemptSpan opentracing.Span
-		if opentracing.IsGlobalTracerRegistered() {
-			attemptSpan, attempCtx = opentracing.StartSpanFromContext(attempCtx, fmt.Sprintf("nsmClient.Connect.attempt:%v", maxRetry-retryCount))
-			defer attemptSpan.Finish()
-		}
-
-		attemptLogger := common.LogFromSpan(attemptSpan)
+		attemptLogger := attemptSpan.Logger()
 		attemptLogger.Infof("Requesting %v", outgoingRequest)
 		outgoingConnection, err = nsmc.NsClient.Request(attempCtx, outgoingRequest)
 
 		if err != nil {
-			if attemptSpan != nil {
-				attemptSpan.LogFields(log.Error(err))
-				attemptSpan.Finish()
-			}
+			attemptSpan.LogError(err)
 			cancelProc()
 			if retryCount == 0 {
 				return nil, fmt.Errorf("nsm client: Failed to connect %v", err)
@@ -130,12 +121,13 @@ func (nsmc *NsmClient) ConnectRetry(ctx context.Context, name, mechanism, descri
 				attemptLogger.Errorf("nsm client: Failed to connect %v. Retry attempts: %v Delaying: %v", err, retryCount, retryDelay)
 			}
 			retryCount--
+			attemptSpan.Finish()
 			<-time.After(retryDelay)
 			continue
 		}
 		break
 	}
-	span.Logger().Infof("Success connection: %v")
+	span.Logger().Infof("Success connection")
 	span.LogObject("connection", outgoingConnection)
 	nsmc.OutgoingConnections = append(nsmc.OutgoingConnections, outgoingConnection)
 	return outgoingConnection, nil

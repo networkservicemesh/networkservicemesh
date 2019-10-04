@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/opentracing/opentracing-go"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -131,8 +131,8 @@ func (impl *nsmdServiceRegistry) NseRegistryClient(ctx context.Context) (registr
 func (impl *nsmdServiceRegistry) NsmRegistryClient(ctx context.Context) (registry.NsmRegistryClient, error) {
 	impl.RWMutex.Lock()
 	defer impl.RWMutex.Unlock()
-
-	logrus.Info("Requesting NsmRegistryClient...")
+	span := spanhelper.GetSpanHelper(ctx)
+	span.Logger().Info("Requesting NsmRegistryClient...")
 	impl.initRegistryClient(ctx)
 	if impl.registryClientConnection != nil {
 		return registry.NewNsmRegistryClient(impl.registryClientConnection), nil
@@ -158,28 +158,34 @@ func (impl *nsmdServiceRegistry) DiscoveryClient(ctx context.Context) (registry.
 }
 
 func (impl *nsmdServiceRegistry) initRegistryClient(ctx context.Context) {
+
 	if impl.registryClientConnection != nil && impl.registryClientConnection.GetState() == connectivity.Ready {
 		return // Connection already established.
 	}
+
+	span := spanhelper.FromContext(ctx, "initRegistryClient")
+	defer span.Finish()
+
 	// TODO doing registry Address here is ugly
 	for impl.stopRedial {
-		err := tools.WaitForPortAvailable(ctx, "tcp", impl.registryAddress, 100*time.Millisecond)
+		err := tools.WaitForPortAvailable(span.Context(), "tcp", impl.registryAddress, 100*time.Millisecond)
 		if err != nil {
-			logrus.Errorf("Failed to dial Network Service Registry at %s: %s", impl.registryAddress, err)
+			err = fmt.Errorf("failed to dial Network Service Registry at %s: %s", impl.registryAddress, err)
+			span.LogError(err)
 			continue
 		}
-		logrus.Println("Registry port now available, attempting to connect...")
+		span.Logger().Println("Registry port now available, attempting to connect...")
 
-		conn, err := tools.DialTCP(impl.registryAddress)
+		conn, err := tools.DialContextTCP(span.Context(), impl.registryAddress)
 		if err != nil {
-			logrus.Errorf("Failed to dial Network Service Registry at %s: %s", impl.registryAddress, err)
+			span.Logger().Errorf("Failed to dial Network Service Registry at %s: %s", impl.registryAddress, err)
 			continue
 		}
 		impl.registryClientConnection = conn
-		logrus.Infof("Successfully connected to %s", impl.registryAddress)
+		span.Logger().Infof("Successfully connected to %s", impl.registryAddress)
 		return
 	}
-	logrus.Error("stopped before success trying to dial Network Registry Server")
+	span.Logger().Error("stopped before success trying to dial Network Registry Server")
 }
 
 func (impl *nsmdServiceRegistry) Stop() {
@@ -213,12 +219,10 @@ func NewServiceRegistryAt(nsmAddress string) serviceregistry.ServiceRegistry {
 }
 
 func (impl *nsmdServiceRegistry) WaitForDataplaneAvailable(ctx context.Context, mdl model.Model, timeout time.Duration) error {
-	logrus.Info("Waiting for dataplane available...")
+	span := spanhelper.FromContext(ctx, "wait-dataplane")
+	defer span.Finish()
+	span.Logger().Info("Waiting for dataplane available...")
 
-	if opentracing.GlobalTracer() != nil {
-		span, _ := opentracing.StartSpanFromContext(ctx, "wait-dataplane")
-		defer span.Finish()
-	}
 	st := time.Now()
 	checkConfigured := func(dp *model.Dataplane) bool {
 		return dp.MechanismsConfigured
@@ -229,7 +233,8 @@ func (impl *nsmdServiceRegistry) WaitForDataplaneAvailable(ctx context.Context, 
 			return nil
 		}
 		if time.Since(st) > timeout {
-			return fmt.Errorf("error waiting for dataplane... timeout happened")
+			err := fmt.Errorf("error waiting for dataplane... timeout happened")
+			span.LogError(err)
 		}
 	}
 	return nil

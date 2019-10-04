@@ -2,6 +2,8 @@ package registryserver
 
 import (
 	"context"
+	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/sirupsen/logrus"
@@ -22,18 +24,25 @@ func newNsmRegistryService(nsmName string, cache RegistryCache) *nsmRegistryServ
 }
 
 func (n *nsmRegistryService) RegisterNSM(ctx context.Context, nsm *registry.NetworkServiceManager) (*registry.NetworkServiceManager, error) {
-	logrus.Infof("Received RegisterNSM(%v)", nsm)
+	span := spanhelper.FromContext(ctx, "RegisterNSM"  )
+	defer span.Finish()
+	span.LogObject("nsm", nsm)
 	nsmCr := mapNsmToCustomResource(nsm)
 	nsmCr.SetName(n.nsmName)
 
+	span.LogObject("nsm-cr", nsmCr)
+
 	registeredNsm, err := n.cache.CreateOrUpdateNetworkServiceManager(nsmCr)
+
+	span.LogObject("registered-nsm", registeredNsm)
 	if err != nil {
-		logrus.Errorf("Failed to create or update nsm: %s", err)
+		err = fmt.Errorf("Failed to create or update nsm: %s", err)
+		span.LogError(err)
 		return nil, err
 	}
 
 	nsm = mapNsmFromCustomResource(registeredNsm)
-	logrus.Infof("RegisterNSM return: %v", nsm)
+	span.LogObject("response", nsm)
 	return nsm, nil
 }
 

@@ -3,6 +3,7 @@ package plugins
 import (
 	"context"
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 	"net"
 	"sync"
 	"time"
@@ -48,6 +49,8 @@ func NewPluginRegistry(socketPath string) PluginRegistry {
 }
 
 func (pr *pluginRegistry) Start(ctx context.Context) error {
+	span := spanhelper.FromContext(ctx, "StartPluginRegistry")
+	defer span.Finish()
 	if err := tools.SocketCleanup(pr.registrySocket); err != nil {
 		return err
 	}
@@ -57,7 +60,7 @@ func (pr *pluginRegistry) Start(ctx context.Context) error {
 		return err
 	}
 
-	server := tools.NewServer(ctx)
+	server := tools.NewServer(span.Context())
 	plugins.RegisterPluginRegistryServer(server, pr)
 
 	go func() {
