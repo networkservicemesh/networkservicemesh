@@ -2,10 +2,9 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"strings"
-
-	env2 "github.com/networkservicemesh/networkservicemesh/k8s/cmd/nsm-coredns/env"
 
 	"github.com/networkservicemesh/networkservicemesh/utils/caddyfile"
 
@@ -14,7 +13,9 @@ import (
 	_ "github.com/coredns/coredns/plugin/bind"
 	_ "github.com/coredns/coredns/plugin/hosts"
 	_ "github.com/coredns/coredns/plugin/log"
+	_ "github.com/coredns/coredns/plugin/reload"
 
+	"github.com/networkservicemesh/networkservicemesh/k8s/cmd/nsm-coredns/env"
 	_ "github.com/networkservicemesh/networkservicemesh/k8s/cmd/nsm-coredns/plugin/fanout"
 )
 
@@ -25,26 +26,26 @@ func init() {
 }
 
 func main() {
-	fmt.Println("Starting nsm-coredns")
-	fmt.Printf("Version: %v\n", version)
-
-	if env2.UseUpdateAPIEnv.GetBooleanOrDefault(false) {
-		path := parseCorefilePath()
+	log.Println("Starting nsm-coredns")
+	log.Printf("Version: %v\n", version)
+	defaultConfig := defaultBasicDNSConfig()
+	updateResolvConfFile()
+	path := parseCorefilePath()
+	if env.UseUpdateAPIEnv.GetBooleanOrDefault(false) {
 		file := caddyfile.NewCaddyfile(path)
-		file.WriteScope(".").Write("log").Write(fmt.Sprintf("fanout %v", strings.Join(defaultBasicDNSConfig().DnsServerIps, " ")))
+		file.WriteScope(".").Write("log").Write(fmt.Sprintf("fanout %v", strings.Join(defaultConfig.DnsServerIps, " ")))
 		err := file.Save()
 		fmt.Println(file.String())
 		if err != nil {
-			fmt.Println(err.Error())
+			log.Println(err.Error())
 			os.Exit(2)
 		}
 		fmt.Println("Starting dns context update server...")
 		err = startUpdateServer()
 		if err != nil {
-			fmt.Println(err.Error())
+			log.Println(err.Error())
 			os.Exit(2)
 		}
 	}
-
 	coremain.Run()
 }
