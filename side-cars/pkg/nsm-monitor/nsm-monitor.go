@@ -116,7 +116,7 @@ func (c *nsmMonitorApp) Run() {
 	// Capture signals to cleanup before exiting
 	var tracingCloser io.Closer
 	var tracer opentracing.Tracer
-	if c.helper == nil || c.helper.IsEnableJaeger() {
+	if c.helper != nil && c.helper.IsEnableJaeger() {
 		tracer, tracingCloser = tools.InitJaeger("nsm-monitor")
 		opentracing.SetGlobalTracer(tracer)
 	}
