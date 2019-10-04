@@ -16,9 +16,10 @@ package nsm
 import (
 	"crypto/rand"
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 	"sync"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/sirupsen/logrus"
@@ -321,7 +322,6 @@ func (srv *networkServiceManager) requestFailed(ctx context.Context, requestID s
 
 	span := spanhelper.FromContext(ctx, "nsm.requestFailed")
 	defer span.Finish()
-
 
 	logger := span.Logger()
 	logger.Errorf("NSM:(%v) Request failed", requestID)

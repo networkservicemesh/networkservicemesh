@@ -3,6 +3,7 @@ package registryserver
 import (
 	"context"
 	"fmt"
+
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	"github.com/golang/protobuf/ptypes/empty"
@@ -24,7 +25,7 @@ func newNsmRegistryService(nsmName string, cache RegistryCache) *nsmRegistryServ
 }
 
 func (n *nsmRegistryService) RegisterNSM(ctx context.Context, nsm *registry.NetworkServiceManager) (*registry.NetworkServiceManager, error) {
-	span := spanhelper.FromContext(ctx, "RegisterNSM"  )
+	span := spanhelper.FromContext(ctx, "RegisterNSM")
 	defer span.Finish()
 	span.LogObject("nsm", nsm)
 	nsmCr := mapNsmToCustomResource(nsm)

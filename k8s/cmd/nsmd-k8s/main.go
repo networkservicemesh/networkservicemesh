@@ -2,10 +2,11 @@ package main
 
 import (
 	"context"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 	"net"
 	"os"
 	"strings"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
 
@@ -73,7 +74,7 @@ func main() {
 	services := make(map[pluginsapi.PluginCapability]interface{}, 1)
 	services[pluginsapi.PluginCapability_CONNECTION] = prefixService
 
-	if err = plugins.StartPlugin( span.Context(), "k8s-plugin", pluginsapi.PluginRegistrySocket, services); err != nil {
+	if err = plugins.StartPlugin(span.Context(), "k8s-plugin", pluginsapi.PluginRegistrySocket, services); err != nil {
 		span.Logger().Fatalln("Failed to start K8s Plugin", err)
 	}
 	span.Finish()

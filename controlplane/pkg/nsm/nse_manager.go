@@ -3,6 +3,7 @@ package nsm
 import (
 	"context"
 	"fmt"
+
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	"github.com/sirupsen/logrus"

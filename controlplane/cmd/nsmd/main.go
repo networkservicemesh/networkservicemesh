@@ -64,7 +64,6 @@ func main() {
 		}
 	}()
 
-
 	model := model.NewModel() // This is TCP gRPC server uri to access this NSMD via network.
 	defer serviceRegistry.Stop()
 	manager := nsm.NewNetworkServiceManager(model, serviceRegistry, pluginRegistry)
