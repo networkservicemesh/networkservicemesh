@@ -1291,6 +1291,13 @@ type cloudTestCmd struct {
 
 // ExecuteCloudTest - main entry point for command
 func ExecuteCloudTest() {
+	if os.Getenv("AZURE_BUILD") == "1" {
+		// In AzurePipeline environment logrus automatically switches to
+		// syslog output format which is barely readable in cloudtest case.
+		// To force formatted output one should use ForceColors flag.
+		logrus.SetFormatter(&logrus.TextFormatter{ForceColors: true})
+	}
+
 	var rootCmd = &cloudTestCmd{
 		cmdArguments: &Arguments{
 			providerConfig: defaultConfigFile,

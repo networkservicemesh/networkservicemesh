@@ -1,0 +1,314 @@
+---
+
+trigger:
+  - master
+
+variables:
+  GOROOT: '/usr/local/go1.13'  # Go installation path
+  GOPATH: '$(system.defaultWorkingDirectory)/gopath'  # Go workspace path
+  projectPath: '$(GOPATH)/src/github.com/networkservicemesh/networkservicemesh'  # Path to the module's code
+  GO111MODULE: "on"
+  AZURE_BUILD: 1
+
+#  following variables must be set in Azure pipeline settings:
+#  CONTAINER_REPO
+#  IMAGE_REPO_CONNECTION
+#  RELEASE_IMAGE_REPO_CONNECTION
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+jobs:
+  - job: code_analysis
+    displayName: 'Static code analysis'
+    steps:
+      - script: .azureci/setup-job.sh
+        displayName: 'Set up the workspace'
+
+      - script: |
+          ./scripts/lint-download.sh
+          ./scripts/for-each-module.sh $(pwd)/scripts/lint-check-diff.sh
+        displayName: 'Static code analysis'
+        workingDirectory: '$(projectPath)'
+
+      - script: |
+          go get github.com/denis-tingajkin/go-header@v0.1.0
+          go-header
+        displayName: 'Check license headers in Go files'
+        workingDirectory: '$(projectPath)'
+
+  - job: sanity_check
+    displayName: 'Sanity check'
+    steps:
+      - script: .azureci/setup-job.sh
+        displayName: 'Set up the workspace'
+
+      - script: |
+          .azureci/install-yamllint.sh
+          .azureci/yaml-lint.sh
+        displayName: 'YAML linter check'
+        workingDirectory: '$(projectPath)'
+        continueOnError: 'true'
+
+      - script: .azureci/install-shellcheck.sh && make check
+        displayName: 'Check scripts with shellcheck'
+        workingDirectory: '$(projectPath)'
+        continueOnError: 'true'
+
+      - script: ./scripts/check_errors.sh
+        displayName: 'Run Error Usage Check'
+        workingDirectory: '$(projectPath)'
+        continueOnError: 'true'
+
+      - script: .azureci/check-formatting.sh
+        displayName: 'Check Go formatting'
+        workingDirectory: '$(projectPath)'
+        continueOnError: 'true'
+
+      - script: |
+          docker run \
+            -v $PWD:$PWD:ro \
+            quay.io/helmpack/chart-testing:v2.3.0 \
+            sh -c "cd $PWD && .circleci/helm/test-charts.sh"
+        displayName: Lint Helm charts
+        workingDirectory: '$(projectPath)'
+        continueOnError: 'true'
+
+      - script: |
+          if [ "$BUILD_REASON" != 'PullRequest' ]; then
+            echo "Not a pull request job, no build skipping";
+            exit;
+          fi
+          echo 'Check if changes require building and testing...'
+          .azureci/build-related-files-changed.sh "origin/${SYSTEM_PULLREQUEST_TARGETBRANCH}" && exit 0
+          echo "##vso[task.setvariable variable=skip_build;isOutput=true;]true"
+          echo "Skip build flag is set"
+          # also add tag to the build
+          echo "##vso[build.addbuildtag]DocOnlyChanges"
+        name: check_changed_files
+        displayName: 'Check if changes require building and testing'
+        workingDirectory: '$(projectPath)'
+
+      - script: $(projectPath)/.azureci/check-failed-steps.sh
+        displayName: 'Fail the job if there is a failed step'
+
+  - job: build_images
+    displayName: 'Build Docker images'
+    dependsOn: sanity_check
+    condition: and(succeeded(), ne(dependencies.sanity_check.outputs['check_changed_files.skip_build'], 'true'))
+    variables:
+      junitDir: '$(projectPath)/junit'
+    steps:
+      - script: .azureci/setup-job.sh
+        displayName: 'Set up the workspace'
+
+      - script: |
+          go env; go version
+          ./scripts/for-each-module.sh "$(pwd)/scripts/go-mod-download.sh"
+        displayName: 'Download go modules'
+        workingDirectory: '$(projectPath)'
+
+      - script: |
+          ./scripts/prepare-generate.sh
+          sudo ./scripts/install-protoc.sh
+        displayName: 'Preapare code generation'
+        workingDirectory: '$(projectPath)'
+
+      - script: ./scripts/for-each-module.sh go generate ./...
+        displayName: 'Go generate ./...'
+        workingDirectory: '$(projectPath)'
+
+      - script: ./scripts/for-each-module.sh go build ./...
+        displayName: 'Check all code compiles'
+        workingDirectory: '$(projectPath)'
+
+      - script: ./scripts/check_dependencies.sh
+        displayName: 'Check dependencies'
+        workingDirectory: '$(projectPath)'
+        continueOnError: 'true'
+
+      - script: go test ./integration --list .* -tags basic recover usecase
+        displayName: 'Run integration tests with tags: basic recover usecase'
+        workingDirectory: '$(projectPath)/test'
+        continueOnError: 'true'
+
+      - script: |
+          go get gotest.tools/gotestsum
+          export CONTAINER_FORCE_PULL=true
+          export INSECURE=true
+          export JUNITDIR=$(junitDir)
+          ./scripts/run_unit_tests.sh
+        displayName: 'Run unit tests'
+        workingDirectory: '$(projectPath)'
+        continueOnError: 'true'
+
+      - task: PublishTestResults@2
+        displayName: 'Publish test results'
+        inputs:
+          testResultsFormat: 'JUnit'
+          testResultsFiles: '$(junitDir)/*.xml'
+        continueOnError: 'true'
+
+      - task: PublishBuildArtifacts@1
+        inputs:
+          pathtoPublish: '$(junitDir)'
+          artifactName: integration_tests_outputs
+        displayName: 'Publish test outputs'
+        continueOnError: 'true'
+
+      - script: $(projectPath)/.azureci/check-failed-steps.sh
+        displayName: 'Fail the job if there is a failed step'
+
+      - task: Docker@2
+        displayName: 'Login to Docker'
+        inputs:
+          command: login
+          containerRegistry: "$(IMAGE_REPO_CONNECTION)"
+
+      - script: |
+          go env; go version
+          make -j 8 -O docker-push
+        displayName: 'Build Docker images'
+        workingDirectory: '$(projectPath)'
+
+  - job: cloud_tests
+    displayName: 'Cloud tests'
+    dependsOn:
+      - code_analysis
+      - build_images
+    timeoutInMinutes: 240
+    variables:
+      CA_DIR: './deployments/helm/nsm/charts/spire/'
+    steps:
+      - script: .azureci/setup-job.sh
+        displayName: 'Set up the workspace'
+
+      - script: |
+          sudo .circleci/install-yq.sh
+          sudo .circleci/set-nameserver.sh sudo
+          sudo apt-get install gettext-base
+        displayName: "Install util"
+        workingDirectory: '$(projectPath)'
+
+      - script: sudo ./scripts/install-kubectl.sh
+        displayName: "Install kubectl"
+        workingDirectory: '$(projectPath)'
+
+      - script: sudo ./scripts/gke/install-gcloud-sdk.sh
+        displayName: "Install GKE deps"
+        workingDirectory: '$(projectPath)'
+
+      - script: sudo ./scripts/azure/install-azure-cli.sh
+        enabled: 'false'  # remove the whole step if tests pass
+        displayName: "Install Azure deps"
+        workingDirectory: '$(projectPath)'
+
+      - script: |
+          export AWS_ACCESS_KEY_ID='$(AWS_ACCESS_KEY_ID)'
+          export AWS_SECRET_ACCESS_KEY='$(AWS_SECRET_ACCESS_KEY)'
+          ./scripts/aws/aws-init.sh
+          sudo cp "$HOME/bin/aws-iam-authenticator" /usr/local/bin/aws-iam-authenticator
+        displayName: "Install AWS deps"
+        workingDirectory: '$(projectPath)'
+
+      - script: |
+          ./scripts/install-helm.sh
+          sudo cp "$HOME/bin/helm" /usr/local/bin/helm
+        displayName: "Install Helm"
+        workingDirectory: '$(projectPath)'
+
+      - script: ./scripts/for-each-module.sh "$(pwd)/scripts/go-mod-download.sh"
+        displayName: 'Download go modules'
+        workingDirectory: '$(projectPath)'
+
+      - script: ./scripts/generate-ca.sh "$CA_DIR"
+        displayName: 'Generating CA'
+        workingDirectory: '$(projectPath)'
+
+      - script: CGO_ENABLED=0 GOOS=linux go build -o ../cloudtest ./cloudtest/cmd/cloudtest
+        displayName: 'Build cloud tests executable'
+        workingDirectory: '$(projectPath)/test'
+
+      - script: |
+          # somehow, there is no ssh-agent's variables in job's shell environment
+          # on Azure's 'ubuntu-latest' agent which are required to run ssh commands.
+          # Inject them using status command output and eval.
+          # See https://stackoverflow.com/a/4086756/456814 for details.
+          eval `ssh-agent -s`
+
+          export REPO="${CONTAINER_REPO}"
+          export PACKET_AUTH_TOKEN='$(PACKET_AUTH_TOKEN)'
+          export PACKET_PROJECT_ID='$(PACKET_PROJECT_ID)'
+          export GCLOUD_SERVICE_KEY='$(GCLOUD_SERVICE_KEY)'
+          export AWS_ACCESS_KEY_ID='$(AWS_ACCESS_KEY_ID)'
+          export AWS_SECRET_ACCESS_KEY='$(AWS_SECRET_ACCESS_KEY)'
+          export AZURE_SERVICE_PRINCIPAL='$(AZURE_SERVICE_PRINCIPAL)'
+          export AZURE_SERVICE_PRINCIPAL_SECRET='$(AZURE_SERVICE_PRINCIPAL_SECRET)'
+          export CIRCLE_AZURE_RESOURCE_GROUP='$(CIRCLE_AZURE_RESOURCE_GROUP)'
+          export CIRCLE_AZURE_TENANT='$(CIRCLE_AZURE_TENANT)'
+          if [ "${BUILD_SOURCEBRANCHNAME}" == "master" ]; then
+            export STORE_LOGS_IN_ANY_CASES=true
+          fi
+          ./cloudtest -c packet
+        displayName: 'Run cloud tests'
+        workingDirectory: '$(projectPath)'
+        continueOnError: 'true'
+
+      - task: PublishTestResults@2
+        name: cloud_tests_results
+        displayName: 'Publish cloud test''s results'
+        inputs:
+          testResultsFormat: 'JUnit'
+          testResultsFiles: '$(projectPath)/.tests/cloud_test/results/*.xml'
+        continueOnError: 'true'
+
+      - task: PublishBuildArtifacts@1
+        inputs:
+          pathtoPublish: '$(projectPath)/.tests/cloud_test/'
+          artifactName: cloud_tests_outputs
+        displayName: 'Save cloud test''s outputs'
+        continueOnError: 'true'
+
+      - script: $(projectPath)/.azureci/check-failed-steps.sh
+        displayName: 'Fail the job if there is a failed step'
+
+  - job: push_images
+    displayName: 'Push images'
+    dependsOn:
+      - code_analysis
+      - cloud_tests
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+    steps:
+      - task: Docker@2
+        displayName: 'Login to Docker'
+        inputs:
+          command: login
+          containerRegistry: "$(RELEASE_IMAGE_REPO_CONNECTION)"
+
+      - script: .azureci/setup-job.sh
+        displayName: 'Set up the workspace'
+
+      - script: |
+          export PULL_REPO="${CONTAINER_REPO}"
+          export PULL_TAG="${CONTAINER_TAG}"
+          export PUSH_REPO="${RELEASE_IMAGE_REPO}"
+          export PUSH_TAG=master
+          export IMAGES="nsmd nsmd-k8s nsmdp \
+            proxy-nsmd proxy-nsmd-k8s \
+            crossconnect-monitor nsm-init nsm-monitor admission-webhook  \
+            vppagent-forwarder \
+            test-common vpp-test-common nsm-coredns \
+            kernel-forwarder \
+            spire-registration"
+
+          for IMG in $IMAGES; do
+            IN="$PULL_REPO/$IMG:$PULL_TAG"
+            OUT="$PUSH_REPO/$IMG:$PUSH_TAG"
+            echo
+            echo "Copying image $IN => $OUT             ============================"
+            docker pull "$IN" && \
+              docker tag "$IN" "$OUT" && \
+              docker push "$OUT"
+          done
+        displayName: Pull-Tag-Push
+        workingDirectory: '$(projectPath)'
