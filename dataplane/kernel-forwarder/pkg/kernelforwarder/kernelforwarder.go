@@ -88,8 +88,10 @@ func (k *KernelForwarder) connectOrDisconnect(crossConnect *crossconnect.CrossCo
 	var err error
 	var devices map[string]monitoring.Device
 
-	k.monitoring.GetDevices().Lock()
-	defer k.monitoring.GetDevices().Unlock()
+	if k.common.MetricsEnabled {
+		k.monitoring.GetDevices().Lock()
+		defer k.monitoring.GetDevices().Unlock()
+	}
 
 	/* 0. Sanity check whether the forwarding plane supports the connection type in the request */
 	if err = common.SanityCheckConnectionType(k.common.Mechanisms, crossConnect); err != nil {
