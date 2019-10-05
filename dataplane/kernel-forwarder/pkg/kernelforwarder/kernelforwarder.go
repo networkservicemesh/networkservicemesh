@@ -42,6 +42,11 @@ func CreateKernelForwarder() *KernelForwarder {
 	return &KernelForwarder{}
 }
 
+// CreateDataplaneServer creates an instance of DataplaneServer
+func (v *KernelForwarder) CreateDataplaneServer(config *common.DataplaneConfig) dataplane.DataplaneServer {
+	return v
+}
+
 // MonitorMechanisms handler
 func (v *KernelForwarder) MonitorMechanisms(empty *empty.Empty, updateSrv dataplane.MechanismsMonitor_MonitorMechanismsServer) error {
 	logrus.Infof("MonitorMechanisms was called")
