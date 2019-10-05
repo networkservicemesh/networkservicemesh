@@ -14,6 +14,7 @@ import (
 )
 
 func TestNSCAndICMPLocal(t *testing.T) {
+	// Just for CI checking
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
