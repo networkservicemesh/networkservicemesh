@@ -873,6 +873,7 @@ func (k8s *K8s) WaitLogsContainsRegex(pod *v1.Pod, container, pattern string, ti
 	return nil
 }
 
+//GetFullLogs - return full logs
 func (k8s *K8s) GetFullLogs(pod *v1.Pod, container string, previous bool) (string, error) {
 	getLogsOpt := &v1.PodLogOptions{}
 	if len(container) > 0 {
@@ -907,11 +908,10 @@ func (k8s *K8s) waitLogsMatch(ctx context.Context, pod *v1.Pod, container string
 				} else {
 					if matcher(fullLogs) {
 						return
-					} else {
-						logrus.Errorf("%v Last logs: %v\n Full Logs: %v", description, builder.String(), fullLogs)
-						logrus.Errorf("Stack: %v", debug.Stack())
-						k8s.g.Expect(false).To(BeTrue())
 					}
+					logrus.Errorf("%v Last logs: %v\n Full Logs: %v", description, builder.String(), fullLogs)
+					logrus.Errorf("Stack: %v", debug.Stack())
+					k8s.g.Expect(false).To(BeTrue())
 				}
 			}
 			<-time.After(100 * time.Millisecond)
