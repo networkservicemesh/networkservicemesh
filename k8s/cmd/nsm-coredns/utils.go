@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
@@ -29,7 +30,7 @@ func startUpdateServer() error {
 	if err != nil {
 		return err
 	}
-	server := tools.NewServer()
+	server := tools.NewServer(context.Background())
 	update.RegisterDNSConfigServiceServer(server, newUpdateServer())
 	go func() {
 		fmt.Println("Update server started")

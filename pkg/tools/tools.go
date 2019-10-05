@@ -17,7 +17,6 @@ package tools
 import (
 	"context"
 	"fmt"
-	"io"
 	"net"
 	"net/url"
 	"os"
@@ -29,11 +28,8 @@ import (
 	"time"
 
 	"github.com/go-errors/errors"
-	"github.com/opentracing/opentracing-go"
 	pkgerrors "github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/uber/jaeger-client-go"
-	"github.com/uber/jaeger-client-go/config"
 )
 
 const (
@@ -166,49 +162,6 @@ func ParseKVStringToMap(input, sep, kvsep string) map[string]string {
 	return result
 }
 
-type emptyCloser struct {
-}
-
-func (*emptyCloser) Close() error {
-	// Ignore
-	return nil
-}
-
-// initJaeger returns an instance of Jaeger Tracer that samples 100% of traces and logs all spans to stdout.
-func InitJaeger(service string) (opentracing.Tracer, io.Closer) {
-	cfg, err := config.FromEnv()
-	if err != nil {
-		panic(fmt.Sprintf("ERROR: cannot create Jaeger configuration: %v\n", err))
-	}
-
-	if cfg.ServiceName == "" {
-		var hostname string
-		hostname, err = os.Hostname()
-		if err == nil {
-			cfg.ServiceName = fmt.Sprintf("%s@%s", service, hostname)
-		} else {
-			cfg.ServiceName = service
-		}
-	}
-	if cfg.Sampler.Type == "" {
-		cfg.Sampler.Type = "const"
-	}
-	if cfg.Sampler.Param == 0 {
-		cfg.Sampler.Param = 1
-	}
-	if !cfg.Reporter.LogSpans {
-		cfg.Reporter.LogSpans = true
-	}
-
-	logrus.Infof("Creating logger from config: %v", cfg)
-	tracer, closer, err := cfg.NewTracer(config.Logger(jaeger.StdLogger))
-	if err != nil {
-		logrus.Errorf("ERROR: cannot init Jaeger: %v\n", err)
-		return nil, &emptyCloser{}
-	}
-	return tracer, closer
-}
-
 type NSUrl struct {
 	NsName string
 	Intf   string
@@ -248,15 +201,6 @@ func ParseAnnotationValue(value string) ([]*NSUrl, error) {
 		result = append(result, nsurl)
 	}
 	return result, nil
-}
-
-// IsOpentracingEnabled returns true if opentracing enabled
-func IsOpentracingEnabled() bool {
-	val, err := ReadEnvBool(opentracingEnv, opentracingDefault)
-	if err == nil {
-		return val
-	}
-	return opentracingDefault
 }
 
 // ReadEnvBool reads environment variable and treat it as bool

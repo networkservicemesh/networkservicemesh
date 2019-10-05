@@ -4,13 +4,12 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
+
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/opentracing/opentracing-go"
-	"github.com/opentracing/opentracing-go/log"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/api/dataplane"
-	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"github.com/networkservicemesh/networkservicemesh/utils/typeutils"
 )
 
@@ -25,16 +24,16 @@ func (n *next) Request(ctx context.Context, request *crossconnect.CrossConnect) 
 	} else {
 		ctx = withNext(ctx, nil)
 	}
-	var span opentracing.Span
-	logger := common.LogFromSpan(span)
-	ctx = WithLogger(ctx, logger)
-	logger.Infof("internal request %v", request)
+	span := spanhelper.FromContext(ctx, fmt.Sprintf("%s.Request", typeutils.GetTypeName(n.handlers[n.index])))
+	defer span.Finish()
+	ctx = WithLogger(span.Context(), span.Logger())
+	span.LogObject("request", request)
 	rv, err := n.handlers[n.index].Request(ctx, request)
 	if err != nil {
-		logger.Errorf("Error: %v", err)
+		span.LogError(err)
 		return nil, err
 	}
-	logger.Infof("internal response %v", rv)
+	span.LogObject("response", rv)
 	return rv, err
 }
 
@@ -44,22 +43,15 @@ func (n *next) Close(ctx context.Context, request *crossconnect.CrossConnect) (*
 	} else {
 		ctx = withNext(ctx, nil)
 	}
-	var span opentracing.Span
-	if opentracing.IsGlobalTracerRegistered() {
-		span, ctx = opentracing.StartSpanFromContext(ctx, fmt.Sprintf("%s.Close", typeutils.GetTypeName(n.handlers[n.index])))
-		defer span.Finish()
-	}
-	logger := common.LogFromSpan(span)
-	ctx = WithLogger(ctx, logger)
-	logger.Infof("internal request %v", request)
+	span := spanhelper.FromContext(ctx, fmt.Sprintf("%s.Close", typeutils.GetTypeName(n.handlers[n.index])))
+	defer span.Finish()
+	ctx = WithLogger(span.Context(), span.Logger())
+	span.LogObject("request", request)
 	rv, err := n.handlers[n.index].Close(ctx, request)
 	if err != nil {
-		if span != nil {
-			span.LogFields(log.Error(err))
-		}
-		logger.Error(err)
+		span.LogError(err)
 		return nil, err
 	}
-	logger.Infof("internal response %v", rv)
+	span.LogObject("response", rv)
 	return rv, err
 }

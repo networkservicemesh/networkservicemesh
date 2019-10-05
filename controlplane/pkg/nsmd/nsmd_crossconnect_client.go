@@ -94,14 +94,14 @@ func NewMonitorCrossConnectClient(monitorManager MonitorManager, xconManager *se
 }
 
 // EndpointAdded implements method from Listener
-func (client *NsmMonitorCrossConnectClient) EndpointAdded(endpoint *model.Endpoint) {
+func (client *NsmMonitorCrossConnectClient) EndpointAdded(_ context.Context, endpoint *model.Endpoint) {
 	ctx, cancel := context.WithCancel(context.Background())
 	client.endpoints.Store(endpoint.EndpointName(), cancel)
 	go client.endpointConnectionMonitor(ctx, endpoint)
 }
 
 // EndpointDeleted implements method from Listener
-func (client *NsmMonitorCrossConnectClient) EndpointDeleted(endpoint *model.Endpoint) {
+func (client *NsmMonitorCrossConnectClient) EndpointDeleted(_ context.Context, endpoint *model.Endpoint) {
 	if cancel, ok := client.endpoints.Load(endpoint.EndpointName()); ok {
 		cancel.(context.CancelFunc)()
 		client.endpoints.Delete(endpoint.EndpointName())
@@ -109,7 +109,7 @@ func (client *NsmMonitorCrossConnectClient) EndpointDeleted(endpoint *model.Endp
 }
 
 // DataplaneAdded implements method from Listener
-func (client *NsmMonitorCrossConnectClient) DataplaneAdded(dp *model.Dataplane) {
+func (client *NsmMonitorCrossConnectClient) DataplaneAdded(_ context.Context, dp *model.Dataplane) {
 	ctx, cancel := context.WithCancel(context.Background())
 	client.dataplanes.Store(dp.RegisteredName, cancel)
 	logrus.Infof("Starting Dataplane crossconnect monitoring client...")
@@ -117,7 +117,7 @@ func (client *NsmMonitorCrossConnectClient) DataplaneAdded(dp *model.Dataplane) 
 }
 
 // DataplaneDeleted implements method from Listener
-func (client *NsmMonitorCrossConnectClient) DataplaneDeleted(dp *model.Dataplane) {
+func (client *NsmMonitorCrossConnectClient) DataplaneDeleted(_ context.Context, dp *model.Dataplane) {
 	client.xconManager.DataplaneDown(dp)
 	if cancel, ok := client.dataplanes.Load(dp.RegisteredName); ok {
 		cancel.(context.CancelFunc)()
@@ -125,7 +125,8 @@ func (client *NsmMonitorCrossConnectClient) DataplaneDeleted(dp *model.Dataplane
 	}
 }
 
-func (client *NsmMonitorCrossConnectClient) ClientConnectionAdded(clientConnection *model.ClientConnection) {
+//ClientConnectionAdded - handle adding of connections
+func (client *NsmMonitorCrossConnectClient) ClientConnectionAdded(_ context.Context, clientConnection *model.ClientConnection) {
 	if clientConnection.RemoteNsm == nil {
 		return
 	}
@@ -140,7 +141,7 @@ func (client *NsmMonitorCrossConnectClient) ClientConnectionAdded(clientConnecti
 }
 
 // ClientConnectionUpdated implements method from Listener
-func (client *NsmMonitorCrossConnectClient) ClientConnectionUpdated(old, new *model.ClientConnection) {
+func (client *NsmMonitorCrossConnectClient) ClientConnectionUpdated(ctx context.Context, old, new *model.ClientConnection) {
 	logrus.Infof("ClientConnectionUpdated: old - %v; new - %v", old, new)
 
 	conn := new.Xcon.GetSourceConnection()
@@ -156,16 +157,17 @@ func (client *NsmMonitorCrossConnectClient) ClientConnectionUpdated(old, new *mo
 	}
 
 	if monitorServer != nil {
-		monitorServer.Update(conn)
+		monitorServer.Update(ctx, conn)
 	}
 }
 
-func (client *NsmMonitorCrossConnectClient) ClientConnectionDeleted(clientConnection *model.ClientConnection) {
+// ClientConnectionDeleted - handle deletion of connections.
+func (client *NsmMonitorCrossConnectClient) ClientConnectionDeleted(ctx context.Context, clientConnection *model.ClientConnection) {
 	logrus.Infof("ClientConnectionDeleted: %v", clientConnection)
 
-	client.monitorManager.CrossConnectMonitor().Delete(clientConnection.Xcon)
+	client.monitorManager.CrossConnectMonitor().Delete(ctx, clientConnection.Xcon)
 	if conn := clientConnection.GetConnectionSource(); conn.IsRemote() {
-		client.monitorManager.RemoteConnectionMonitor().Delete(conn)
+		client.monitorManager.RemoteConnectionMonitor().Delete(ctx, conn)
 	}
 
 	if clientConnection.RemoteNsm == nil {
@@ -282,7 +284,7 @@ func (client *NsmMonitorCrossConnectClient) handleLocalConnection(entity monitor
 		switch eventType {
 		case monitor.EventTypeUpdate:
 			// DST connection is updated, we most probable need to re-programm our data plane.
-			client.xconManager.LocalDestinationUpdated(cc, localConnection)
+			client.xconManager.LocalDestinationUpdated(context.Background(), cc, localConnection)
 		case monitor.EventTypeDelete:
 			// DST is down, we need to choose new NSE in any case.
 			client.xconManager.DestinationDown(cc, false)
@@ -322,13 +324,13 @@ func (client *NsmMonitorCrossConnectClient) handleXcon(entity monitor.Entity, ev
 	if cc := client.xconManager.GetClientConnectionByXcon(xcon); cc != nil {
 		switch eventType {
 		case monitor.EventTypeInitialStateTransfer:
-			client.monitorManager.CrossConnectMonitor().Update(xcon)
+			client.monitorManager.CrossConnectMonitor().Update(context.Background(), xcon)
 		case monitor.EventTypeUpdate:
-			client.monitorManager.CrossConnectMonitor().Update(xcon)
-			client.xconManager.UpdateXcon(cc, xcon)
+			client.monitorManager.CrossConnectMonitor().Update(context.Background(), xcon)
+			client.xconManager.UpdateXcon(context.Background(), cc, xcon)
 		case monitor.EventTypeDelete:
 			if cc.ConnectionState == model.ClientConnectionClosing {
-				client.monitorManager.CrossConnectMonitor().Delete(xcon)
+				client.monitorManager.CrossConnectMonitor().Delete(context.Background(), xcon)
 			}
 		}
 	}
@@ -395,7 +397,7 @@ func (client *NsmMonitorCrossConnectClient) handleRemoteConnection(entity monito
 		switch eventType {
 		case monitor.EventTypeUpdate:
 			// DST connection is updated, we most probable need to re-programm our data plane.
-			client.xconManager.RemoteDestinationUpdated(cc, remoteConnection)
+			client.xconManager.RemoteDestinationUpdated(context.Background(), cc, remoteConnection)
 		case monitor.EventTypeDelete:
 			// DST is down, we need to choose new NSE in any case.
 			downConnection := remoteConnection.Clone()
@@ -408,7 +410,7 @@ func (client *NsmMonitorCrossConnectClient) handleRemoteConnection(entity monito
 				downConnection,
 			)
 
-			client.monitorManager.CrossConnectMonitor().Update(xconToSend)
+			client.monitorManager.CrossConnectMonitor().Update(context.Background(), xconToSend)
 			client.xconManager.DestinationDown(cc, false)
 		}
 	}

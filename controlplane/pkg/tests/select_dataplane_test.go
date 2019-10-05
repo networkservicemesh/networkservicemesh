@@ -56,14 +56,14 @@ func TestSelectDataplane(t *testing.T) {
 	srv2 := NewNSMDFullServer(Worker, storage)
 	defer srv.Stop()
 	defer srv2.Stop()
-	srv.TestModel.AddDataplane(testDataplane1)
-	srv2.TestModel.AddDataplane(testDataplane2)
-	srv.TestModel.AddDataplane(testDataplane1_1)
+	srv.TestModel.AddDataplane(context.Background(), testDataplane1)
+	srv2.TestModel.AddDataplane(context.Background(), testDataplane2)
+	srv.TestModel.AddDataplane(context.Background(), testDataplane1_1)
 
 	// Register in both
 	nseReg := srv2.RegisterFakeEndpoint("golden_network", "test", Worker)
 	// Add to local endpoints for Server2
-	srv2.TestModel.AddEndpoint(nseReg)
+	srv2.TestModel.AddEndpoint(context.Background(), nseReg)
 
 	l1 := newTestConnectionModelListener()
 	l2 := newTestConnectionModelListener()

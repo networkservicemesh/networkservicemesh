@@ -17,17 +17,16 @@ package nsmmonitor
 import (
 	"context"
 	"fmt"
-	"io"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
 
 	nsminit "github.com/networkservicemesh/networkservicemesh/side-cars/pkg/nsm-init"
 
-	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/client"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
@@ -49,14 +48,10 @@ type Handler interface {
 	Healing(conn *connection.Connection)
 	//Closed occurs when the connection closed
 	Closed(conn *connection.Connection)
-	//GetConfiguration gets custom network service configuration
-	GetConfiguration() *common.NSConfiguration
 	//ProcessHealing occurs when the restore failed, the error pass as the second parameter
 	ProcessHealing(newConn *connection.Connection, e error)
 	//Stopped occurs when the invoked App.Stop()
 	Stopped()
-	//IsEnableJaeger returns is Jaeger needed
-	IsEnableJaeger() bool
 }
 
 // App - application to perform monitoring.
@@ -80,19 +75,11 @@ func (h *EmptyNSMMonitorHandler) Healing(conn *connection.Connection) {}
 //Closed occurs when the connection closed
 func (h *EmptyNSMMonitorHandler) Closed(conn *connection.Connection) {}
 
-//GetConfiguration returns nil by default
-func (h *EmptyNSMMonitorHandler) GetConfiguration() *common.NSConfiguration { return nil }
-
 //ProcessHealing occurs when the restore failed, the error pass as the second parameter
 func (h *EmptyNSMMonitorHandler) ProcessHealing(newConn *connection.Connection, e error) {}
 
 //Stopped occurs when the invoked App.Stop()
 func (h *EmptyNSMMonitorHandler) Stopped() {}
-
-//IsEnableJaeger returns false by default
-func (h *EmptyNSMMonitorHandler) IsEnableJaeger() bool {
-	return tools.IsOpentracingEnabled()
-}
 
 type nsmMonitorApp struct {
 	connections map[string]*connection.Connection
@@ -114,23 +101,10 @@ func (c *nsmMonitorApp) SetHandler(listener Handler) {
 
 func (c *nsmMonitorApp) Run() {
 	// Capture signals to cleanup before exiting
-	var tracingCloser io.Closer
-	var tracer opentracing.Tracer
-	if c.helper != nil && c.helper.IsEnableJaeger() {
-		tracer, tracingCloser = tools.InitJaeger("nsm-monitor")
-		opentracing.SetGlobalTracer(tracer)
-	}
+	closer := jaeger.InitJaeger("nsm-monitor")
+	defer func() { _ = closer.Close() }()
 
-	go func() {
-		c.beginMonitoring()
-		if tracingCloser != nil {
-			defer func() {
-				if err := tracingCloser.Close(); err != nil {
-					logrus.Errorf("error closing opentracing context %v", err)
-				}
-			}()
-		}
-	}()
+	go c.beginMonitoring()
 }
 
 // NewNSMMonitorApp - creates a monitoring application.

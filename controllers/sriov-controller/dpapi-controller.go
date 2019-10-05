@@ -177,7 +177,7 @@ func (s *serviceInstanceController) startServer() error {
 		return err
 	}
 
-	s.server = tools.NewServer()
+	s.server = tools.NewServer(context.Background())
 	pluginapi.RegisterDevicePluginServer(s.server, s)
 
 	go s.server.Serve(sock)

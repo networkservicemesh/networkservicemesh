@@ -84,7 +84,7 @@ func (p *healProcessor) Heal(clientConnection nsm.ClientConnection, healState ns
 		return
 	}
 
-	p.model.ApplyClientConnectionChanges(cc.GetID(), func(modelCC *model.ClientConnection) {
+	p.model.ApplyClientConnectionChanges(context.Background(), cc.GetID(), func(modelCC *model.ClientConnection) {
 		modelCC.ConnectionState = model.ClientConnectionHealing
 	})
 
@@ -198,7 +198,7 @@ func (p *healProcessor) healDataplaneDown(healID string, cc *model.ClientConnect
 	logrus.Infof("NSM_Heal(3.2-%v) Dataplane is now available...", healID)
 
 	// 3.3. Set source connection down
-	p.model.ApplyClientConnectionChanges(cc.GetID(), func(modelCC *model.ClientConnection) {
+	p.model.ApplyClientConnectionChanges(context.Background(), cc.GetID(), func(modelCC *model.ClientConnection) {
 		modelCC.GetConnectionSource().SetConnectionState(connection.StateDown)
 	})
 
@@ -266,7 +266,7 @@ func (p *healProcessor) healDstNmgrDown(healID string, cc *model.ClientConnectio
 		logrus.Warnf("NSM_Heal(6.2.1-%v) Failed to heal connection with same NSE from registry: %v", healID, err)
 
 		// 6.2.2. We are still healing
-		p.model.ApplyClientConnectionChanges(cc.GetID(), func(modelCC *model.ClientConnection) {
+		p.model.ApplyClientConnectionChanges(context.Background(), cc.GetID(), func(modelCC *model.ClientConnection) {
 			modelCC.ConnectionState = model.ClientConnectionHealing
 		})
 

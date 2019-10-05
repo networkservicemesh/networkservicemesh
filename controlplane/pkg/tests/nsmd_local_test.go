@@ -85,7 +85,7 @@ func TestNSMDRequestClientConnectionRequest(t *testing.T) {
 	defer srv.Stop()
 	srv.AddFakeDataplane("test_data_plane", "tcp:some_addr")
 
-	srv.TestModel.AddEndpoint(srv.RegisterFakeEndpoint("golden_network", "test", Master))
+	srv.TestModel.AddEndpoint(context.Background(), srv.RegisterFakeEndpoint("golden_network", "test", Master))
 
 	nsmClient, conn := srv.requestNSMConnection("nsm")
 	defer conn.Close()
@@ -112,7 +112,7 @@ func TestNSENoSrc(t *testing.T) {
 	}
 	srv.AddFakeDataplane("test_data_plane", "tcp:some_addr")
 
-	srv.TestModel.AddEndpoint(srv.RegisterFakeEndpoint("golden_network", "test", Master))
+	srv.TestModel.AddEndpoint(context.Background(), srv.RegisterFakeEndpoint("golden_network", "test", Master))
 
 	nsmClient, conn := srv.requestNSMConnection("nsm")
 	defer conn.Close()
@@ -139,7 +139,7 @@ func TestNSEIPNeghtbours(t *testing.T) {
 	}
 
 	srv.AddFakeDataplane("test_data_plane", "tcp:some_addr")
-	srv.TestModel.AddEndpoint(srv.RegisterFakeEndpoint("golden_network", "test", Master))
+	srv.TestModel.AddEndpoint(context.Background(), srv.RegisterFakeEndpoint("golden_network", "test", Master))
 
 	nsmClient, conn := srv.requestNSMConnection("nsm")
 	defer conn.Close()
@@ -173,7 +173,7 @@ func TestSlowNSE(t *testing.T) {
 	}
 	srv.AddFakeDataplane("test_data_plane", "tcp:some_addr")
 
-	srv.TestModel.AddEndpoint(srv.RegisterFakeEndpoint("golden_network", "test", Master))
+	srv.TestModel.AddEndpoint(context.Background(), srv.RegisterFakeEndpoint("golden_network", "test", Master))
 
 	nsmClient, conn := srv.requestNSMConnection("nsm")
 	defer conn.Close()
@@ -183,10 +183,9 @@ func TestSlowNSE(t *testing.T) {
 	request.Connection.Labels = map[string]string{}
 	request.Connection.Labels["nse_sleep"] = "1"
 
-	ctx, canceOp := context.WithTimeout(context.Background(), 300*time.Millisecond)
+	ctx, canceOp := context.WithTimeout(context.Background(), 30*time.Millisecond)
 	defer canceOp()
 	nsmResponse, err := nsmClient.Request(ctx, request)
-	<-time.After(1 * time.Second)
 	println(err.Error())
 	g.Expect(strings.Contains(err.Error(), "rpc error: code = DeadlineExceeded desc = context deadline exceeded")).To(Equal(true))
 	g.Expect(nsmResponse).To(BeNil())
@@ -206,7 +205,7 @@ func TestSlowDP(t *testing.T) {
 	}
 	srv.AddFakeDataplane("test_data_plane", "tcp:some_addr")
 
-	srv.TestModel.AddEndpoint(srv.RegisterFakeEndpoint("golden_network", "test", Master))
+	srv.TestModel.AddEndpoint(context.Background(), srv.RegisterFakeEndpoint("golden_network", "test", Master))
 
 	nsmClient, conn := srv.requestNSMConnection("nsm")
 	defer conn.Close()
@@ -216,10 +215,9 @@ func TestSlowDP(t *testing.T) {
 	request.Connection.Labels = map[string]string{}
 	request.Connection.Labels["dataplane_sleep"] = "1"
 
-	ctx, cancelOp := context.WithTimeout(context.Background(), 300*time.Millisecond)
+	ctx, cancelOp := context.WithTimeout(context.Background(), 30*time.Millisecond)
 	defer cancelOp()
 	nsmResponse, err := nsmClient.Request(ctx, request)
-	<-time.After(1 * time.Second)
 	println(err.Error())
 	g.Expect(strings.Contains(err.Error(), "rpc error: code = DeadlineExceeded desc = context deadline exceeded")).To(Equal(true))
 	g.Expect(nsmResponse).To(BeNil())

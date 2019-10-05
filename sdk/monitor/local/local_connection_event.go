@@ -1,6 +1,7 @@
 package local
 
 import (
+	context "context"
 	"fmt"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
@@ -31,13 +32,16 @@ func (e *event) Message() (interface{}, error) {
 type eventFactory struct {
 }
 
-func (m *eventFactory) NewEvent(eventType monitor.EventType, entities map[string]monitor.Entity) monitor.Event {
+func (m *eventFactory) FactoryName() string {
+	return "LocalConnection"
+}
+func (m *eventFactory) NewEvent(ctx context.Context, eventType monitor.EventType, entities map[string]monitor.Entity) monitor.Event {
 	return &event{
-		BaseEvent: monitor.NewBaseEvent(eventType, entities),
+		BaseEvent: monitor.NewBaseEvent(ctx, eventType, entities),
 	}
 }
 
-func (m *eventFactory) EventFromMessage(message interface{}) (monitor.Event, error) {
+func (m *eventFactory) EventFromMessage(ctx context.Context, message interface{}) (monitor.Event, error) {
 	connectionEvent, ok := message.(*connection.ConnectionEvent)
 	if !ok {
 		return nil, fmt.Errorf("unable to cast %v to local.ConnectionEvent", message)
@@ -51,7 +55,7 @@ func (m *eventFactory) EventFromMessage(message interface{}) (monitor.Event, err
 	entities := entitiesFromConnections(connectionEvent.Connections)
 
 	return &event{
-		BaseEvent: monitor.NewBaseEvent(eventType, entities),
+		BaseEvent: monitor.NewBaseEvent(ctx, eventType, entities),
 	}, nil
 }
 

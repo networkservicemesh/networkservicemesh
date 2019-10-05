@@ -1,6 +1,7 @@
 package model
 
 import (
+	"context"
 	"sync"
 	"testing"
 	"time"
@@ -10,35 +11,35 @@ type testListener struct {
 	sync.WaitGroup
 }
 
-func (t *testListener) EndpointAdded(endpoint *Endpoint) {
+func (t *testListener) EndpointAdded(ctx context.Context, endpoint *Endpoint) {
 	t.Done()
 }
 
-func (t *testListener) EndpointUpdated(endpoint *Endpoint) {
+func (t *testListener) EndpointUpdated(ctx context.Context, endpoint *Endpoint) {
 	t.Done()
 }
 
-func (t *testListener) EndpointDeleted(endpoint *Endpoint) {
+func (t *testListener) EndpointDeleted(ctx context.Context, endpoint *Endpoint) {
 	t.Done()
 }
 
-func (t *testListener) DataplaneAdded(dataplane *Dataplane) {
+func (t *testListener) DataplaneAdded(ctx context.Context, dataplane *Dataplane) {
 	t.Done()
 }
 
-func (t *testListener) DataplaneDeleted(dataplane *Dataplane) {
+func (t *testListener) DataplaneDeleted(ctx context.Context, dataplane *Dataplane) {
 	t.Done()
 }
 
-func (t *testListener) ClientConnectionAdded(clientConnection *ClientConnection) {
+func (t *testListener) ClientConnectionAdded(ctx context.Context, clientConnection *ClientConnection) {
 	t.Done()
 }
 
-func (t *testListener) ClientConnectionDeleted(clientConnection *ClientConnection) {
+func (t *testListener) ClientConnectionDeleted(ctx context.Context, clientConnection *ClientConnection) {
 	t.Done()
 }
 
-func (t *testListener) ClientConnectionUpdated(old, new *ClientConnection) {
+func (t *testListener) ClientConnectionUpdated(ctx context.Context, old, new *ClientConnection) {
 	t.Done()
 }
 
@@ -48,16 +49,16 @@ func TestModelListener(t *testing.T) {
 	ln.Add(8)
 	m.AddListener(&ln)
 
-	m.AddEndpoint(&Endpoint{})
-	m.UpdateEndpoint(&Endpoint{})
-	m.DeleteEndpoint("")
+	m.AddEndpoint(context.Background(), &Endpoint{})
+	m.UpdateEndpoint(context.Background(), &Endpoint{})
+	m.DeleteEndpoint(context.Background(), "")
 
-	m.AddDataplane(&Dataplane{})
-	m.DeleteDataplane("")
+	m.AddDataplane(context.Background(), &Dataplane{})
+	m.DeleteDataplane(context.Background(), "")
 
-	m.AddClientConnection(&ClientConnection{})
-	m.UpdateClientConnection(&ClientConnection{})
-	m.DeleteClientConnection("")
+	m.AddClientConnection(context.Background(), &ClientConnection{})
+	m.UpdateClientConnection(context.Background(), &ClientConnection{})
+	m.DeleteClientConnection(context.Background(), "")
 
 	doneCh := make(chan struct{})
 	go func() {

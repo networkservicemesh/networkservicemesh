@@ -45,7 +45,7 @@ type endpointManager struct {
 }
 
 func (stub *endpointManager) DeleteEndpointWithBrokenConnection(endpoint *model.Endpoint) error {
-	stub.model.DeleteEndpoint(endpoint.EndpointName())
+	stub.model.DeleteEndpoint(context.Background(), endpoint.EndpointName())
 	return nil
 }
 
@@ -54,7 +54,7 @@ func startAPIServer(model model.Model, nsmdApiAddress string) (*grpc.Server, mon
 	if err != nil {
 		return nil, nil, sock, err
 	}
-	grpcServer := tools.NewServer()
+	grpcServer := tools.NewServer(context.Background())
 	serviceRegistry := nsmd.NewServiceRegistry()
 
 	xconManager := services.NewClientConnectionManager(model, nil, serviceRegistry)
@@ -96,7 +96,7 @@ func TestCCServerEmpty(t *testing.T) {
 
 	g.Expect(err).To(BeNil())
 
-	monitor.Update(&crossconnect.CrossConnect{
+	monitor.Update(context.Background(), &crossconnect.CrossConnect{
 		Id:      "cc1",
 		Payload: "json_data",
 	})

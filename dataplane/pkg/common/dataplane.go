@@ -139,7 +139,7 @@ func createDataplaneConfig(dataplaneGoals *DataplaneProbeGoals) *DataplaneConfig
 	}
 	logrus.Infof("RegistrarSocketType: %s", cfg.RegistrarSocketType)
 
-	cfg.GRPCserver = tools.NewServer()
+	cfg.GRPCserver = tools.NewServer(context.Background())
 
 	cfg.Monitor = monitor_crossconnect.NewMonitorServer()
 	crossconnect.RegisterMonitorCrossConnectServer(cfg.GRPCserver, cfg.Monitor)

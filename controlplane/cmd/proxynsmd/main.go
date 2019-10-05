@@ -1,10 +1,13 @@
 package main
 
 import (
+	"context"
 	"net"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/probes/health"
 
@@ -14,7 +17,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/remote"
 
-	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
@@ -38,15 +40,9 @@ func main() {
 
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
-	if tools.IsOpentracingEnabled() {
-		tracer, closer := tools.InitJaeger("proxy-nsmd")
-		opentracing.SetGlobalTracer(tracer)
-		defer func() {
-			if err := closer.Close(); err != nil {
-				logrus.Errorf("Failed to close tracer: %v", err)
-			}
-		}()
-	}
+
+	closer := jaeger.InitJaeger("proxy-nsmd")
+	defer func() { _ = closer.Close() }()
 	goals := &proxyNsmdProbeGoals{}
 	nsmdProbes := probes.New("Prxoy NSMD liveness/readiness healthcheck", goals)
 	nsmdProbes.BeginHealthCheck()
@@ -85,7 +81,7 @@ func getProxyNSMDAPIAddress() string {
 
 // StartAPIServerAt starts GRPC API server at sock
 func startAPIServerAt(sock net.Listener, serviceRegistry serviceregistry.ServiceRegistry, probes probes.Probes) {
-	grpcServer := tools.NewServer()
+	grpcServer := tools.NewServer(context.Background())
 	remoteConnectionMonitor := remote.NewProxyMonitorServer()
 	connection.RegisterMonitorConnectionServer(grpcServer, remoteConnectionMonitor)
 	probes.Append(health.NewGrpcHealth(grpcServer, sock.Addr(), time.Minute))

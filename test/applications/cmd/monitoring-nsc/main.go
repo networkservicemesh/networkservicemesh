@@ -17,7 +17,8 @@ package main
 import (
 	"context"
 
-	"github.com/opentracing/opentracing-go"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
+
 	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
@@ -41,11 +42,9 @@ func main() {
 	logrus.Info("Starting monitoring-nsc...")
 	logrus.Infof("Version: %v", version)
 
-	if tools.IsOpentracingEnabled() {
-		tracer, closer := tools.InitJaeger("nsc")
-		opentracing.SetGlobalTracer(tracer)
-		defer func() { _ = closer.Close() }()
-	}
+	closer := jaeger.InitJaeger("monitoring-nsc")
+	defer func() { _ = closer.Close() }()
+
 	configuration := common.FromEnv()
 	nsc, err := client.NewNSMClient(context.Background(), configuration)
 	if err != nil {

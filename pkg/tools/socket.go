@@ -7,6 +7,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
+
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
@@ -20,10 +23,8 @@ const (
 	// InsecureEnv environment variable, if "true" NSM will work in insecure mode
 	InsecureEnv = "INSECURE"
 
-	opentracingEnv     = "TRACER_ENABLED"
-	opentracingDefault = false
 	insecureDefault    = false
-	dialTimeoutDefault = 5 * time.Second
+	dialTimeoutDefault = 15 * time.Second
 )
 
 // DialConfig represents configuration of grpc connection, one per instance
@@ -55,18 +56,23 @@ func InitConfig(c DialConfig) {
 }
 
 // NewServer checks DialConfig and calls grpc.NewServer with certain grpc.ServerOption
-func NewServer(opts ...grpc.ServerOption) *grpc.Server {
+func NewServer(ctx context.Context, opts ...grpc.ServerOption) *grpc.Server {
+	span := spanhelper.FromContext(ctx, "NewServer")
+	defer span.Finish()
 	if GetConfig().SecurityManager != nil {
+		securitySpan := spanhelper.FromContext(span.Context(), "GetCertificate")
+		certificate := GetConfig().SecurityManager.GetCertificate()
 		cred := credentials.NewTLS(&tls.Config{
 			ClientAuth:   tls.RequireAndVerifyClientCert,
-			Certificates: []tls.Certificate{*GetConfig().SecurityManager.GetCertificate()},
+			Certificates: []tls.Certificate{*certificate},
 			ClientCAs:    GetConfig().SecurityManager.GetCABundle(),
 		})
 		opts = append(opts, grpc.Creds(cred))
+		securitySpan.Finish()
 	}
 
 	if GetConfig().OpenTracing {
-		logrus.Infof("GRPC.NewServer with open tracing enabled")
+		span.Logger().Infof("GRPC.NewServer with open tracing enabled")
 		opts = append(opts, openTracingOpts()...)
 	}
 
@@ -169,12 +175,6 @@ func (b *dialBuilder) Timeout(t time.Duration) *dialBuilder {
 
 func (b *dialBuilder) DialContextFunc() dialContextFunc {
 	return func(ctx context.Context, target string, opts ...grpc.DialOption) (conn *grpc.ClientConn, err error) {
-		if b.t != 0 {
-			var cancel context.CancelFunc
-			ctx, cancel = context.WithTimeout(ctx, b.t)
-			defer cancel()
-		}
-
 		if GetConfig().OpenTracing {
 			b.opts = append(b.opts, OpenTracingDialOptions()...)
 		}
@@ -192,6 +192,12 @@ func (b *dialBuilder) DialContextFunc() dialContextFunc {
 
 		b.opts = append(b.opts, grpc.WithBlock())
 
+		if b.t != 0 {
+			var cancel context.CancelFunc
+			ctx, cancel = context.WithTimeout(ctx, b.t)
+			defer cancel()
+		}
+
 		return grpc.DialContext(ctx, target, append(opts, b.opts...)...)
 	}
 }
@@ -208,12 +214,8 @@ func OpenTracingDialOptions() []grpc.DialOption {
 }
 
 func readDialConfig() (DialConfig, error) {
-	rv := DialConfig{}
-
-	if ot, err := ReadEnvBool(opentracingEnv, opentracingDefault); err == nil {
-		rv.OpenTracing = ot
-	} else {
-		return DialConfig{}, err
+	rv := DialConfig{
+		OpenTracing: jaeger.IsOpentracingEnabled(),
 	}
 
 	insecure, err := IsInsecure()

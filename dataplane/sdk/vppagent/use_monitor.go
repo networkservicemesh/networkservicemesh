@@ -25,7 +25,7 @@ func (c *useMonitor) Request(ctx context.Context, crossConnect *crossconnect.Cro
 	if next := Next(ctx); next != nil {
 		resp, err := next.Request(WithMonitor(ctx, c.monitor), crossConnect)
 		if err == nil {
-			c.monitor.Update(resp)
+			c.monitor.Update(ctx, resp)
 		}
 		return resp, err
 	}
@@ -33,7 +33,7 @@ func (c *useMonitor) Request(ctx context.Context, crossConnect *crossconnect.Cro
 }
 
 func (c *useMonitor) Close(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*empty.Empty, error) {
-	defer c.monitor.Delete(crossConnect)
+	defer c.monitor.Delete(ctx, crossConnect)
 	if next := Next(ctx); next != nil {
 		return next.Close(ctx, crossConnect)
 	}
