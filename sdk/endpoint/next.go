@@ -9,7 +9,6 @@ import (
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/log"
-	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
@@ -75,7 +74,7 @@ func (n *nextEndpoint) Close(ctx context.Context, connection *connection.Connect
 		if span != nil {
 			span.LogFields(log.Error(err))
 		}
-		logrus.Error(err)
+		logger.Error(err)
 		return nil, err
 	}
 	logger.Infof("internal response %v", rv)
