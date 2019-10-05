@@ -24,12 +24,17 @@ jobs:
       - image: circleci/golang:1.13-stretch
     steps:
       - checkout
+      - run:
+          name: Install Shellcheck
+          command: ./.circleci/install-shellcheck.sh
+      - run:
+          name: Run Shellcheck
+          command: make check
       - skip_on_pattern
       - run:
           command: |
             sudo apt-get install python-pip python3-pkg-resources
             pip install --user yamllint
-            ./.circleci/install-shellcheck.sh
       - run: yamllint -c .yamllint.yml --strict .
       - run: go version
       - run:
@@ -45,7 +50,7 @@ jobs:
       - run: ./scripts/prepare-generate.sh
       - run: sudo ./scripts/install-protoc.sh
       - run: ./scripts/for-each-module.sh "go generate ./..."
-      - run: make vet check
+      - run: make vet
       - run: ./scripts/for-each-module.sh "go build ./..."
       - run: ./scripts/check_dependencies.sh
       - run:
