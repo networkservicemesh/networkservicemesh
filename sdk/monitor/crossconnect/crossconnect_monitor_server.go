@@ -1,6 +1,8 @@
 package crossconnect
 
 import (
+	"context"
+
 	"github.com/golang/protobuf/ptypes/empty"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
@@ -34,7 +36,7 @@ func NewMonitorServer() MonitorServer {
 func (s *monitorServer) serveMetrics() {
 	for {
 		s.SendAll(&Event{
-			BaseEvent:  monitor.NewBaseEvent(monitor.EventTypeUpdate, s.Entities()),
+			BaseEvent:  monitor.NewBaseEvent(context.Background(), monitor.EventTypeUpdate, s.Entities()),
 			Statistics: <-s.statsCh,
 		})
 	}

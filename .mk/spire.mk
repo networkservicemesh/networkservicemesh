@@ -16,11 +16,15 @@ SPIRE_NAMESPACE=spire
 
 .PHONY: spire-install
 spire-install:
-	helm install --name=spire \
-	--wait --timeout 300 \
+	@if ! helm install --name=spire \
+	--wait --timeout 600 \
 	--set org="${CONTAINER_REPO}",tag="${CONTAINER_TAG}" \
 	--namespace="${SPIRE_NAMESPACE}" \
-	deployments/helm/nsm/charts/spire
+	deployments/helm/nsm/charts/spire ; then \
+		echo "ERROR: Failed to deploy spire"; \
+		kubectl get pods --all-namespaces; \
+		kubectl describe pod spire --namespace spire; \
+	fi
 
 # temporary workaround for azure
 .PHONY: spire-install-azure

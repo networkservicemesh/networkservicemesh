@@ -444,7 +444,7 @@ func (srv *nsmdFullServerImpl) StopNoClean() {
 }
 
 func (impl *nsmdFullServerImpl) AddFakeDataplane(dp_name string, dp_addr string) {
-	impl.TestModel.AddDataplane(&model.Dataplane{
+	impl.TestModel.AddDataplane(context.Background(), &model.Dataplane{
 		RegisteredName: dp_name,
 		SocketLocation: dp_addr,
 		LocalMechanisms: []connection.Mechanism{

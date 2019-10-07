@@ -19,7 +19,6 @@ import (
 	"context"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/status"
 
@@ -29,7 +28,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/dataplane/api/dataplane"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/kernel-forwarder/pkg/monitoring"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
 )
 
 // KernelForwarder instance
@@ -48,17 +47,16 @@ func (k *KernelForwarder) Init(common *common.DataplaneConfig) error {
 	k.common = common
 	k.common.Name = "kernel-forwarder"
 
-	if tools.IsOpentracingEnabled() {
-		tracer, closer := tools.InitJaeger(k.common.Name)
-		opentracing.SetGlobalTracer(tracer)
-		defer func() {
-			if err := closer.Close(); err != nil {
-				logrus.Error("error when closing:", err)
-			}
-		}()
-	}
+	closer := jaeger.InitJaeger(k.common.Name)
+	defer func() { _ = closer.Close() }()
+
 	k.configureKernelForwarder()
 	return nil
+}
+
+// CreateDataplaneServer creates an instance of DataplaneServer
+func (k *KernelForwarder) CreateDataplaneServer(config *common.DataplaneConfig) dataplane.DataplaneServer {
+	return k
 }
 
 // Request handler for connections
@@ -69,7 +67,7 @@ func (k *KernelForwarder) Request(ctx context.Context, crossConnect *crossconnec
 		logrus.Warn("error while handling Request() connection:", err)
 		return nil, err
 	}
-	k.common.Monitor.Update(crossConnect)
+	k.common.Monitor.Update(ctx, crossConnect)
 	return crossConnect, err
 }
 
@@ -80,7 +78,7 @@ func (k *KernelForwarder) Close(ctx context.Context, crossConnect *crossconnect.
 	if err != nil {
 		logrus.Warn("error while handling Close() connection:", err)
 	}
-	k.common.Monitor.Delete(crossConnect)
+	k.common.Monitor.Delete(ctx, crossConnect)
 	return &empty.Empty{}, nil
 }
 

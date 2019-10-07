@@ -48,7 +48,7 @@ func (srv *remoteNetworkServiceServer) Request(ctx context.Context, request *rem
 	}
 
 	result := conn.(*remote_connection.Connection)
-	srv.monitor.Update(result)
+	srv.monitor.Update(ctx, result)
 
 	logrus.Info("RemoteNSMD: Dataplane configuration done...")
 	return result, nil
@@ -64,6 +64,6 @@ func (srv *remoteNetworkServiceServer) Close(ctx context.Context, connection *re
 	if err != nil {
 		logrus.Errorf("Error during connection close: %v", err)
 	}
-	srv.monitor.Delete(connection)
+	srv.monitor.Delete(ctx, connection)
 	return &empty.Empty{}, nil
 }

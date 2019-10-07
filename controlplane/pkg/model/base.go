@@ -1,6 +1,7 @@
 package model
 
 import (
+	"context"
 	"sync"
 
 	"github.com/sirupsen/logrus"
@@ -8,9 +9,9 @@ import (
 
 // ModificationHandler aggregates handlers for particular events
 type ModificationHandler struct {
-	AddFunc    func(new interface{})
-	UpdateFunc func(old interface{}, new interface{})
-	DeleteFunc func(del interface{})
+	AddFunc    func(ctx context.Context, new interface{})
+	UpdateFunc func(ctx context.Context, old interface{}, new interface{})
+	DeleteFunc func(ctx context.Context, del interface{})
 }
 
 type cloneable interface {
@@ -40,22 +41,22 @@ func (b *baseDomain) load(key string) (interface{}, bool) {
 	return v.clone(), true
 }
 
-func (b *baseDomain) store(key string, value cloneable) {
+func (b *baseDomain) store(ctx context.Context, key string, value cloneable) {
 	b.mtx.Lock()
 	defer b.mtx.Unlock()
 
 	old, exist := b.innerMap[key]
 	if !exist {
 		b.innerMap[key] = value.clone()
-		b.resourceAdded(value)
+		b.resourceAdded(ctx, value)
 		return
 	}
 
 	b.innerMap[key] = value.clone()
-	b.resourceUpdated(old, value)
+	b.resourceUpdated(ctx, old, value)
 }
 
-func (b *baseDomain) delete(key string) {
+func (b *baseDomain) delete(ctx context.Context, key string) {
 	b.mtx.Lock()
 	defer b.mtx.Unlock()
 	v, exist := b.innerMap[key]
@@ -63,10 +64,10 @@ func (b *baseDomain) delete(key string) {
 		return
 	}
 	delete(b.innerMap, key)
-	b.resourceDeleted(v)
+	b.resourceDeleted(ctx, v)
 }
 
-func (b *baseDomain) applyChanges(key string, changeFunc func(interface{})) interface{} {
+func (b *baseDomain) applyChanges(ctx context.Context, key string, changeFunc func(interface{})) interface{} {
 	b.mtx.Lock()
 	defer b.mtx.Unlock()
 
@@ -79,7 +80,7 @@ func (b *baseDomain) applyChanges(key string, changeFunc func(interface{})) inte
 	changeFunc(upd)
 
 	b.innerMap[key] = upd.clone()
-	b.resourceUpdated(old, upd)
+	b.resourceUpdated(ctx, old, upd)
 	return upd
 }
 
@@ -94,34 +95,34 @@ func (b *baseDomain) kvRange(f func(key string, v interface{}) bool) {
 	}
 }
 
-func (b *baseDomain) resourceAdded(new cloneable) {
+func (b *baseDomain) resourceAdded(ctx context.Context, new cloneable) {
 	logrus.Infof("resourceAdded started: %v", new)
 
 	for _, h := range b.handlers {
 		if h.AddFunc != nil {
-			go h.AddFunc(new.clone())
+			go h.AddFunc(ctx, new.clone())
 		}
 	}
 	logrus.Infof("resourceAdded finished: %v", new)
 }
 
-func (b *baseDomain) resourceUpdated(old, new cloneable) {
+func (b *baseDomain) resourceUpdated(ctx context.Context, old, new cloneable) {
 	logrus.Infof("resourceUpdated started: %v", new)
 
 	for _, h := range b.handlers {
 		if h.UpdateFunc != nil {
-			go h.UpdateFunc(old.clone(), new.clone())
+			go h.UpdateFunc(ctx, old.clone(), new.clone())
 		}
 	}
 	logrus.Infof("resourceUpdated finished: %v", new)
 }
 
-func (b *baseDomain) resourceDeleted(del cloneable) {
+func (b *baseDomain) resourceDeleted(ctx context.Context, del cloneable) {
 	logrus.Infof("resourceDeleted started: %v", del)
 
 	for _, h := range b.handlers {
 		if h.DeleteFunc != nil {
-			go h.DeleteFunc(del.clone())
+			go h.DeleteFunc(ctx, del.clone())
 		}
 	}
 	logrus.Infof("resourceDeleted finished: %v", del)
@@ -134,7 +135,7 @@ func (b *baseDomain) addHandler(h *ModificationHandler) func() {
 	b.handlers = append(b.handlers, h)
 
 	for _, v := range b.innerMap {
-		b.resourceAdded(v)
+		b.resourceAdded(context.Background(), v)
 	}
 
 	return func() {

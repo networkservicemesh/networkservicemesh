@@ -24,12 +24,17 @@ jobs:
       - image: circleci/golang:1.13-stretch
     steps:
       - checkout
+      - run:
+          name: Install Shellcheck
+          command: ./.circleci/install-shellcheck.sh
+      - run:
+          name: Run Shellcheck
+          command: make check
       - skip_on_pattern
       - run:
           command: |
             sudo apt-get install python-pip python3-pkg-resources
             pip install --user yamllint
-            ./.circleci/install-shellcheck.sh
       - run: yamllint -c .yamllint.yml --strict .
       - run: go version
       - run:
@@ -45,7 +50,8 @@ jobs:
       - run: ./scripts/prepare-generate.sh
       - run: sudo ./scripts/install-protoc.sh
       - run: ./scripts/for-each-module.sh "go generate ./..."
-      - run: make vet check
+      - run: git diff --exit-code || (echo 'Seems like your generated files are not actual. Run `go generate ./...` for each module in your branch and commit the changes.' && exit 1)
+      - run: make vet
       - run: ./scripts/for-each-module.sh "go build ./..."
       - run: ./scripts/check_dependencies.sh
       - run:
@@ -57,7 +63,7 @@ jobs:
       - run: mkdir -p ~/junit/
       - run:
           command: |
-            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export COMMIT="ci_${CIRCLE_WORKFLOW_ID}_${CIRCLE_SHA1:8:8}"
             export CONTAINER_TAG="${COMMIT}"
             export CONTAINER_REPO="networkservicemeshci"
             export CONTAINER_FORCE_PULL="true"
@@ -128,17 +134,18 @@ jobs:
       - run:
           name: Downloading go deps
           command: |
-            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export COMMIT="ci_${CIRCLE_WORKFLOW_ID}_${CIRCLE_SHA1:8:8}"
             export CONTAINER_TAG="${COMMIT}"
             ./scripts/go-mod-download.sh
           no_output_timeout: 40m
       - run:
           name: Running integration tests
           command: |
-            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export COMMIT="ci_${CIRCLE_WORKFLOW_ID}_${CIRCLE_SHA1:8:8}"
             export CONTAINER_TAG="${COMMIT}"
             export REPO="networkservicemeshci"
             export CONTAINER_REPO=${REPO}
+            echo "CONTAINER_REPO=${CONTAINER_REPO} COMMIT=${COMMIT}"
             if [ "${CIRCLE_BRANCH}" == "master" ]; then
               export STORE_LOGS_IN_ANY_CASES=true
             fi
@@ -171,7 +178,7 @@ jobs:
           docker_layer_caching: true
       - run:
           command: |
-            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export COMMIT="ci_${CIRCLE_WORKFLOW_ID}_${CIRCLE_SHA1:8:8}"
             export TAG="${COMMIT}"
             export CONTAINER_REPO="networkservicemeshci"
             make docker-<< parameters.container >>-build
@@ -199,7 +206,7 @@ jobs:
           docker_layer_caching: true
       - run:
           command: |
-            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export COMMIT="ci_${CIRCLE_WORKFLOW_ID}_${CIRCLE_SHA1:8:8}"
             export PULL_TAG="${COMMIT}"
             export TAG="<< parameters.tag >>"
             export REPO="networkservicemesh"

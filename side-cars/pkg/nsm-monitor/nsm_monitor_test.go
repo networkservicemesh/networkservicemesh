@@ -2,8 +2,13 @@ package nsmmonitor
 
 import (
 	"context"
+	"os"
 	"testing"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+
+	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
@@ -11,7 +16,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsmdapi"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/tests"
-	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 )
 
 type nsmHelper struct {
@@ -35,6 +39,7 @@ func (h *nsmHelper) Healing(conn *connection.Connection) {
 }
 
 func TestNSMMonitorInit(t *testing.T) {
+	_ = os.Setenv(tools.InsecureEnv, "true")
 	g := NewWithT(t)
 
 	storage := tests.NewSharedStorage()
@@ -42,7 +47,7 @@ func TestNSMMonitorInit(t *testing.T) {
 	defer srv.Stop()
 	srv.AddFakeDataplane("test_data_plane", "tcp:some_addr")
 
-	srv.TestModel.AddEndpoint(srv.RegisterFakeEndpoint("golden_network", "test", tests.Master))
+	srv.TestModel.AddEndpoint(context.Background(), srv.RegisterFakeEndpoint("golden_network", "test", tests.Master))
 
 	response := srv.RequestNSM("nsm")
 

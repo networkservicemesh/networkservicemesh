@@ -4,12 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/networkservicemesh/networkservicemesh/sdk/common"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/opentracing/opentracing-go"
-	"github.com/opentracing/opentracing-go/log"
-	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
@@ -29,26 +26,22 @@ func (n *nextEndpoint) Request(ctx context.Context, request *networkservice.Netw
 	}
 
 	// Create a new span
-	var span opentracing.Span
-	if opentracing.IsGlobalTracerRegistered() {
-		span, ctx = opentracing.StartSpanFromContext(ctx, fmt.Sprintf("%s.Request", typeutils.GetTypeName(n.composite.endpoints[n.index])))
-		defer span.Finish()
+	span := spanhelper.FromContext(ctx, fmt.Sprintf("%s.Request", typeutils.GetTypeName(n.composite.endpoints[n.index])))
+	defer span.Finish()
 
-		// Make sure we log to span
-	}
-	logger := common.LogFromSpan(span)
+	// Make sure we log to span
 
-	ctx = withLog(ctx, logger)
-	logger.Infof("internal request %v", request)
+	ctx = withLog(span.Context(), span.Logger())
+	span.LogObject("request", request)
 
 	// Actually call the next
 	rv, err := n.composite.endpoints[n.index].Request(ctx, request)
 
 	if err != nil {
-		logger.Errorf("Error: %v", err)
+		span.LogError(err)
 		return nil, err
 	}
-	logger.Infof("internal response %v", rv)
+	span.LogObject("response", rv)
 	return rv, err
 }
 
@@ -59,25 +52,18 @@ func (n *nextEndpoint) Close(ctx context.Context, connection *connection.Connect
 		ctx = withNext(ctx, nil)
 	}
 	// Create a new span
-	var span opentracing.Span
-	if opentracing.IsGlobalTracerRegistered() {
-		span, ctx = opentracing.StartSpanFromContext(ctx, fmt.Sprintf("%s.Close", typeutils.GetTypeName(n.composite.endpoints[n.index])))
-		defer span.Finish()
-	}
+	span := spanhelper.FromContext(ctx, fmt.Sprintf("%s.Close", typeutils.GetTypeName(n.composite.endpoints[n.index])))
+	defer span.Finish()
 	// Make sure we log to span
-	logger := common.LogFromSpan(span)
-	ctx = withLog(ctx, logger)
+	ctx = withLog(span.Context(), span.Logger())
 
-	logger.Infof("internal request %v", connection)
+	span.LogObject("request", connection)
 	rv, err := n.composite.endpoints[n.index].Close(ctx, connection)
 
 	if err != nil {
-		if span != nil {
-			span.LogFields(log.Error(err))
-		}
-		logrus.Error(err)
+		span.LogError(err)
 		return nil, err
 	}
-	logger.Infof("internal response %v", rv)
+	span.LogObject("response", rv)
 	return rv, err
 }

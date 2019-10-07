@@ -35,9 +35,9 @@ import (
 )
 
 type NSMDataplane interface {
-	dataplane.DataplaneServer
 	dataplane.MechanismsMonitorServer
 	Init(*DataplaneConfig) error
+	CreateDataplaneServer(*DataplaneConfig) dataplane.DataplaneServer
 }
 
 // TODO Convert all the defaults to properly use NsmBaseDir
@@ -138,7 +138,7 @@ func createDataplaneConfig(dataplaneGoals *DataplaneProbeGoals) *DataplaneConfig
 	}
 	logrus.Infof("RegistrarSocketType: %s", cfg.RegistrarSocketType)
 
-	cfg.GRPCserver = tools.NewServer()
+	cfg.GRPCserver = tools.NewServer(context.Background())
 
 	cfg.Monitor = monitor_crossconnect.NewMonitorServer()
 	crossconnect.RegisterMonitorCrossConnectServer(cfg.GRPCserver, cfg.Monitor)
@@ -211,7 +211,8 @@ func CreateDataplane(dp NSMDataplane, dataplaneGoals *DataplaneProbeGoals) *Data
 	} else {
 		dataplaneGoals.SetSocketListenReady()
 	}
-	dataplane.RegisterDataplaneServer(config.GRPCserver, dp)
+
+	dataplane.RegisterDataplaneServer(config.GRPCserver, dp.CreateDataplaneServer(config))
 	dataplane.RegisterMechanismsMonitorServer(config.GRPCserver, dp)
 
 	// Start the server

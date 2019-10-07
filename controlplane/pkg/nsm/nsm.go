@@ -19,10 +19,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/opentracing/opentracing-go"
-	"github.com/opentracing/opentracing-go/log"
-
-	"github.com/networkservicemesh/networkservicemesh/sdk/common"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/sirupsen/logrus"
@@ -117,13 +114,10 @@ func create_logid() (uuid string) {
 func (srv *networkServiceManager) request(ctx context.Context, request networkservice.Request, existingCC *model.ClientConnection) (connection.Connection, error) {
 	requestID := create_logid()
 
-	var span opentracing.Span
-	if opentracing.GlobalTracer() != nil {
-		span, ctx = opentracing.StartSpanFromContext(ctx, "request")
-		defer span.Finish()
-	}
-
-	logger := common.LogFromSpan(span)
+	span := spanhelper.FromContext(ctx, "request")
+	defer span.Finish()
+	ctx = span.Context()
+	logger := span.Logger()
 	logger.Infof("NSM:(%v) request: %v", requestID, request)
 
 	if existingCC != nil {
@@ -139,7 +133,7 @@ func (srv *networkServiceManager) request(ctx context.Context, request networkse
 			return nil, err
 		}
 
-		srv.model.ApplyClientConnectionChanges(existingCC.GetID(), func(modelCC *model.ClientConnection) {
+		srv.model.ApplyClientConnectionChanges(ctx, existingCC.GetID(), func(modelCC *model.ClientConnection) {
 			modelCC.ConnectionState = model.ClientConnectionRequesting
 		})
 	}
@@ -247,10 +241,10 @@ func (srv *networkServiceManager) request(ctx context.Context, request networkse
 	}
 
 	// 7.4 replace currently existing clientConnection or create new if it is absent
-	srv.model.UpdateClientConnection(cc)
+	srv.model.UpdateClientConnection(ctx, cc)
 
 	// 8. Remember original Request for Heal cases.
-	cc = srv.model.ApplyClientConnectionChanges(cc.GetID(), func(cc *model.ClientConnection) {
+	cc = srv.model.ApplyClientConnectionChanges(ctx, cc.GetID(), func(cc *model.ClientConnection) {
 		cc.Request = request
 	})
 
@@ -292,7 +286,7 @@ func (srv *networkServiceManager) request(ctx context.Context, request networkse
 	}
 
 	// 10. Send update for client connection
-	srv.model.ApplyClientConnectionChanges(cc.GetID(), func(cc *model.ClientConnection) {
+	srv.model.ApplyClientConnectionChanges(ctx, cc.GetID(), func(cc *model.ClientConnection) {
 		cc.ConnectionState = model.ClientConnectionReady
 		cc.DataplaneState = model.DataplaneStateReady
 		cc.Xcon = newXcon
@@ -325,47 +319,42 @@ func (srv *networkServiceManager) selectDataplane(request networkservice.Request
 }
 
 func (srv *networkServiceManager) requestFailed(ctx context.Context, requestID string, cc, existingCC *model.ClientConnection, closeNSE, closeDp bool) {
-	var span opentracing.Span
-	if opentracing.GlobalTracer() != nil {
-		span, ctx = opentracing.StartSpanFromContext(ctx, "nsm.requestFailed")
-		defer span.Finish()
-	}
 
-	logger := common.LogFromSpan(span)
+	span := spanhelper.FromContext(ctx, "nsm.requestFailed")
+	defer span.Finish()
+
+	logger := span.Logger()
 	logger.Errorf("NSM:(%v) Request failed", requestID)
 	if cc == nil {
 		return
 	}
 
 	if closeNSE {
-		if err := srv.closeEndpoint(ctx, cc); err != nil {
+		if err := srv.closeEndpoint(span.Context(), cc); err != nil {
 			logger.Errorf("NSM:(%v) Error closing NSE: %v", requestID, err)
 		}
 	}
 
 	if closeDp {
-		if err := srv.closeDataplane(ctx, cc); err != nil {
+		if err := srv.closeDataplane(span.Context(), cc); err != nil {
 			logger.Errorf("NSM:(%v) Error closing dataplane: %v", requestID, err)
 		}
 	}
 
 	if existingCC == nil {
 		logger.Infof("Delete connection %v", cc.GetID())
-		srv.model.DeleteClientConnection(cc.GetID())
+		srv.model.DeleteClientConnection(span.Context(), cc.GetID())
 	}
 
-	srv.model.ApplyClientConnectionChanges(cc.GetID(), func(modelCC *model.ClientConnection) {
+	srv.model.ApplyClientConnectionChanges(span.Context(), cc.GetID(), func(modelCC *model.ClientConnection) {
 		modelCC.ConnectionState = model.ClientConnectionBroken
 	})
 }
 
 func (srv *networkServiceManager) findConnectNSE(ctx context.Context, requestID string, conn connection.Connection, existingCC *model.ClientConnection, dp *model.Dataplane) (*model.ClientConnection, error) {
-	var span opentracing.Span
-	if opentracing.GlobalTracer() != nil {
-		span, ctx = opentracing.StartSpanFromContext(ctx, "nsm.findConnectNSE")
-		defer span.Finish()
-	}
-	logger := common.LogFromSpan(span)
+	span := spanhelper.FromContext(ctx, "nsm.findConnectNSE")
+	defer span.Finish()
+	logger := span.Logger()
 	// 7.x
 	var endpoint *registry.NSERegistration
 	var err error
@@ -400,7 +389,7 @@ func (srv *networkServiceManager) findConnectNSE(ctx context.Context, requestID 
 
 		if endpoint == nil {
 			// 7.1.4 Choose a new endpoint
-			endpoint, err = srv.nseManager.getEndpoint(ctx, nseConn, ignoreEndpoints)
+			endpoint, err = srv.nseManager.getEndpoint(span.Context(), nseConn, ignoreEndpoints)
 		}
 		if err != nil {
 			// 7.1.5 No endpoints found, we need to return error, including last error for previous NSE
@@ -413,13 +402,13 @@ func (srv *networkServiceManager) findConnectNSE(ctx context.Context, requestID 
 
 		logger.Infof("selected endpoint %v", endpoint)
 		// 7.1.6 Update Request with exclude_prefixes, etc
-		nseConn, err = srv.updateConnection(ctx, nseConn)
+		nseConn, err = srv.updateConnection(span.Context(), nseConn)
 		if err != nil {
 			return nil, fmt.Errorf("NSM:(7.1.6-%v) Failed to update connection: %v", requestID, err)
 		}
 
 		// 7.1.7 perform request to NSE/remote NSMD/NSE
-		cc, err = srv.performNSERequest(ctx, requestID, endpoint, nseConn, dp, existingCC)
+		cc, err = srv.performNSERequest(span.Context(), requestID, endpoint, nseConn, dp, existingCC)
 
 		// 7.1.8 in case of error we put NSE into ignored list to check another one.
 		if err != nil {
@@ -440,7 +429,7 @@ func (srv *networkServiceManager) Close(ctx context.Context, clientConnection ns
 		return fmt.Errorf("closing already closed connection")
 	}
 
-	srv.model.ApplyClientConnectionChanges(cc.GetID(), func(modelCC *model.ClientConnection) {
+	srv.model.ApplyClientConnectionChanges(ctx, cc.GetID(), func(modelCC *model.ClientConnection) {
 		modelCC.ConnectionState = model.ClientConnectionClosing
 	})
 
@@ -450,7 +439,7 @@ func (srv *networkServiceManager) Close(ctx context.Context, clientConnection ns
 	dpErr := srv.closeDataplane(ctx, cc)
 
 	// TODO: We need to be sure Dataplane is respond well so we could delete connection.
-	srv.model.DeleteClientConnection(cc.GetID())
+	srv.model.DeleteClientConnection(ctx, cc.GetID())
 
 	if nseErr != nil || dpErr != nil {
 		return fmt.Errorf("NSM: Close error: %v", []error{nseErr, dpErr})
@@ -461,15 +450,12 @@ func (srv *networkServiceManager) Close(ctx context.Context, clientConnection ns
 
 func (srv *networkServiceManager) performNSERequest(ctx context.Context, requestID string, endpoint *registry.NSERegistration, requestConn connection.Connection, dp *model.Dataplane, existingCC *model.ClientConnection) (*model.ClientConnection, error) {
 	// 7.2.6.x
-	var span opentracing.Span
-	if opentracing.GlobalTracer() != nil {
-		span, ctx = opentracing.StartSpanFromContext(ctx, "nsm.peformNSERequest")
-		defer span.Finish()
-	}
+	span := spanhelper.FromContext(ctx, "nsm.peformNSERequest")
+	defer span.Finish()
 
-	logger := common.LogFromSpan(span)
+	logger := span.Logger()
 
-	client, err := srv.nseManager.createNSEClient(ctx, endpoint)
+	client, err := srv.nseManager.createNSEClient(span.Context(), endpoint)
 	if err != nil {
 		// 7.2.6.1
 		return nil, fmt.Errorf("NSM:(7.2.6.1) Failed to create NSE Client. %v", err)
@@ -488,9 +474,9 @@ func (srv *networkServiceManager) performNSERequest(ctx context.Context, request
 		message = srv.createRemoteNSMRequest(endpoint, requestConn, dp, existingCC)
 	}
 	logger.Infof("NSM:(7.2.6.2-%v) Requesting NSE with request %v", requestID, message)
-	span.LogFields(log.String("nsm.nse.request", fmt.Sprintf("%v", message)))
+	span.LogObject("nsm.nse.request", message)
 
-	nseConn, e := client.Request(ctx, message)
+	nseConn, e := client.Request(span.Context(), message)
 
 	if e != nil {
 		logger.Errorf("NSM:(7.2.6.2.1-%v) error requesting networkservice from %+v with message %#v error: %s", requestID, endpoint, message, e)
@@ -498,7 +484,7 @@ func (srv *networkServiceManager) performNSERequest(ctx context.Context, request
 	}
 
 	// 7.2.6.2.2
-	if err = srv.updateConnectionContext(ctx, requestConn, nseConn); err != nil {
+	if err = srv.updateConnectionContext(span.Context(), requestConn, nseConn); err != nil {
 		err = fmt.Errorf("NSM:(7.2.6.2.2-%v) failure Validating NSE Connection: %s", requestID, err)
 		return nil, err
 	}
@@ -521,7 +507,7 @@ func (srv *networkServiceManager) performNSERequest(ctx context.Context, request
 		DataplaneState:          dpState,
 	}
 
-	span.LogFields(log.Object("clientConnection", clientConnection))
+	span.LogObject("clientConnection", clientConnection)
 
 	// 7.2.6.2.5 - It not a local NSE put remote NSM name in request
 	if !srv.nseManager.isLocalEndpoint(endpoint) {
@@ -564,7 +550,7 @@ func (srv *networkServiceManager) closeDataplane(ctx context.Context, cc *model.
 		return err
 	}
 	logrus.Info("NSM.Dataplane: Cross connection successfully closed on dataplane")
-	srv.model.ApplyClientConnectionChanges(cc.GetID(), func(cc *model.ClientConnection) {
+	srv.model.ApplyClientConnectionChanges(ctx, cc.GetID(), func(cc *model.ClientConnection) {
 		cc.DataplaneState = model.DataplaneStateNone
 	})
 
@@ -799,7 +785,7 @@ func (srv *networkServiceManager) RestoreConnections(xcons []*crossconnect.Cross
 				DataplaneState:          model.DataplaneStateReady, // It is configured already.
 			}
 
-			srv.model.AddClientConnection(clientConnection)
+			srv.model.AddClientConnection(context.Background(), clientConnection)
 
 			// Add healing timer, for connection to be healed from source side.
 			if src := xcon.GetSourceConnection(); src.IsRemote() {
@@ -851,7 +837,7 @@ func (srv *networkServiceManager) closeLocalMissingNSE(cc *model.ClientConnectio
 func (srv *networkServiceManager) RemoteConnectionLost(clientConnection nsm.ClientConnection) {
 	logrus.Infof("NSM: Remote opened connection is not monitored and put into Healing state %v", clientConnection)
 
-	srv.model.ApplyClientConnectionChanges(clientConnection.GetID(), func(modelCC *model.ClientConnection) {
+	srv.model.ApplyClientConnectionChanges(context.Background(), clientConnection.GetID(), func(modelCC *model.ClientConnection) {
 		modelCC.ConnectionState = model.ClientConnectionHealing
 	})
 
@@ -874,18 +860,15 @@ func (srv *networkServiceManager) NotifyRenamedEndpoint(nseOldName, nseNewName s
 }
 
 func (srv *networkServiceManager) closeEndpoint(ctx context.Context, cc *model.ClientConnection) error {
-	var span opentracing.Span
-	if opentracing.GlobalTracer() != nil {
-		span, ctx = opentracing.StartSpanFromContext(ctx, "nsm.closeEndpoint")
-		defer span.Finish()
-	}
-	logger := common.LogFromSpan(span)
+	span := spanhelper.FromContext(ctx, "nsm.closeEndpoint")
+	defer span.Finish()
+	logger := span.Logger()
 
 	if cc.Endpoint == nil {
 		logger.Infof("No need to close, since NSE is we know is dead at this point.")
 		return nil
 	}
-	closeCtx, closeCancel := context.WithTimeout(ctx, srv.properties.CloseTimeout)
+	closeCtx, closeCancel := context.WithTimeout(span.Context(), srv.properties.CloseTimeout)
 	defer closeCancel()
 
 	client, nseClientError := srv.nseManager.createNSEClient(closeCtx, cc.Endpoint)

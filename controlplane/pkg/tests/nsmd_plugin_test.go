@@ -40,11 +40,11 @@ func TestPluginReRegistration(t *testing.T) {
 	services := make(map[pluginsapi.PluginCapability]interface{}, 1)
 	services[pluginsapi.PluginCapability_CONNECTION] = plugin
 
-	if err := plugins.StartPlugin(pluginName, registryPath, services); err != nil {
+	if err := plugins.StartPlugin(context.Background(), pluginName, registryPath, services); err != nil {
 		t.Fatalf("Failed to start first instance of dummy plugin: %v", err)
 	}
 
-	if err := plugins.StartPlugin(pluginName, registryPath, services); err != nil {
+	if err := plugins.StartPlugin(context.Background(), pluginName, registryPath, services); err != nil {
 		t.Fatalf("Failed to start second instance of dummy plugin: %v", err)
 	}
 }

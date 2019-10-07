@@ -16,8 +16,9 @@ package vppagent
 
 import (
 	"context"
-	"os"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/empty"
@@ -26,19 +27,17 @@ import (
 	vpp_acl "github.com/ligato/vpp-agent/api/models/vpp/acl"
 	vpp_interfaces "github.com/ligato/vpp-agent/api/models/vpp/interfaces"
 	vpp_l3 "github.com/ligato/vpp-agent/api/models/vpp/l3"
-	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/status"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	remote "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/api/dataplane"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
-	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/converter"
-	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/memif"
+	sdk "github.com/networkservicemesh/networkservicemesh/dataplane/sdk/vppagent"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/vppagent/nsmonitor"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"github.com/networkservicemesh/networkservicemesh/utils"
 )
 
 // VPPAgent related constants
@@ -49,14 +48,24 @@ const (
 )
 
 type VPPAgent struct {
-	vppAgentEndpoint     string
-	metricsCollector     *MetricsCollector
-	directMemifConnector *memif.DirectMemifConnector
-	common               *common.DataplaneConfig
+	metricsCollector *MetricsCollector
+	common           *common.DataplaneConfig
 }
 
 func CreateVPPAgent() *VPPAgent {
 	return &VPPAgent{}
+}
+
+//CreateDataplaneServer creates DataplaneServer handler
+func (v *VPPAgent) CreateDataplaneServer(config *common.DataplaneConfig) dataplane.DataplaneServer {
+	return sdk.ChainOf(
+		sdk.ConnectionValidator(),
+		sdk.UseMonitor(config.Monitor),
+		sdk.DirectMemifInterfaces(config.NSMBaseDir),
+		sdk.Connect(v.endpoint()),
+		sdk.KernelInterfaces(config.NSMBaseDir),
+		sdk.ClearMechanisms(config.NSMBaseDir),
+		sdk.Commit())
 }
 
 // MonitorMechanisms sends mechanism updates
@@ -89,72 +98,6 @@ func (v *VPPAgent) MonitorMechanisms(empty *empty.Empty, updateSrv dataplane.Mec
 	}
 }
 
-func (v *VPPAgent) Request(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error) {
-	logrus.Infof("Request(ConnectRequest) called with %v", crossConnect)
-	xcon, err := v.connectOrDisconnect(ctx, crossConnect, true)
-	if err != nil {
-		return nil, err
-	}
-	v.common.Monitor.Update(xcon)
-	logrus.Infof("Request(ConnectRequest) called with %v returning: %v", crossConnect, xcon)
-	return xcon, err
-}
-
-func (v *VPPAgent) connectOrDisconnect(ctx context.Context, crossConnect *crossconnect.CrossConnect, connect bool) (*crossconnect.CrossConnect, error) {
-	if crossConnect.GetLocalSource().GetMechanism().GetType() == local.MechanismType_MEM_INTERFACE &&
-		crossConnect.GetLocalDestination().GetMechanism().GetType() == local.MechanismType_MEM_INTERFACE {
-		return v.directMemifConnector.ConnectOrDisconnect(crossConnect, connect)
-	}
-
-	// TODO look at whether keepin a single conn might be better
-	conn, err := tools.DialTCPInsecure(v.vppAgentEndpoint)
-	if err != nil {
-		logrus.Errorf("can't dial grpc server: %v", err)
-		return nil, err
-	}
-	defer conn.Close()
-	client := configurator.NewConfiguratorClient(conn)
-	conversionParameters := &converter.CrossConnectConversionParameters{
-		BaseDir: v.common.NSMBaseDir,
-	}
-	dataChange, err := converter.NewCrossConnectConverter(crossConnect, conversionParameters).ToDataRequest(nil, connect)
-	if err != nil {
-		logrus.Error(err)
-		return nil, err
-	}
-
-	if connect {
-		entity := v.common.Monitor.Entities()[crossConnect.GetId()]
-		if entity != nil {
-			clearDataChange, cErr := converter.NewCrossConnectConverter(entity.(*crossconnect.CrossConnect), conversionParameters).MechanismsToDataRequest(nil, false)
-			if cErr == nil && clearDataChange != nil {
-				logrus.Infof("Sending clearing DataChange to vppagent: %v", proto.MarshalTextString(clearDataChange))
-				_, cErr = client.Delete(ctx, &configurator.DeleteRequest{Delete: clearDataChange})
-			}
-			if cErr != nil {
-				logrus.Warnf("Connection Mechanism was not cleared properly before updating: %s", cErr.Error())
-			}
-		}
-	}
-
-	logrus.Infof("Sending DataChange to vppagent: %v", proto.MarshalTextString(dataChange))
-	if connect {
-		_, err = client.Update(ctx, &configurator.UpdateRequest{Update: dataChange})
-	} else {
-		_, err = client.Delete(ctx, &configurator.DeleteRequest{Delete: dataChange})
-	}
-
-	v.printVppAgentConfiguration(client)
-
-	if err != nil {
-		logrus.Error(err)
-		// TODO handle connection tracking
-		// TODO handle teardown of any partial config that happened
-		return crossConnect, err
-	}
-	return crossConnect, nil
-}
-
 func (v *VPPAgent) printVppAgentConfiguration(client configurator.ConfiguratorClient) {
 	dumpResult, err := client.Dump(context.Background(), &configurator.DumpRequest{})
 	if err != nil {
@@ -166,9 +109,11 @@ func (v *VPPAgent) printVppAgentConfiguration(client configurator.ConfiguratorCl
 func (v *VPPAgent) reset() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
-	tools.WaitForPortAvailable(ctx, "tcp", v.vppAgentEndpoint, 100*time.Millisecond)
-
-	conn, err := tools.DialTCPInsecure(v.vppAgentEndpoint)
+	err := tools.WaitForPortAvailable(ctx, "tcp", v.endpoint(), 100*time.Millisecond)
+	if err != nil {
+		logrus.Errorf("reset: An error during wait for port available: %v", err.Error())
+	}
+	conn, err := tools.DialTCPInsecure(v.endpoint())
 	if err != nil {
 		logrus.Errorf("can't dial grpc server: %v", err)
 		return err
@@ -187,9 +132,11 @@ func (v *VPPAgent) reset() error {
 func (v *VPPAgent) programMgmtInterface() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
-	tools.WaitForPortAvailable(ctx, "tcp", v.vppAgentEndpoint, 100*time.Millisecond)
-
-	conn, err := tools.DialTCPInsecure(v.vppAgentEndpoint)
+	err := tools.WaitForPortAvailable(ctx, "tcp", v.endpoint(), 100*time.Millisecond)
+	if err != nil {
+		logrus.Errorf("programMgmtInterface: An error during wait for port available: %v", err.Error())
+	}
+	conn, err := tools.DialTCPInsecure(v.endpoint())
 	if err != nil {
 		logrus.Errorf("can't dial grpc server: %v", err)
 		return err
@@ -285,24 +232,13 @@ func (v *VPPAgent) programMgmtInterface() error {
 	return nil
 }
 
-func (v *VPPAgent) Close(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*empty.Empty, error) {
-	logrus.Infof("vppagent.DisconnectRequest called with %#v", crossConnect)
-	xcon, err := v.connectOrDisconnect(ctx, crossConnect, false)
-	if err != nil {
-		logrus.Warn(err)
-	}
-	v.common.Monitor.Delete(xcon)
-	return &empty.Empty{}, err
-}
-
 // Init makes setup for the VPPAgent
 func (v *VPPAgent) Init(common *common.DataplaneConfig) error {
 	v.common = common
-	if tools.IsOpentracingEnabled() {
-		tracer, closer := tools.InitJaeger(v.common.Name)
-		opentracing.SetGlobalTracer(tracer)
-		defer closer.Close()
-	}
+
+	closer := jaeger.InitJaeger(v.common.Name)
+	defer func() { _ = closer.Close() }()
+
 	err := v.configureVPPAgent()
 	if err != nil {
 		logrus.Errorf("Error configuring the VPP Agent: %s", err)
@@ -316,22 +252,19 @@ func (v *VPPAgent) setupMetricsCollector() {
 		return
 	}
 	v.metricsCollector = NewMetricsCollector(v.common.MetricsPeriod)
-	v.metricsCollector.CollectAsync(v.common.Monitor, v.vppAgentEndpoint)
+	v.metricsCollector.CollectAsync(v.common.Monitor, v.endpoint())
+}
+
+func (v *VPPAgent) endpoint() string {
+	return utils.EnvVar(VPPEndpointKey).GetStringOrDefault(VPPEndpointDefault)
+
 }
 
 func (v *VPPAgent) configureVPPAgent() error {
-	var ok bool
-
-	v.vppAgentEndpoint, ok = os.LookupEnv(VPPEndpointKey)
-	if !ok {
-		logrus.Infof("%s not set, using default %s", VPPEndpointKey, VPPEndpointDefault)
-		v.vppAgentEndpoint = VPPEndpointDefault
-	}
-	logrus.Infof("vppAgentEndpoint: %s", v.vppAgentEndpoint)
-	if err := nsmonitor.CreateMonitorNetNsInodeServer(v.common.Monitor, v.vppAgentEndpoint); err != nil {
+	logrus.Infof("vppAgentEndpoint: %s", v.endpoint())
+	if err := nsmonitor.CreateMonitorNetNsInodeServer(v.common.Monitor, v.endpoint()); err != nil {
 		return err
 	}
-	v.directMemifConnector = memif.NewDirectMemifConnector(v.common.NSMBaseDir)
 	v.common.MechanismsUpdateChannel = make(chan *common.Mechanisms, 1)
 	v.common.Mechanisms = &common.Mechanisms{
 		LocalMechanisms: []*local.Mechanism{

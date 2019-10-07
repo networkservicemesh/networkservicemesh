@@ -1,6 +1,11 @@
 package monitor
 
 import (
+	"context"
+	"fmt"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
+
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
@@ -16,8 +21,8 @@ type Recipient interface {
 
 // Server is an unified interface for GRPC monitoring API server
 type Server interface {
-	Update(entity Entity)
-	Delete(entity Entity)
+	Update(ctx context.Context, entity Entity)
+	Delete(ctx context.Context, entity Entity)
 
 	AddRecipient(recipient Recipient)
 	DeleteRecipient(recipient Recipient)
@@ -49,24 +54,24 @@ func NewServer(eventFactory EventFactory) Server {
 }
 
 // Update sends EventTypeUpdate event for entity to all server recipients
-func (s *server) Update(entity Entity) {
-	s.eventCh <- s.eventFactory.NewEvent(EventTypeUpdate, map[string]Entity{entity.GetId(): entity})
+func (s *server) Update(ctx context.Context, entity Entity) {
+	s.eventCh <- s.eventFactory.NewEvent(ctx, EventTypeUpdate, map[string]Entity{entity.GetId(): entity})
 }
 
 // Delete sends EventTypeDelete event for entity to all server recipients
-func (s *server) Delete(entity Entity) {
-	s.eventCh <- s.eventFactory.NewEvent(EventTypeDelete, map[string]Entity{entity.GetId(): entity})
+func (s *server) Delete(ctx context.Context, entity Entity) {
+	s.eventCh <- s.eventFactory.NewEvent(ctx, EventTypeDelete, map[string]Entity{entity.GetId(): entity})
 }
 
 // AddRecipient adds server recipient
 func (s *server) AddRecipient(recipient Recipient) {
-	logrus.Infof("MonitorServerImpl.AddRecipient: %v", recipient)
+	logrus.Infof("MonitorServerImpl.AddRecipient: %v-%v", s.eventFactory.FactoryName(), recipient)
 	s.newMonitorRecipientCh <- recipient
 }
 
 // DeleteRecipient deletes server recipient
 func (s *server) DeleteRecipient(recipient Recipient) {
-	logrus.Infof("MonitorServerImpl.DeleteRecipient: %v", recipient)
+	logrus.Infof("MonitorServerImpl.DeleteRecipient: %v-%v", s.eventFactory.FactoryName(), recipient)
 	s.closedMonitorRecipientCh <- recipient
 }
 
@@ -86,11 +91,11 @@ func (s *server) SendAll(event Event) {
 
 // Serve starts a main loop for server
 func (s *server) Serve() {
-	logrus.Infof("Serve starting...")
+	logrus.Infof("%v - Serve starting...", s.eventFactory.FactoryName())
 	for {
 		select {
 		case newRecipient := <-s.newMonitorRecipientCh:
-			initialStateTransferEvent := s.eventFactory.NewEvent(EventTypeInitialStateTransfer, s.entities)
+			initialStateTransferEvent := s.eventFactory.NewEvent(context.Background(), EventTypeInitialStateTransfer, s.entities)
 			s.send(initialStateTransferEvent, newRecipient)
 			s.recipients = append(s.recipients, newRecipient)
 		case closedRecipient := <-s.closedMonitorRecipientCh:
@@ -101,18 +106,29 @@ func (s *server) Serve() {
 				}
 			}
 		case event := <-s.eventCh:
-			logrus.Infof("New event: %v", event)
+			logrus.Infof("%v-New event: %v", s.eventFactory.FactoryName(), event)
 			for _, entity := range event.Entities() {
 				if event.EventType() == EventTypeUpdate {
+					s.sendTrace(event, fmt.Sprintf("%v-send-update", s.eventFactory.FactoryName()))
 					s.entities[entity.GetId()] = entity
 				}
 				if event.EventType() == EventTypeDelete {
+					s.sendTrace(event, fmt.Sprintf("%v-send-delete", s.eventFactory.FactoryName()))
 					delete(s.entities, entity.GetId())
 				}
 			}
 			s.SendAll(event)
 		}
 	}
+}
+
+func (s *server) sendTrace(event Event, operation string) {
+	span := spanhelper.FromContext(event.Context(), operation)
+	defer span.Finish()
+	span.LogObject("eventType", event.EventType())
+	msg, err := event.Message()
+	span.LogObject("msg", msg)
+	span.LogError(err)
 }
 
 // Entities returns server entities

@@ -1,6 +1,10 @@
 package registryserver
 
 import (
+	"context"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
+
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 
@@ -14,8 +18,11 @@ import (
 	nsmClientset "github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
 )
 
-func New(clientset *nsmClientset.Clientset, nsmName string) *grpc.Server {
-	server := tools.NewServer()
+// New - construct a registration server
+func New(ctx context.Context, clientset *nsmClientset.Clientset, nsmName string) *grpc.Server {
+	span := spanhelper.FromContext(ctx, "K8SServer.New")
+	defer span.Finish()
+	server := tools.NewServer(span.Context())
 
 	cache := NewRegistryCache(clientset, &ResourceFilterConfig{
 		NetworkServiceManagerPolicy: resourcecache.FilterByNamespacePolicy(namespace.GetNamespace(), func(resource interface{}) string {

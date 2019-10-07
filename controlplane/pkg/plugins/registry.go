@@ -7,6 +7,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
+
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -48,6 +50,8 @@ func NewPluginRegistry(socketPath string) PluginRegistry {
 }
 
 func (pr *pluginRegistry) Start(ctx context.Context) error {
+	span := spanhelper.FromContext(ctx, "StartPluginRegistry")
+	defer span.Finish()
 	if err := tools.SocketCleanup(pr.registrySocket); err != nil {
 		return err
 	}
@@ -57,7 +61,7 @@ func (pr *pluginRegistry) Start(ctx context.Context) error {
 		return err
 	}
 
-	server := tools.NewServer()
+	server := tools.NewServer(span.Context())
 	plugins.RegisterPluginRegistryServer(server, pr)
 
 	go func() {

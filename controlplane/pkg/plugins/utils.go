@@ -7,6 +7,8 @@ import (
 	"path"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
+
 	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/plugins"
@@ -18,10 +20,21 @@ const (
 )
 
 // StartPlugin creates an instance of a plugin and registers it
-func StartPlugin(name, registry string, services map[plugins.PluginCapability]interface{}) error {
+func StartPlugin(ctx context.Context, name, registry string, services map[plugins.PluginCapability]interface{}) error {
+	span := spanhelper.FromContext(ctx, fmt.Sprintf("StartPlugin-%v", name))
+	defer span.Finish()
+
 	registryDir := path.Dir(registry) // create plugin's socket in the same directory as the registry
 	endpoint := path.Join(registryDir, name+".sock")
+
+	span.LogObject("registry", registry)
+	span.LogObject("services", services)
+	span.LogObject("endpoint", endpoint)
+	span.LogObject("registry", registry)
+	span.LogObject("registryDir", registryDir)
+
 	if err := tools.SocketCleanup(endpoint); err != nil {
+		span.LogError(err)
 		return err
 	}
 
@@ -29,25 +42,28 @@ func StartPlugin(name, registry string, services map[plugins.PluginCapability]in
 	for capability := range services {
 		capabilities = append(capabilities, capability)
 	}
+	span.LogObject("capabilities", capabilities)
 
-	if err := createPlugin(name, endpoint, services); err != nil {
+	if err := createPlugin(span.Context(), name, endpoint, services); err != nil {
+		span.LogError(err)
 		return err
 	}
 
-	if err := registerPlugin(name, endpoint, registry, capabilities); err != nil {
+	if err := registerPlugin(span.Context(), name, endpoint, registry, capabilities); err != nil {
+		span.LogError(err)
 		return err
 	}
 
 	return nil
 }
 
-func createPlugin(name, endpoint string, services map[plugins.PluginCapability]interface{}) error {
+func createPlugin(ctx context.Context, name, endpoint string, services map[plugins.PluginCapability]interface{}) error {
 	sock, err := net.Listen("unix", endpoint)
 	if err != nil {
 		return err
 	}
 
-	server := tools.NewServer()
+	server := tools.NewServer(ctx)
 
 	for capability, service := range services {
 		switch capability {
@@ -71,9 +87,11 @@ func createPlugin(name, endpoint string, services map[plugins.PluginCapability]i
 	return nil
 }
 
-func registerPlugin(name, endpoint, registry string, capabilities []plugins.PluginCapability) error {
-	_ = tools.WaitForPortAvailable(context.Background(), "unix", registry, 100*time.Millisecond)
-	conn, err := tools.DialUnix(registry)
+func registerPlugin(ctx context.Context, name, endpoint, registry string, capabilities []plugins.PluginCapability) error {
+	span := spanhelper.FromContext(ctx, "register-plugin")
+	defer span.Finish()
+	_ = tools.WaitForPortAvailable(span.Context(), "unix", registry, 100*time.Millisecond)
+	conn, err := tools.DialContextUnix(span.Context(), registry)
 	if err != nil {
 		return fmt.Errorf("cannot connect to the Plugin Registry: %v", err)
 	}
