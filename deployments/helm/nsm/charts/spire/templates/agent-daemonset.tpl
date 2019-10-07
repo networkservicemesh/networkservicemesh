@@ -37,6 +37,9 @@ spec:
             - name: spire-agent-socket
               mountPath: /run/spire/sockets
               readOnly: false
+            - name: spire-bundle
+              mountPath: /run/spire/bundle
+              readOnly: true
           livenessProbe:
             exec:
               command:
@@ -51,6 +54,9 @@ spec:
         - name: spire-config
           configMap:
             name: spire-agent
+        - name: spire-bundle
+          configMap:
+            name: spire-bundle
         - name: spire-agent-socket
           hostPath:
             path: /run/spire/sockets
