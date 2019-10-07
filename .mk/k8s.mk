@@ -176,6 +176,13 @@ k8s-nsmgr-master-tlogs:
 k8s-nsmgr-worker-tlogs:
 	@$(kubectl) logs -f $$($(kubectl) get pods -o wide | grep kube-worker | grep nsmgr | cut -d\  -f1) -c nsmd
 
+.PHONY: k8s-nsmgr-build
+k8s-nsmgr-build: $(addsuffix -build, $(addprefix docker-, nsmd nsmd-k8s nsmdp))
+
+.PHONY: k8s-nsmgr-save
+k8s-nsmgr-save: $(addsuffix -save, $(addprefix docker-, nsmd nsmd-k8s nsmdp))
+
+
 
 
 
