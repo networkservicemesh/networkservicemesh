@@ -31,9 +31,6 @@ spec:
             - name: spire-entries
               mountPath: /run/spire/entries
               readOnly: true
-            - name: spire-secrets
-              mountPath: /run/spire/secrets
-              readOnly: true
             - name: spire-data
               mountPath: /run/spire/data
               readOnly: false
@@ -51,9 +48,6 @@ spec:
         - name: spire-entries
           configMap:
             name: spire-entries
-        - name: spire-secrets
-          secret:
-            secretName: spire-server
         - name: spire-data
           hostPath:
             path: /var/spire-data
