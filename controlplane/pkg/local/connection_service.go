@@ -43,10 +43,9 @@ func NewConnectionService(model model.Model) networkservice.NetworkServiceServer
 }
 
 func (cce *connectionService) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
-	logger := common.Log(ctx)
-	logger.Infof("Received request from client to connect to NetworkService: %v", request)
-
 	span := spanhelper.GetSpanHelper(ctx)
+	span.Logger().Infof("Received request from client to connect to NetworkService: %v", request)
+
 	workspaceName := common.WorkspaceName(ctx)
 
 	id := request.GetRequestConnection().GetId()
@@ -55,6 +54,9 @@ func (cce *connectionService) Request(ctx context.Context, request *networkservi
 
 	// We need to take updated connection in case of updates
 	clientConnection := common.ModelConnection(ctx) // Case only for Healing.
+
+	// If healing, we should not remove connection from model
+	healing := clientConnection != nil
 	if clientConnection == nil {
 		clientConnection = cce.model.GetClientConnection(id)
 	} else if cce.model.GetClientConnection(id) == nil {
@@ -64,16 +66,14 @@ func (cce *connectionService) Request(ctx context.Context, request *networkservi
 	}
 	if clientConnection != nil {
 		// If one of in progress states, we need to exit with failure, since operation on this connection are in progress already.
-		if clientConnection.ConnectionState == model.ClientConnectionRequesting ||
-			clientConnection.ConnectionState == model.ClientConnectionHealing ||
-			clientConnection.ConnectionState == model.ClientConnectionClosing {
+		if cce.isConnectionInProgress(clientConnection) {
 			err := fmt.Errorf("trying to request connection in bad state")
 			span.LogError(err)
 			return nil, err
 		}
 
 		request.Connection.SetID(clientConnection.GetID())
-		clientConnection = cce.updateClientConnection(ctx, logger, id, clientConnection)
+		clientConnection = cce.updateClientConnection(ctx, span.Logger(), id, clientConnection)
 	} else {
 		// Assign ID to connection
 		request.Connection.SetID(cce.model.ConnectionID())
@@ -88,8 +88,11 @@ func (cce *connectionService) Request(ctx context.Context, request *networkservi
 
 	conn, err := ProcessNext(ctx, request)
 	if err != nil {
-		// In case of error we need to remove it from model
-		cce.model.DeleteClientConnection(ctx, clientConnection.GetID())
+		if !healing {
+			// In case of error we need to remove it from model
+			cce.model.DeleteClientConnection(ctx, clientConnection.GetID())
+		}
+		span.Logger().Infof("Do not close connection since healing")
 		return conn, err
 	}
 
@@ -100,6 +103,12 @@ func (cce *connectionService) Request(ctx context.Context, request *networkservi
 	cce.model.UpdateClientConnection(ctx, clientConnection)
 
 	return conn, err
+}
+
+func (cce *connectionService) isConnectionInProgress(clientConnection *model.ClientConnection) bool {
+	return clientConnection.ConnectionState == model.ClientConnectionRequesting ||
+		clientConnection.ConnectionState == model.ClientConnectionHealing ||
+		clientConnection.ConnectionState == model.ClientConnectionClosing
 }
 
 func (cce *connectionService) updateClientConnection(ctx context.Context, logger logrus.FieldLogger, id string, clientConnection *model.ClientConnection) *model.ClientConnection {
