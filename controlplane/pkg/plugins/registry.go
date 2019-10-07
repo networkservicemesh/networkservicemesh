@@ -38,7 +38,6 @@ type pluginRegistry struct {
 	connections             sync.Map
 	connectionPluginManager ConnectionPluginManager
 	registrySocket          string
-	ctx                     context.Context
 }
 
 // NewPluginRegistry creates an instance of PluginRegistry
@@ -53,7 +52,6 @@ func NewPluginRegistry(socketPath string) PluginRegistry {
 func (pr *pluginRegistry) Start(ctx context.Context) error {
 	span := spanhelper.FromContext(ctx, "Plugin.Registry.Start")
 	defer span.Finish()
-	pr.ctx = ctx
 	if err := tools.SocketCleanup(pr.registrySocket); err != nil {
 		return err
 	}

@@ -47,6 +47,7 @@ func main() {
 	if !ok {
 		span.Logger().Fatalf("You must set env variable NODE_NAME to match the name of your Node.  See https://kubernetes.io/docs/tasks/inject-data-application/environment-variable-expose-pod-information/")
 	}
+	span.LogValue("NODE_NAME", nsmName)
 	span.Logger().Println("Starting NSMD Kubernetes on " + address + " with NsmName " + nsmName)
 
 	nsmClientSet, config, err := utils.NewClientSet()
@@ -84,6 +85,5 @@ func main() {
 	}
 
 	span.Finish()
-
 	<-c
 }

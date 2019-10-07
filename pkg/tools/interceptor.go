@@ -2,7 +2,10 @@ package tools
 
 import (
 	"context"
+	"fmt"
 	"reflect"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	"github.com/gogo/protobuf/proto"
 	"google.golang.org/grpc"
@@ -30,8 +33,11 @@ func CloneArgsClientInterceptor(uci grpc.UnaryClientInterceptor) grpc.UnaryClien
 		invoker grpc.UnaryInvoker,
 		opts ...grpc.CallOption,
 	) error {
+		span := spanhelper.GetSpanHelper(ctx)
 		replyPtr := allocate(dereferenceType(reply))
-		err := uci(ctx, method, proto.Clone(req.(proto.Message)), replyPtr, cc, invoker, opts...)
+		reqCopy := proto.Clone(req.(proto.Message))
+		span.LogObject(fmt.Sprintf("%v()", method), reqCopy)
+		err := uci(ctx, method, reqCopy, replyPtr, cc, invoker, opts...)
 		memset(reply, replyPtr.(proto.Message))
 		return err
 	}

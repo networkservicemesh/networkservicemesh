@@ -41,6 +41,7 @@ func main() {
 	defer func() { _ = closer.Close() }()
 
 	span := spanhelper.FromContext(context.Background(), "NSMgr.Device.Plugin")
+	
 	serviceRegistry := nsmd.NewServiceRegistry()
 	span.LogObject("registry.at", serviceRegistry.GetPublicAPI())
 	defer span.Finish()

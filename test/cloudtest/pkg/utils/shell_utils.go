@@ -191,11 +191,10 @@ func RunCommand(context context.Context, cmd, dir string, logger func(str string
 	builder := strings.Builder{}
 	var wg sync.WaitGroup
 	wg.Add(2)
-
 	processOutput(proc.Stdout, writer, logger, "StdOut", &builder, returnStdout, &wg)
 	processOutput(proc.Stderr, writer, logger, "StdErr", nil, false, &wg)
-	code := proc.ExitCode()
 	wg.Wait()
+	code := proc.ExitCode()
 	if code != 0 {
 		return "", fmt.Errorf("failed to run %v ExitCode: %v", finalCmd, code)
 	}

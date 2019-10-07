@@ -37,9 +37,9 @@ import (
 )
 
 type NSMDataplane interface {
-	dataplane.DataplaneServer
 	dataplane.MechanismsMonitorServer
 	Init(*DataplaneConfig) error
+	CreateDataplaneServer(*DataplaneConfig) dataplane.DataplaneServer
 }
 
 // TODO Convert all the defaults to properly use NsmBaseDir
@@ -218,7 +218,8 @@ func CreateDataplane(ctx context.Context, dp NSMDataplane, dataplaneGoals *Datap
 	} else {
 		dataplaneGoals.SetSocketListenReady()
 	}
-	dataplane.RegisterDataplaneServer(config.GRPCserver, dp)
+
+	dataplane.RegisterDataplaneServer(config.GRPCserver, dp.CreateDataplaneServer(config))
 	dataplane.RegisterMechanismsMonitorServer(config.GRPCserver, dp)
 
 	// Start the server
@@ -257,9 +258,6 @@ func SanityCheckConnectionType(mechanisms *Mechanisms, crossConnect *crossconnec
 			break
 		}
 	}
-	if !localFound {
-		return fmt.Errorf("connection type not supported by the forwarding plane - local")
-	}
 	/* Verify remote mechanisms */
 	for _, mech := range mechanisms.RemoteMechanisms {
 		if crossConnect.GetRemoteSource().GetMechanism().GetType() == mech.GetType() || crossConnect.GetRemoteDestination().GetMechanism().GetType() == mech.GetType() {
@@ -267,8 +265,9 @@ func SanityCheckConnectionType(mechanisms *Mechanisms, crossConnect *crossconnec
 			break
 		}
 	}
-	if !remoteFound {
-		return fmt.Errorf("connection type not supported by the forwarding plane - remote")
+	/* If none of them matched, mechanism is not supported by the forwarding plane */
+	if !localFound && !remoteFound {
+		return fmt.Errorf("connection mechanism type not supported by the forwarding plane")
 	}
 	return nil
 }

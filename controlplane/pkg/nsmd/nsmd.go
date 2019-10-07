@@ -19,6 +19,9 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 
+	"github.com/networkservicemesh/networkservicemesh/pkg/probes"
+	"github.com/networkservicemesh/networkservicemesh/pkg/probes/health"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsmdapi"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
@@ -143,8 +146,7 @@ func (nsm *nsmServer) RequestClientConnection(ctx context.Context, request *nsmd
 		NsmServerSocket: workspace.locationProvider.NsmServerSocket(),
 		NsmClientSocket: workspace.locationProvider.NsmClientSocket(),
 	}
-	span.LogObject("reply", reply)
-	span.Logger().Infof("returning ClientConnectionReply: %+v")
+	span.LogObject("ClientConnectionReply", reply)
 	return reply, nil
 }
 
@@ -525,11 +527,12 @@ func (nsm *nsmServer) StartDataplaneRegistratorServer(ctx context.Context) error
 func setLocalNSM(ctx context.Context, model model.Model, serviceRegistry serviceregistry.ServiceRegistry) (*registry.NetworkServiceEndpointList, error) {
 	span := spanhelper.FromContext(ctx, "set-local-nsm")
 	defer span.Finish()
-	client, err := serviceRegistry.NsmRegistryClient()
+	client, err := serviceRegistry.NsmRegistryClient(span.Context())
 	if err != nil {
 		err = fmt.Errorf("failed to get RegistryClient: %s", err)
 		return nil, err
 	}
+	span.LogValue("url", serviceRegistry.GetPublicAPI())
 
 	nsm, err := client.RegisterNSM(span.Context(), &registry.NetworkServiceManager{
 		Url: serviceRegistry.GetPublicAPI(),

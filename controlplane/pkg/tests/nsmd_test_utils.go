@@ -371,7 +371,7 @@ func (impl *nsmdTestServiceRegistry) NseRegistryClient(context.Context) (registr
 	return impl.nseRegistry, nil
 }
 
-func (impl *nsmdTestServiceRegistry) NsmRegistryClient() (registry.NsmRegistryClient, error) {
+func (impl *nsmdTestServiceRegistry) NsmRegistryClient(context.Context) (registry.NsmRegistryClient, error) {
 	return impl.nseRegistry, nil
 }
 

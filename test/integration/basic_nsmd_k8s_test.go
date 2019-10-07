@@ -161,7 +161,7 @@ func TestUpdateNSM(t *testing.T) {
 	nseRegistryClient, err := serviceRegistry.NseRegistryClient(context.Background())
 	g.Expect(err).To(BeNil())
 
-	nsmRegistryClient, err := serviceRegistry.NsmRegistryClient()
+	nsmRegistryClient, err := serviceRegistry.NsmRegistryClient(context.Background())
 	g.Expect(err).To(BeNil())
 
 	networkService := "icmp-responder"
@@ -358,7 +358,7 @@ func TestLostUpdate(t *testing.T) {
 
 	sr1, closeFunc := kubetest.ServiceRegistryAt(k8s, nsmgr1)
 
-	nsmRegistryClient, err := sr1.NsmRegistryClient()
+	nsmRegistryClient, err := sr1.NsmRegistryClient(context.Background())
 	g.Expect(err).To(BeNil())
 
 	discovery, err := sr1.DiscoveryClient(context.Background())
@@ -397,7 +397,8 @@ func TestLostUpdate(t *testing.T) {
 	sr2, closeFunc2 := kubetest.ServiceRegistryAt(k8s, nsmgr2)
 	defer closeFunc2()
 
-	discovery2, err := sr2.DiscoveryClient(nil)
+	discovery2, err := sr2.DiscoveryClient(context.Background())
+
 	g.Expect(err).To(BeNil())
 
 	nseRegistryClient2, err := sr2.NseRegistryClient(context.Background())
@@ -434,7 +435,7 @@ func TestRegistryConcurrentModification(t *testing.T) {
 	sr1, closeFunc := kubetest.ServiceRegistryAt(k8s, nsmgr1)
 	defer closeFunc()
 
-	nsmRegistryClient, err := sr1.NsmRegistryClient()
+	nsmRegistryClient, err := sr1.NsmRegistryClient(context.Background())
 	g.Expect(err).To(BeNil())
 
 	n := 30

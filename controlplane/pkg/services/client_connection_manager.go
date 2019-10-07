@@ -55,7 +55,6 @@ func (m *ClientConnectionManager) GetNsmName() string {
 
 // UpdateXcon handles case when xcon has been changed for NSMClientConnection
 func (m *ClientConnectionManager) UpdateXcon(ctx context.Context, cc nsm.ClientConnection, newXcon *crossconnect.CrossConnect) {
-
 	span := spanhelper.FromContext(ctx, "UpdateXcon")
 	defer span.Finish()
 	ctx = span.Context()

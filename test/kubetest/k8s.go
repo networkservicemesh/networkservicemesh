@@ -9,10 +9,13 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
 
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
@@ -263,6 +266,7 @@ func blockUntilPodWorking(client kubernetes.Interface, context context.Context, 
 type K8s struct {
 	clientset          kubernetes.Interface
 	versionedClientSet *versioned.Clientset
+	podLock            sync.Mutex
 	pods               []*v1.Pod
 	config             *rest.Config
 	roles              []nsmrbac.Role
@@ -280,29 +284,30 @@ type spanRecord struct {
 }
 
 func (k8s *K8s) reportSpans() {
-	if os.Getenv("TRACER_ENABLED") == "true" {
-		logrus.Infof("Finding spans")
-		// We need to find all Reporting span and print uniq to console for analysis.
-		pods := k8s.ListPods()
-		spans := map[string]*spanRecord{}
-		for i := 0; i < len(pods); i++ {
-			pod := pods[i]
-			for ci := 0; ci < len(pod.Spec.Containers); ci++ {
-				c := pod.Spec.Containers[ci]
-				k8s.findSpans(&pods[i], c, spans)
-			}
-			for ci := 0; ci < len(pod.Spec.InitContainers); ci++ {
-				c := pod.Spec.Containers[ci]
-				k8s.findSpans(&pods[i], c, spans)
-			}
+	if !jaeger.IsOpentracingEnabled() {
+		return
+	}
+	logrus.Infof("Finding spans")
+	// We need to find all Reporting span and print uniq to console for analysis.
+	pods := k8s.ListPods()
+	spans := map[string]*spanRecord{}
+	for i := 0; i < len(pods); i++ {
+		pod := pods[i]
+		for ci := 0; ci < len(pod.Spec.Containers); ci++ {
+			c := pod.Spec.Containers[ci]
+			k8s.findSpans(&pods[i], c, spans)
 		}
-		for spanID, span := range spans {
-			keys := []string{}
-			for k := range span.spanPod {
-				keys = append(keys, k)
-			}
-			logrus.Infof("Span %v pods: %v", spanID, keys)
+		for ci := 0; ci < len(pod.Spec.InitContainers); ci++ {
+			c := pod.Spec.Containers[ci]
+			k8s.findSpans(&pods[i], c, spans)
 		}
+	}
+	for spanID, span := range spans {
+		keys := []string{}
+		for k := range span.spanPod {
+			keys = append(keys, k)
+		}
+		logrus.Infof("Span %v pods: %v", spanID, keys)
 	}
 }
 
@@ -627,6 +632,15 @@ func (k8s *K8s) Cleanup() {
 	st := time.Now()
 
 	k8s.reportSpans()
+	k8s.cleanups()
+
+	logrus.Infof("Cleanup time: %v", time.Since(st))
+}
+
+func (k8s *K8s) cleanups() {
+	if os.Getenv("KUBETEST_NO_CLEANUP") == "true" {
+		return
+	}
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
@@ -666,21 +680,21 @@ func (k8s *K8s) Cleanup() {
 	wg.Wait()
 	k8s.pods = nil
 	_ = k8s.DeleteTestNamespace(k8s.namespace)
-
-	logrus.Infof("Cleanup time: %v", time.Since(st))
 }
 
 // Prepare prepares the pods
 func (k8s *K8s) Prepare(noPods ...string) {
+	pods := k8s.ListPods()
+	podsList := []*v1.Pod{}
 	for _, podName := range noPods {
-		pods := k8s.ListPods()
 		for i := range pods {
 			lpod := &pods[i]
 			if strings.Contains(lpod.Name, podName) {
-				k8s.DeletePods(lpod)
+				podsList = append(podsList, lpod)
 			}
 		}
 	}
+	k8s.DeletePods(podsList...)
 }
 
 // CreatePods create pods
@@ -709,6 +723,8 @@ func (k8s *K8s) CreatePodsRaw(timeout time.Duration, failTest bool, templates ..
 			}
 		}
 	}
+	k8s.podLock.Lock()
+	defer k8s.podLock.Unlock()
 	k8s.pods = append(k8s.pods, pods...)
 
 	// Make sure unit test is failed
@@ -743,6 +759,8 @@ func (k8s *K8s) DeletePods(pods ...*v1.Pod) {
 	err := k8s.deletePods(pods...)
 	k8s.g.Expect(err).To(BeNil())
 
+	k8s.podLock.Lock()
+	defer k8s.podLock.Unlock()
 	for _, pod := range pods {
 		for idx, pod0 := range k8s.pods {
 			if pod.Name == pod0.Name {
@@ -757,6 +775,8 @@ func (k8s *K8s) DeletePodsForce(pods ...*v1.Pod) {
 	err := k8s.deletePodsForce(pods...)
 	k8s.g.Expect(err).To(BeNil())
 
+	k8s.podLock.Lock()
+	defer k8s.podLock.Unlock()
 	for _, pod := range pods {
 		for idx, pod0 := range k8s.pods {
 			if pod.Name == pod0.Name {
@@ -776,7 +796,7 @@ func (k8s *K8s) GetLogsChannel(ctx context.Context, pod *v1.Pod, options *v1.Pod
 
 		reader, err := k8s.clientset.CoreV1().Pods(k8s.namespace).GetLogs(pod.Name, options).Stream()
 		if err != nil {
-			logrus.Errorf("Failed to get logs from %v", pod.Name)
+			logrus.Errorf("Failed to get logs from %v err: %v", pod.Name, err)
 			errChan <- err
 			return
 		}
@@ -853,6 +873,21 @@ func (k8s *K8s) WaitLogsContainsRegex(pod *v1.Pod, container, pattern string, ti
 	return nil
 }
 
+//GetFullLogs - return full logs
+func (k8s *K8s) GetFullLogs(pod *v1.Pod, container string, previous bool) (string, error) {
+	getLogsOpt := &v1.PodLogOptions{}
+	if len(container) > 0 {
+		getLogsOpt.Container = container
+		getLogsOpt.Previous = previous
+	}
+	response := k8s.clientset.CoreV1().Pods(k8s.namespace).GetLogs(pod.Name, getLogsOpt)
+	result, error := response.DoRaw()
+	if error != nil {
+		return "", error
+	}
+	return fmt.Sprintf("%s", result), nil
+}
+
 func (k8s *K8s) waitLogsMatch(ctx context.Context, pod *v1.Pod, container string, matcher func(string) bool, description string) {
 	options := &v1.PodLogOptions{
 		Container: container,
@@ -866,9 +901,18 @@ func (k8s *K8s) waitLogsMatch(ctx context.Context, pod *v1.Pod, container string
 			if err != nil {
 				logrus.Warnf("Error on get logs: %v retrying", err)
 			} else {
-				logrus.Warnf("Reached end of logs for %v::%v", pod.GetName(), container)
-				logrus.Errorf("%v Last logs: %v", description, builder.String())
-				k8s.g.Expect(false).To(BeTrue())
+				logrus.Warnf("Stream closed retrying %v::%v", pod.GetName(), container)
+				fullLogs, err := k8s.GetFullLogs(pod, container, false)
+				if err != nil {
+					logrus.Errorf("Failed to retrieve full logs %v %v", pod.GetName(), err)
+				} else {
+					if matcher(fullLogs) {
+						return
+					}
+					logrus.Errorf("%v Last logs: %v\n Full Logs: %v", description, builder.String(), fullLogs)
+					logrus.Errorf("Stack: %v", debug.Stack())
+					k8s.g.Expect(false).To(BeTrue())
+				}
 			}
 			<-time.After(100 * time.Millisecond)
 			linesChan, errChan = k8s.GetLogsChannel(ctx, pod, options)

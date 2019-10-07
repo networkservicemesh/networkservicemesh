@@ -56,7 +56,7 @@ Load the images on the Vagrant Machines.
 
 ```bash
 make k8s-load-images
-````
+```
 
 The core Network Service Mesh infrastructure is deployed via Helm with the following command:
 
@@ -98,7 +98,7 @@ helm-install-nsm-monitoring
 
 When deployed successfully two `skydive-agent`, one `skydive-analyzer`, one `crossconnect-monitor` and one `jaeger` pod will be running in the nsm-system namespace.
 
-````bash 
+```bash 
 kubectl get pods -n nsm-system 
 
 NAME                                     READY   STATUS    RESTARTS   AGE

@@ -44,7 +44,7 @@ func StartPlugin(ctx context.Context, name, registry string, services map[plugin
 	}
 	span.LogObject("capabilities", capabilities)
 
-	if err := createPlugin(name, endpoint, services); err != nil {
+	if err := createPlugin(span.Context(), name, endpoint, services); err != nil {
 		span.LogError(err)
 		return err
 	}
@@ -57,13 +57,13 @@ func StartPlugin(ctx context.Context, name, registry string, services map[plugin
 	return nil
 }
 
-func createPlugin(name, endpoint string, services map[plugins.PluginCapability]interface{}) error {
+func createPlugin(ctx context.Context, name, endpoint string, services map[plugins.PluginCapability]interface{}) error {
 	sock, err := net.Listen("unix", endpoint)
 	if err != nil {
 		return err
 	}
 
-	server := tools.NewServer(context.Background())
+	server := tools.NewServer(ctx)
 
 	for capability, service := range services {
 		switch capability {

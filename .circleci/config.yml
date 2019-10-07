@@ -1,6 +1,19 @@
 ---
 version: 2.1
 
+commands:
+  skip_on_pattern:
+    description: "Skips running job if the only files in the change match the pattern"
+    parameters:
+      branch:
+        type: string
+        default: origin/master
+    steps:
+      - run:
+          name: "Skips running job if the only files in the change match the pattern"
+          command: |
+            ./.circleci/skip_job_on_pattern.sh << parameters.branch >>
+
 jobs:
 
 # sanity
@@ -12,10 +25,16 @@ jobs:
     steps:
       - checkout
       - run:
+          name: Install Shellcheck
+          command: ./.circleci/install-shellcheck.sh
+      - run:
+          name: Run Shellcheck
+          command: make check
+      - skip_on_pattern
+      - run:
           command: |
             sudo apt-get install python-pip python3-pkg-resources
             pip install --user yamllint
-            ./.circleci/install-shellcheck.sh
       - run: yamllint -c .yamllint.yml --strict .
       - run: go version
       - run:
@@ -31,7 +50,7 @@ jobs:
       - run: ./scripts/prepare-generate.sh
       - run: sudo ./scripts/install-protoc.sh
       - run: ./scripts/for-each-module.sh "go generate ./..."
-      - run: make vet check
+      - run: make vet
       - run: ./scripts/for-each-module.sh "go build ./..."
       - run: ./scripts/check_dependencies.sh
       - run:
@@ -63,6 +82,7 @@ jobs:
       - image: circleci/golang:1.13-stretch
     steps:
       - checkout
+      - skip_on_pattern
       - run:
           name: lint
           command: |
@@ -80,6 +100,7 @@ jobs:
       - checkout
       - setup_remote_docker:
           docker_layer_caching: true
+      - skip_on_pattern
       - run:
           command: |
             sudo ./.circleci/install-yq.sh
@@ -150,6 +171,7 @@ jobs:
       - image: circleci/golang:1.13-stretch
     steps:
       - checkout
+      - skip_on_pattern
       - setup_remote_docker:
           docker_layer_caching: true
       - run:
@@ -207,6 +229,9 @@ jobs:
       - image: quay.io/helmpack/chart-testing:v2.3.0
     steps:
       - checkout
+      - run:
+          name: Check for only Doc Changes
+          command: circleci-agent step halt
       - run:
           name: Install and lint Helm charts
           command: |

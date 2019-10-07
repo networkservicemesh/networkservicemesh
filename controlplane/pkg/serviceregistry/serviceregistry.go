@@ -30,7 +30,7 @@ type ServiceRegistry interface {
 
 	DiscoveryClient(ctx context.Context) (registry.NetworkServiceDiscoveryClient, error)
 	NseRegistryClient(ctx context.Context) (registry.NetworkServiceRegistryClient, error)
-	NsmRegistryClient() (registry.NsmRegistryClient, error)
+	NsmRegistryClient(ctx context.Context) (registry.NsmRegistryClient, error)
 
 	Stop()
 	NSMDApiClient(ctx context.Context) (nsmdapi.NSMDClient, *grpc.ClientConn, error)

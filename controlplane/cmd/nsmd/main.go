@@ -56,6 +56,8 @@ func main() {
 		return
 	}
 
+	span.Logger().Infof("Plugins started")
+
 	defer func() {
 		if err := pluginRegistry.Stop(); err != nil {
 			logrus.Errorf("Failed to stop Plugin Registry: %v", err)

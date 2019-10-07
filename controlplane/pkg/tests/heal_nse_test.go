@@ -4,6 +4,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
+
 	. "github.com/onsi/gomega"
 	"golang.org/x/net/context"
 

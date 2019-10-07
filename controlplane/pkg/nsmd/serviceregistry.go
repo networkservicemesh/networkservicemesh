@@ -121,19 +121,19 @@ func (impl *nsmdServiceRegistry) NseRegistryClient(context.Context) (registry.Ne
 
 	logrus.Info("Requesting NseRegistryClient...")
 
-	impl.initRegistryClient()
+	impl.initRegistryClient(ctx)
 	if impl.registryClientConnection != nil {
 		return registry.NewNetworkServiceRegistryClient(impl.registryClientConnection), nil
 	}
 	return nil, fmt.Errorf("Connection to Network Registry Server is not available")
 }
 
-func (impl *nsmdServiceRegistry) NsmRegistryClient() (registry.NsmRegistryClient, error) {
+func (impl *nsmdServiceRegistry) NsmRegistryClient(ctx context.Context) (registry.NsmRegistryClient, error) {
 	impl.RWMutex.Lock()
 	defer impl.RWMutex.Unlock()
-
-	logrus.Info("Requesting NsmRegistryClient...")
-	impl.initRegistryClient()
+	span := spanhelper.GetSpanHelper(ctx)
+	span.Logger().Info("Requesting NsmRegistryClient...")
+	impl.initRegistryClient(ctx)
 	if impl.registryClientConnection != nil {
 		return registry.NewNsmRegistryClient(impl.registryClientConnection), nil
 	}
@@ -150,32 +150,42 @@ func (impl *nsmdServiceRegistry) DiscoveryClient(context.Context) (registry.Netw
 
 	logrus.Info("Requesting NetworkServiceDiscoveryClient...")
 
-	impl.initRegistryClient()
+	impl.initRegistryClient(ctx)
 	if impl.registryClientConnection != nil {
 		return registry.NewNetworkServiceDiscoveryClient(impl.registryClientConnection), nil
 	}
 	return nil, fmt.Errorf("Connection to Network Registry Server is not available")
 }
 
-func (impl *nsmdServiceRegistry) initRegistryClient() {
+func (impl *nsmdServiceRegistry) initRegistryClient(ctx context.Context) {
+
 	if impl.registryClientConnection != nil && impl.registryClientConnection.GetState() == connectivity.Ready {
 		return // Connection already established.
 	}
+
+	span := spanhelper.FromContext(ctx, "initRegistryClient")
+	defer span.Finish()
+
 	// TODO doing registry Address here is ugly
 	for impl.stopRedial {
-		tools.WaitForPortAvailable(context.Background(), "tcp", impl.registryAddress, 100*time.Millisecond)
-		logrus.Println("Registry port now available, attempting to connect...")
-
-		conn, err := tools.DialTCP(impl.registryAddress)
+		err := tools.WaitForPortAvailable(span.Context(), "tcp", impl.registryAddress, 100*time.Millisecond)
 		if err != nil {
-			logrus.Errorf("Failed to dial Network Service Registry at %s: %s", impl.registryAddress, err)
+			err = fmt.Errorf("failed to dial Network Service Registry at %s: %s", impl.registryAddress, err)
+			span.LogError(err)
+			continue
+		}
+		span.Logger().Println("Registry port now available, attempting to connect...")
+
+		conn, err := tools.DialContextTCP(span.Context(), impl.registryAddress)
+		if err != nil {
+			span.Logger().Errorf("Failed to dial Network Service Registry at %s: %s", impl.registryAddress, err)
 			continue
 		}
 		impl.registryClientConnection = conn
-		logrus.Infof("Successfully connected to %s", impl.registryAddress)
+		span.Logger().Infof("Successfully connected to %s", impl.registryAddress)
 		return
 	}
-	logrus.Error("stopped before success trying to dial Network Registry Server")
+	span.Logger().Error("stopped before success trying to dial Network Registry Server")
 }
 
 func (impl *nsmdServiceRegistry) Stop() {

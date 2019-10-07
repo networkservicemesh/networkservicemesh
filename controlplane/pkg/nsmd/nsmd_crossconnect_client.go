@@ -102,7 +102,9 @@ func NewMonitorCrossConnectClient(model model.Model, monitorManager nsm.MonitorM
 
 // EndpointAdded implements method from Listener
 func (client *NsmMonitorCrossConnectClient) EndpointAdded(ctx context.Context, endpoint *model.Endpoint) {
-	ctx, cancel := context.WithCancel(ctx)
+	span := spanhelper.CopySpan(context.Background(), spanhelper.GetSpanHelper(ctx), "EndpointAdded")
+	defer span.Finish()
+	ctx, cancel := context.WithCancel(span.Context())
 	client.endpoints.Store(endpoint.EndpointName(), cancel)
 	go client.endpointConnectionMonitor(ctx, endpoint)
 }
@@ -117,7 +119,9 @@ func (client *NsmMonitorCrossConnectClient) EndpointDeleted(_ context.Context, e
 
 // DataplaneAdded implements method from Listener
 func (client *NsmMonitorCrossConnectClient) DataplaneAdded(ctx context.Context, dp *model.Dataplane) {
-	ctx, cancel := context.WithCancel(ctx)
+	span := spanhelper.CopySpan(context.Background(), spanhelper.GetSpanHelper(ctx), "DataplaneAdded")
+	defer span.Finish()
+	ctx, cancel := context.WithCancel(span.Context())
 	client.dataplanes.Store(dp.RegisteredName, cancel)
 
 	go client.dataplaneCrossConnectMonitor(ctx, dp)
@@ -125,7 +129,9 @@ func (client *NsmMonitorCrossConnectClient) DataplaneAdded(ctx context.Context, 
 
 // DataplaneDeleted implements method from Listener
 func (client *NsmMonitorCrossConnectClient) DataplaneDeleted(ctx context.Context, dp *model.Dataplane) {
-	client.xconManager.DataplaneDown(ctx, dp)
+	span := spanhelper.CopySpan(context.Background(), spanhelper.GetSpanHelper(ctx), "DataplaneDeleted")
+	defer span.Finish()
+	client.xconManager.DataplaneDown(span.Context(), dp)
 	if cancel, ok := client.dataplanes.Load(dp.RegisteredName); ok {
 		cancel.(context.CancelFunc)()
 		client.dataplanes.Delete(dp.RegisteredName)
@@ -180,7 +186,7 @@ func (client *NsmMonitorCrossConnectClient) ClientConnectionDeleted(ctx context.
 	client.remotePeerLock.Lock()
 	defer client.remotePeerLock.Unlock()
 
-	span := common.SpanHelperFromConnection(ctx, clientConnection, "ClientConnectionDeleted")
+	span := common.SpanHelperFromConnection(context.Background(), clientConnection, "ClientConnectionDeleted")
 	defer span.Finish()
 	span.LogObject("clientConnection", clientConnection)
 
