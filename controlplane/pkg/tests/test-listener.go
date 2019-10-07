@@ -27,7 +27,6 @@ type testConnectionModelListener struct {
 
 	connections   map[string]*model.ClientConnection
 	textMarshaler proto.TextMarshaler
-	name          string
 }
 
 func (impl *testConnectionModelListener) ClientConnectionAdded(_ context.Context, clientConnection *model.ClientConnection) {
@@ -36,7 +35,7 @@ func (impl *testConnectionModelListener) ClientConnectionAdded(_ context.Context
 
 	impl.additions++
 	impl.connections[clientConnection.GetID()] = clientConnection
-	logrus.Infof("(%v, %v)Listener ClientConnectionAdded: %v", impl.name, impl.additions, clientConnection)
+	logrus.Infof("ClientConnectionAdded: %v", clientConnection)
 }
 
 func (impl *testConnectionModelListener) ClientConnectionDeleted(_ context.Context, clientConnection *model.ClientConnection) {
@@ -44,7 +43,7 @@ func (impl *testConnectionModelListener) ClientConnectionDeleted(_ context.Conte
 	defer impl.Unlock()
 
 	impl.deletions++
-	logrus.Infof("(%v, %v)Listener ClientConnectionDeleted: %v", impl.name, impl.deletions, clientConnection)
+	logrus.Infof("ClientConnectionDeleted: %v", clientConnection)
 	delete(impl.connections, clientConnection.GetID())
 }
 
@@ -54,7 +53,7 @@ func (impl *testConnectionModelListener) ClientConnectionUpdated(_ context.Conte
 
 	impl.updates++
 	impl.connections[new.GetID()] = new
-	logrus.Infof("(%v, %v)Listener ClientConnectionUpdated: %s %v", impl.name, impl.updates, new.GetID(), impl.textMarshaler.Text(new.Xcon))
+	logrus.Infof("ClientConnectionUpdated: %s %v", new.GetID(), impl.textMarshaler.Text(new.Xcon))
 }
 
 func (impl *testConnectionModelListener) EndpointAdded(_ context.Context, endpoint *model.Endpoint) {
@@ -81,7 +80,7 @@ func (impl *testConnectionModelListener) WaitAdd(count int, duration time.Durati
 			t.Fatalf("Failed to wait for add events.. %d timeout happened...", count)
 			break
 		}
-		logrus.Warnf("(%v) Waiting for additions: %d to match %d", impl.name, impl.additions, count)
+		logrus.Warnf("Waiting for additions: %d to match %d", impl.additions, count)
 	}
 }
 func (impl *testConnectionModelListener) WaitUpdate(count int, duration time.Duration, t *testing.T) {
@@ -99,7 +98,7 @@ func (impl *testConnectionModelListener) WaitUpdate(count int, duration time.Dur
 			t.Fatalf("Failed to wait for add events.. %d timeout happened...", count)
 			break
 		}
-		logrus.Warnf("(%v) Waiting for updates: %d to match %d", impl.name, impl.updates, count)
+		logrus.Warnf("Waiting for updates: %d to match %d", impl.updates, count)
 	}
 }
 
@@ -114,7 +113,7 @@ func (impl *testConnectionModelListener) WaitDelete(count int, duration time.Dur
 			t.Fatalf("Failed to wait for add events.. %d timeout happened...", count)
 			break
 		}
-		logrus.Warnf("(%v) Waiting for deletions: %d to match %d", impl.name, impl.deletions, count)
+		logrus.Warnf("Waiting for deletions: %d to match %d", impl.deletions, count)
 	}
 }
 func (impl *testConnectionModelListener) WaitEndpoints(count int, duration time.Duration, t *testing.T) {
@@ -131,13 +130,12 @@ func (impl *testConnectionModelListener) WaitEndpoints(count int, duration time.
 		logrus.Warnf("Waiting for deletions: %d to match %d", impl.deletions, count)
 	}
 }
-func newTestConnectionModelListener(name string) *testConnectionModelListener {
+func newTestConnectionModelListener() *testConnectionModelListener {
 	return &testConnectionModelListener{
 		updates:       0,
 		additions:     0,
 		deletions:     0,
 		textMarshaler: proto.TextMarshaler{},
 		connections:   map[string]*model.ClientConnection{},
-		name:          name,
 	}
 }

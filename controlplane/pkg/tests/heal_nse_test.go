@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
 
 	. "github.com/onsi/gomega"
 	"golang.org/x/net/context"
@@ -13,7 +13,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
 )
 
 func TestHealRemoteNSE(t *testing.T) {
@@ -36,8 +35,8 @@ func TestHealRemoteNSE(t *testing.T) {
 	srv2.TestModel.AddEndpoint(context.Background(), nseReg)
 	srv2.TestModel.AddEndpoint(context.Background(), nseReg2)
 
-	l1 := newTestConnectionModelListener(Master)
-	l2 := newTestConnectionModelListener(Worker)
+	l1 := newTestConnectionModelListener()
+	l2 := newTestConnectionModelListener()
 
 	srv.TestModel.AddListener(l1)
 	srv2.TestModel.AddListener(l2)

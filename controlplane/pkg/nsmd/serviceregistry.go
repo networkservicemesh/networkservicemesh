@@ -100,13 +100,13 @@ func (impl *nsmdServiceRegistry) DataplaneConnection(ctx context.Context, datapl
 	return dpClient, dataplaneConn, nil
 }
 
-func (impl *nsmdServiceRegistry) NSMDApiClient(context.Context) (nsmdapi.NSMDClient, *grpc.ClientConn, error) {
+func (impl *nsmdServiceRegistry) NSMDApiClient(ctx context.Context) (nsmdapi.NSMDClient, *grpc.ClientConn, error) {
 	logrus.Infof("Connecting to nsmd on socket: %s...", ServerSock)
 	if _, err := os.Stat(ServerSock); err != nil {
 		return nil, nil, err
 	}
 
-	conn, err := tools.DialUnix(ServerSock)
+	conn, err := tools.DialContextUnix(ctx, ServerSock)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -115,7 +115,7 @@ func (impl *nsmdServiceRegistry) NSMDApiClient(context.Context) (nsmdapi.NSMDCli
 	return nsmdapi.NewNSMDClient(conn), conn, nil
 }
 
-func (impl *nsmdServiceRegistry) NseRegistryClient(context.Context) (registry.NetworkServiceRegistryClient, error) {
+func (impl *nsmdServiceRegistry) NseRegistryClient(ctx context.Context) (registry.NetworkServiceRegistryClient, error) {
 	impl.RWMutex.Lock()
 	defer impl.RWMutex.Unlock()
 
@@ -144,7 +144,7 @@ func (impl *nsmdServiceRegistry) GetPublicAPI() string {
 	return GetLocalIPAddress() + ":5001"
 }
 
-func (impl *nsmdServiceRegistry) DiscoveryClient(context.Context) (registry.NetworkServiceDiscoveryClient, error) {
+func (impl *nsmdServiceRegistry) DiscoveryClient(ctx context.Context) (registry.NetworkServiceDiscoveryClient, error) {
 	impl.RWMutex.Lock()
 	defer impl.RWMutex.Unlock()
 

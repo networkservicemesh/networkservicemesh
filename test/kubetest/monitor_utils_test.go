@@ -3,8 +3,6 @@ package kubetest
 import (
 	"testing"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/tests"
-
 	. "github.com/onsi/gomega"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
@@ -63,7 +61,7 @@ func TestSingleEventChecker(t *testing.T) {
 		ch <- newXcon(crossconnect.CrossConnectEventType_INITIAL_STATE_TRANSFER, true, true, false)
 	}()
 
-	g.Expect(ec.Check(ch, tests.Master)).To(BeNil())
+	g.Expect(ec.Check(ch)).To(BeNil())
 }
 
 func TestMultipleEventChecker(t *testing.T) {
@@ -93,7 +91,7 @@ func TestMultipleEventChecker(t *testing.T) {
 		ch <- newXcon(crossconnect.CrossConnectEventType_DELETE, false, false, false)
 	}()
 
-	g.Expect(ec.Check(ch, tests.Master)).To(BeNil())
+	g.Expect(ec.Check(ch)).To(BeNil())
 }
 
 func TestOrEventChecker_FirstSuccess(t *testing.T) {
@@ -139,7 +137,7 @@ func TestOrEventChecker_FirstSuccess(t *testing.T) {
 		ch <- newXcon(crossconnect.CrossConnectEventType_DELETE, false, false, false)
 	}()
 
-	g.Expect(ec.Check(ch, tests.Master)).To(BeNil())
+	g.Expect(ec.Check(ch)).To(BeNil())
 }
 
 func TestOrEventChecker_SecondSuccess(t *testing.T) {
@@ -184,5 +182,5 @@ func TestOrEventChecker_SecondSuccess(t *testing.T) {
 		ch <- newXcon(crossconnect.CrossConnectEventType_UPDATE, true, true, false)
 	}()
 
-	g.Expect(ec.Check(ch, tests.Master)).To(BeNil())
+	g.Expect(ec.Check(ch)).To(BeNil())
 }

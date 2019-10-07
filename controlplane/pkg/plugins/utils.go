@@ -104,7 +104,7 @@ func registerPlugin(ctx context.Context, name, endpoint, registry string, capabi
 
 	client := plugins.NewPluginRegistryClient(conn)
 
-	ctx, cancel := context.WithTimeout(span.Context(), registrationTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), registrationTimeout)
 	defer cancel()
 
 	_, err = client.Register(ctx, &plugins.PluginInfo{

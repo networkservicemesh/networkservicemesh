@@ -456,8 +456,7 @@ func (p *healProcessor) waitNSE(ctx context.Context, cc *model.ClientConnection,
 		}
 
 		if time.Since(st) > p.properties.HealDSTNSEWaitTimeout {
-			err = fmt.Errorf("timeout waiting for NetworkService: %v", networkService)
-			span.LogError(err)
+			span.LogError(fmt.Errorf("timeout waiting for NetworkService: %v", networkService))
 			return false
 		}
 		// Wait a bit

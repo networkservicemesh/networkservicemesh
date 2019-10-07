@@ -54,11 +54,8 @@ type VPPAgent struct {
 	common           *common.DataplaneConfig
 }
 
-// CreateVPPAgent - create VPP agent
-func CreateVPPAgent(ctx context.Context) *VPPAgent {
-	return &VPPAgent{
-		ctx: ctx,
-	}
+func CreateVPPAgent() *VPPAgent {
+	return &VPPAgent{}
 }
 
 //CreateDataplaneServer creates DataplaneServer handler
@@ -75,7 +72,7 @@ func (v *VPPAgent) CreateDataplaneServer(config *common.DataplaneConfig) datapla
 
 // MonitorMechanisms sends mechanism updates
 func (v *VPPAgent) MonitorMechanisms(empty *empty.Empty, updateSrv dataplane.MechanismsMonitor_MonitorMechanismsServer) error {
-	span := spanhelper.FromContext(v.ctx, "MonitorMecnahisms")
+	span := spanhelper.FromContext(context.Background(), "MonitorMecnahisms")
 	defer span.Finish()
 	span.Logger().Infof("MonitorMechanisms was called")
 	initialUpdate := &dataplane.MechanismUpdate{
@@ -104,7 +101,6 @@ func (v *VPPAgent) MonitorMechanisms(empty *empty.Empty, updateSrv dataplane.Mec
 		}
 	}
 }
-
 
 func (v *VPPAgent) printVppAgentConfiguration(client configurator.ConfiguratorClient) {
 	dumpResult, err := client.Dump(context.Background(), &configurator.DumpRequest{})

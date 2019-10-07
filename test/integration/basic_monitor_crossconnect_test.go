@@ -5,8 +5,6 @@ package nsmd_integration_tests
 import (
 	"testing"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/tests"
-
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 
@@ -43,10 +41,10 @@ func TestSingleCrossConnect(t *testing.T) {
 	defer closeFunc1()
 
 	// checking goroutine for node0
-	expectedFunc0, waitFunc0 := kubetest.NewEventChecker(t, eventCh0, tests.Master)
+	expectedFunc0, waitFunc0 := kubetest.NewEventChecker(t, eventCh0)
 
 	// checking goroutine for node1
-	expectedFunc1, waitFunc1 := kubetest.NewEventChecker(t, eventCh1, tests.Worker)
+	expectedFunc1, waitFunc1 := kubetest.NewEventChecker(t, eventCh1)
 
 	expectedFunc0(&kubetest.SingleEventChecker{
 		EventType: crossconnect.CrossConnectEventType_INITIAL_STATE_TRANSFER,

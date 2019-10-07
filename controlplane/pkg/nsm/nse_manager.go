@@ -85,12 +85,12 @@ func (nsem *nseManager) GetEndpoint(ctx context.Context, requestConnection conne
 /**
 ctx - we assume it is big enought to perform connection.
 */
-func (nsem *nseManager) createNSEClient(ctx context.Context, endpoint *registry.NSERegistration) (nsm.NetworkServiceClient, error) {
+func (nsem *nseManager) CreateNSEClient(ctx context.Context, endpoint *registry.NSERegistration) (nsm.NetworkServiceClient, error) {
 
 	span := spanhelper.FromContext(ctx, "createNSEClient")
 	defer span.Finish()
 	logger := span.Logger()
-	if nsem.isLocalEndpoint(endpoint) {
+	if nsem.IsLocalEndpoint(endpoint) {
 		modelEp := nsem.model.GetEndpoint(endpoint.GetNetworkServiceEndpoint().GetName())
 		if modelEp == nil {
 			return nil, fmt.Errorf("Endpoint not found: %v", endpoint)

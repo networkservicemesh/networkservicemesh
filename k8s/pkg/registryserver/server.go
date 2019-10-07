@@ -39,7 +39,7 @@ func New(ctx context.Context, clientset *nsmClientset.Clientset, nsmName string)
 	registry.RegisterNetworkServiceDiscoveryServer(server, discovery)
 	registry.RegisterNsmRegistryServer(server, nsmRegistry)
 
-	if err := cache.Start(span.Context()); err != nil {
+	if err := cache.Start(); err != nil {
 		logrus.Error(err)
 	}
 	logrus.Info("RegistryCache started")

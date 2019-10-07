@@ -175,15 +175,13 @@ func indexOf(slice []string, value string) int {
 }
 
 func (n *nsmClientEndpoints) ListAndWatch(e *pluginapi.Empty, s pluginapi.DevicePlugin_ListAndWatchServer) error {
-	span := spanhelper.FromContext(context.Background(), "ListAndWatch")
-	defer span.Finish()
-	span.Logger().Infof("ListAndWatch was called with s: %+v. Start sending updates...", s)
+	logrus.Infof("ListAndWatch was called with s: %+v", s)
 	n.pluginApi = &s
 
 	// Restore state from NSMD
 	ind := 0
 	for {
-		forSpan := spanhelper.FromContext(span.Context(), fmt.Sprintf("ListAndWatch-%v", ind))
+		forSpan := spanhelper.FromContext(context.Background(), fmt.Sprintf("ListAndWatch-%v", ind))
 		n.receiveWorkspaces(forSpan.Context())
 		n.sendDeviceUpdate(forSpan.Context())
 

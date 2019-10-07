@@ -40,7 +40,7 @@ func TestNSMDRestart1(t *testing.T) {
 		logrus.Fatalf("%v", err)
 	}
 
-	l1 := newTestConnectionModelListener(Master)
+	l1 := newTestConnectionModelListener()
 	srv.TestModel.AddListener(l1)
 	_ = nsmEndpoint.Start()
 	defer nsmEndpoint.Delete()

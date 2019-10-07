@@ -3,7 +3,6 @@ package tools
 import (
 	"context"
 	"crypto/tls"
-	"fmt"
 	"net"
 	"sync"
 	"time"
@@ -183,12 +182,11 @@ func (b *dialBuilder) DialContextFunc() dialContextFunc {
 		if !b.insecure && GetConfig().SecurityManager != nil {
 			cred := credentials.NewTLS(&tls.Config{
 				InsecureSkipVerify: true,
-				Certificates:       []tls.Certificate{*certificate},
+				Certificates:       []tls.Certificate{*GetConfig().SecurityManager.GetCertificate()},
 				RootCAs:            GetConfig().SecurityManager.GetCABundle(),
 			})
 			opts = append(opts, grpc.WithTransportCredentials(cred))
 		} else {
-			span.LogObject("insecure", "true")
 			opts = append(opts, grpc.WithInsecure())
 		}
 

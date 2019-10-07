@@ -7,8 +7,6 @@ import (
 
 	. "github.com/onsi/gomega"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/tests"
-
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
@@ -35,7 +33,7 @@ func TestXconMonitorSingleNodeHealFailed(t *testing.T) {
 	eventCh, closeFunc := kubetest.CrossConnectClientAt(k8s, nodesConf[0].Nsmd)
 	defer closeFunc()
 
-	expectedFunc, waitFunc := kubetest.NewEventChecker(t, eventCh, tests.Master)
+	expectedFunc, waitFunc := kubetest.NewEventChecker(t, eventCh)
 	k8s.DeletePods(icmpPod)
 
 	expectedFunc(&kubetest.SingleEventChecker{
@@ -81,7 +79,7 @@ func TestXconMonitorSingleNodeHealSuccess(t *testing.T) {
 	eventCh, closeFunc := kubetest.CrossConnectClientAt(k8s, nodesConf[0].Nsmd)
 	defer closeFunc()
 
-	expectedFunc, waitFunc := kubetest.NewEventChecker(t, eventCh, tests.Master)
+	expectedFunc, waitFunc := kubetest.NewEventChecker(t, eventCh)
 
 	icmp1 := kubetest.DeployICMP(k8s, nodesConf[0].Node, "icmp-1", defaultTimeout)
 	g.Expect(icmp1).ToNot(BeNil())
@@ -137,10 +135,10 @@ func TestXconMonitorMultiNodeHealFail(t *testing.T) {
 	defer closeFunc1()
 
 	// checking goroutine for node0
-	expectedFunc0, waitFunc0 := kubetest.NewEventChecker(t, eventCh0, tests.Master)
+	expectedFunc0, waitFunc0 := kubetest.NewEventChecker(t, eventCh0)
 
 	// checking goroutine for node1
-	expectedFunc1, waitFunc1 := kubetest.NewEventChecker(t, eventCh1, tests.Worker)
+	expectedFunc1, waitFunc1 := kubetest.NewEventChecker(t, eventCh1)
 
 	k8s.DeletePods(icmp)
 
@@ -215,10 +213,10 @@ func TestXconMonitorMultiNodeHealSuccess(t *testing.T) {
 	defer closeFunc1()
 
 	// checking goroutine for node0
-	expectedFunc0, waitFunc0 := kubetest.NewEventChecker(t, eventCh0, tests.Master)
+	expectedFunc0, waitFunc0 := kubetest.NewEventChecker(t, eventCh0)
 
 	// checking goroutine for node1
-	expectedFunc1, waitFunc1 := kubetest.NewEventChecker(t, eventCh1, tests.Worker)
+	expectedFunc1, waitFunc1 := kubetest.NewEventChecker(t, eventCh1)
 
 	icmp1 := kubetest.DeployICMP(k8s, nodesConf[1].Node, "icmp-1", defaultTimeout)
 	g.Expect(icmp1).ToNot(BeNil())
@@ -287,7 +285,7 @@ func TestXconMonitorNsmgrRestart(t *testing.T) {
 	g.Expect(nsc).ToNot(BeNil())
 
 	eventCh, closeFunc := kubetest.CrossConnectClientAt(k8s, nodesConf[0].Nsmd)
-	expectFunc, waitFunc := kubetest.NewEventChecker(t, eventCh, tests.Master)
+	expectFunc, waitFunc := kubetest.NewEventChecker(t, eventCh)
 
 	expectFunc(&kubetest.SingleEventChecker{
 		EventType: crossconnect.CrossConnectEventType_INITIAL_STATE_TRANSFER,
@@ -305,7 +303,7 @@ func TestXconMonitorNsmgrRestart(t *testing.T) {
 
 	eventChR, closeFuncR := kubetest.CrossConnectClientAt(k8s, nodesConf[0].Nsmd)
 	defer closeFuncR()
-	expectFuncR, waitFuncR := kubetest.NewEventChecker(t, eventChR, tests.Master)
+	expectFuncR, waitFuncR := kubetest.NewEventChecker(t, eventChR)
 
 	checker := &kubetest.OrEventChecker{
 		Event1: &kubetest.SingleEventChecker{

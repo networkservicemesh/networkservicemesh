@@ -31,13 +31,13 @@ func main() {
 	closer := jaeger.InitJaeger("nsmd-k8s")
 	defer func() { _ = closer.Close() }()
 
-	span := spanhelper.FromContext(context.Background(), "nsmd-k8s")
-	defer span.Finish()
-
 	address := os.Getenv("NSMD_K8S_ADDRESS")
 	if strings.TrimSpace(address) == "" {
 		address = "0.0.0.0:5000"
 	}
+
+	span := spanhelper.FromContext(context.Background(), "Start-NSMD-k8s")
+	defer span.Finish()
 
 	nsmName, ok := os.LookupEnv("NODE_NAME")
 
@@ -67,6 +67,7 @@ func main() {
 	go func() {
 		err = server.Serve(listener)
 		if err != nil {
+			span.LogError(err)
 			span.Logger().Fatalln(err)
 		}
 	}()

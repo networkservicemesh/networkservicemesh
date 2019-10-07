@@ -47,9 +47,9 @@ func main() {
 	dataplaneProbes := probes.New("Vppagent dataplane liveness/readiness healthcheck", dataplaneGoals)
 	dataplaneProbes.BeginHealthCheck()
 
-	agent := vppagent.CreateVPPAgent(span.Context())
+	agent := vppagent.CreateVPPAgent()
 
-	registration := common.CreateDataplane(span.Context(), agent, dataplaneGoals)
+	registration := common.CreateDataplane(agent, dataplaneGoals)
 
 	for range c {
 		logrus.Info("Closing Dataplane Registration")

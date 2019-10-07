@@ -50,7 +50,7 @@ func NewPluginRegistry(socketPath string) PluginRegistry {
 }
 
 func (pr *pluginRegistry) Start(ctx context.Context) error {
-	span := spanhelper.FromContext(ctx, "Plugin.Registry.Start")
+	span := spanhelper.FromContext(ctx, "StartPluginRegistry")
 	defer span.Finish()
 	if err := tools.SocketCleanup(pr.registrySocket); err != nil {
 		return err
@@ -89,9 +89,6 @@ func (pr *pluginRegistry) Stop() error {
 }
 
 func (pr *pluginRegistry) Register(ctx context.Context, info *plugins.PluginInfo) (*empty.Empty, error) {
-	span := spanhelper.FromContext(ctx, "RegisterPlugin")
-	defer span.Finish()
-	span.LogObject("info", info)
 	if info.GetName() == "" || info.GetEndpoint() == "" || len(info.Capabilities) == 0 {
 		return nil, fmt.Errorf("invalid registration data, expected non-empty name, endpoint and capabilities list")
 	}

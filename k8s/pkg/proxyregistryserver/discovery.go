@@ -54,7 +54,7 @@ func (d *discoveryService) FindNetworkService(ctx context.Context, request *regi
 		remoteRegistry := nsmd.NewServiceRegistryAt(remoteDomain + ":" + remoteNsrPort)
 		defer remoteRegistry.Stop()
 
-		discoveryClient, dErr := remoteRegistry.DiscoveryClient(ctx)
+		discoveryClient, dErr := remoteRegistry.DiscoveryClient(context.Background())
 		if dErr != nil {
 			logrus.Error(dErr)
 			return nil, dErr

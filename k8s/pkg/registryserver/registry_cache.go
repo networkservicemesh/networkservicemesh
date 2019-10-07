@@ -1,10 +1,7 @@
 package registryserver
 
 import (
-	"context"
 	"fmt"
-
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/registryserver/resourcecache"
 
@@ -30,7 +27,7 @@ type RegistryCache interface {
 	GetEndpointsByNs(networkServiceName string) []*v1.NetworkServiceEndpoint
 	GetEndpointsByNsm(nsmName string) []*v1.NetworkServiceEndpoint
 
-	Start(context.Context) error
+	Start() error
 	Stop()
 }
 
@@ -78,9 +75,7 @@ func NewRegistryCache(cs *nsmClientset.Clientset, conf *ResourceFilterConfig) Re
 	}
 }
 
-func (rc *registryCacheImpl) Start(ctx context.Context) error {
-	span := spanhelper.FromContext(ctx, "RegistryCache.Start")
-	defer span.Finish()
+func (rc *registryCacheImpl) Start() error {
 	factory := externalversions.NewSharedInformerFactory(rc.clientset, 0)
 
 	if stopFunc, err := rc.networkServiceCache.StartWithResync(factory, rc.clientset); err != nil {

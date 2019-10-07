@@ -23,8 +23,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
-
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 
@@ -191,30 +189,26 @@ func createDataplaneConfig(dataplaneGoals *DataplaneProbeGoals) *DataplaneConfig
 }
 
 // CreateDataplane creates new Dataplane Registrar client
-func CreateDataplane(ctx context.Context, dp NSMDataplane, dataplaneGoals *DataplaneProbeGoals) *DataplaneRegistration {
-	span := spanhelper.FromContext(ctx, "CreateDataplane")
-	defer span.Finish()
+func CreateDataplane(dp NSMDataplane, dataplaneGoals *DataplaneProbeGoals) *DataplaneRegistration {
 	start := time.Now()
 	// Populate common configuration
 	config := createDataplaneConfig(dataplaneGoals)
 
-	span.LogObject("config", config)
-
 	// Initialize the dataplane
 	err := dp.Init(config)
 	if err != nil {
-		span.Logger().Fatalf("Dataplane initialization failed: %s ", err)
+		logrus.Fatalf("Dataplane initialization failed: %s ", err)
 	}
 
 	// Verify the configuration is populated
 	if !sanityCheckConfig(config) {
-		span.Logger().Fatalf("Dataplane configuration sanity check failed: %s ", err)
+		logrus.Fatalf("Dataplane configuration sanity check failed: %s ", err)
 	}
 
 	// Prepare the gRPC server
 	config.Listener, err = net.Listen(config.DataplaneSocketType, config.DataplaneSocket)
 	if err != nil {
-		span.Logger().Fatalf("Error listening on socket %s: %s ", config.DataplaneSocket, err)
+		logrus.Fatalf("Error listening on socket %s: %s ", config.DataplaneSocket, err)
 	} else {
 		dataplaneGoals.SetSocketListenReady()
 	}
@@ -223,18 +217,18 @@ func CreateDataplane(ctx context.Context, dp NSMDataplane, dataplaneGoals *Datap
 	dataplane.RegisterMechanismsMonitorServer(config.GRPCserver, dp)
 
 	// Start the server
-	span.Logger().Infof("Creating %s server...", config.Name)
+	logrus.Infof("Creating %s server...", config.Name)
 	go func() {
 		_ = config.GRPCserver.Serve(config.Listener)
 	}()
-	span.Logger().Infof("%s server serving", config.Name)
+	logrus.Infof("%s server serving", config.Name)
 
-	span.Logger().Debugf("Starting the %s dataplane server took: %s", config.Name, time.Since(start))
+	logrus.Debugf("Starting the %s dataplane server took: %s", config.Name, time.Since(start))
 
-	span.Logger().Info("Creating Dataplane Registrar Client...")
+	logrus.Info("Creating Dataplane Registrar Client...")
 	registrar := NewDataplaneRegistrarClient(config.RegistrarSocketType, config.RegistrarSocket)
-	registration := registrar.Register(span.Context(), config.Name, config.DataplaneSocket, nil, nil)
-	span.Logger().Info("Registered Dataplane Registrar Client")
+	registration := registrar.Register(context.Background(), config.Name, config.DataplaneSocket, nil, nil)
+	logrus.Info("Registered Dataplane Registrar Client")
 
 	return registration
 }

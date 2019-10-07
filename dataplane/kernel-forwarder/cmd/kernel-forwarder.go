@@ -47,7 +47,7 @@ func main() {
 
 	plane := kernelforwarder.CreateKernelForwarder()
 
-	registration := common.CreateDataplane(span.Context(), plane, dataplaneGoals)
+	registration := common.CreateDataplane(plane, dataplaneGoals)
 
 	for range c {
 		logrus.Info("Closing Dataplane Registration")

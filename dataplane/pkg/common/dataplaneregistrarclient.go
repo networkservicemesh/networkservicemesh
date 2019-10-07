@@ -20,8 +20,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
-
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/status"
@@ -55,20 +53,18 @@ type OnConnectFunc func() error
 type OnDisConnectFunc func() error
 
 func (dr *DataplaneRegistration) register(ctx context.Context) {
-	span := spanhelper.FromContext(ctx, "Dataplane.register")
-	defer span.Finish()
-	span.Logger().Info("Registering with NetworkServiceManager")
-	span.Logger().Infof("Retry interval: %s", dr.registrar.registrationRetryInterval)
+	logrus.Info("Registering with NetworkServiceManager")
+	logrus.Infof("Retry interval: %s", dr.registrar.registrationRetryInterval)
 
 	// Wait fo NSMD to be ready to register dataplane.
-	_ = tools.WaitForPortAvailable(span.Context(), dr.registrar.registrarSocket.Network(), dr.registrar.registrarSocket.String(), 100*time.Millisecond)
+	_ = tools.WaitForPortAvailable(context.Background(), dr.registrar.registrarSocket.Network(), dr.registrar.registrarSocket.String(), 100*time.Millisecond)
 	ticker := time.NewTicker(dr.registrar.registrationRetryInterval)
 	for ; true; <-ticker.C {
 		select {
 		case <-ctx.Done():
 			return
 		default:
-			err := dr.tryRegistration(span.Context())
+			err := dr.tryRegistration(ctx)
 			if err == nil {
 				return
 			}
@@ -77,43 +73,40 @@ func (dr *DataplaneRegistration) register(ctx context.Context) {
 }
 
 func (dr *DataplaneRegistration) tryRegistration(ctx context.Context) error {
-	span := spanhelper.FromContext(ctx, "try-register")
-	defer span.Finish()
-
-	span.Logger().Infof("Trying to register %s on socket %v", dr.dataplaneName, dr.registrar.registrarSocket)
+	logrus.Infof("Trying to register %s on socket %v", dr.dataplaneName, dr.registrar.registrarSocket)
 	if dr.registrar.registrarSocket.Network() == "unix" {
 		if _, err := os.Stat(dr.registrar.registrarSocket.String()); err != nil {
-			span.Logger().Errorf("%s: failure to access nsm socket at \"%v\" with error: %+v, exiting...", dr.dataplaneName, dr.registrar.registrarSocket, err)
+			logrus.Errorf("%s: failure to access nsm socket at \"%v\" with error: %+v, exiting...", dr.dataplaneName, dr.registrar.registrarSocket, err)
 			return err
 		}
 	}
 
-	dialCtx, cancel := context.WithTimeout(span.Context(), 5*time.Second)
+	dialCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	conn, err := tools.DialContext(dialCtx, dr.registrar.registrarSocket)
 	if err != nil {
-		span.Logger().Errorf("%s: failure to communicate with the socket \"%v\" with error: %+v", dr.dataplaneName, dr.registrar.registrarSocket, err)
+		logrus.Errorf("%s: failure to communicate with the socket \"%v\" with error: %+v", dr.dataplaneName, dr.registrar.registrarSocket, err)
 		return err
 	}
-	span.Logger().Infof("%s: connection to dataplane registrar socket \"%v\" succeeded.", dr.dataplaneName, dr.registrar.registrarSocket)
+	logrus.Infof("%s: connection to dataplane registrar socket \"%v\" succeeded.", dr.dataplaneName, dr.registrar.registrarSocket)
 
 	dr.client = dataplaneregistrar.NewDataplaneRegistrationClient(conn)
 	req := &dataplaneregistrar.DataplaneRegistrationRequest{
 		DataplaneName:   dr.dataplaneName,
 		DataplaneSocket: dr.dataplaneSocket,
 	}
-	_, err = dr.client.RequestDataplaneRegistration(span.Context(), req)
-	span.Logger().Infof("%s: send request to Dataplane Registrar: %+v", dr.dataplaneName, req)
+	_, err = dr.client.RequestDataplaneRegistration(ctx, req)
+	logrus.Infof("%s: send request to Dataplane Registrar: %+v", dr.dataplaneName, req)
 	if err != nil {
-		span.Logger().Infof("%s: failure to create grpc client for RequestDataplaneRegistration on socket %v", dr.dataplaneName, dr.registrar.registrarSocket)
+		logrus.Infof("%s: failure to create grpc client for RequestDataplaneRegistration on socket %v", dr.dataplaneName, dr.registrar.registrarSocket)
 		return err
 	}
 	if dr.onConnect != nil {
 		dr.onConnect()
 		dr.wasRegistered = true
 	}
-	go dr.livenessMonitor(span.Context())
+	go dr.livenessMonitor(ctx)
 	return nil
 }
 
@@ -121,11 +114,8 @@ func (dr *DataplaneRegistration) tryRegistration(ctx context.Context) error {
 // no re-registration is required. Detection a failure on this "channel" will mean
 // that NSM is gone and the dataplane needs to start re-registration logic.
 func (dr *DataplaneRegistration) livenessMonitor(ctx context.Context) {
-	span := spanhelper.FromContext(ctx, "dataplane-monitor")
-	defer span.Finish()
-
-	span.Logger().Infof("Starting DataplaneRegistrarClient liveliness monitor")
-	stream, err := dr.client.RequestLiveness(span.Context())
+	logrus.Infof("Starting DataplaneRegistrarClient liveliness monitor")
+	stream, err := dr.client.RequestLiveness(context.Background())
 	if err != nil {
 		logrus.Errorf("%s: fail to create liveness grpc channel with NSM with error: %s, grpc code: %+v", dr.dataplaneName, err.Error(), status.Convert(err).Code())
 		return
@@ -133,7 +123,7 @@ func (dr *DataplaneRegistration) livenessMonitor(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			span.Logger().Infof("dataplaneRegistrarClient canceled, cleaning up")
+			logrus.Infof("DataplaneRegistrarClient cancelled, cleaning up")
 			if dr.onDisconnect != nil {
 				dr.onDisconnect()
 				dr.wasRegistered = false
@@ -142,7 +132,7 @@ func (dr *DataplaneRegistration) livenessMonitor(ctx context.Context) {
 		default:
 			err := stream.RecvMsg(&empty.Empty{})
 			if err != nil {
-				span.Logger().Errorf("%s: fail to receive from liveness grpc channel with error: %s, grpc code: %+v", dr.dataplaneName, err.Error(), status.Convert(err).Code())
+				logrus.Errorf("%s: fail to receive from liveness grpc channel with error: %s, grpc code: %+v", dr.dataplaneName, err.Error(), status.Convert(err).Code())
 				if dr.onConnect != nil {
 					dr.onDisconnect()
 					dr.wasRegistered = false
