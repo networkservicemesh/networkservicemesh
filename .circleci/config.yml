@@ -50,6 +50,7 @@ jobs:
       - run: ./scripts/prepare-generate.sh
       - run: sudo ./scripts/install-protoc.sh
       - run: ./scripts/for-each-module.sh "go generate ./..."
+      - run: git diff --exit-code || (echo 'Seems like your generated files are not actual. Run `go generate ./...` for each module in your branch and commit the changes.' && exit 1)
       - run: make vet
       - run: ./scripts/for-each-module.sh "go build ./..."
       - run: ./scripts/check_dependencies.sh
