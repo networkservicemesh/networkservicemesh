@@ -35,8 +35,8 @@ type nsmClientApp struct {
 func (c *nsmClientApp) Run() {
 	closer := jaeger.InitJaeger("nsm-init")
 	defer func() { _ = closer.Close() }()
-	span := spanhelper.FromContext(context.Background(), "RequestNetworkService")
 
+	span := spanhelper.FromContext(context.Background(), "RequestNetworkService")
 	defer span.Finish()
 
 	clientList, err := client.NewNSMClientList(span.Context(), c.configuration)

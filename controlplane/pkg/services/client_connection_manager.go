@@ -139,7 +139,7 @@ func (m *ClientConnectionManager) LocalDestinationUpdated(ctx context.Context, c
 // RemoteDestinationUpdated handles case when remote connection parameters changed
 func (m *ClientConnectionManager) RemoteDestinationUpdated(ctx context.Context, cc *model.ClientConnection, remoteDst *remote.Connection) {
 
-	span := common.SpanHelperFromConnection(ctx, cc, "RemoteDestinationUpdated")
+	span := spanhelper.FromContext(ctx, "RemoteDestinationUpdated")
 	defer span.Finish()
 	ctx = span.Context()
 	span.LogObject("connection", cc)

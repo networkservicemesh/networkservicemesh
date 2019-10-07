@@ -69,7 +69,7 @@ func (p *healProcessor) Heal(ctx context.Context, clientConnection nsm.ClientCon
 	if clientConnection.GetConnectionSource().IsRemote() {
 		opName = "RemoteHeal"
 	}
-	span := common.SpanHelperFromConnection(ctx, cc, opName)
+	span := spanhelper.FromContext(ctx, opName)
 	defer span.Finish()
 	ctx = span.Context()
 
