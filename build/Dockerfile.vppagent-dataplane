@@ -1,0 +1,8 @@
+ARG VPP_AGENT
+FROM ${VPP_AGENT} as runtime
+RUN rm /opt/vpp-agent/dev/etcd.conf; echo "disabled: true" > /opt/vpp-agent/dev/linux-plugin.conf
+COPY startup.conf /etc/vpp/vpp.conf
+COPY supervisord.conf /etc/supervisord/supervisord.conf
+COPY ["vppagent-dataplane", "/bin/"]
+RUN mkdir /tmp/vpp/
+RUN rm /opt/vpp-agent/dev/etcd.conf; echo 'Endpoint: "localhost:9111"' > /opt/vpp-agent/dev/grpc.conf

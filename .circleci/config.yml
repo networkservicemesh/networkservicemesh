@@ -63,7 +63,7 @@ jobs:
       - run: mkdir -p ~/junit/
       - run:
           command: |
-            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export COMMIT="ci_${CIRCLE_WORKFLOW_ID}_${CIRCLE_SHA1:8:8}"
             export CONTAINER_TAG="${COMMIT}"
             export CONTAINER_REPO="networkservicemeshci"
             export CONTAINER_FORCE_PULL="true"
@@ -134,17 +134,18 @@ jobs:
       - run:
           name: Downloading go deps
           command: |
-            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export COMMIT="ci_${CIRCLE_WORKFLOW_ID}_${CIRCLE_SHA1:8:8}"
             export CONTAINER_TAG="${COMMIT}"
             ./scripts/go-mod-download.sh
           no_output_timeout: 40m
       - run:
           name: Running integration tests
           command: |
-            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export COMMIT="ci_${CIRCLE_WORKFLOW_ID}_${CIRCLE_SHA1:8:8}"
             export CONTAINER_TAG="${COMMIT}"
             export REPO="networkservicemeshci"
             export CONTAINER_REPO=${REPO}
+            echo "CONTAINER_REPO=${CONTAINER_REPO} COMMIT=${COMMIT}"
             if [ "${CIRCLE_BRANCH}" == "master" ]; then
               export STORE_LOGS_IN_ANY_CASES=true
             fi
@@ -177,9 +178,10 @@ jobs:
           docker_layer_caching: true
       - run:
           command: |
-            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export COMMIT="ci_${CIRCLE_WORKFLOW_ID}_${CIRCLE_SHA1:8:8}"
             export TAG="${COMMIT}"
             export CONTAINER_REPO="networkservicemeshci"
+            export GOPROXY=https://proxy.golang.org,direct
             make docker-<< parameters.container >>-build
             make docker-<< parameters.container >>-push
 
@@ -205,7 +207,7 @@ jobs:
           docker_layer_caching: true
       - run:
           command: |
-            export COMMIT="${CIRCLE_SHA1:8:8}"
+            export COMMIT="ci_${CIRCLE_WORKFLOW_ID}_${CIRCLE_SHA1:8:8}"
             export PULL_TAG="${COMMIT}"
             export TAG="<< parameters.tag >>"
             export REPO="networkservicemesh"
@@ -213,7 +215,7 @@ jobs:
             export CONTAINERS=(nsmd nsmd-k8s nsmdp)
             export CONTAINERS=(${CONTAINERS[@]} proxy-nsmd proxy-nsmd-k8s)
             export CONTAINERS=(${CONTAINERS[@]} crossconnect-monitor nsm-init nsm-monitor admission-webhook)
-            export CONTAINERS=(${CONTAINERS[@]} vppagent-dataplane vppagent-dataplane-dev)
+            export CONTAINERS=(${CONTAINERS[@]} vppagent-dataplane)
             export CONTAINERS=(${CONTAINERS[@]} test-common vpp-test-common nsm-coredns)
             export CONTAINERS=(${CONTAINERS[@]} kernel-forwarder)
             export CONTAINERS=(${CONTAINERS[@]} spire-registration)
@@ -315,11 +317,6 @@ workflows:
           requires:
             - test-sanity-check
       - build-container:
-          name: "build-vppagent-dataplane-dev"
-          container: "vppagent-dataplane-dev"
-          requires:
-            - test-sanity-check
-      - build-container:
           name: "build-kernel-forwarding-plane"
           container: "kernel-forwarder"
           requires:
@@ -343,7 +340,6 @@ workflows:
             - build-nsm-init
             - build-nsm-monitor
             - build-vppagent-dataplane
-            - build-vppagent-dataplane-dev
             - build-kernel-forwarding-plane
             - build-nsm-coredns
             - build-spire-registration
