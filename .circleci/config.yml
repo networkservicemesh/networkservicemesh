@@ -181,6 +181,7 @@ jobs:
             export COMMIT="ci_${CIRCLE_WORKFLOW_ID}_${CIRCLE_SHA1:8:8}"
             export TAG="${COMMIT}"
             export CONTAINER_REPO="networkservicemeshci"
+            export GOPROXY=https://proxy.golang.org,direct
             make docker-<< parameters.container >>-build
             make docker-<< parameters.container >>-push
 
@@ -214,7 +215,7 @@ jobs:
             export CONTAINERS=(nsmd nsmd-k8s nsmdp)
             export CONTAINERS=(${CONTAINERS[@]} proxy-nsmd proxy-nsmd-k8s)
             export CONTAINERS=(${CONTAINERS[@]} crossconnect-monitor nsm-init nsm-monitor admission-webhook)
-            export CONTAINERS=(${CONTAINERS[@]} vppagent-dataplane vppagent-dataplane-dev)
+            export CONTAINERS=(${CONTAINERS[@]} vppagent-dataplane)
             export CONTAINERS=(${CONTAINERS[@]} test-common vpp-test-common nsm-coredns)
             export CONTAINERS=(${CONTAINERS[@]} kernel-forwarder)
             export CONTAINERS=(${CONTAINERS[@]} spire-registration)
@@ -316,11 +317,6 @@ workflows:
           requires:
             - test-sanity-check
       - build-container:
-          name: "build-vppagent-dataplane-dev"
-          container: "vppagent-dataplane-dev"
-          requires:
-            - test-sanity-check
-      - build-container:
           name: "build-kernel-forwarding-plane"
           container: "kernel-forwarder"
           requires:
@@ -344,7 +340,6 @@ workflows:
             - build-nsm-init
             - build-nsm-monitor
             - build-vppagent-dataplane
-            - build-vppagent-dataplane-dev
             - build-kernel-forwarding-plane
             - build-nsm-coredns
             - build-spire-registration
