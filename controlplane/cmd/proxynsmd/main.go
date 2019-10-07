@@ -43,7 +43,6 @@ func main() {
 
 	closer := jaeger.InitJaeger("proxy-nsmd")
 	defer func() { _ = closer.Close() }()
-
 	goals := &proxyNsmdProbeGoals{}
 	nsmdProbes := probes.New("Prxoy NSMD liveness/readiness healthcheck", goals)
 	nsmdProbes.BeginHealthCheck()
