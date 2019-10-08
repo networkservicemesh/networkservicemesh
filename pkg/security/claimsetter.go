@@ -2,6 +2,7 @@ package security
 
 import (
 	"fmt"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/networkservice"
 )

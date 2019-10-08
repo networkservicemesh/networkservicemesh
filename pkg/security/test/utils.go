@@ -10,9 +10,10 @@ import (
 	"encoding/asn1"
 	"encoding/pem"
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/pkg/security"
 	"math/big"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/security"
 )
 
 const (

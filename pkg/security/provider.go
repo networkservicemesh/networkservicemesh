@@ -17,8 +17,9 @@ package security
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"github.com/sirupsen/logrus"
 	"sync"
+
+	"github.com/sirupsen/logrus"
 )
 
 // Provider provides methods for secure grpc communication

@@ -1,9 +1,11 @@
 package testsec
 
 import (
-	"github.com/networkservicemesh/networkservicemesh/pkg/security"
-	. "github.com/onsi/gomega"
 	"testing"
+
+	. "github.com/onsi/gomega"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/security"
 )
 
 func TestSign(t *testing.T) {

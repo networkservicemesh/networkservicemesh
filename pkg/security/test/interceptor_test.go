@@ -3,16 +3,18 @@ package testsec
 import (
 	"context"
 	"crypto/tls"
+	"net"
+	"testing"
+	"time"
+
 	"github.com/golang/protobuf/ptypes/empty"
+	. "github.com/onsi/gomega"
+	"github.com/sirupsen/logrus"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/pkg/security"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	. "github.com/onsi/gomega"
-	"github.com/sirupsen/logrus"
-	"net"
-	"testing"
-	"time"
 )
 
 func testNewServerFunc(provider security.Provider) tools.NewServerFunc {

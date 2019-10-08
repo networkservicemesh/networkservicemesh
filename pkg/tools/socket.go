@@ -3,10 +3,11 @@ package tools
 import (
 	"context"
 	"crypto/tls"
-	"github.com/grpc-ecosystem/go-grpc-middleware"
 	"net"
 	"sync"
 	"time"
+
+	"github.com/grpc-ecosystem/go-grpc-middleware"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"

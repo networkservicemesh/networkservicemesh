@@ -20,9 +20,9 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"strings"
+
 	"github.com/dgrijalva/jwt-go"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/networkservice"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -30,7 +30,9 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
-	"strings"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/networkservice"
 )
 
 func ParseJWTWithClaims(tokenString string) (*jwt.Token, []string, *ChainClaims, error) {

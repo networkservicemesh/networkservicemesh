@@ -4,9 +4,10 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"fmt"
+	"time"
+
 	"github.com/dgrijalva/jwt-go"
 	"github.com/sirupsen/logrus"
-	"time"
 )
 
 type Signed interface {
