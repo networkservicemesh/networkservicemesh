@@ -167,13 +167,15 @@ func (nsme *nsmEndpoint) Request(ctx context.Context, request *networkservice.Ne
 	}
 
 	logger.Infof("Responding to NetworkService.Request(%v): %v", request, incomingConnection)
-	sign, err := security.GenerateSignature(incomingConnection, security.ConnectionClaimSetter, tools.GetConfig().SecurityProvider)
-	if err != nil {
-		logrus.Errorf("Unable to sign response: %v", err)
-		return nil, err
+
+	if tools.GetConfig().SecurityProvider == nil {
+		logrus.Warnf("insecure: return connection without signature: %v", err)
+		return incomingConnection, nil
 	}
 
-	incomingConnection.ResponseJWT = sign
+	if err := security.SignConnection(incomingConnection, nil, tools.GetConfig().SecurityProvider); err != nil {
+		return nil, err
+	}
 	span.LogObject("response", incomingConnection)
 	return incomingConnection, nil
 }

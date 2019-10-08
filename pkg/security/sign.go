@@ -14,6 +14,10 @@ type Signed interface {
 	GetSignature() string
 }
 
+type Signable interface {
+	SetSignature(sign string)
+}
+
 type ClaimsSetter func(claims *ChainClaims, msg interface{}) error
 
 type SignOption interface {
@@ -44,6 +48,22 @@ func WithLifetime(t time.Duration) SignOption {
 	return newFuncSignOption(func(claims *ChainClaims) {
 		claims.ExpiresAt = time.Now().Add(t).Unix()
 	})
+}
+
+func SignConnection(s Signable, obo Signed, provider Provider) error {
+	var opts []SignOption
+	if obo != nil {
+		opts = append(opts, WithObo(obo.GetSignature()))
+	}
+
+	sign, err := GenerateSignature(s, ConnectionClaimSetter, provider, opts...)
+	if err != nil {
+		logrus.Errorf("Unable to sign response: %v", err)
+		return err
+	}
+
+	s.SetSignature(sign)
+	return nil
 }
 
 func GenerateSignature(msg interface{}, claimsSetter ClaimsSetter, p Provider, opts ...SignOption) (string, error) {
