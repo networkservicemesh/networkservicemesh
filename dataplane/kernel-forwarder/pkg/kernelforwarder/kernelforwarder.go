@@ -18,23 +18,23 @@ package kernelforwarder
 import (
 	"context"
 
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
-
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/status"
-
-	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	remote "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/dataplane/api/dataplane"
+	"github.com/networkservicemesh/networkservicemesh/dataplane/kernel-forwarder/pkg/monitoring"
+	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
 )
 
 // KernelForwarder instance
 type KernelForwarder struct {
-	common *common.DataplaneConfig
+	common     *common.DataplaneConfig
+	monitoring *monitoring.Metrics
 }
 
 // CreateKernelForwarder creates an instance of the KernelForwarder
@@ -42,92 +42,86 @@ func CreateKernelForwarder() *KernelForwarder {
 	return &KernelForwarder{}
 }
 
-// CreateDataplaneServer creates an instance of DataplaneServer
-func (v *KernelForwarder) CreateDataplaneServer(config *common.DataplaneConfig) dataplane.DataplaneServer {
-	return v
+// Init initializes the Kernel forwarding plane
+func (k *KernelForwarder) Init(common *common.DataplaneConfig) error {
+	k.common = common
+	k.common.Name = "kernel-forwarder"
+
+	closer := jaeger.InitJaeger(k.common.Name)
+	defer func() { _ = closer.Close() }()
+
+	k.configureKernelForwarder()
+	return nil
 }
 
-// MonitorMechanisms handler
-func (v *KernelForwarder) MonitorMechanisms(empty *empty.Empty, updateSrv dataplane.MechanismsMonitor_MonitorMechanismsServer) error {
-	logrus.Infof("MonitorMechanisms was called")
-	initialUpdate := &dataplane.MechanismUpdate{
-		RemoteMechanisms: v.common.Mechanisms.RemoteMechanisms,
-		LocalMechanisms:  v.common.Mechanisms.LocalMechanisms,
-	}
-	logrus.Infof("Sending MonitorMechanisms update: %v", initialUpdate)
-	if err := updateSrv.Send(initialUpdate); err != nil {
-		logrus.Errorf("Kernel forwarding plane server: Detected error %s, grpc code: %+v on grpc channel", err.Error(), status.Convert(err).Code())
-		return nil
-	}
-	// Waiting for any updates which might occur during a life of dataplane module and communicating
-	// them back to NSM.
-	for update := range v.common.MechanismsUpdateChannel {
-		v.common.Mechanisms = update
-		logrus.Infof("Sending MonitorMechanisms update: %v", update)
-		if err := updateSrv.Send(&dataplane.MechanismUpdate{
-			RemoteMechanisms: update.RemoteMechanisms,
-			LocalMechanisms:  update.LocalMechanisms,
-		}); err != nil {
-			logrus.Errorf("Kernel forwarding plane server: Detected error %s, grpc code: %+v on grpc channel", err.Error(), status.Convert(err).Code())
-			return nil
-		}
-	}
-	return nil
+// CreateDataplaneServer creates an instance of DataplaneServer
+func (k *KernelForwarder) CreateDataplaneServer(config *common.DataplaneConfig) dataplane.DataplaneServer {
+	return k
 }
 
 // Request handler for connections
-func (v *KernelForwarder) Request(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error) {
+func (k *KernelForwarder) Request(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error) {
 	logrus.Infof("Request() called with %v", crossConnect)
-	xcon, err := v.connectOrDisconnect(crossConnect, cCONNECT)
+	err := k.connectOrDisconnect(crossConnect, cCONNECT)
 	if err != nil {
+		logrus.Warn("error while handling Request() connection:", err)
 		return nil, err
 	}
-	v.common.Monitor.Update(ctx, xcon)
-	logrus.Infof("Request() called with %v returning: %v", crossConnect, xcon)
-	return xcon, err
-}
-
-func (v *KernelForwarder) connectOrDisconnect(crossConnect *crossconnect.CrossConnect, connect bool) (*crossconnect.CrossConnect, error) {
-	/* 0. Sanity check whether the forwarding plane supports the connection type in the request */
-	if err := common.SanityCheckConnectionType(v.common.Mechanisms, crossConnect); err != nil {
-		return crossConnect, err
-	}
-	/* 1. Handle local connection */
-	if crossConnect.GetLocalSource().GetMechanism().GetType() == local.MechanismType_KERNEL_INTERFACE &&
-		crossConnect.GetLocalDestination().GetMechanism().GetType() == local.MechanismType_KERNEL_INTERFACE {
-		return handleLocalConnection(crossConnect, connect)
-	}
-	/* 2. Handle remote connection */
-	return handleRemoteConnection(v.common.EgressInterface, crossConnect, connect)
+	k.common.Monitor.Update(ctx, crossConnect)
+	return crossConnect, err
 }
 
 // Close handler for connections
-func (v *KernelForwarder) Close(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*empty.Empty, error) {
+func (k *KernelForwarder) Close(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*empty.Empty, error) {
 	logrus.Infof("Close() called with %#v", crossConnect)
-	xcon, err := v.connectOrDisconnect(crossConnect, cDISCONNECT)
+	err := k.connectOrDisconnect(crossConnect, cDISCONNECT)
 	if err != nil {
-		logrus.Warn(err)
+		logrus.Warn("error while handling Close() connection:", err)
 	}
-	v.common.Monitor.Delete(ctx, xcon)
+	k.common.Monitor.Delete(ctx, crossConnect)
 	return &empty.Empty{}, nil
 }
 
-// Init initializes the Kernel forwarding plane
-func (v *KernelForwarder) Init(common *common.DataplaneConfig) error {
-	v.common = common
-	v.common.Name = "kernel-forwarder"
+func (k *KernelForwarder) connectOrDisconnect(crossConnect *crossconnect.CrossConnect, connect bool) error {
+	var err error
+	var devices map[string]monitoring.Device
 
-	closer := jaeger.InitJaeger(v.common.Name)
-	defer func() { _ = closer.Close() }()
+	if k.common.MetricsEnabled {
+		k.monitoring.GetDevices().Lock()
+		defer k.monitoring.GetDevices().Unlock()
+	}
 
-	v.configureKernelForwarder()
-	return nil
+	/* 0. Sanity check whether the forwarding plane supports the connection type in the request */
+	if err = common.SanityCheckConnectionType(k.common.Mechanisms, crossConnect); err != nil {
+		return err
+	}
+
+	/* 1. Handle local connection */
+	if crossConnect.GetLocalSource().GetMechanism().GetType() == local.MechanismType_KERNEL_INTERFACE &&
+		crossConnect.GetLocalDestination().GetMechanism().GetType() == local.MechanismType_KERNEL_INTERFACE {
+		devices, err = handleLocalConnection(crossConnect, connect)
+	} else {
+		/* 2. Handle remote connection */
+		devices, err = handleRemoteConnection(k.common.EgressInterface, crossConnect, connect)
+	}
+	if devices != nil && err == nil {
+		if connect {
+			logrus.Info("kernel-forwarder: created devices: ", devices)
+		} else {
+			logrus.Info("kernel-forwarder: deleted devices: ", devices)
+		}
+		// Metrics monitoring
+		if k.common.MetricsEnabled {
+			k.monitoring.GetDevices().UpdateDeviceList(devices, connect)
+		}
+	}
+	return err
 }
 
 // configureKernelForwarder setups the Kernel forwarding plane
-func (v *KernelForwarder) configureKernelForwarder() {
-	v.common.MechanismsUpdateChannel = make(chan *common.Mechanisms, 1)
-	v.common.Mechanisms = &common.Mechanisms{
+func (k *KernelForwarder) configureKernelForwarder() {
+	k.common.MechanismsUpdateChannel = make(chan *common.Mechanisms, 1)
+	k.common.Mechanisms = &common.Mechanisms{
 		LocalMechanisms: []*local.Mechanism{
 			{
 				Type: local.MechanismType_KERNEL_INTERFACE,
@@ -137,9 +131,41 @@ func (v *KernelForwarder) configureKernelForwarder() {
 			{
 				Type: remote.MechanismType_VXLAN,
 				Parameters: map[string]string{
-					remote.VXLANSrcIP: v.common.EgressInterface.SrcIPNet().IP.String(),
+					remote.VXLANSrcIP: k.common.EgressInterface.SrcIPNet().IP.String(),
 				},
 			},
 		},
 	}
+	// Metrics monitoring
+	if k.common.MetricsEnabled {
+		k.monitoring = monitoring.CreateMetricsMonitor(k.common.MetricsPeriod)
+		k.monitoring.Start(k.common.Monitor)
+	}
+}
+
+// MonitorMechanisms handler
+func (k *KernelForwarder) MonitorMechanisms(empty *empty.Empty, updateSrv dataplane.MechanismsMonitor_MonitorMechanismsServer) error {
+	initialUpdate := &dataplane.MechanismUpdate{
+		RemoteMechanisms: k.common.Mechanisms.RemoteMechanisms,
+		LocalMechanisms:  k.common.Mechanisms.LocalMechanisms,
+	}
+	logrus.Infof("kernel-forwarder: sending MonitorMechanisms update: %v", initialUpdate)
+	if err := updateSrv.Send(initialUpdate); err != nil {
+		logrus.Errorf("kernel-forwarder: detected server error %s, gRPC code: %+v on gRPC channel", err.Error(), status.Convert(err).Code())
+		return nil
+	}
+	// Waiting for any updates which might occur during a life of dataplane module and communicating
+	// them back to NSM.
+	for update := range k.common.MechanismsUpdateChannel {
+		k.common.Mechanisms = update
+		logrus.Infof("kernel-forwarder: sending MonitorMechanisms update: %v", update)
+		if err := updateSrv.Send(&dataplane.MechanismUpdate{
+			RemoteMechanisms: update.RemoteMechanisms,
+			LocalMechanisms:  update.LocalMechanisms,
+		}); err != nil {
+			logrus.Errorf("kernel-forwarder: detected server error %s, gRPC code: %+v on gRPC channel", err.Error(), status.Convert(err).Code())
+			return nil
+		}
+	}
+	return nil
 }

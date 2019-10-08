@@ -16,135 +16,175 @@
 package kernelforwarder
 
 import (
+	"runtime"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
+	"github.com/networkservicemesh/networkservicemesh/dataplane/kernel-forwarder/pkg/monitoring"
+	"github.com/networkservicemesh/networkservicemesh/utils/fs"
 
 	"github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
-	"github.com/vishvananda/netns"
 )
 
-func handleLocalConnection(crossConnect *crossconnect.CrossConnect, connect bool) (*crossconnect.CrossConnect, error) {
-	logrus.Info("Incoming connection - local source/local destination")
+// handleLocalConnection either creates or deletes a local connection - same host
+func handleLocalConnection(crossConnect *crossconnect.CrossConnect, connect bool) (map[string]monitoring.Device, error) {
+	logrus.Info("local: connection type - local source/local destination")
+	var devices map[string]monitoring.Device
 	/* 1. Get the connection configuration */
 	cfg, err := newConnectionConfig(crossConnect, cLOCAL)
 	if err != nil {
-		logrus.Errorf("Failed to get the configuration for local connection - %v", err)
-		return crossConnect, err
+		logrus.Errorf("local: failed to get connection configuration - %v", err)
+		return nil, err
 	}
 	if connect {
 		/* 2. Create a connection */
-		err = createLocalConnection(cfg)
+		devices, err = createLocalConnection(cfg)
 		if err != nil {
-			logrus.Errorf("Failed to create local connection - %v", err)
+			logrus.Errorf("local: failed to create connection - %v", err)
+			devices = nil
 		}
+
 	} else {
 		/* 3. Delete a connection */
-		err = deleteLocalConnection(cfg)
+		devices, err = deleteLocalConnection(cfg)
 		if err != nil {
-			logrus.Errorf("Failed to delete local connection - %v", err)
+			logrus.Errorf("local: failed to delete connection - %v", err)
+			devices = nil
 		}
 	}
-	return crossConnect, nil
+	return devices, err
 }
 
-func createLocalConnection(cfg *connectionConfig) error {
-	logrus.Info("Creating local connection...")
-	/* 1. Get handlers for source and destination namespaces */
-	srcNsHandle, err := netns.GetFromPath(cfg.srcNsPath)
+// createLocalConnection handles creating a local connection
+func createLocalConnection(cfg *connectionConfig) (map[string]monitoring.Device, error) {
+	logrus.Info("local: creating connection...")
+	/* Lock the OS thread so we don't accidentally switch namespaces */
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	/* Get namespace handler - source */
+	srcNsHandle, err := fs.GetNsHandleFromInode(cfg.srcNetNsInode)
+	if err != nil {
+		logrus.Errorf("local: failed to get source namespace handle - %v", err)
+		return nil, err
+	}
+	/* If successful, don't forget to close the handler upon exit */
 	defer func() {
 		if err = srcNsHandle.Close(); err != nil {
-			logrus.Error("error when closing:", err)
+			logrus.Error("local: error when closing source handle: ", err)
 		}
+		logrus.Debug("local: closed source handle: ", srcNsHandle, cfg.srcNetNsInode)
 	}()
+	logrus.Debug("local: opened source handle: ", srcNsHandle, cfg.srcNetNsInode)
+
+	/* Get namespace handler - destination */
+	dstNsHandle, err := fs.GetNsHandleFromInode(cfg.dstNetNsInode)
 	if err != nil {
-		logrus.Errorf("failed to get source namespace handler from path - %v", err)
-		return err
+		logrus.Errorf("local: failed to get destination namespace handle - %v", err)
+		return nil, err
 	}
-	dstNsHandle, err := netns.GetFromPath(cfg.dstNsPath)
 	defer func() {
 		if err = dstNsHandle.Close(); err != nil {
-			logrus.Error("error when closing:", err)
+			logrus.Error("local: error when closing destination handle: ", err)
 		}
+		logrus.Debug("local: closed destination handle: ", dstNsHandle, cfg.dstNetNsInode)
+
 	}()
-	if err != nil {
-		logrus.Errorf("failed to get destination namespace handler from path - %v", err)
-		return err
+	logrus.Debug("local: opened destination handle: ", dstNsHandle, cfg.dstNetNsInode)
+
+	/* Create the VETH pair - host namespace */
+	if err = netlink.LinkAdd(newVETH(cfg.srcName, cfg.dstName)); err != nil {
+		logrus.Errorf("local: failed to create VETH pair - %v", err)
+		return nil, err
 	}
 
-	/* 2. Prepare interface - VETH */
-	iface := newVETH(cfg.srcName, cfg.dstName)
-
-	/* 3. Create the VETH pair - host namespace */
-	if err = netlink.LinkAdd(iface); err != nil {
-		logrus.Errorf("failed to create the VETH pair - %v", err)
-		return err
-	}
-
-	/* 4. Setup interface - source namespace */
+	/* Setup interface - source namespace */
 	if err = setupLinkInNs(srcNsHandle, cfg.srcName, cfg.srcIP, cfg.srcRoutes, cfg.neighbors, true); err != nil {
-		logrus.Errorf("failed to setup container interface %q: %v", cfg.srcName, err)
-		return err
+		logrus.Errorf("local: failed to setup interface - source - %q: %v", cfg.srcName, err)
+		return nil, err
 	}
 
-	/* 5. Setup interface - destination namespace */
+	/* Setup interface - destination namespace */
 	if err = setupLinkInNs(dstNsHandle, cfg.dstName, cfg.dstIP, cfg.dstRoutes, nil, true); err != nil {
-		logrus.Errorf("failed to setup container interface %q: %v", cfg.dstName, err)
-		return err
+		logrus.Errorf("local: failed to setup interface - destination - %q: %v", cfg.dstName, err)
+		return nil, err
 	}
-	return nil
+
+	logrus.Infof("local: creation completed for devices - source: %s, destination: %s", cfg.srcName, cfg.dstName)
+	srcDevice := monitoring.Device{Name: cfg.srcName, XconName: "SRC-" + cfg.id}
+	dstDevice := monitoring.Device{Name: cfg.dstName, XconName: "DST-" + cfg.id}
+	return map[string]monitoring.Device{cfg.srcNetNsInode: srcDevice, cfg.dstNetNsInode: dstDevice}, nil
 }
 
-func deleteLocalConnection(cfg *connectionConfig) error {
-	logrus.Info("Delete local connection...")
-	/* 1. Get handlers for source and destination namespaces */
-	srcNsHandle, err := netns.GetFromPath(cfg.srcNsPath)
+// deleteLocalConnection handles deleting a local connection
+func deleteLocalConnection(cfg *connectionConfig) (map[string]monitoring.Device, error) {
+	logrus.Info("local: deleting connection...")
+	/* Lock the OS thread so we don't accidentally switch namespaces */
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	/* Get namespace handler - source */
+	srcNsHandle, err := fs.GetNsHandleFromInode(cfg.srcNetNsInode)
+	if err != nil {
+		logrus.Errorf("local: failed to get source namespace handle - %v", err)
+		return nil, err
+	}
+	/* If successful, don't forget to close the handler upon exit */
 	defer func() {
 		if err = srcNsHandle.Close(); err != nil {
-			logrus.Error("error when closing:", err)
+			logrus.Error("local: error when closing source handle: ", err)
 		}
+		logrus.Debug("local: closed source handle: ", srcNsHandle, cfg.srcNetNsInode)
 	}()
+	logrus.Debug("local: opened source handle: ", srcNsHandle, cfg.srcNetNsInode)
+
+	/* Get namespace handler - destination */
+	dstNsHandle, err := fs.GetNsHandleFromInode(cfg.dstNetNsInode)
 	if err != nil {
-		logrus.Errorf("failed to get source namespace handler from path - %v", err)
-		return err
+		logrus.Errorf("local: failed to get destination namespace handle - %v", err)
+		return nil, err
 	}
-	dstNsHandle, err := netns.GetFromPath(cfg.dstNsPath)
 	defer func() {
 		if err = dstNsHandle.Close(); err != nil {
-			logrus.Error("error when closing:", err)
+			logrus.Error("local: error when closing destination handle: ", err)
 		}
+		logrus.Debug("local: closed destination handle: ", dstNsHandle, cfg.dstNetNsInode)
+
 	}()
-	if err != nil {
-		logrus.Errorf("failed to get destination namespace handler from path - %v", err)
-		return err
-	}
+	logrus.Debug("local: opened destination handle: ", dstNsHandle, cfg.dstNetNsInode)
 
-	/* 2. Extract the interface - source namespace */
+	/* Extract interface - source namespace */
 	if err = setupLinkInNs(srcNsHandle, cfg.srcName, cfg.srcIP, nil, nil, false); err != nil {
-		logrus.Errorf("failed to setup container interface %q: %v", cfg.srcName, err)
-		return err
+		logrus.Errorf("local: failed to extract interface - source - %q: %v", cfg.srcName, err)
+		return nil, err
 	}
 
-	/* 3. Extract the interface - destination namespace */
+	/* Extract interface - destination namespace */
 	if err = setupLinkInNs(dstNsHandle, cfg.dstName, cfg.dstIP, nil, nil, false); err != nil {
-		logrus.Errorf("failed to setup container interface %q: %v", cfg.dstName, err)
-		return err
+		logrus.Errorf("local: failed to extract interface - destination - %q: %v", cfg.dstName, err)
+		return nil, err
 	}
 
-	/* 4. Get a link object for the interface */
+	/* Get a link object for the interface */
 	ifaceLink, err := netlink.LinkByName(cfg.srcName)
 	if err != nil {
-		logrus.Errorf("failed to get link for %q - %v", cfg.srcName, err)
-		return err
+		logrus.Errorf("local: failed to get link for %q - %v", cfg.srcName, err)
+		return nil, err
 	}
 
-	/* 5. Delete the VETH pair - host namespace */
+	/* Delete the VETH pair - host namespace */
 	if err := netlink.LinkDel(ifaceLink); err != nil {
-		logrus.Errorf("failed to delete the VETH pair - %v", err)
-		return err
+		logrus.Errorf("local: failed to delete the VETH pair - %v", err)
+		return nil, err
 	}
-	return nil
+
+	logrus.Infof("local: deletion completed for devices - source: %s, destination: %s", cfg.srcName, cfg.dstName)
+	srcDevice := monitoring.Device{Name: cfg.srcName, XconName: "SRC-" + cfg.id}
+	dstDevice := monitoring.Device{Name: cfg.dstName, XconName: "DST-" + cfg.id}
+	return map[string]monitoring.Device{cfg.srcNetNsInode: srcDevice, cfg.dstNetNsInode: dstDevice}, nil
 }
 
+// newVETH returns a VETH interface instance
 func newVETH(srcName, dstName string) *netlink.Veth {
 	/* Populate the VETH interface configuration */
 	return &netlink.Veth{

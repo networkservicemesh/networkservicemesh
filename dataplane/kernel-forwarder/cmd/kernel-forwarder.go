@@ -42,7 +42,7 @@ func main() {
 	defer span.Finish()
 	c := tools.NewOSSignalChannel()
 	dataplaneGoals := &common.DataplaneProbeGoals{}
-	dataplaneProbes := probes.New("Kerner-based forwarding plane liveness/readiness healthcheck", dataplaneGoals)
+	dataplaneProbes := probes.New("Kernel-based forwarding plane liveness/readiness healthcheck", dataplaneGoals)
 	dataplaneProbes.BeginHealthCheck()
 
 	plane := kernelforwarder.CreateKernelForwarder()
