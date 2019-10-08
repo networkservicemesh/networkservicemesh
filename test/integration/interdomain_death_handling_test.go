@@ -32,7 +32,7 @@ func TestInterdomainNSCDies(t *testing.T) {
 		t.Skip("Skip, please run without -short")
 		return
 	}
-
+	t.Skip("Skip, pending interdomain fixes")
 	testInterdomainNSMDies(t, 2, true)
 }
 
@@ -41,7 +41,7 @@ func TestInterdomainNSEDies(t *testing.T) {
 		t.Skip("Skip, please run without -short")
 		return
 	}
-
+	t.Skip("Skip, pending interdomain fixes")
 	testInterdomainNSMDies(t, 2, false)
 }
 

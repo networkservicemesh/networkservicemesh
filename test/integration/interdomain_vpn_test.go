@@ -46,7 +46,7 @@ func TestInterdomainVPNNSERemote(t *testing.T) {
 		t.Skip("Skip, please run without -short")
 		return
 	}
-
+	t.Skip("Skip, pending interdomain fixes")
 	testInterdomainVPN(t, InterdomainPtNum, 2, 1, map[string]int{
 		"vppagent-firewall-nse-1":  0,
 		"vppagent-passthrough-nse": 0,
@@ -60,7 +60,7 @@ func TestInterdomainVPNNSCRemote(t *testing.T) {
 		t.Skip("Skip, please run without -short")
 		return
 	}
-
+	t.Skip("Skip, pending interdomain fixes")
 	testInterdomainVPN(t, InterdomainPtNum, 2, 1, map[string]int{
 		"vppagent-firewall-nse-1":  0,
 		"vppagent-passthrough-nse": 0,

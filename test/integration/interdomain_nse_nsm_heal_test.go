@@ -23,6 +23,7 @@ func TestInterdomainNSMHealLocalDieNSMD(t *testing.T) {
 		t.Skip("Skip, please run without -short")
 		return
 	}
+	t.Skip("Skip, pending interdomain fixes")
 
 	testInterdomainNSMHeal(t, 2, 0, false)
 }
@@ -32,6 +33,7 @@ func TestInterdomainNSMHealRemoteDieNSMD(t *testing.T) {
 		t.Skip("Skip, please run without -short")
 		return
 	}
+	t.Skip("Skip, pending interdomain fixes")
 
 	testInterdomainNSMHeal(t, 2, 1, false)
 }
@@ -41,6 +43,7 @@ func TestInterdomainNSMHealRemoteDieNSMD_NSE(t *testing.T) {
 		t.Skip("Skip, please run without -short")
 		return
 	}
+	t.Skip("Skip, pending interdomain fixes")
 
 	testInterdomainNSMHeal(t, 2, 1, true)
 }

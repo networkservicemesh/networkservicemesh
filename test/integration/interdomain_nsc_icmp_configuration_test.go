@@ -19,7 +19,7 @@ func TestInterdomainNSCAndICMPRemote(t *testing.T) {
 		t.Skip("Skip, please run without -short")
 		return
 	}
-
+	t.Skip("Skip, pending interdomain fixes")
 	testInterdomainNSCAndICMP(t, 2, 1, false)
 }
 
@@ -28,7 +28,7 @@ func TestInterdomainNSCAndICMPRemoteVeth(t *testing.T) {
 		t.Skip("Skip, please run without -short")
 		return
 	}
-
+	t.Skip("Skip, pending interdomain fixes")
 	testInterdomainNSCAndICMP(t, 2, 1, true)
 }
 
@@ -37,7 +37,7 @@ func TestInterdomainNSCAndICMPProxyRemote(t *testing.T) {
 		t.Skip("Skip, please run without -short")
 		return
 	}
-
+	t.Skip("Skip, pending interdomain fixes")
 	testInterdomainNSCAndICMP(t, 2, 2, false)
 }
 

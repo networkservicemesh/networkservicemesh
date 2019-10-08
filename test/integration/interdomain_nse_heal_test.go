@@ -20,6 +20,7 @@ func TestInterdomainNSEHealLocal(t *testing.T) {
 		t.Skip("Skip, please run without -short")
 		return
 	}
+	t.Skip("Skip, pending interdomain fixes")
 
 	g := NewWithT(t)
 
@@ -34,7 +35,7 @@ func TestInterdomainNSEHealRemote(t *testing.T) {
 		t.Skip("Skip, please run without -short")
 		return
 	}
-
+	t.Skip("Skip, pending interdomain fixes")
 	g := NewWithT(t)
 
 	testInterdomainNSEHeal(t, 2, 2, map[string]int{
@@ -48,7 +49,7 @@ func TestInterdomainNSEHealLocalToRemote(t *testing.T) {
 		t.Skip("Skip, please run without -short")
 		return
 	}
-
+	t.Skip("Skip, pending interdomain fixes")
 	g := NewWithT(t)
 
 	testInterdomainNSEHeal(t, 2, 2, map[string]int{
