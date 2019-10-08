@@ -360,7 +360,7 @@ func InitSpireSecurity(k8s *K8s) func() {
 	k8s.g.Expect(err).To(BeNil())
 
 	obt := security.NewSpireObtainerWithAddress(addr)
-	mgr := security.NewManagerWithCertObtainer(obt)
+	mgr := security.NewProviderWithCertObtainer(obt)
 	tools.InitConfig(tools.DialConfig{
 		SecurityProvider: mgr,
 	})

@@ -50,11 +50,11 @@ type certificateManager struct {
 
 // NewProvider creates new security.Manager using SpireCertObtainer
 func NewProvider() Provider {
-	return NewManagerWithCertObtainer(NewSpireObtainer())
+	return NewProviderWithCertObtainer(NewSpireObtainer())
 }
 
-// NewManagerWithCertObtainer creates new security.Manager with passed CertificateObtainer
-func NewManagerWithCertObtainer(obtainer CertificateObtainer) Provider {
+// NewProviderWithCertObtainer creates new security.Manager with passed CertificateObtainer
+func NewProviderWithCertObtainer(obtainer CertificateObtainer) Provider {
 	cm := &certificateManager{
 		readyCh: make(chan struct{}),
 	}

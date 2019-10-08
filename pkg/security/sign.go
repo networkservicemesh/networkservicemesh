@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
+	"github.com/sirupsen/logrus"
 	"time"
 )
 
@@ -46,13 +47,16 @@ func WithLifetime(t time.Duration) SignOption {
 
 func GenerateSignature(msg interface{}, claimsSetter ClaimsSetter, p Provider, opts ...SignOption) (string, error) {
 	claims := &ChainClaims{}
-	claimsSetter(claims, msg)
+	if err := claimsSetter(claims, msg); err != nil {
+		return "", err
+	}
 
 	for _, o := range opts {
 		o.apply(claims)
 	}
 
 	if claims.Obo != "" {
+		logrus.Info("GeneratingSignature: claims.Obo is not empty")
 		token, parts, oboClaims, err := ParseJWTWithClaims(claims.Obo)
 		if err != nil {
 			return "", err
@@ -63,6 +67,7 @@ func GenerateSignature(msg interface{}, claimsSetter ClaimsSetter, p Provider, o
 		}
 
 		if oboClaims.Subject == p.GetSpiffeID() {
+			logrus.Info("GeneratingSignature: claims.Obo.Subject equals current SpiffeID")
 			return claims.Obo, nil
 		}
 	}

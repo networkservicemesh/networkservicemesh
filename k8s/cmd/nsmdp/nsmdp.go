@@ -207,7 +207,7 @@ func startDeviceServer(ctx context.Context, nsm pluginapi.DevicePluginServer) er
 		return err
 	}
 
-	grpcServer := tools.NewServerInsecure()
+	grpcServer := tools.NewServerInsecure(context.Background())
 
 	pluginapi.RegisterDevicePluginServer(grpcServer, nsm)
 

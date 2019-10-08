@@ -9,6 +9,7 @@ require (
 	github.com/networkservicemesh/networkservicemesh/pkg v0.2.0
 	github.com/networkservicemesh/networkservicemesh/sdk v0.2.0
 	github.com/networkservicemesh/networkservicemesh/utils v0.2.0
+	github.com/onsi/ginkgo v1.8.0 // indirect
 	github.com/onsi/gomega v1.7.0
 	github.com/pkg/errors v0.8.1
 	github.com/rs/xid v1.2.1

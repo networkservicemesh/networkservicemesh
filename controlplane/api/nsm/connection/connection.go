@@ -43,4 +43,5 @@ type Connection interface {
 	IsComplete() error
 
 	GetSignature() string
+	SetSignature(sign string)
 }

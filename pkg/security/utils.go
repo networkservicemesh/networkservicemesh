@@ -65,11 +65,12 @@ func ClientInterceptor(securityProvider Provider) grpc.UnaryClientInterceptor {
 			request.GetRequestConnection().GetNetworkService())
 
 		var obo string
-		if claims, ok := ctx.Value(NSMClaimsContextKey).(*ChainClaims); ok {
-			obo = claims.Obo
+		if token, ok := ctx.Value("token").(string); ok {
+			logrus.Infof("ClientInterceptor discovered obo-token: %v", token)
+			obo = token
 		}
 
-		token, err := GenerateSignature(req, requestClaimSetter, securityProvider, WithObo(obo))
+		token, err := GenerateSignature(req, RequestClaimSetter, securityProvider, WithObo(obo))
 		if err != nil {
 			logrus.Error(err)
 			return err
@@ -127,24 +128,16 @@ func ServerInterceptor(securityProvider Provider) grpc.UnaryServerInterceptor {
 
 		jwt := md["authorization"][0]
 		if err := VerifySignature(jwt, securityProvider.GetCABundle(), spiffeID); err != nil {
+			logrus.Error(err)
 			return nil, status.Errorf(codes.Unauthenticated, fmt.Sprintf("token is not valid: %v", err))
 		}
 
 		_, _, claims, _ := ParseJWTWithClaims(jwt)
 		newCtx := context.WithValue(ctx, NSMClaimsContextKey, claims)
+		newCtx = context.WithValue(newCtx, "token", jwt)
 
 		return handler(newCtx, req)
 	}
-}
-
-func requestClaimSetter(claims *ChainClaims, msg interface{}) error {
-	request, ok := msg.(networkservice.Request)
-	if !ok {
-		return fmt.Errorf("unable to cast msg to networkserivce.Request")
-	}
-
-	claims.Audience = request.GetRequestConnection().GetNetworkService()
-	return nil
 }
 
 func spiffeIDFromContext(ctx context.Context) (string, error) {

@@ -141,3 +141,7 @@ func (c *Connection) IsComplete() error {
 func (c *Connection) GetSignature() string {
 	return c.GetResponseJWT()
 }
+
+func (c *Connection) SetSignature(sign string) {
+	c.ResponseJWT = sign
+}

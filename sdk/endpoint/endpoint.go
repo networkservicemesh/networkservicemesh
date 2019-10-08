@@ -18,6 +18,7 @@ package endpoint
 import (
 	"context"
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/pkg/security"
 	"io"
 	"net"
 
@@ -166,6 +167,13 @@ func (nsme *nsmEndpoint) Request(ctx context.Context, request *networkservice.Ne
 	}
 
 	logger.Infof("Responding to NetworkService.Request(%v): %v", request, incomingConnection)
+	sign, err := security.GenerateSignature(incomingConnection, security.ConnectionClaimSetter, tools.GetConfig().SecurityProvider)
+	if err != nil {
+		logrus.Errorf("Unable to sign response: %v", err)
+		return nil, err
+	}
+
+	incomingConnection.ResponseJWT = sign
 	span.LogObject("response", incomingConnection)
 	return incomingConnection, nil
 }
