@@ -92,10 +92,9 @@ func createDataplaneConfig(dataplaneGoals *DataplaneProbeGoals) *DataplaneConfig
 
 	cfg.Name, ok = os.LookupEnv(DataplaneNameKey)
 	if !ok {
-		logrus.Infof("%s not set, using default %s", DataplaneNameKey, DataplaneNameDefault)
+		logrus.Debugf("%s not set, using default %s", DataplaneNameKey, DataplaneNameDefault)
 		cfg.Name = DataplaneNameDefault
 	}
-	logrus.Infof("Starting dataplane - %s", cfg.Name)
 
 	cfg.DataplaneSocket, ok = os.LookupEnv(DataplaneSocketKey)
 	if !ok {
