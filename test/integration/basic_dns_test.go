@@ -9,6 +9,7 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
+	"github.com/sirupsen/logrus"
 )
 
 func TestBasicDns(t *testing.T) {
@@ -115,7 +116,12 @@ func TestNsmCorednsNotBreakDefaultK8sDNS(t *testing.T) {
 	assert.Expect(err).To(gomega.BeNil())
 	defer kubetest.MakeLogsSnapshot(k8s, t)
 
-	kubetest.DeployICMP(k8s, configs[0].Node, "icmp-responder", defaultTimeout)
+	nse := kubetest.DeployICMP(k8s, configs[0].Node, "icmp-responder", defaultTimeout)
 	nsc := kubetest.DeployMonitoringNSCAndCoredns(k8s, configs[0].Node, "nsc", defaultTimeout)
+
+	if !kubetest.NSLookup(k8s, nse, "kubernetes.default") {
+		logrus.Info("Cluster DNS not works")
+		t.SkipNow()
+	}
 	assert.Expect(kubetest.NSLookup(k8s, nsc, "kubernetes.default")).Should(gomega.BeTrue())
 }
