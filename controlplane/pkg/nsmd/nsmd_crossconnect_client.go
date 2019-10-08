@@ -118,8 +118,8 @@ func (client *NsmMonitorCrossConnectClient) EndpointDeleted(_ context.Context, e
 }
 
 // DataplaneAdded implements method from Listener
-func (client *NsmMonitorCrossConnectClient) DataplaneAdded(ctx context.Context, dp *model.Dataplane) {
-	span := spanhelper.CopySpan(context.Background(), spanhelper.GetSpanHelper(ctx), "DataplaneAdded")
+func (client *NsmMonitorCrossConnectClient) DataplaneAdded(_ context.Context, dp *model.Dataplane) {
+	span := spanhelper.FromContext(context.Background(), "DataplaneAdded")
 	defer span.Finish()
 	ctx, cancel := context.WithCancel(span.Context())
 	client.dataplanes.Store(dp.RegisteredName, cancel)
@@ -128,8 +128,8 @@ func (client *NsmMonitorCrossConnectClient) DataplaneAdded(ctx context.Context, 
 }
 
 // DataplaneDeleted implements method from Listener
-func (client *NsmMonitorCrossConnectClient) DataplaneDeleted(ctx context.Context, dp *model.Dataplane) {
-	span := spanhelper.CopySpan(context.Background(), spanhelper.GetSpanHelper(ctx), "DataplaneDeleted")
+func (client *NsmMonitorCrossConnectClient) DataplaneDeleted(_ context.Context, dp *model.Dataplane) {
+	span := spanhelper.FromContext(context.Background(), "DataplaneDeleted")
 	defer span.Finish()
 	client.xconManager.DataplaneDown(span.Context(), dp)
 	if cancel, ok := client.dataplanes.Load(dp.RegisteredName); ok {
@@ -179,6 +179,14 @@ func (client *NsmMonitorCrossConnectClient) ClientConnectionUpdated(ctx context.
 	span.LogObject("old", old)
 
 	client.xconManager.MarkConnectionUpdated(new)
+
+	conn := new.Xcon.GetSourceConnection()
+	if conn.Equals(old.Xcon.GetSourceConnection()) {
+		return
+	}
+	if new.Monitor != nil {
+		new.Monitor.Update(ctx, conn)
+	}
 }
 
 // ClientConnectionDeleted - handle client connection deleted

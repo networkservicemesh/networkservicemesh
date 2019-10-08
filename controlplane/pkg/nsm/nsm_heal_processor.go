@@ -204,7 +204,7 @@ func (p *healProcessor) healDstDown(ctx context.Context, cc *model.ClientConnect
 	endpointName := cc.Endpoint.GetNetworkServiceEndpoint().GetName()
 
 	// Wait for NSE not equal to down one, since we know it will be re-registered with new endpoint name.
-	if ok, newNse := p.waitNSE(waitCtx, cc, endpointName, cc.GetNetworkService(), p.nseIsNewAndAvailable); !ok {
+	if ok, newNse := p.waitNSE(waitCtx, endpointName, cc.GetNetworkService(), p.nseIsNewAndAvailable); !ok {
 		// Mark endpoint as ignored.
 		ctx = common.WithIgnoredEndpoints(ctx, map[string]*registry.NSERegistration{
 			endpointName: cc.Endpoint,
@@ -226,19 +226,18 @@ func (p *healProcessor) healDstDown(ctx context.Context, cc *model.ClientConnect
 }
 
 func (p *healProcessor) healDataplaneDown(ctx context.Context, cc *model.ClientConnection) bool {
-	span := spanhelper.FromContext(ctx, "healDataplaneDown")
-	defer span.Finish()
-	ctx = span.Context()
-
 	var cancel context.CancelFunc
 	ctx, cancel = context.WithTimeout(ctx, p.properties.HealTimeout)
 	defer cancel()
+
+	span := spanhelper.FromContext(ctx, "healDataplaneDown")
+	defer span.Finish()
 
 	logger := span.Logger()
 	// Dataplane is down, we only need to re-programm dataplane.
 	// 1. Wait for dataplane to appear.
 	logger.Infof("NSM_Heal(3.1) Waiting for Dataplane to recovery...")
-	if err := p.serviceRegistry.WaitForDataplaneAvailable(ctx, p.model, p.properties.HealDataplaneTimeout); err != nil {
+	if err := p.serviceRegistry.WaitForDataplaneAvailable(span.Context(), p.model, p.properties.HealDataplaneTimeout); err != nil {
 		err = fmt.Errorf("NSM_Heal(3.1) Dataplane is not available on recovery for timeout %v: %v", p.properties.HealDataplaneTimeout, err)
 		span.LogError(err)
 		return false
@@ -246,7 +245,7 @@ func (p *healProcessor) healDataplaneDown(ctx context.Context, cc *model.ClientC
 	logger.Infof("NSM_Heal(3.2) Dataplane is now available...")
 
 	// 3.3. Set source connection down
-	p.model.ApplyClientConnectionChanges(ctx, cc.GetID(), func(modelCC *model.ClientConnection) {
+	p.model.ApplyClientConnectionChanges(span.Context(), cc.GetID(), func(modelCC *model.ClientConnection) {
 		modelCC.GetConnectionSource().SetConnectionState(connection.StateDown)
 	})
 
@@ -260,7 +259,7 @@ func (p *healProcessor) healDataplaneDown(ctx context.Context, cc *model.ClientC
 	request := cc.Request.Clone()
 	request.SetRequestConnection(cc.GetConnectionSource())
 
-	if _, err := p.manager.LocalManager(cc).Request(ctx, cc.Request.(*local_networkservice.NetworkServiceRequest)); err != nil {
+	if _, err := p.manager.LocalManager(cc).Request(span.Context(), cc.Request.(*local_networkservice.NetworkServiceRequest)); err != nil {
 		logger.Errorf("NSM_Heal(3.5) Failed to heal connection: %v", err)
 		return false
 	}
@@ -326,7 +325,7 @@ func (p *healProcessor) healDstNmgrDown(ctx context.Context, cc *model.ClientCon
 	// Wait for exact same NSE to be available with NSMD connection alive.
 	if cc.Endpoint != nil {
 		endpointName = cc.Endpoint.GetNetworkServiceEndpoint().GetName()
-		if ok, newNse := p.waitNSE(waitCtx, cc, endpointName, cc.GetNetworkService(), p.nseIsSameAndAvailable); !ok {
+		if ok, newNse := p.waitNSE(waitCtx, endpointName, cc.GetNetworkService(), p.nseIsSameAndAvailable); !ok {
 			span.LogValue("waitNSE", "failed to find endpoint by name with timeout")
 			ctx = common.WithIgnoredEndpoints(ctx, map[string]*registry.NSERegistration{
 				endpointName: cc.Endpoint,
@@ -352,7 +351,7 @@ func (p *healProcessor) healDstNmgrDown(ctx context.Context, cc *model.ClientCon
 		}
 		waitCtx2, waitCancel2 := context.WithTimeout(ctx, p.properties.HealTimeout*3)
 		defer waitCancel2()
-		if ok, _ := p.waitNSE(waitCtx2, cc, endpointName, cc.GetNetworkService(), p.nseIsNewAndAvailable); !ok {
+		if ok, _ := p.waitNSE(waitCtx2, endpointName, cc.GetNetworkService(), p.nseIsNewAndAvailable); !ok {
 			// We need to request fully new connection part.
 			span.LogError(fmt.Errorf("failed to find endpoint %v", endpointName))
 			return false
@@ -413,7 +412,7 @@ func (p *healProcessor) nseIsSameAndAvailable(ctx context.Context, endpointName 
 	return false
 }
 
-func (p *healProcessor) waitNSE(ctx context.Context, cc *model.ClientConnection, endpointName, networkService string, nseValidator nseValidator) (bool, *registry.NSERegistration) {
+func (p *healProcessor) waitNSE(ctx context.Context, endpointName, networkService string, nseValidator nseValidator) (bool, *registry.NSERegistration) {
 
 	span := spanhelper.FromContext(ctx, "waitNSE")
 	defer span.Finish()

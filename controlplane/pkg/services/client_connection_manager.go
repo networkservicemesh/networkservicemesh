@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
+
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	"github.com/sirupsen/logrus"
@@ -15,7 +17,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	remote "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 )
@@ -102,15 +103,16 @@ func (m *ClientConnectionManager) DestinationDown(ctx context.Context, cc nsm.Cl
 
 // DataplaneDown handles case of local dp down
 func (m *ClientConnectionManager) DataplaneDown(ctx context.Context, dataplane *model.Dataplane) {
+	span := spanhelper.GetSpanHelper(ctx)
 	ccs := m.model.GetAllClientConnections()
 	for _, cc := range ccs {
+		span.LogObject(fmt.Sprintf("DataplaneDeleted-%v", cc.GetID()), cc)
 		if cc.DataplaneRegisteredName == dataplane.RegisteredName {
 			span := common.SpanHelperFromConnection(ctx, cc, "DataplaneDown")
 			defer span.Finish()
-			ctx = span.Context()
 			span.LogObject("dataplane", dataplane)
 
-			m.manager.Heal(ctx, cc, nsm.HealStateDataplaneDown)
+			m.manager.Heal(span.Context(), cc, nsm.HealStateDataplaneDown)
 		}
 	}
 }
