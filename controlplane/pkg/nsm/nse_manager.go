@@ -106,7 +106,9 @@ func (nsem *nseManager) CreateNSEClient(ctx context.Context, endpoint *registry.
 		return &endpointClient{connection: conn, client: client}, nil
 	} else {
 		logger.Infof("Create remote NSE connection to endpoint: %v", endpoint)
-		client, conn, err := nsem.serviceRegistry.RemoteNetworkServiceClient(span.Context(), endpoint.GetNetworkServiceManager())
+		ctx, cancel := context.WithTimeout(span.Context(), nsem.properties.HealRequestConnectTimeout)
+		defer cancel()
+		client, conn, err := nsem.serviceRegistry.RemoteNetworkServiceClient(ctx, endpoint.GetNetworkServiceManager())
 		if err != nil {
 			return nil, err
 		}

@@ -204,14 +204,11 @@ func (p *healProcessor) healDstDown(ctx context.Context, cc *model.ClientConnect
 	endpointName := cc.Endpoint.GetNetworkServiceEndpoint().GetName()
 
 	// Wait for NSE not equal to down one, since we know it will be re-registered with new endpoint name.
-	if ok, newNse := p.waitNSE(waitCtx, endpointName, cc.GetNetworkService(), p.nseIsNewAndAvailable); !ok {
+	if !p.waitNSE(waitCtx, endpointName, cc.GetNetworkService(), p.nseIsNewAndAvailable) {
 		// Mark endpoint as ignored.
 		ctx = common.WithIgnoredEndpoints(ctx, map[string]*registry.NSERegistration{
 			endpointName: cc.Endpoint,
 		})
-	} else {
-		// update endpoint in client connection to match remote Manager.
-		cc.Endpoint = newNse
 	}
 	// Fallback to heal with choose of new NSE.
 	requestCtx, requestCancel := context.WithTimeout(ctx, p.properties.HealRequestTimeout)
@@ -325,14 +322,11 @@ func (p *healProcessor) healDstNmgrDown(ctx context.Context, cc *model.ClientCon
 	// Wait for exact same NSE to be available with NSMD connection alive.
 	if cc.Endpoint != nil {
 		endpointName = cc.Endpoint.GetNetworkServiceEndpoint().GetName()
-		if ok, newNse := p.waitNSE(waitCtx, endpointName, cc.GetNetworkService(), p.nseIsSameAndAvailable); !ok {
+		if !p.waitNSE(waitCtx, endpointName, cc.GetNetworkService(), p.nseIsSameAndAvailable) {
 			span.LogValue("waitNSE", "failed to find endpoint by name with timeout")
 			ctx = common.WithIgnoredEndpoints(ctx, map[string]*registry.NSERegistration{
 				endpointName: cc.Endpoint,
 			})
-		} else {
-			// update endpoint in client connection to match remote Manager.
-			cc.Endpoint = newNse
 		}
 	}
 	requestCtx, requestCancel := context.WithTimeout(ctx, p.properties.HealRequestTimeout)
@@ -351,7 +345,7 @@ func (p *healProcessor) healDstNmgrDown(ctx context.Context, cc *model.ClientCon
 		}
 		waitCtx2, waitCancel2 := context.WithTimeout(ctx, p.properties.HealTimeout*3)
 		defer waitCancel2()
-		if ok, _ := p.waitNSE(waitCtx2, endpointName, cc.GetNetworkService(), p.nseIsNewAndAvailable); !ok {
+		if !p.waitNSE(waitCtx2, endpointName, cc.GetNetworkService(), p.nseIsNewAndAvailable) {
 			// We need to request fully new connection part.
 			span.LogError(fmt.Errorf("failed to find endpoint %v", endpointName))
 			return false
@@ -412,7 +406,7 @@ func (p *healProcessor) nseIsSameAndAvailable(ctx context.Context, endpointName 
 	return false
 }
 
-func (p *healProcessor) waitNSE(ctx context.Context, endpointName, networkService string, nseValidator nseValidator) (bool, *registry.NSERegistration) {
+func (p *healProcessor) waitNSE(ctx context.Context, endpointName, networkService string, nseValidator nseValidator) bool {
 
 	span := spanhelper.FromContext(ctx, "waitNSE")
 	defer span.Finish()
@@ -425,7 +419,7 @@ func (p *healProcessor) waitNSE(ctx context.Context, endpointName, networkServic
 	discoveryClient, err := p.serviceRegistry.DiscoveryClient(span.Context())
 	if err != nil {
 		span.LogError(err)
-		return false, nil
+		return false
 	}
 
 	st := time.Now()
@@ -451,14 +445,14 @@ func (p *healProcessor) waitNSE(ctx context.Context, endpointName, networkServic
 				}
 
 				if nseValidator(ctx, endpointName, reg) {
-					return true, reg
+					return true
 				}
 			}
 		}
 
 		if time.Since(st) > p.properties.HealDSTNSEWaitTimeout {
 			span.LogError(fmt.Errorf("timeout waiting for NetworkService: %v", networkService))
-			return false, nil
+			return false
 		}
 		// Wait a bit
 		<-time.After(p.properties.HealDSTNSEWaitTick)
