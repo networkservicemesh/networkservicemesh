@@ -10,6 +10,8 @@ import (
 	empty "github.com/golang/protobuf/ptypes/empty"
 	timestamp "github.com/golang/protobuf/ptypes/timestamp"
 	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -671,6 +673,17 @@ type NetworkServiceRegistryServer interface {
 	RemoveNSE(context.Context, *RemoveNSERequest) (*empty.Empty, error)
 }
 
+// UnimplementedNetworkServiceRegistryServer can be embedded to have forward compatible implementations.
+type UnimplementedNetworkServiceRegistryServer struct {
+}
+
+func (*UnimplementedNetworkServiceRegistryServer) RegisterNSE(ctx context.Context, req *NSERegistration) (*NSERegistration, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RegisterNSE not implemented")
+}
+func (*UnimplementedNetworkServiceRegistryServer) RemoveNSE(ctx context.Context, req *RemoveNSERequest) (*empty.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RemoveNSE not implemented")
+}
+
 func RegisterNetworkServiceRegistryServer(s *grpc.Server, srv NetworkServiceRegistryServer) {
 	s.RegisterService(&_NetworkServiceRegistry_serviceDesc, srv)
 }
@@ -757,6 +770,14 @@ type NetworkServiceDiscoveryServer interface {
 	FindNetworkService(context.Context, *FindNetworkServiceRequest) (*FindNetworkServiceResponse, error)
 }
 
+// UnimplementedNetworkServiceDiscoveryServer can be embedded to have forward compatible implementations.
+type UnimplementedNetworkServiceDiscoveryServer struct {
+}
+
+func (*UnimplementedNetworkServiceDiscoveryServer) FindNetworkService(ctx context.Context, req *FindNetworkServiceRequest) (*FindNetworkServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FindNetworkService not implemented")
+}
+
 func RegisterNetworkServiceDiscoveryServer(s *grpc.Server, srv NetworkServiceDiscoveryServer) {
 	s.RegisterService(&_NetworkServiceDiscovery_serviceDesc, srv)
 }
@@ -830,6 +851,17 @@ func (c *nsmRegistryClient) GetEndpoints(ctx context.Context, in *empty.Empty, o
 type NsmRegistryServer interface {
 	RegisterNSM(context.Context, *NetworkServiceManager) (*NetworkServiceManager, error)
 	GetEndpoints(context.Context, *empty.Empty) (*NetworkServiceEndpointList, error)
+}
+
+// UnimplementedNsmRegistryServer can be embedded to have forward compatible implementations.
+type UnimplementedNsmRegistryServer struct {
+}
+
+func (*UnimplementedNsmRegistryServer) RegisterNSM(ctx context.Context, req *NetworkServiceManager) (*NetworkServiceManager, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RegisterNSM not implemented")
+}
+func (*UnimplementedNsmRegistryServer) GetEndpoints(ctx context.Context, req *empty.Empty) (*NetworkServiceEndpointList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetEndpoints not implemented")
 }
 
 func RegisterNsmRegistryServer(s *grpc.Server, srv NsmRegistryServer) {

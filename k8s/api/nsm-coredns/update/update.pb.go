@@ -10,6 +10,8 @@ import (
 	empty "github.com/golang/protobuf/ptypes/empty"
 	connectioncontext "github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
 	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -184,6 +186,17 @@ func (c *dNSConfigServiceClient) RemoveDNSContext(ctx context.Context, in *Remov
 type DNSConfigServiceServer interface {
 	AddDNSContext(context.Context, *AddDNSContextMessage) (*empty.Empty, error)
 	RemoveDNSContext(context.Context, *RemoveDNSContextMessage) (*empty.Empty, error)
+}
+
+// UnimplementedDNSConfigServiceServer can be embedded to have forward compatible implementations.
+type UnimplementedDNSConfigServiceServer struct {
+}
+
+func (*UnimplementedDNSConfigServiceServer) AddDNSContext(ctx context.Context, req *AddDNSContextMessage) (*empty.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddDNSContext not implemented")
+}
+func (*UnimplementedDNSConfigServiceServer) RemoveDNSContext(ctx context.Context, req *RemoveDNSContextMessage) (*empty.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RemoveDNSContext not implemented")
 }
 
 func RegisterDNSConfigServiceServer(s *grpc.Server, srv DNSConfigServiceServer) {

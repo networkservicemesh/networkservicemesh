@@ -10,6 +10,8 @@ import (
 	connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	connection1 "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
 	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -256,6 +258,17 @@ func (c *connectionPluginClient) ValidateConnection(ctx context.Context, in *Con
 type ConnectionPluginServer interface {
 	UpdateConnection(context.Context, *ConnectionWrapper) (*ConnectionWrapper, error)
 	ValidateConnection(context.Context, *ConnectionWrapper) (*ConnectionValidationResult, error)
+}
+
+// UnimplementedConnectionPluginServer can be embedded to have forward compatible implementations.
+type UnimplementedConnectionPluginServer struct {
+}
+
+func (*UnimplementedConnectionPluginServer) UpdateConnection(ctx context.Context, req *ConnectionWrapper) (*ConnectionWrapper, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateConnection not implemented")
+}
+func (*UnimplementedConnectionPluginServer) ValidateConnection(ctx context.Context, req *ConnectionWrapper) (*ConnectionValidationResult, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ValidateConnection not implemented")
 }
 
 func RegisterConnectionPluginServer(s *grpc.Server, srv ConnectionPluginServer) {

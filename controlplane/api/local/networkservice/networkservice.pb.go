@@ -10,6 +10,8 @@ import (
 	empty "github.com/golang/protobuf/ptypes/empty"
 	connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -145,6 +147,17 @@ func (c *networkServiceClient) Close(ctx context.Context, in *connection.Connect
 type NetworkServiceServer interface {
 	Request(context.Context, *NetworkServiceRequest) (*connection.Connection, error)
 	Close(context.Context, *connection.Connection) (*empty.Empty, error)
+}
+
+// UnimplementedNetworkServiceServer can be embedded to have forward compatible implementations.
+type UnimplementedNetworkServiceServer struct {
+}
+
+func (*UnimplementedNetworkServiceServer) Request(ctx context.Context, req *NetworkServiceRequest) (*connection.Connection, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Request not implemented")
+}
+func (*UnimplementedNetworkServiceServer) Close(ctx context.Context, req *connection.Connection) (*empty.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Close not implemented")
 }
 
 func RegisterNetworkServiceServer(s *grpc.Server, srv NetworkServiceServer) {
