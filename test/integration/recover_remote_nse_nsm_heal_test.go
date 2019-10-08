@@ -76,7 +76,7 @@ func TestNSMHealRemoteDieNSMD_NSE(t *testing.T) {
 	icmpPod = kubetest.DeployICMP(k8s, nodes_setup[1].Node, "icmp-responder-nse-2", defaultTimeout)
 
 	logrus.Infof("Waiting for connection recovery...")
-	k8s.WaitLogsContains(nodes_setup[0].Nsmd, "nsmd", "Heal: Connection recovered:", time.Minute)
+	k8s.WaitLogsContains(nodes_setup[0].Nsmd, "nsmd", "Heal: Connection recovered:", defaultTimeout)
 	logrus.Infof("Waiting for connection recovery Done...")
 
 	kubetest.HealNscChecker(k8s, nscPodNode)
