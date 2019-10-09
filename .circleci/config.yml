@@ -180,7 +180,7 @@ jobs:
             export TAG="${COMMIT}"
             export CONTAINER_REPO="networkservicemeshci"
             export GOPROXY=https://proxy.golang.org,direct
-            make -j 8 docker-push
+            make docker-push
 
 # docker push
   docker-push-tag:
