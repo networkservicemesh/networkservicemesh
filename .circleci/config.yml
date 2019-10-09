@@ -175,12 +175,14 @@ jobs:
       - setup_remote_docker:
           docker_layer_caching: true
       - run:
+          name: Build containers
           command: |
             export COMMIT="ci_${CIRCLE_WORKFLOW_ID}_${CIRCLE_SHA1:8:8}"
             export TAG="${COMMIT}"
             export CONTAINER_REPO="networkservicemeshci"
             export GOPROXY=https://proxy.golang.org,direct
-            make -j 8 docker-push
+            # resource_class xlarge has 8 core, multiple by 1.5 for hyperthreading for -j factor
+            make -j 12 -l 8 -O docker-push
 
 # docker push
   docker-push-tag:
