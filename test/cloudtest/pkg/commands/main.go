@@ -637,6 +637,30 @@ func (ctx *executionContext) startTask(task *testTask, instances []*clusterInsta
 
 func (ctx *executionContext) executeTask(task *testTask, clusterConfigs []string, file io.Writer, ids string, runner runners.TestRunner, timeout time.Duration, instances []*clusterInstance, err error, fileName string) {
 	go func() {
+		testDelay := func() int {
+			first := true
+			for _, tt := range ctx.completed {
+				if tt.clusterTaskID == task.clusterTaskID {
+					first = false
+					break
+				}
+			}
+			delay := 0
+			if !first {
+				for _, cl := range task.clusters {
+					if cl.config.TestDelay > delay {
+						delay = cl.config.TestDelay
+					}
+				}
+			}
+			return delay
+		}()
+		if testDelay != 0 {
+			logrus.Infof("Cluster %v requires %v seconds delay between tests", task.clusterTaskID, testDelay)
+			<-time.After(time.Duration(testDelay) * time.Second)
+			logrus.Infof("Cluster %v: %v seconds delay between tests completed", task.clusterTaskID, testDelay)
+		}
+
 		st := time.Now()
 		env := []string{}
 		// Fill Kubernetes environment variables.
@@ -678,16 +702,6 @@ func (ctx *executionContext) executeTask(task *testTask, clusterConfigs []string
 			}
 		}
 
-		delay := 0
-		for _, cl := range task.clusters {
-			if cl.config.TestDelay > delay {
-				delay = cl.config.TestDelay
-			}
-		}
-		if delay != 0 {
-			logrus.Infof("Cluster requires delay between test with %v seconds", delay)
-			<-time.After(time.Duration(delay) * time.Second)
-		}
 		task.test.Duration = time.Since(st)
 
 		if errCode != nil {
