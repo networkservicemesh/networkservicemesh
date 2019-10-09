@@ -79,6 +79,7 @@ func (o *K8s) doExec(pod *v1.Pod, container string, command ...string) (string, 
 		err = exec.Stream(options)
 	}()
 	if !waitTimeout(fmt.Sprintf("Exec %v:%v cmdline: %v", pod.Name, container, command), &wg, podExecTimeout) {
+		err = fmt.Errorf("timed out executing command %v in pod %v", command, pod.Name)
 		logrus.Errorf("Failed to do exec. Timeout")
 	}
 
