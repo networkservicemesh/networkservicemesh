@@ -23,3 +23,6 @@ docker-k8s-build: $(addsuffix -build, $(addprefix docker-, $(k8s_apps)))
 
 .PHONY: docker-k8s-save
 docker-k8s-save: $(addsuffix -save, $(addprefix docker-, $(k8s_apps)))
+
+.PHONY: docker-k8s-push
+docker-k8s-push: $(addsuffix -push, $(addprefix docker-, $(k8s_apps)))

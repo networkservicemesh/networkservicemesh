@@ -41,3 +41,7 @@ docker-dataplane-build: docker-vppagent-dataplane-build docker-kernel-forwarder-
 
 .PHONY: docker-dataplane-save
 docker-dataplane-save: docker-vppagent-dataplane-save docker-kernel-forwarder-save
+
+.PHONY: docker-dataplane-push
+docker-dataplane-push: docker-vppagent-dataplane-push docker-kernel-forwarder-push
+

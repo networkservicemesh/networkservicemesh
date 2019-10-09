@@ -46,3 +46,7 @@ docker-test-build: docker-test-common-build docker-vpp-test-common-build
 
 .PHONY: docker-test-save
 docker-test-save: docker-test-common-save docker-vpp-test-common-save
+
+.PHONY: docker-test-push
+docker-test-push: docker-test-common-push docker-vpp-test-common-push
+
