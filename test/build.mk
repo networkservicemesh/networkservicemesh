@@ -48,8 +48,5 @@ docker-test-build: docker-test-common-build docker-vpp-test-common-build
 docker-test-save: docker-test-common-save docker-vpp-test-common-save
 
 .PHONY: docker-test-push
-docker-test-push: docker-test-common-build docker-vpp-test-common-build
-	docker tag ${ORG}/$*:${COMMIT} ${ORG}/test-common:${TAG}
-	docker push ${ORG}/test-common:${TAG}
-	docker tag ${ORG}/$*:${COMMIT} ${ORG}/vpp-test-common:${TAG}
-    docker push ${ORG}/vpp-test-common:${TAG}
+docker-test-push: docker-test-common-push docker-vpp-test-common-push
+
