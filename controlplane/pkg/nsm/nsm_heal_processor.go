@@ -149,7 +149,7 @@ func (p *healProcessor) serve() {
 			case nsm.HealStateDstUpdate:
 				healed = p.healDstUpdate(ctx, e.cc)
 			case nsm.HealStateDstNmgrDown:
-				healed = p.healDstNmgrDown(ctx, e.cc)
+				healed = p.healDstMgrDown(ctx, e.cc)
 			}
 
 			if healed {
@@ -184,7 +184,7 @@ func (p *healProcessor) healDstDown(ctx context.Context, cc *model.ClientConnect
 			// This is NSMD die case.
 			logger.Infof("NSM_Heal(1.1.2) Connection healing state is %v...", nsm.HealStateDstNmgrDown)
 			span.LogError(err)
-			return p.healDstNmgrDown(ctx, cc)
+			return p.healDstMgrDown(ctx, cc)
 		}
 	}
 	logger.Infof("NSM_Heal(1.1.2) Connection healing state is %v...", nsm.HealStateDstDown)
@@ -194,32 +194,30 @@ func (p *healProcessor) healDstDown(ctx context.Context, cc *model.ClientConnect
 		logger.Infof("NSM_Heal(2.1) Remote NSE heal is done on source side")
 		return false
 	}
-
-	waitCtx, waitCancel := context.WithTimeout(ctx, p.properties.HealTimeout*3)
-	defer waitCancel()
-
 	logger.Infof("NSM_Heal(2.2) Starting DST Heal...")
-
 	// We are client NSMd, we need to try recover our connection srv.
-	endpointName := cc.Endpoint.GetNetworkServiceEndpoint().GetName()
-
 	// Wait for NSE not equal to down one, since we know it will be re-registered with new endpoint name.
-	if !p.waitNSE(waitCtx, endpointName, cc.GetNetworkService(), p.nseIsNewAndAvailable) {
-		// Mark endpoint as ignored.
-		ctx = common.WithIgnoredEndpoints(ctx, map[string]*registry.NSERegistration{
-			endpointName: cc.Endpoint,
-		})
-	}
+	ctx = p.waitForNSEUpdateContext(ctx, cc.Endpoint.GetNetworkServiceEndpoint().GetName(), cc)
 	// Fallback to heal with choose of new NSE.
-	requestCtx, requestCancel := context.WithTimeout(ctx, p.properties.HealRequestTimeout)
-	defer requestCancel()
+	for attempt := 0; attempt < p.properties.HealRetryCount; attempt++ {
+		attemptSpan := spanhelper.FromContext(ctx, fmt.Sprintf("healing-attempt-%v", attempt))
+		requestCtx, requestCancel := context.WithTimeout(attemptSpan.Context(), p.properties.HealRequestTimeout)
+		defer requestCancel()
+		defer attemptSpan.Finish()
 
-	logger.Infof("NSM_Heal(2.3.0) Starting Heal by calling request: %v", cc.Request)
-	if _, err := p.manager.LocalManager(cc).Request(requestCtx, cc.Request.(*local_networkservice.NetworkServiceRequest)); err != nil {
-		logger.Errorf("NSM_Heal(2.3.1) Failed to heal connection: %v", err)
-		return false
+		logger.Infof("NSM_Heal(2.3.0) Starting Heal by calling request: %v", cc.Request)
+		_, err := p.manager.LocalManager(cc).Request(requestCtx, cc.Request.(*local_networkservice.NetworkServiceRequest))
+		span.LogError(err)
+		if err == nil {
+			return true
+		}
+		logger.Errorf("NSM_Heal(2.3.1) Failed to heal connection: %v. Delaying: %v", err, p.properties.HealRetryDelay)
+		if attempt+1 < p.properties.HealRetryCount {
+			<-time.After(p.properties.HealRetryDelay)
+			continue
+		}
 	}
-	return true
+	return false
 }
 
 func (p *healProcessor) healDataplaneDown(ctx context.Context, cc *model.ClientConnection) bool {
@@ -308,20 +306,19 @@ func (p *healProcessor) performRequest(ctx context.Context, request networkservi
 	return err
 }
 
-func (p *healProcessor) healDstNmgrDown(ctx context.Context, cc *model.ClientConnection) bool {
+func (p *healProcessor) healDstMgrDown(ctx context.Context, cc *model.ClientConnection) bool {
 	span := spanhelper.FromContext(ctx, "healDstNsmgrDown")
 	defer span.Finish()
 	ctx = span.Context()
 	logger := span.Logger()
 	logger.Infof("NSM_Heal(6.1-%v) Starting DST + NSMGR Heal...")
 
-	waitCtx, waitCancel := context.WithTimeout(ctx, p.properties.HealTimeout*3)
-	defer waitCancel()
-
 	var endpointName string
 	// Wait for exact same NSE to be available with NSMD connection alive.
 	if cc.Endpoint != nil {
 		endpointName = cc.Endpoint.GetNetworkServiceEndpoint().GetName()
+		waitCtx, waitCancel := context.WithTimeout(ctx, p.properties.HealTimeout*3)
+		defer waitCancel()
 		if !p.waitNSE(waitCtx, endpointName, cc.GetNetworkService(), p.nseIsSameAndAvailable) {
 			span.LogValue("waitNSE", "failed to find endpoint by name with timeout")
 			ctx = common.WithIgnoredEndpoints(ctx, map[string]*registry.NSERegistration{
@@ -329,36 +326,22 @@ func (p *healProcessor) healDstNmgrDown(ctx context.Context, cc *model.ClientCon
 			})
 		}
 	}
-	requestCtx, requestCancel := context.WithTimeout(ctx, p.properties.HealRequestTimeout)
-	defer requestCancel()
-	if err := p.performRequest(requestCtx, cc.Request, cc); err != nil {
-		logger.Warnf("NSM_Heal(6.2.1) Failed to heal connection with same NSE from registry: %v", err)
-		// 6.2.2. We are still healing
-		p.model.ApplyClientConnectionChanges(ctx, cc.GetID(), func(modelCC *model.ClientConnection) {
-			modelCC.ConnectionState = model.ClientConnectionHealingBegin
-		})
-
-		// In this case, most probable both NSMD and NSE are die, and registry was outdated on moment of waitNSE.
-		if endpointName == "" {
-			span.LogError(fmt.Errorf("endpoint name is empty"))
-			return false
-		}
-		waitCtx2, waitCancel2 := context.WithTimeout(ctx, p.properties.HealTimeout*3)
-		defer waitCancel2()
-		if !p.waitNSE(waitCtx2, endpointName, cc.GetNetworkService(), p.nseIsNewAndAvailable) {
-			// We need to request fully new connection part.
-			span.LogError(fmt.Errorf("failed to find endpoint %v", endpointName))
-			return false
-		}
-
-		// Ok we have NSE, lets retry request
-		requestCtx, requestCancel = context.WithTimeout(ctx, p.properties.HealRequestTimeout)
+	for attempt := 0; attempt < p.properties.HealRetryCount; attempt++ {
+		attemptSpan := spanhelper.FromContext(ctx, fmt.Sprintf("healing-attempt-%v", attempt))
+		requestCtx, requestCancel := context.WithTimeout(attemptSpan.Context(), p.properties.HealRequestTimeout)
 		defer requestCancel()
-
-		if err := p.performRequest(requestCtx, cc.Request, cc); err != nil {
-			err = fmt.Errorf("heal(6.2.3) Failed to heal connection: %v", err)
-			span.LogError(err)
-			return false
+		defer attemptSpan.Finish()
+		err := p.performRequest(requestCtx, cc.Request, cc)
+		if err == nil {
+			attemptSpan.LogObject("state", "healed")
+			return true
+		}
+		err = fmt.Errorf("heal(6.2.3) Failed to heal connection: %v. Delaying: %v", err, p.properties.HealRetryDelay)
+		span.LogError(err)
+		attemptSpan.Finish()
+		if attempt+1 < p.properties.HealRetryCount {
+			<-time.After(p.properties.HealRetryDelay)
+			continue
 		}
 	}
 
@@ -457,4 +440,16 @@ func (p *healProcessor) waitNSE(ctx context.Context, endpointName, networkServic
 		// Wait a bit
 		<-time.After(p.properties.HealDSTNSEWaitTick)
 	}
+}
+
+func (p *healProcessor) waitForNSEUpdateContext(ctx context.Context, endpointName string, cc *model.ClientConnection) context.Context {
+	waitCtx, waitCancel := context.WithTimeout(ctx, p.properties.HealTimeout*3)
+	defer waitCancel()
+	if !p.waitNSE(waitCtx, endpointName, cc.GetNetworkService(), p.nseIsNewAndAvailable) {
+		// Mark endpoint as ignored.
+		return common.WithIgnoredEndpoints(ctx, map[string]*registry.NSERegistration{
+			endpointName: cc.Endpoint,
+		})
+	}
+	return ctx
 }

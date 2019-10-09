@@ -112,7 +112,9 @@ func newHealTestData() *healTestData {
 		serviceRegistry: data.serviceRegistry,
 		model:           data.model,
 		properties: &nsm_api.Properties{
-			HealEnabled: true,
+			HealEnabled:               true,
+			HealRetryCount:            1,
+			HealRequestConnectTimeout: 15 * time.Second,
 		},
 		nseManager: data.nseManager,
 		manager:    data.connectionManager,
