@@ -292,7 +292,7 @@ func TestUnusedClusterShutdownByMonitor(t *testing.T) {
 	testConfig.ConfigRoot = tmpDir
 	createProvider(testConfig, "a_provider")
 	p2 := createProvider(testConfig, "b_provider")
-	p2.TestDelay = 3
+	p2.TestDelay = 7
 
 	testConfig.Executions = append(testConfig.Executions, &config.ExecutionConfig{
 		Name:            "simple",
