@@ -11,3 +11,5 @@ rules:
   line-length: disable
   comments-indentation:
     ignore: .circleci/config.yml
+
+ignore: scripts/aws/aws-k8s-cni.yaml
