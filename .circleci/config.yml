@@ -182,7 +182,7 @@ jobs:
             export CONTAINER_REPO="networkservicemeshci"
             export GOPROXY=https://proxy.golang.org,direct
             # resource_class xlarge has 8 core, multiple by 1.5 for hyperthreading for -j factor
-            make -j 12 -l 8 -O docker-push
+            make -j 12 -O docker-push
 
 # docker push
   docker-push-tag:
