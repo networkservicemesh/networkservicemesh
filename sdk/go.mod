@@ -11,11 +11,11 @@ require (
 	github.com/networkservicemesh/networkservicemesh/pkg v0.2.0
 	github.com/networkservicemesh/networkservicemesh/utils v0.2.0
 	github.com/onsi/gomega v1.7.0
-	github.com/opentracing/opentracing-go v1.1.0
 	github.com/pkg/errors v0.8.1
 	github.com/satori/go.uuid v1.2.1-0.20181028125025-b2ce2384e17b // indirect
 	github.com/sirupsen/logrus v1.4.2
 	github.com/teris-io/shortid v0.0.0-20171029131806-771a37caa5cf
+	golang.org/x/net v0.0.0-20190812203447-cdfb69ac37fc // indirect
 	google.golang.org/grpc v1.23.1
 )
 
