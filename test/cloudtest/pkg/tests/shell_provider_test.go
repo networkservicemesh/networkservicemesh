@@ -277,8 +277,9 @@ func TestShellProviderShellTest(t *testing.T) {
 	// Do assertions
 }
 
-func TestUsedClusterCancel(t *testing.T) {
+func TestUnusedClusterShutdownByMonitor(t *testing.T) {
 	g := NewWithT(t)
+	logKeeper := utils.NewLogKeeper()
 
 	testConfig := &config.CloudTestConfig{}
 
@@ -291,7 +292,7 @@ func TestUsedClusterCancel(t *testing.T) {
 	testConfig.ConfigRoot = tmpDir
 	createProvider(testConfig, "a_provider")
 	p2 := createProvider(testConfig, "b_provider")
-	p2.TestDelay = 15
+	p2.TestDelay = 7
 
 	testConfig.Executions = append(testConfig.Executions, &config.ExecutionConfig{
 		Name:            "simple",
@@ -320,7 +321,11 @@ func TestUsedClusterCancel(t *testing.T) {
 	g.Expect(report.Suites[0].Tests).To(Equal(3))
 	g.Expect(len(report.Suites[0].TestCases)).To(Equal(3))
 
-	// Do assertions
+	g.Expect(logKeeper.CheckMessagesOrder([]string{
+		"All tasks for cluster group a_provider are complete. Starting cluster shutdown",
+		"Destroying cluster  a_provider-",
+		"Completed tasks 6 Tasks left: 0",
+	})).To(BeTrue())
 }
 
 func TestMultiClusterTest(t *testing.T) {

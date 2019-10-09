@@ -26,6 +26,7 @@ const (
 	advertiseNseLabelsEnv = "ADVERTISE_NSE_LABELS"
 	outgoingNscNameEnv    = "OUTGOING_NSC_NAME"
 	outgoingNscLabelsEnv  = "OUTGOING_NSC_LABELS"
+	nscInterfaceName      = "NSC_INTERFACE_NAME"
 	mechanismTypeEnv      = "MECHANISM_TYPE"
 	ipAddressEnv          = "IP_ADDRESS"
 	routesEnv             = "ROUTES"
@@ -40,6 +41,7 @@ type NSConfiguration struct {
 	OutgoingNscName    string
 	AdvertiseNseLabels string
 	OutgoingNscLabels  string
+	NscInterfaceName   string
 	MechanismType      string
 	IPAddress          string
 	Routes             []string
@@ -84,6 +86,10 @@ func (configuration *NSConfiguration) FromEnv() *NSConfiguration {
 		configuration.OutgoingNscLabels = getEnv(outgoingNscLabelsEnv, "Outgoing labels", false)
 	}
 
+	if configuration.NscInterfaceName == "" {
+		configuration.NscInterfaceName = getEnv(nscInterfaceName, "NSC Interface name", false)
+	}
+
 	if configuration.MechanismType == "" {
 		configuration.MechanismType = getEnv(mechanismTypeEnv, "Outgoing mechanism type", false)
 	}
@@ -110,6 +116,7 @@ func (configuration *NSConfiguration) FromNSUrl(url *tools.NSUrl) *NSConfigurati
 		return nil
 	}
 	configuration.OutgoingNscName = url.NsName
+	configuration.NscInterfaceName = url.Intf
 	var labels strings.Builder
 	separator := false
 	for k, v := range url.Params {

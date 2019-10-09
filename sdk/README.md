@@ -33,6 +33,7 @@ type NSConfiguration struct {
     OutgoingNscName    string // OUTGOING_NSC_NAME
     AdvertiseNseLabels string // ADVERTISE_NSE_LABELS
     OutgoingNscLabels  string // OUTGOING_NSC_LABELS
+    NscInterfaceName   string // NSC_INTERFACE_NAME
     MechanismType      string // MECHANISM_TYPE
     IPAddress          string // IP_ADDRESS
     Routes             []string // ROUTES
@@ -48,6 +49,7 @@ Note that some of the members of this structure can be initialized through the e
 * `OutgoingNscName` - [ `OUTGOING_NSC_NAME` ], the *endpoint* name, as the *client* looks up in the NS registry
 * `AdvertiseNseLabels` - [ `ADVERTISE_NSE_LABELS` ], the *endpoint* labels, as advertised to the NS registry. Used in NSM's selector to match the DestinationSelector. The format is `label1=value1,label2=value2`
 * `OutgoingNscLabels` - [ `OUTGOING_NSC_LABELS` ], the *endpoint* labels, as send by the *client* . Used in NSM's selector to match the SourceSelector. The format is the same as `AdvertiseNseLabels`
+* `NscInterfaceName` - [ `NSC_INTERFACE_NAME` ], the name off th interface as injected on the client side
 * `MechanismType` - [ `MECHANISM_TYPE` ], enforce a particular Mechanism type. Currently `kernel` or `mem`. Defaults to `kernel`
 * `IPAddress` - [ `IP_ADDRESS` ], the IP network to initialize a prefix pool in the IPAM composite
 * `Routes` - [ `ROUTES` ], list of routes that will be set into connection's context by *Client*

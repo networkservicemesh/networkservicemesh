@@ -49,6 +49,7 @@ type NsmClient struct {
 	OutgoingNscName     string
 	OutgoingNscLabels   map[string]string
 	OutgoingConnections []*connection.Connection
+	NscInterfaceName    string
 	tracerCloser        io.Closer
 }
 
@@ -66,6 +67,12 @@ func (nsmc *NsmClient) ConnectRetry(ctx context.Context, name, mechanism, descri
 	nsmc.Lock()
 	defer nsmc.Unlock()
 	mechanismType := common.MechanismFromString(mechanism)
+
+	if nsmc.NscInterfaceName != "" {
+		// The environment variable will override local call parameters
+		name = nsmc.NscInterfaceName
+	}
+
 	outgoingMechanism, err := connection.NewMechanism(mechanismType, name, description)
 
 	span.LogObject("Selected mechanism", outgoingMechanism)
@@ -186,6 +193,7 @@ func NewNSMClient(ctx context.Context, configuration *common.NSConfiguration) (*
 	client := &NsmClient{
 		OutgoingNscName:   configuration.OutgoingNscName,
 		OutgoingNscLabels: tools.ParseKVStringToMap(configuration.OutgoingNscLabels, ",", "="),
+		NscInterfaceName:  configuration.NscInterfaceName,
 	}
 
 	client.tracerCloser = jaeger.InitJaeger("nsm-client")

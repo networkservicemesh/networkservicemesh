@@ -453,14 +453,20 @@ func createAWSKubernetesCluster() {
 
 	_ = f.Close()
 
-	log.Printf("> kubectl %s %s %s", "apply", "-f", f.Name())
-	cmd := exec.Command("kubectl", "apply", "-f", f.Name())
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	err = cmd.Run()
-	checkError(err)
-	log.Printf(out.String())
+	execCommand("kubectl", "apply", "-f", f.Name())
 	_ = os.Remove(f.Name())
 
 	CreateSSHConfig(ec2Client, clusterStackOutputs.VpcId, "scp-config"+serviceSuffix)
+
+	execCommand("kubectl", "apply", "-f", "aws-k8s-cni.yaml")
+}
+
+func execCommand(name string, arg ...string) {
+	log.Printf("> %s %s", name, strings.Join(arg, " "))
+	cmd := exec.Command(name, arg...) // #nosec
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	err := cmd.Run()
+	checkError(err)
+	log.Printf(out.String())
 }

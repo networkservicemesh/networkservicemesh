@@ -3,8 +3,10 @@ package utils
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"strings"
 
 	"github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus/hooks/test"
 )
 
 // Contains - check if array contains element.
@@ -26,4 +28,32 @@ func NewRandomStr(size int) string {
 		return ""
 	}
 	return hex.EncodeToString(value)
+}
+
+type logKeeper struct {
+	loghook *test.Hook
+}
+
+// NewLogKeeper - creates new instance of logrus log collector
+func NewLogKeeper() *logKeeper {
+	return &logKeeper{
+		loghook: test.NewGlobal(),
+	}
+}
+
+// CheckMessagesOrder - checks that messages are present in log in given oreder.
+func (lk *logKeeper) CheckMessagesOrder(messages []string) bool {
+	if len(messages) == 0 {
+		return false
+	}
+	ind := 0
+	for _, entry := range lk.loghook.AllEntries() {
+		if strings.Contains(entry.Message, messages[ind]) {
+			ind++
+			if ind == len(messages) {
+				return true
+			}
+		}
+	}
+	return false
 }
