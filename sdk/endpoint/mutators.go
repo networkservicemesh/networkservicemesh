@@ -5,6 +5,8 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"github.com/sirupsen/logrus"
 )
 
 //CreateRouteMutator - Creates an instance of ConnectionMutator with routes mutating
@@ -17,4 +19,17 @@ func CreateRouteMutator(routes []string) ConnectionMutator {
 		}
 		return nil
 	}
+}
+
+func CreatePodNameMutator() ConnectionMutator {
+	return func(ctc context.Context, c *connection.Connection) error {
+		podName, err := tools.GetCurrentPodNameFromHostname()
+		if err != nil {
+			logrus.Infof("failed to get current pod name from hostname: %v", err)
+		} else {
+			c.Labels["podName"] = podName
+		}
+		return nil
+	}
+
 }

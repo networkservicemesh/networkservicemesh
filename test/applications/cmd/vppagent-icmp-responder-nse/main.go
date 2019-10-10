@@ -36,10 +36,12 @@ func main() {
 		MechanismType: "mem",
 	}).FromEnv()
 
+	podName := endpoint.CreatePodNameMutator()
 	composite := endpoint.NewCompositeEndpoint(
 		endpoint.NewMonitorEndpoint(configuration),
 		endpoint.NewConnectionEndpoint(configuration),
 		endpoint.NewIpamEndpoint(configuration),
+		endpoint.NewCustomFuncEndpoint("podName", podName),
 		vppagent.NewMemifConnect(configuration),
 		vppagent.NewCommit("localhost:9112", true),
 	)
