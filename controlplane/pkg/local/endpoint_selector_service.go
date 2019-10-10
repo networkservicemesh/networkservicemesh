@@ -103,7 +103,7 @@ func (cce *endpointSelectorService) Request(ctx context.Context, request *networ
 		if err != nil {
 			logger.Errorf("NSM:(7.1.8) NSE respond with error: %v ", err)
 			lastError = err
-			ignoreEndpoints[endpoint.GetNetworkServiceEndpoint().GetName()] = endpoint
+			ignoreEndpoints[endpoint.GetEndpointNSMName()] = endpoint
 			span.Finish()
 			continue
 		}
@@ -125,11 +125,11 @@ func (cce *endpointSelectorService) combineErrors(span spanhelper.SpanHelper, er
 	return nil, err
 }
 
-func (cce *endpointSelectorService) selectEndpoint(ctx context.Context, clientConnection *model.ClientConnection, ignoreEndpoints map[string]*registry.NSERegistration, nseConn unified_connection.Connection) (*registry.NSERegistration, error) {
+func (cce *endpointSelectorService) selectEndpoint(ctx context.Context, clientConnection *model.ClientConnection, ignoreEndpoints map[registry.EndpointNSMName]*registry.NSERegistration, nseConn unified_connection.Connection) (*registry.NSERegistration, error) {
 	var endpoint *registry.NSERegistration
 	if clientConnection.ConnectionState == model.ClientConnectionHealing {
 		// 7.1.2 Check previous endpoint, and it we will be able to contact it, it should be fine.
-		endpointName := clientConnection.Endpoint.GetNetworkServiceEndpoint().GetName()
+		endpointName := clientConnection.Endpoint.GetEndpointNSMName()
 		if clientConnection.Endpoint != nil && ignoreEndpoints[endpointName] == nil {
 			endpoint = clientConnection.Endpoint
 		} else {
@@ -271,21 +271,23 @@ func (cce *endpointSelectorService) checkUpdateConnectionContext(ctx context.Con
 	return request.Connection, nil
 }
 
-func (cce *endpointSelectorService) prepareRequest(ctx context.Context, request *networkservice.NetworkServiceRequest, clientConnection *model.ClientConnection, ignoreEndpoints map[string]*registry.NSERegistration) (*networkservice.NetworkServiceRequest, *registry.NSERegistration, error) {
+func (cce *endpointSelectorService) prepareRequest(ctx context.Context, request *networkservice.NetworkServiceRequest, clientConnection *model.ClientConnection, ignoreEndpoints map[registry.EndpointNSMName]*registry.NSERegistration) (*networkservice.NetworkServiceRequest, *registry.NSERegistration, error) {
 	newRequest := request.Clone().(*networkservice.NetworkServiceRequest)
 	nseConn := newRequest.Connection
+	span := spanhelper.GetSpanHelper(ctx)
 
-	logger := common.Log(ctx)
 	endpoint, err := cce.selectEndpoint(ctx, clientConnection, ignoreEndpoints, nseConn)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	logger.Infof("selected endpoint %v", endpoint)
+	span.LogObject("selected endpoint", endpoint)
 	// 7.1.6 Update Request with exclude_prefixes, etc
 	nseConn, err = cce.updateConnection(ctx, nseConn)
 	if err != nil {
-		return nil, nil, fmt.Errorf("NSM:(7.1.6) Failed to update connection: %v", err)
+		err = fmt.Errorf("NSM:(7.1.6) Failed to update connection: %v", err)
+		span.LogError(err)
+		return nil, nil, err
 	}
 
 	newRequest.Connection = nseConn

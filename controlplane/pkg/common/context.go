@@ -233,7 +233,7 @@ func OriginalSpan(ctx context.Context) opentracing.Span {
 //   using Context.Value(...) and returns the result.
 //   Note: any previously existing value will be overwritten.
 //
-func WithIgnoredEndpoints(parent context.Context, endpoints map[string]*registry.NSERegistration) context.Context {
+func WithIgnoredEndpoints(parent context.Context, endpoints map[registry.EndpointNSMName]*registry.NSERegistration) context.Context {
 	if parent == nil {
 		parent = context.Background()
 	}
@@ -241,12 +241,13 @@ func WithIgnoredEndpoints(parent context.Context, endpoints map[string]*registry
 }
 
 // IgnoredEndpoints - Return a map of ignored endpoints or empty map.
-func IgnoredEndpoints(ctx context.Context) map[string]*registry.NSERegistration {
+// key == endpointname + ":" + NetworkServiceManager.Url
+func IgnoredEndpoints(ctx context.Context) map[registry.EndpointNSMName]*registry.NSERegistration {
 	value := ctx.Value(ignoredEndpoints)
 	if value == nil {
-		return map[string]*registry.NSERegistration{}
+		return map[registry.EndpointNSMName]*registry.NSERegistration{}
 	}
-	return value.(map[string]*registry.NSERegistration)
+	return value.(map[registry.EndpointNSMName]*registry.NSERegistration)
 }
 
 // WithWorkspaceName -

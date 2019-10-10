@@ -24,7 +24,7 @@ type nseManager struct {
 	properties      *nsm_properties.Properties
 }
 
-func (nsem *nseManager) GetEndpoint(ctx context.Context, requestConnection connection.Connection, ignoreEndpoints map[string]*registry.NSERegistration) (*registry.NSERegistration, error) {
+func (nsem *nseManager) GetEndpoint(ctx context.Context, requestConnection connection.Connection, ignoreEndpoints map[registry.EndpointNSMName]*registry.NSERegistration) (*registry.NSERegistration, error) {
 
 	span := spanhelper.FromContext(ctx, "GetEndpoint")
 	defer span.Finish()
@@ -35,7 +35,7 @@ func (nsem *nseManager) GetEndpoint(ctx context.Context, requestConnection conne
 	span.LogObject("targetEndpoint", targetEndpoint)
 	if len(targetEndpoint) > 0 {
 		endpoint := nsem.model.GetEndpoint(targetEndpoint)
-		if endpoint != nil && ignoreEndpoints[endpoint.EndpointName()] == nil {
+		if endpoint != nil && ignoreEndpoints[endpoint.Endpoint.GetEndpointNSMName()] == nil {
 			return endpoint.Endpoint, nil
 		} else {
 			return nil, fmt.Errorf("Could not find endpoint with name: %s at local registry", targetEndpoint)
@@ -58,7 +58,7 @@ func (nsem *nseManager) GetEndpoint(ctx context.Context, requestConnection conne
 		span.LogError(err)
 		return nil, err
 	}
-	endpoints := nsem.filterEndpoints(endpointResponse.GetNetworkServiceEndpoints(), ignoreEndpoints)
+	endpoints := nsem.filterEndpoints(endpointResponse.GetNetworkServiceEndpoints(), endpointResponse.NetworkServiceManagers, ignoreEndpoints)
 
 	if len(endpoints) == 0 {
 		err = fmt.Errorf("failed to find NSE for NetworkService %s. Checked: %d of total NSEs: %d",
@@ -139,11 +139,12 @@ func (nsem *nseManager) cleanupNSE(ctx context.Context, endpoint *model.Endpoint
 	logrus.Infof("NSM: Remove Endpoint since it is not available... %v", endpoint)
 }
 
-func (nsem *nseManager) filterEndpoints(endpoints []*registry.NetworkServiceEndpoint, ignoreEndpoints map[string]*registry.NSERegistration) []*registry.NetworkServiceEndpoint {
+func (nsem *nseManager) filterEndpoints(endpoints []*registry.NetworkServiceEndpoint, managers map[string]*registry.NetworkServiceManager, ignoreEndpoints map[registry.EndpointNSMName]*registry.NSERegistration) []*registry.NetworkServiceEndpoint {
 	result := []*registry.NetworkServiceEndpoint{}
 	// Do filter of endpoints
 	for _, candidate := range endpoints {
-		if ignoreEndpoints[candidate.GetName()] == nil {
+		endpointName := registry.NewEndpointNSMName(candidate, managers[candidate.NetworkServiceManagerName])
+		if ignoreEndpoints[endpointName] == nil {
 			result = append(result, candidate)
 		}
 	}

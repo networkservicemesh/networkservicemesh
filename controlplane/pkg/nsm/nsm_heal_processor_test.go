@@ -342,9 +342,9 @@ func (stub *connectionManagerStub) request(ctx context.Context, request networks
 	}
 
 	nsmConnection := request.GetRequestConnection().Clone()
-	endpointId := ""
+	endpointId := registry.EndpointNSMName("")
 	if existingConnection.Endpoint != nil {
-		endpointId = existingConnection.Endpoint.NetworkServiceEndpoint.Name
+		endpointId = existingConnection.Endpoint.GetEndpointNSMName()
 	}
 
 	// Update Endpoint, if less what expected
@@ -408,7 +408,7 @@ type nseManagerStub struct {
 	nses []*registry.NSERegistration
 }
 
-func (stub *nseManagerStub) GetEndpoint(ctx context.Context, requestConnection connection.Connection, ignoreEndpoints map[string]*registry.NSERegistration) (*registry.NSERegistration, error) {
+func (stub *nseManagerStub) GetEndpoint(ctx net_context.Context, requestConnection connection.Connection, ignoreEndpoints map[registry.EndpointNSMName]*registry.NSERegistration) (*registry.NSERegistration, error) {
 	panic("implement me")
 }
 

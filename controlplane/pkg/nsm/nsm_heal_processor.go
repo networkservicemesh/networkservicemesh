@@ -197,7 +197,7 @@ func (p *healProcessor) healDstDown(ctx context.Context, cc *model.ClientConnect
 	logger.Infof("NSM_Heal(2.2) Starting DST Heal...")
 	// We are client NSMd, we need to try recover our connection srv.
 	// Wait for NSE not equal to down one, since we know it will be re-registered with new endpoint name.
-	ctx = p.waitForNSEUpdateContext(ctx, cc.Endpoint.GetNetworkServiceEndpoint().GetName(), cc)
+	ctx = p.waitForNSEUpdateContext(ctx, cc.Endpoint, cc)
 	// Fallback to heal with choose of new NSE.
 	for attempt := 0; attempt < p.properties.HealRetryCount; attempt++ {
 		attemptSpan := spanhelper.FromContext(ctx, fmt.Sprintf("healing-attempt-%v", attempt))
@@ -311,7 +311,7 @@ func (p *healProcessor) healDstMgrDown(ctx context.Context, cc *model.ClientConn
 	defer span.Finish()
 	ctx = span.Context()
 	logger := span.Logger()
-	logger.Infof("NSM_Heal(6.1-%v) Starting DST + NSMGR Heal...")
+	logger.Infof("NSM_Heal(6.1) Starting DST + NSMGR Heal...")
 
 	var endpointName string
 	// Wait for exact same NSE to be available with NSMD connection alive.
@@ -321,8 +321,8 @@ func (p *healProcessor) healDstMgrDown(ctx context.Context, cc *model.ClientConn
 		defer waitCancel()
 		if !p.waitNSE(waitCtx, endpointName, cc.GetNetworkService(), p.nseIsSameAndAvailable) {
 			span.LogValue("waitNSE", "failed to find endpoint by name with timeout")
-			ctx = common.WithIgnoredEndpoints(ctx, map[string]*registry.NSERegistration{
-				endpointName: cc.Endpoint,
+			ctx = common.WithIgnoredEndpoints(ctx, map[registry.EndpointNSMName]*registry.NSERegistration{
+				cc.Endpoint.GetEndpointNSMName(): cc.Endpoint,
 			})
 		}
 	}
@@ -442,13 +442,13 @@ func (p *healProcessor) waitNSE(ctx context.Context, endpointName, networkServic
 	}
 }
 
-func (p *healProcessor) waitForNSEUpdateContext(ctx context.Context, endpointName string, cc *model.ClientConnection) context.Context {
+func (p *healProcessor) waitForNSEUpdateContext(ctx context.Context, endpoint *registry.NSERegistration, cc *model.ClientConnection) context.Context {
 	waitCtx, waitCancel := context.WithTimeout(ctx, p.properties.HealTimeout*3)
 	defer waitCancel()
-	if !p.waitNSE(waitCtx, endpointName, cc.GetNetworkService(), p.nseIsNewAndAvailable) {
+	if !p.waitNSE(waitCtx, endpoint.NetworkServiceEndpoint.Name, cc.GetNetworkService(), p.nseIsNewAndAvailable) {
 		// Mark endpoint as ignored.
-		return common.WithIgnoredEndpoints(ctx, map[string]*registry.NSERegistration{
-			endpointName: cc.Endpoint,
+		return common.WithIgnoredEndpoints(ctx, map[registry.EndpointNSMName]*registry.NSERegistration{
+			endpoint.GetEndpointNSMName(): cc.Endpoint,
 		})
 	}
 	return ctx

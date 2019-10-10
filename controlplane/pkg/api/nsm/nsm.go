@@ -90,7 +90,7 @@ type NetworkServiceManager interface {
 
 //NetworkServiceEndpointManager - manages endpoints, TODO: Will be removed in next PRs.
 type NetworkServiceEndpointManager interface {
-	GetEndpoint(ctx context.Context, requestConnection unified_connection.Connection, ignoreEndpoints map[string]*registry.NSERegistration) (*registry.NSERegistration, error)
+	GetEndpoint(ctx context.Context, requestConnection unified_connection.Connection, ignoreEndpoints map[registry.EndpointNSMName]*registry.NSERegistration) (*registry.NSERegistration, error)
 	CreateNSEClient(ctx context.Context, endpoint *registry.NSERegistration) (NetworkServiceClient, error)
 	IsLocalEndpoint(endpoint *registry.NSERegistration) bool
 	CheckUpdateNSE(ctx context.Context, reg *registry.NSERegistration) bool
