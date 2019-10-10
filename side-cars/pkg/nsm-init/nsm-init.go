@@ -49,6 +49,9 @@ func (c *nsmClientApp) Run() {
 			c.configuration.PodName = podName
 		}
 	}
+	if c.configuration.Namespace == "" {
+		c.configuration.Namespace = common.GetNamespace()
+	}
 
 	clientList, err := client.NewNSMClientList(span.Context(), c.configuration)
 	if err != nil {

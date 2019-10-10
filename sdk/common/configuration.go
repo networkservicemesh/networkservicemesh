@@ -22,6 +22,7 @@ import (
 )
 
 const (
+	NamespaceEnv          = "NSM_NAMESPACE"
 	advertiseNseNameEnv   = "ADVERTISE_NSE_NAME"
 	advertiseNseLabelsEnv = "ADVERTISE_NSE_LABELS"
 	outgoingNscNameEnv    = "OUTGOING_NSC_NAME"
@@ -47,6 +48,7 @@ type NSConfiguration struct {
 	IPAddress          string
 	Routes             []string
 	PodName            string
+	Namespace          string
 }
 
 // FromEnv creates a new NSConfiguration and fills all unset options from the env variables
@@ -104,6 +106,10 @@ func (configuration *NSConfiguration) FromEnv() *NSConfiguration {
 		configuration.PodName = getEnv(podNameEnv, "Pod name", false)
 	}
 
+	if configuration.Namespace == "" {
+		configuration.Namespace = getEnv(NamespaceEnv, "Namespace", false)
+	}
+
 	if len(configuration.Routes) == 0 {
 		raw := getEnv(routesEnv, "Routes", false)
 		if len(raw) > 1 {
@@ -137,4 +143,12 @@ func (configuration *NSConfiguration) FromNSUrl(url *tools.NSUrl) *NSConfigurati
 	}
 	configuration.OutgoingNscLabels = labels.String()
 	return configuration
+}
+
+func GetNamespace() string {
+	namespace := getEnv(NamespaceEnv, "Namespace", false)
+	if len(namespace) == 0 {
+		return "default"
+	}
+	return namespace
 }

@@ -51,8 +51,12 @@ func (nsmcl *NsmClientList) ConnectRetry(ctx context.Context, name, mechanism, d
 	for idx := range nsmcl.clients {
 		entry := &nsmcl.clients[idx]
 		if entry.client.NsmConnection.Configuration.PodName != "" &&
-			entry.client.OutgoingNscLabels["podName"] == "" {
-			entry.client.OutgoingNscLabels["podName"] = entry.client.NsmConnection.Configuration.PodName
+			entry.client.OutgoingNscLabels[connection.PodNameKey] == "" {
+			entry.client.OutgoingNscLabels[connection.PodNameKey] = entry.client.NsmConnection.Configuration.PodName
+		}
+		if entry.client.NsmConnection.Configuration.Namespace != "" &&
+			entry.client.OutgoingNscLabels[connection.NamespaceKey] == "" {
+			entry.client.OutgoingNscLabels[connection.NamespaceKey] = entry.client.NsmConnection.Configuration.Namespace
 		}
 		conn, err := entry.client.ConnectRetry(ctx, name+strconv.Itoa(idx), mechanism, description, retryCount, retryDelay)
 		if err != nil {
