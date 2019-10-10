@@ -111,15 +111,12 @@ func (cce *dataplaneService) Request(ctx context.Context, request *networkservic
 	// 5. Select a local dataplane and put it into conn object
 	err = cce.updateMechanism(request, dp)
 	if err != nil {
-		// 5.1 Close Datplane connection, if had existing one and NSE is closed.
-		cce.doFailureClose(ctx)
 		return nil, fmt.Errorf("NSM:(5.1) %v", err)
 	}
 
 	ctx = common.WithDataplane(ctx, dp)
 	conn, connErr := ProcessNext(ctx, request)
 	if connErr != nil {
-		cce.doFailureClose(ctx)
 		return conn, connErr
 	}
 	// We need to program dataplane.
