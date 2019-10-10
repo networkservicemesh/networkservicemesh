@@ -192,7 +192,7 @@ func (r *DataplaneRegistrarServer) startDataplaneRegistrarServer(ctx context.Con
 
 // Stop - stop dataplane registration socket.
 func (r *DataplaneRegistrarServer) Stop() {
-	r.grpcServer.GracefulStop()
+	r.grpcServer.Stop() // We do not need to do it gracefully, to speedup dataplane termination.
 	_ = r.sock.Close()
 }
 
