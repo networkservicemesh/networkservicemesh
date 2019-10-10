@@ -33,6 +33,13 @@ func (c *connect) Request(ctx context.Context, crossConnect *crossconnect.CrossC
 	return crossConnect, nil
 }
 
+func (c *connect) Available(ctx context.Context, list *dataplane.CrossConnectList) (*dataplane.CrossConnectList, error) {
+	if next := Next(ctx); next != nil {
+		return next.Available(ctx, list)
+	}
+	return list, nil
+}
+
 func (c *connect) Close(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*empty.Empty, error) {
 	nextCtx, close, err := WithConfiguratorClient(ctx, c.endpoint)
 	if err != nil {

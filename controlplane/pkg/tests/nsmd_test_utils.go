@@ -317,11 +317,15 @@ func (impl *testDataplaneConnection) Request(ctx context.Context, in *crossconne
 	return in, nil
 }
 
-func (impl *testDataplaneConnection) Close(ctx context.Context, in *crossconnect.CrossConnect, opts ...grpc.CallOption) (*empty.Empty, error) {
+func (impl *testDataplaneConnection) Close(ctx context.Context, in *crossconnect.CrossConnect, _ ...grpc.CallOption) (*empty.Empty, error) {
 	return nil, nil
 }
 
-func (impl *testDataplaneConnection) MonitorMechanisms(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (dataplane.MechanismsMonitor_MonitorMechanismsClient, error) {
+func (impl *testDataplaneConnection) Available(ctx context.Context, list *dataplane.CrossConnectList, _ ...grpc.CallOption) (*dataplane.CrossConnectList, error) {
+	return nil, nil
+}
+
+func (impl *testDataplaneConnection) MonitorMechanisms(ctx context.Context, in *empty.Empty, _ ...grpc.CallOption) (dataplane.MechanismsMonitor_MonitorMechanismsClient, error) {
 	return nil, nil
 }
 

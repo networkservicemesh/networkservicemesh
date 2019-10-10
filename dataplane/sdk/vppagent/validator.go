@@ -17,7 +17,7 @@ func ConnectionValidator() dataplane.DataplaneServer {
 type validator struct {
 }
 
-func (n *validator) Request(ctx context.Context, request *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error) {
+func (v *validator) Request(ctx context.Context, request *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error) {
 	if err := request.IsValid(); err != nil {
 		Logger(ctx).Errorf("Reuqest: %v is not valid, reason: %v", request, err)
 		return nil, err
@@ -28,7 +28,14 @@ func (n *validator) Request(ctx context.Context, request *crossconnect.CrossConn
 	return request, nil
 }
 
-func (n *validator) Close(ctx context.Context, request *crossconnect.CrossConnect) (*empty.Empty, error) {
+func (v *validator) Available(ctx context.Context, list *dataplane.CrossConnectList) (*dataplane.CrossConnectList, error) {
+	if next := Next(ctx); next != nil {
+		return next.Available(ctx, list)
+	}
+	return list, nil
+}
+
+func (v *validator) Close(ctx context.Context, request *crossconnect.CrossConnect) (*empty.Empty, error) {
 	if err := request.IsValid(); err != nil {
 		Logger(ctx).Errorf("Close: %v is not valid, reason: %v", request, err)
 		return new(empty.Empty), err

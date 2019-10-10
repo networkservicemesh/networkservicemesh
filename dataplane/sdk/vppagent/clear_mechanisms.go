@@ -61,6 +61,13 @@ func (c *clearMechanisms) Close(ctx context.Context, crossConnect *crossconnect.
 	return new(empty.Empty), nil
 }
 
+func (c *clearMechanisms) Available(ctx context.Context, list *dataplane.CrossConnectList) (*dataplane.CrossConnectList, error) {
+	if next := Next(ctx); next != nil {
+		return next.Available(ctx, list)
+	}
+	return list, nil
+}
+
 func nextRequest(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error) {
 	if next := Next(ctx); next != nil {
 		return next.Request(ctx, crossConnect)

@@ -59,6 +59,12 @@ func (k *KernelForwarder) CreateDataplaneServer(config *common.DataplaneConfig) 
 	return k
 }
 
+//Available TODO add comment
+func (k *KernelForwarder) Available(ctx context.Context, request *dataplane.CrossConnectList) (*dataplane.CrossConnectList, error) {
+	//TODO: implement method
+	return nil, nil
+}
+
 // Request handler for connections
 func (k *KernelForwarder) Request(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error) {
 	logrus.Infof("Request() called with %v", crossConnect)

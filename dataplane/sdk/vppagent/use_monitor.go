@@ -32,6 +32,13 @@ func (c *useMonitor) Request(ctx context.Context, crossConnect *crossconnect.Cro
 	return crossConnect, nil
 }
 
+func (c *useMonitor) Available(ctx context.Context, list *dataplane.CrossConnectList) (*dataplane.CrossConnectList, error) {
+	if next := Next(ctx); next != nil {
+		return next.Available(ctx, list)
+	}
+	return list, nil
+}
+
 func (c *useMonitor) Close(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*empty.Empty, error) {
 	defer c.monitor.Delete(ctx, crossConnect)
 	if next := Next(ctx); next != nil {

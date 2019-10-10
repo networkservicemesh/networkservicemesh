@@ -32,6 +32,13 @@ func (c *commit) Request(ctx context.Context, crossConnect *crossconnect.CrossCo
 	return next.Request(ctx, crossConnect)
 }
 
+func (c *commit) Available(ctx context.Context, list *dataplane.CrossConnectList) (*dataplane.CrossConnectList, error) {
+	if next := Next(ctx); next != nil {
+		return next.Available(ctx, list)
+	}
+	return list, nil
+}
+
 func (c *commit) Close(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*empty.Empty, error) {
 	dataChange, client, err := getDataChangeAndClient(ctx)
 	if err != nil {

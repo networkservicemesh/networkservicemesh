@@ -14,12 +14,16 @@ message MechanismUpdate {
   repeated local.connection.Mechanism local_mechanisms = 2;
 }
 
+message CrossConnectList {
+  repeated crossconnect.CrossConnect source = 1;
+}
+
 // Dataplane inlcudes other operations which NSM will request dataplane module
 // to execute to establish connectivity requested by NSM clients.
 service Dataplane {
   rpc Request(crossconnect.CrossConnect) returns (crossconnect.CrossConnect);
   rpc Close(crossconnect.CrossConnect) returns (google.protobuf.Empty);
-
+  rpc Available(CrossConnectList) returns (CrossConnectList);
 }
 
 service MechanismsMonitor {

@@ -33,6 +33,13 @@ func (c *directMemifInterface) Request(ctx context.Context, crossConnect *crossc
 	return next.Request(ctx, crossConnect)
 }
 
+func (c *directMemifInterface) Available(ctx context.Context, list *dataplane.CrossConnectList) (*dataplane.CrossConnectList, error) {
+	if next := Next(ctx); next != nil {
+		return next.Available(ctx, list)
+	}
+	return list, nil
+}
+
 func (c *directMemifInterface) Close(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*empty.Empty, error) {
 	if isDirectMemif(crossConnect) {
 		c.directMemifConnector.Disconnect(crossConnect)

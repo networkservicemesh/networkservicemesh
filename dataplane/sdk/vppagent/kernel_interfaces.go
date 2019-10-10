@@ -34,6 +34,12 @@ func (c *kernelInterfaces) Request(ctx context.Context, crossConnect *crossconne
 	}
 	return next.Request(nextCtx, crossConnect)
 }
+func (c *kernelInterfaces) Available(ctx context.Context, list *dataplane.CrossConnectList) (*dataplane.CrossConnectList, error) {
+	if next := Next(ctx); next != nil {
+		return next.Available(ctx, list)
+	}
+	return list, nil
+}
 func (c *kernelInterfaces) Close(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*empty.Empty, error) {
 	conversionParameters := &converter.CrossConnectConversionParameters{
 		BaseDir: c.baseDir,

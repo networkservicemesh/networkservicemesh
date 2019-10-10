@@ -36,6 +36,16 @@ func (c *chainedDataplaneServer) Close(ctx context.Context, crossConnect *crossc
 	return next.Close(nextCtx, crossConnect)
 }
 
+func (c *chainedDataplaneServer) Available(ctx context.Context, list *dataplane.CrossConnectList) (*dataplane.CrossConnectList, error) {
+	if len(c.handlers) == 0 {
+		logrus.Info("chainedDataplaneServer: has not handlers for next available")
+		return list, nil
+	}
+	next := &next{handlers: c.handlers, index: 0}
+	nextCtx := withNext(ctx, next)
+	return next.Available(nextCtx, list)
+}
+
 // ChainOf makes chain of dataplane server handlers
 func ChainOf(handlers ...dataplane.DataplaneServer) dataplane.DataplaneServer {
 	return &chainedDataplaneServer{handlers: handlers}

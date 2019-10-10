@@ -8,6 +8,7 @@ import (
 	"github.com/onsi/gomega"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
+	"github.com/networkservicemesh/networkservicemesh/dataplane/api/dataplane"
 )
 
 type testChainDataplaneServer struct {
@@ -23,6 +24,14 @@ func (c *testChainDataplaneServer) Request(ctx context.Context, crossConnect *cr
 	return next.Request(ctx, crossConnect)
 }
 
+func (c *testChainDataplaneServer) Available(ctx context.Context, list *dataplane.CrossConnectList) (*dataplane.CrossConnectList, error) {
+	next := Next(ctx)
+	if next == nil {
+		return list, nil
+	}
+	return next.Available(ctx, list)
+}
+
 func (c *testChainDataplaneServer) Close(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*empty.Empty, error) {
 	c.closeCount++
 	next := Next(ctx)
@@ -34,6 +43,14 @@ func (c *testChainDataplaneServer) Close(ctx context.Context, crossConnect *cros
 
 type branchChainDataplaneRequst struct {
 	requestCount, closeCount, monitorCount int
+}
+
+func (c *branchChainDataplaneRequst) Available(ctx context.Context, list *dataplane.CrossConnectList) (*dataplane.CrossConnectList, error) {
+	next := Next(ctx)
+	if next == nil {
+		return list, nil
+	}
+	return next.Available(ctx, list)
 }
 
 func (c *branchChainDataplaneRequst) Request(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error) {
