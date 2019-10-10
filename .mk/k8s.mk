@@ -56,7 +56,7 @@ SPIRE_ENABLED=false
 endif
 
 kubectl = kubectl -n ${NSM_NAMESPACE}
-images_tar = $(subst .tar,,$(filter %.tar, $(shell ls ./scripts/vagrant/images)))
+images_tar = $(subst .tar,,$(filter %.tar, $(shell mkdir -p ./scripts/vagrant/images;ls ./scripts/vagrant/images)))
 
 export ORG=$(CONTAINER_REPO)
 

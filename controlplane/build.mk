@@ -23,3 +23,6 @@ docker-controlplane-build: $(addsuffix -build, $(addprefix docker-, $(controlpla
 
 .PHONY: docker-controlplane-save
 docker-controlplane-save: $(addsuffix -save, $(addprefix docker-, $(controlplane_apps)))
+
+.PHONY: docker-controlplane-push
+docker-controlplane-push: $(addsuffix -push, $(addprefix docker-, $(controlplane_apps)))

@@ -165,10 +165,8 @@ jobs:
       NSM_NAMESPACE: "nsm-system"
 
 # build
-  build-container:
-    parameters:
-      container:
-        type: string
+  build-containers:
+    resource_class: xlarge
     docker:
       - image: circleci/golang:1.13-stretch
     steps:
@@ -177,22 +175,14 @@ jobs:
       - setup_remote_docker:
           docker_layer_caching: true
       - run:
+          name: Build containers
           command: |
             export COMMIT="ci_${CIRCLE_WORKFLOW_ID}_${CIRCLE_SHA1:8:8}"
             export TAG="${COMMIT}"
             export CONTAINER_REPO="networkservicemeshci"
             export GOPROXY=https://proxy.golang.org,direct
-            make docker-<< parameters.container >>-build
-            make docker-<< parameters.container >>-push
-
-# build ready - empty job
-  build-container-success:
-    docker:
-      - image: circleci/golang:1.13-stretch
-    steps:
-      - run:
-          command: |
-            echo "SUCCESS"
+            # resource_class xlarge has 8 core, multiple by 1.5 for hyperthreading for -j factor
+            make -j 12 -O docker-push
 
 # docker push
   docker-push-tag:
@@ -251,104 +241,15 @@ workflows:
           requires:
             - test-sanity-check
 # build
-      - build-container:
-          name: "build-nsm-coredns"
-          container: "nsm-coredns"
+      - build-containers:
           requires:
             - test-sanity-check
-      - build-container:
-          name: "build-nsmd"
-          container: "nsmd"
-          requires:
-            - test-sanity-check
-      - build-container:
-          name: "build-nsmd-k8s"
-          container: "nsmd-k8s"
-          requires:
-            - test-sanity-check
-      - build-container:
-          name: "build-nsmdp"
-          container: "nsmdp"
-          requires:
-            - test-sanity-check
-      - build-container:
-          name: "build-proxy-nsmd"
-          container: "proxy-nsmd"
-          requires:
-            - test-sanity-check
-      - build-container:
-          name: "build-proxy-nsmd-k8s"
-          container: "proxy-nsmd-k8s"
-          requires:
-            - test-sanity-check
-      - build-container:
-          name: "build-admission-webhook"
-          container: "admission-webhook"
-          requires:
-            - test-sanity-check
-      - build-container:
-          name: "build-crossconnect-monitor"
-          container: "crossconnect-monitor"
-          requires:
-            - test-sanity-check
-      - build-container:
-          name: "build-test-common"
-          container: "test-common"
-          requires:
-            - test-sanity-check
-      - build-container:
-          name: "build-vpp-test-common"
-          container: "vpp-test-common"
-          requires:
-            - test-sanity-check
-      - build-container:
-          name: "build-nsm-init"
-          container: "nsm-init"
-          requires:
-            - test-sanity-check
-      - build-container:
-          name: "build-nsm-monitor"
-          container: "nsm-monitor"
-          requires:
-            - test-sanity-check
-      - build-container:
-          name: "build-vppagent-dataplane"
-          container: "vppagent-dataplane"
-          requires:
-            - test-sanity-check
-      - build-container:
-          name: "build-kernel-forwarding-plane"
-          container: "kernel-forwarder"
-          requires:
-            - test-sanity-check
-      - build-container:
-          name: "build-spire-registration"
-          container: "spire-registration"
-          requires:
-            - test-sanity-check
-      - build-container-success:
-          requires:
-            - build-nsmd
-            - build-nsmd-k8s
-            - build-nsmdp
-            - build-proxy-nsmd
-            - build-proxy-nsmd-k8s
-            - build-admission-webhook
-            - build-crossconnect-monitor
-            - build-test-common
-            - build-vpp-test-common
-            - build-nsm-init
-            - build-nsm-monitor
-            - build-vppagent-dataplane
-            - build-kernel-forwarding-plane
-            - build-nsm-coredns
-            - build-spire-registration
 
 # Integration testing
       - integration-tests:
           name: "test-integration"
           requires:
-            - build-container-success
+            - build-containers
 # helm
       - test-helm-charts:
           name: "test-helm-charts"

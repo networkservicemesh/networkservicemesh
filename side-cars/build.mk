@@ -23,3 +23,6 @@ docker-side-cars-build: $(addsuffix -build, $(addprefix docker-, $(sidecars_apps
 
 .PHONY: docker-side-cars-save
 docker-side-cars-save: $(addsuffix -save, $(addprefix docker-, $(sidecars_apps)))
+
+.PHONY: docker-side-cars-push
+docker-side-cars-push: $(addsuffix -push, $(addprefix docker-, $(sidecars_apps)))

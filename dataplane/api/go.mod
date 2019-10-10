@@ -3,7 +3,6 @@ module github.com/networkservicemesh/networkservicemesh/dataplane/api
 require (
 	github.com/golang/protobuf v1.3.2
 	github.com/networkservicemesh/networkservicemesh/controlplane/api v0.2.0
-	golang.org/x/net v0.0.0-20190812203447-cdfb69ac37fc // indirect
 	google.golang.org/grpc v1.23.1
 )
 
