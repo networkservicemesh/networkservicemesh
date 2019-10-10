@@ -7,9 +7,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
+
 	"github.com/networkservicemesh/networkservicemesh/applications/nsmrs/pkg/serviceregistryserver"
 
-	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
@@ -32,17 +33,8 @@ func main() {
 
 	c := tools.NewOSSignalChannel()
 
-	tracer, closer := tools.InitJaeger("serviceregistryserver")
-	opentracing.SetGlobalTracer(tracer)
-	defer func() {
-		if err := closer.Close(); err != nil {
-			logrus.Errorf("Error closing logger: %v", err)
-		}
-
-	}()
-
-	span := opentracing.StartSpan("serviceregistryserver")
-	defer span.Finish()
+	closer := jaeger.InitJaeger("serviceregistryserver")
+	defer func() { _ = closer.Close() }()
 
 	address := os.Getenv(RegistryAPIAddressEnv)
 	if strings.TrimSpace(address) == "" {
