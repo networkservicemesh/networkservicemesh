@@ -312,7 +312,7 @@ func (k8s *K8s) reportSpans() {
 }
 
 func (k8s *K8s) findSpans(pod *v1.Pod, c v1.Container, spans map[string]*spanRecord) {
-	content, err := k8s.GetLogs(pod, c.Name)
+	content, err := k8s.GetFullLogs(pod, c.Name, false)
 	if err == nil {
 		lines := strings.Split(content, "\n")
 		for _, l := range lines {
@@ -350,9 +350,17 @@ func NewK8s(g *WithT, prepare bool) (*K8s, error) {
 		logrus.Errorf("Error Creating K8s %v", err)
 		return client, err
 	}
-	client.roles, _ = client.CreateRoles("admin", "view", "binding")
-
-	client.cleanupFunc = InitSpireSecurity(client)
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		client.roles, _ = client.CreateRoles("admin", "view", "binding")
+	}()
+	go func() {
+		defer wg.Done()
+		client.cleanupFunc = InitSpireSecurity(client)
+	}()
+	wg.Wait()
 
 	return client, err
 }
@@ -1148,7 +1156,7 @@ func (k8s *K8s) CreateServiceAccounts() ([]*v1.ServiceAccount, error) {
 				return nil, err
 			}
 			logrus.Info(sa)
-			<-time.After(300 * time.Millisecond)
+			<-time.After(10 * time.Millisecond)
 		}
 
 		rv = append(rv, sa)
@@ -1208,18 +1216,30 @@ func (k8s *K8s) CreateRoles(rolesList ...string) ([]nsmrbac.Role, error) {
 	createdRoles := []nsmrbac.Role{}
 	for _, kind := range rolesList {
 		role := nsmrbac.Roles[kind](nsmrbac.RoleNames[kind], k8s.GetK8sNamespace())
-		if err := role.Create(k8s.clientset); err != nil {
-			logrus.Errorf("failed creating role: %v %v", role, err)
-			return createdRoles, err
-		}
-		if err := role.Wait(ctx, k8s.clientset); err != nil {
-			logrus.Errorf("failed waiting role: %v %v", role, err)
-			return createdRoles, err
-		}
-		logrus.Infof("role is created: %v", role)
 		createdRoles = append(createdRoles, role)
 	}
-	return createdRoles, nil
+	var wg sync.WaitGroup
+	var roleError error = nil
+	for _, r := range createdRoles {
+		wg.Add(1)
+		role := r
+		go func() {
+			defer wg.Done()
+			if err := role.Create(k8s.clientset); err != nil {
+				logrus.Errorf("failed creating role: %v %v", role, err)
+				roleError = err
+				return
+			}
+			if err := role.Wait(ctx, k8s.clientset); err != nil {
+				logrus.Errorf("failed waiting role: %v %v", role, err)
+				roleError = err
+				return
+			}
+			logrus.Infof("role is created: %v", role)
+		}()
+	}
+	wg.Wait()
+	return createdRoles, roleError
 }
 
 // DeleteRoles delete roles
