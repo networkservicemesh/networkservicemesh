@@ -98,10 +98,10 @@ func lookForNSMServers() {
 		}
 		for i := range result.Items {
 			mgr := &result.Items[i]
-			if _, ok := managers[mgr.Status.URL]; !ok {
-				logrus.Printf("Found manager: %s at %s", mgr.Name, mgr.Status.URL)
-				managers[mgr.Status.URL] = "true"
-				go monitorCrossConnects(mgr.Status.URL, true)
+			if _, ok := managers[mgr.Spec.URL]; !ok {
+				logrus.Printf("Adding manager: %s at %s", mgr.Name, mgr.Spec.URL)
+				managers[mgr.Spec.URL] = "true"
+				go monitorCrossConnects(mgr.Spec.URL, true)
 			}
 		}
 		time.Sleep(time.Second)
