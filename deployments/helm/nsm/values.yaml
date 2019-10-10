@@ -9,7 +9,7 @@ tag: master
 pullPolicy: IfNotPresent
 
 forwardingPlane: vpp
-insecure: false
+insecure: true
 
 vpp:
   image: vppagent-dataplane
@@ -21,7 +21,7 @@ kernel:
     requestsCPU: 1m
 
 spire:
-  enabled: true
+  enabled: false
 
 global:
   # set to true to enable Jaeger tracing for NSM components
