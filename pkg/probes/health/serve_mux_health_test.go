@@ -1,10 +1,11 @@
 package health
 
 import (
-	"errors"
 	"net/http"
 	"strings"
 	"testing"
+
+	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 

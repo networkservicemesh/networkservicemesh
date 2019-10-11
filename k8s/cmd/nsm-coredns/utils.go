@@ -2,11 +2,12 @@ package main
 
 import (
 	"context"
-	"errors"
 	"flag"
 	"fmt"
 	"net"
 	"os"
+
+	"github.com/pkg/errors"
 
 	"github.com/caddyserver/caddy"
 

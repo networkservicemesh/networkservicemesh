@@ -74,10 +74,10 @@ func (f *Fanout) ServeDNS(ctx context.Context, w dns.ResponseWriter, m *dns.Msg)
 	}
 	result := getFanoutResult(timeoutContext, clientCount, resultCh)
 	if result == nil {
-		return dns.RcodeServerFailure, errContextDone
+		return dns.RcodeServerFailure, errors.WithStack(errContextDone)
 	}
 	if result.err != nil {
-		return dns.RcodeServerFailure, errNoHealthy
+		return dns.RcodeServerFailure, errors.WithStack(errNoHealthy)
 	}
 	taperr := toDnstap(ctx, result.client.addr, req, result.response, result.start)
 	if !req.Match(result.response) {
