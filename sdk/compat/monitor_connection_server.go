@@ -63,12 +63,11 @@ func NewRemoteMonitorConnection_MonitorConnectionsServerAdapter(srv connection.M
 }
 
 func (m monitorConnectionServerAdapter) MonitorConnections(selector *connection.MonitorScopeSelector, srv connection.MonitorConnection_MonitorConnectionsServer) error {
-	// TODO Error handling
 	if m.remoteServer != nil {
-		m.remoteServer.MonitorConnections(MonitorScopeSelectorUnifiedToRemote(selector), NewRemoteMonitorConnection_MonitorConnectionsServerAdapter(srv))
+		return m.remoteServer.MonitorConnections(MonitorScopeSelectorUnifiedToRemote(selector), NewRemoteMonitorConnection_MonitorConnectionsServerAdapter(srv))
 	}
 	if m.localServer != nil {
-		m.localServer.MonitorConnections(&empty.Empty{}, NewLocalMonitorConnection_MonitorConnectionsServerAdapter(srv))
+		return m.localServer.MonitorConnections(&empty.Empty{}, NewLocalMonitorConnection_MonitorConnectionsServerAdapter(srv))
 	}
 	return nil
 }

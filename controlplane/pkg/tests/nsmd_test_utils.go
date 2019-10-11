@@ -14,6 +14,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/probes"
+	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/sirupsen/logrus"
@@ -240,7 +241,7 @@ func (impl *nsmdTestServiceRegistry) RemoteNetworkServiceClient(ctx context.Cont
 		logrus.Errorf("Failed to dial Network Service Registry at %s: %s", nsm.Url, err)
 		return nil, nil, err
 	}
-	client := remote_networkservice.NewNetworkServiceClient(conn)
+	client := compat.NewRemoteNetworkServiceClient(conn)
 	return client, conn, nil
 }
 
@@ -409,7 +410,7 @@ func newNetworkServiceClient(nsmServerSocket string) (local_networkservice.Netwo
 		return nil, nil, err
 	}
 	// Init related activities start here
-	nsmConnectionClient := local_networkservice.NewNetworkServiceClient(conn)
+	nsmConnectionClient := compat.NewLocalNetworkServiceClient(conn)
 	return nsmConnectionClient, conn, nil
 }
 

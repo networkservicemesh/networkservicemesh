@@ -5,6 +5,8 @@ import (
 
 	"google.golang.org/grpc"
 
+	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
 )
@@ -18,7 +20,7 @@ func (s *eventStream) Recv() (interface{}, error) {
 }
 
 func newEventStream(ctx context.Context, cc *grpc.ClientConn, selector *connection.MonitorScopeSelector) (monitor.EventStream, error) {
-	stream, err := connection.NewMonitorConnectionClient(cc).MonitorConnections(ctx, selector)
+	stream, err := compat.NewRemoteMonitorAdapter(cc).MonitorConnections(ctx, selector)
 
 	return &eventStream{
 		MonitorConnection_MonitorConnectionsClient: stream,

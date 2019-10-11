@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
+	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/sirupsen/logrus"
@@ -19,12 +20,12 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/pkg/probes"
 	"github.com/networkservicemesh/networkservicemesh/pkg/probes/health"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
+	unified "github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsmdapi"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/remote"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nseregistry"
@@ -551,12 +552,12 @@ func (nsm *nsmServer) StartAPIServerAt(ctx context.Context, sock net.Listener, p
 	grpcServer := tools.NewServer(span.Context())
 
 	crossconnect.RegisterMonitorCrossConnectServer(grpcServer, nsm.crossConnectMonitor)
-	connection.RegisterMonitorConnectionServer(grpcServer, nsm.remoteConnectionMonitor)
+	connection.RegisterMonitorConnectionServer(grpcServer, compat.NewMonitorConnectionServerAdapter(nsm.remoteConnectionMonitor, nil))
 	probes.Append(health.NewGrpcHealth(grpcServer, sock.Addr(), time.Minute))
 
 	// Register Remote NetworkServiceManager
 	remoteServer := network_service_server.NewRemoteNetworkServiceServer(nsm.model, nsm.manager, nsm.serviceRegistry, nsm.remoteConnectionMonitor)
-	networkservice.RegisterNetworkServiceServer(grpcServer, remoteServer)
+	unified.RegisterNetworkServiceServer(grpcServer, compat.NewUnifiedNetworkServiceServerAdapter(remoteServer, nil))
 
 	// TODO: Add more public API services here.
 
