@@ -115,10 +115,7 @@ func (n *nextEndpoint) Close(ctx context.Context, connection *connection.Connect
 
 	rv, err := n.composite.services[n.index].Close(ctx, connection)
 
-	if err != nil {
-		span.LogError(err)
-		return nil, err
-	}
+	span.LogError(err)
 	span.LogObject("response", rv)
 	return rv, err
 }

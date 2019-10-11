@@ -55,6 +55,10 @@ func (srv *monitorService) Close(ctx context.Context, connection *connection.Con
 	// Pass model connection with context
 	ctx = common.WithMonitorServer(ctx, srv.monitor)
 	conn, err := ProcessClose(ctx, connection)
-	srv.monitor.Delete(ctx, connection)
+
+	// We send update if conn != nil
+	if conn != nil {
+		srv.monitor.Delete(ctx, connection)
+	}
 	return conn, err
 }

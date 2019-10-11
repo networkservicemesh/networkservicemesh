@@ -1219,7 +1219,7 @@ func (k8s *K8s) CreateRoles(rolesList ...string) ([]nsmrbac.Role, error) {
 		createdRoles = append(createdRoles, role)
 	}
 	var wg sync.WaitGroup
-	var roleError error = nil
+	var roleError error
 	for _, r := range createdRoles {
 		wg.Add(1)
 		role := r

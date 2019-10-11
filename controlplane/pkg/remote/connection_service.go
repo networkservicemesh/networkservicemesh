@@ -116,5 +116,6 @@ func (cce *connectionService) Close(ctx context.Context, connection *connection.
 	}
 	cce.model.DeleteClientConnection(ctx, clientConnection.GetID())
 
+	// Return empty to send update
 	return &empty.Empty{}, err
 }

@@ -17,13 +17,19 @@ package common
 import (
 	"context"
 
+	"github.com/opentracing/opentracing-go"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 )
 
-// SpanHelperFromConnection - construct new span helper with span from context is pressent or span from connection object
+// SpanHelperFromConnection - construct new span helper with span from context is present or span from connection object
 func SpanHelperFromConnection(ctx context.Context, clientConnection *model.ClientConnection, operation string) spanhelper.SpanHelper {
 	if clientConnection != nil && clientConnection.Span != nil {
+		span := opentracing.SpanFromContext(ctx)
+		if span != nil {
+			return spanhelper.FromContext(ctx, operation)
+		}
 		return spanhelper.WithSpan(ctx, clientConnection.Span, operation)
 	}
 	return spanhelper.FromContext(ctx, operation)

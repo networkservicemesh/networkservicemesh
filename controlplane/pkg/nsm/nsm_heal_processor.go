@@ -9,7 +9,7 @@ import (
 
 	local_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	local_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
-	nsm2 "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
+	nsm_properties "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/networkservice"
 	remote_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
 	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
@@ -27,7 +27,7 @@ import (
 type healProcessor struct {
 	serviceRegistry serviceregistry.ServiceRegistry
 	model           model.Model
-	properties      *nsm2.Properties
+	properties      *nsm_properties.Properties
 
 	manager    nsm.NetworkServiceRequestManager
 	nseManager nsm.NetworkServiceEndpointManager
@@ -45,7 +45,7 @@ type healEvent struct {
 func newNetworkServiceHealProcessor(
 	serviceRegistry serviceregistry.ServiceRegistry,
 	model model.Model,
-	properties *nsm2.Properties,
+	properties *nsm_properties.Properties,
 	manager nsm.NetworkServiceRequestManager,
 	nseManager nsm.NetworkServiceEndpointManager) nsm.NetworkServiceHealProcessor {
 
@@ -213,6 +213,7 @@ func (p *healProcessor) healDstDown(ctx context.Context, cc *model.ClientConnect
 		}
 		logger.Errorf("NSM_Heal(2.3.1) Failed to heal connection: %v. Delaying: %v", err, p.properties.HealRetryDelay)
 		if attempt+1 < p.properties.HealRetryCount {
+			attemptSpan.Finish()
 			<-time.After(p.properties.HealRetryDelay)
 			continue
 		}
@@ -340,6 +341,7 @@ func (p *healProcessor) healDstMgrDown(ctx context.Context, cc *model.ClientConn
 		span.LogError(err)
 		attemptSpan.Finish()
 		if attempt+1 < p.properties.HealRetryCount {
+			attemptSpan.Finish()
 			<-time.After(p.properties.HealRetryDelay)
 			continue
 		}

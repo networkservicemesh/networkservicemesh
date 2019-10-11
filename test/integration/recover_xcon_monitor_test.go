@@ -5,6 +5,8 @@ package nsmd_integration_tests
 import (
 	"testing"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
+
 	. "github.com/onsi/gomega"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
@@ -19,7 +21,15 @@ func TestXconMonitorSingleNodeHealFailed(t *testing.T) {
 	defer k8s.Cleanup()
 	g.Expect(err).To(BeNil())
 
-	nodesConf, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
+	nodesConf, err := kubetest.SetupNodesConfig(k8s, 1, defaultTimeout, []*pods.NSMgrPodConfig{
+		&pods.NSMgrPodConfig{
+			Variables: map[string]string{
+				nsmd.NsmdDeleteLocalRegistry: "true", // Do not use local registry restore for clients/NSEs
+				"NSMD_HEAL_RETRY_COUNT":      "2",
+				"NSMD_HEAL_DST_TIMEOUTs":     "1",
+			},
+		},
+	}, k8s.GetK8sNamespace())
 	g.Expect(err).To(BeNil())
 
 	defer kubetest.MakeLogsSnapshot(k8s, t)
@@ -65,7 +75,15 @@ func TestXconMonitorSingleNodeHealSuccess(t *testing.T) {
 	defer k8s.Cleanup()
 	g.Expect(err).To(BeNil())
 
-	nodesConf, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
+	nodesConf, err := kubetest.SetupNodesConfig(k8s, 1, defaultTimeout, []*pods.NSMgrPodConfig{
+		&pods.NSMgrPodConfig{
+			Variables: map[string]string{
+				nsmd.NsmdDeleteLocalRegistry: "true", // Do not use local registry restore for clients/NSEs
+				"NSMD_HEAL_RETRY_COUNT":      "2",
+				"NSMD_HEAL_DST_TIMEOUTs":     "1",
+			},
+		},
+	}, k8s.GetK8sNamespace())
 	g.Expect(err).To(BeNil())
 
 	defer kubetest.MakeLogsSnapshot(k8s, t)
@@ -115,10 +133,18 @@ func TestXconMonitorMultiNodeHealFail(t *testing.T) {
 	defer k8s.Cleanup()
 	g.Expect(err).To(BeNil())
 
-	nodesConf, err := kubetest.SetupNodes(k8s, 2, defaultTimeout)
+	nodesConf, err := kubetest.SetupNodesConfig(k8s, 2, defaultTimeout, []*pods.NSMgrPodConfig{
+		&pods.NSMgrPodConfig{
+			Variables: map[string]string{
+				nsmd.NsmdDeleteLocalRegistry: "true", // Do not use local registry restore for clients/NSEs
+				"NSMD_HEAL_RETRY_COUNT":      "2",
+				"NSMD_HEAL_DST_TIMEOUTs":     "1",
+			},
+		},
+	}, k8s.GetK8sNamespace())
 	g.Expect(err).To(BeNil())
 
-	defer kubetest.MakeLogsSnapshot(k8s, t)
+	//defer kubetest.MakeLogsSnapshot(k8s, t)
 
 	icmp := kubetest.DeployICMP(k8s, nodesConf[1].Node, "icmp-0", defaultTimeout)
 	g.Expect(icmp).ToNot(BeNil())
@@ -193,7 +219,15 @@ func TestXconMonitorMultiNodeHealSuccess(t *testing.T) {
 	defer k8s.Cleanup()
 	g.Expect(err).To(BeNil())
 
-	nodesConf, err := kubetest.SetupNodes(k8s, 2, defaultTimeout)
+	nodesConf, err := kubetest.SetupNodesConfig(k8s, 2, defaultTimeout, []*pods.NSMgrPodConfig{
+		&pods.NSMgrPodConfig{
+			Variables: map[string]string{
+				nsmd.NsmdDeleteLocalRegistry: "true", // Do not use local registry restore for clients/NSEs
+				"NSMD_HEAL_RETRY_COUNT":      "2",
+				"NSMD_HEAL_DST_TIMEOUTs":     "1",
+			},
+		},
+	}, k8s.GetK8sNamespace())
 	g.Expect(err).To(BeNil())
 
 	defer kubetest.MakeLogsSnapshot(k8s, t)
@@ -273,7 +307,15 @@ func TestXconMonitorNsmgrRestart(t *testing.T) {
 	defer k8s.Cleanup()
 	g.Expect(err).To(BeNil())
 
-	nodesConf, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
+	nodesConf, err := kubetest.SetupNodesConfig(k8s, 1, defaultTimeout, []*pods.NSMgrPodConfig{
+		&pods.NSMgrPodConfig{
+			Variables: map[string]string{
+				nsmd.NsmdDeleteLocalRegistry: "true", // Do not use local registry restore for clients/NSEs
+				"NSMD_HEAL_RETRY_COUNT":      "2",
+				"NSMD_HEAL_DST_TIMEOUTs":     "1",
+			},
+		},
+	}, k8s.GetK8sNamespace())
 	g.Expect(err).To(BeNil())
 
 	defer kubetest.MakeLogsSnapshot(k8s, t)

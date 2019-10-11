@@ -194,7 +194,7 @@ func (client *NsmMonitorCrossConnectClient) ClientConnectionDeleted(ctx context.
 	client.remotePeerLock.Lock()
 	defer client.remotePeerLock.Unlock()
 
-	span := common.SpanHelperFromConnection(context.Background(), clientConnection, "ClientConnectionDeleted")
+	span := common.SpanHelperFromConnection(ctx, clientConnection, "ClientConnectionDeleted")
 	defer span.Finish()
 	span.LogObject("clientConnection", clientConnection)
 
@@ -512,16 +512,22 @@ func (client *NsmMonitorCrossConnectClient) handleRemoteConnectionEvent(ctx cont
 		downConnection := remoteConnection.Clone()
 		downConnection.SetConnectionState(connection.StateDown)
 
-		xconToSend := crossconnect.NewCrossConnect(
-			cc.Xcon.GetId(),
-			cc.Xcon.GetPayload(),
-			cc.Xcon.GetSourceConnection(),
-			downConnection,
-		)
+		span.LogObject("current-remote", cc.GetConnectionDestination())
+		span.LogObject("new-remote", downConnection)
+		if !downConnection.Equals(cc.Xcon.GetDestinationConnection()) {
+			xconToSend := crossconnect.NewCrossConnect(
+				cc.Xcon.GetId(),
+				cc.Xcon.GetPayload(),
+				cc.Xcon.GetSourceConnection(),
+				downConnection,
+			)
+			span.LogObject("xcon-event", xconToSend)
 
-		span.LogObject("xcon-event", xconToSend)
+			client.monitorManager.CrossConnectMonitor().Update(ctx, xconToSend)
+		} else {
+			span.LogObject("no-xcon-event", "same destinations")
+		}
 
-		client.monitorManager.CrossConnectMonitor().Update(ctx, xconToSend)
 		client.xconManager.DestinationDown(ctx, cc, false)
 	}
 }
