@@ -14,11 +14,13 @@
 
 SPIRE_NAMESPACE=spire
 
-ifneq ($(CA_DIR),)
+ifeq ($(CA_DIR),)
 selfSignedCA = true
 else
 selfSignedCA = false
 endif
+
+$(info Self Signed CA = $(selfSignedCA))
 
 .PHONY: spire-install
 spire-install:
