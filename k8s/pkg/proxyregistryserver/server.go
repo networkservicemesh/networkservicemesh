@@ -1,8 +1,8 @@
 package proxyregistryserver
 
 import (
-	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
-	"github.com/opentracing/opentracing-go"
+	"context"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 
@@ -14,15 +14,8 @@ import (
 
 // New starts proxy Network Service Discovery Server and Cluster Info Server
 func New(clientset *nsmClientset.Clientset, clusterInfoService clusterinfo.ClusterInfoServer) *grpc.Server {
-	tracer := opentracing.GlobalTracer()
-	server := grpc.NewServer(
-		grpc.UnaryInterceptor(
-			otgrpc.OpenTracingServerInterceptor(tracer, otgrpc.LogPayloads())),
-		grpc.StreamInterceptor(
-			otgrpc.OpenTracingStreamServerInterceptor(tracer)))
-
+	server := tools.NewServer(context.Background())
 	cache := registryserver.NewRegistryCache(clientset, &registryserver.ResourceFilterConfig{})
-
 	discovery := newDiscoveryService(cache, clusterInfoService)
 
 	registry.RegisterNetworkServiceDiscoveryServer(server, discovery)
