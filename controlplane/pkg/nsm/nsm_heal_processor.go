@@ -419,7 +419,6 @@ func (p *healProcessor) waitNSE(ctx context.Context, endpointName, networkServic
 
 	for {
 		logger.Infof("NSM: RemoteNSE: Waiting for NSE with network service %s. Since elapsed: %v", networkService, time.Since(st))
-
 		endpointResponse, err := discoveryClient.FindNetworkService(ctx, nseRequest)
 		if err == nil {
 			for _, ep := range endpointResponse.NetworkServiceEndpoints {
@@ -436,7 +435,7 @@ func (p *healProcessor) waitNSE(ctx context.Context, endpointName, networkServic
 		}
 
 		if time.Since(st) > p.properties.HealDSTNSEWaitTimeout {
-			span.LogError(fmt.Errorf("timeout waiting for NetworkService: %v", networkService))
+			span.LogError(fmt.Errorf("timeout waiting for NetworkService: %v timeout: %v", networkService, time.Since(st)))
 			return false
 		}
 		// Wait a bit

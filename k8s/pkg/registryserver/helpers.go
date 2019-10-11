@@ -16,10 +16,11 @@ func mapNsmToCustomResource(nsm *registry.NetworkServiceManager) *v1.NetworkServ
 		ObjectMeta: metav1.ObjectMeta{
 			Name: nsm.GetName(),
 		},
-		Spec: v1.NetworkServiceManagerSpec{},
+		Spec: v1.NetworkServiceManagerSpec{
+			URL: nsm.GetUrl(),
+		},
 		Status: v1.NetworkServiceManagerStatus{
 			LastSeen: metav1.Time{Time: time.Now()},
-			URL:      nsm.GetUrl(),
 			State:    v1.RUNNING,
 		},
 	}
@@ -33,7 +34,7 @@ func mapNsmFromCustomResource(cr *v1.NetworkServiceManager) *registry.NetworkSer
 
 	return &registry.NetworkServiceManager{
 		Name:     cr.GetName(),
-		Url:      cr.Status.URL,
+		Url:      cr.Spec.URL,
 		State:    string(cr.Status.State),
 		LastSeen: lastSeen,
 	}

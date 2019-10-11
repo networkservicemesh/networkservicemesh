@@ -2,7 +2,9 @@ package fanout
 
 import (
 	"context"
+	"fmt"
 	"net"
+	"sync"
 	"testing"
 	"time"
 
@@ -11,6 +13,19 @@ import (
 	"github.com/coredns/coredns/plugin/test"
 	"github.com/miekg/dns"
 )
+
+type cachedDNSWriter struct {
+	answers []*dns.Msg
+	mutex   sync.Mutex
+	*test.ResponseWriter
+}
+
+func (w *cachedDNSWriter) WriteMsg(m *dns.Msg) error {
+	w.mutex.Lock()
+	defer w.mutex.Unlock()
+	w.answers = append(w.answers, m)
+	return w.ResponseWriter.WriteMsg(m)
+}
 
 type server struct {
 	Addr  string
@@ -46,6 +61,73 @@ func newServer(f dns.HandlerFunc) *server {
 func makeRecordA(rr string) *dns.A {
 	r, _ := dns.NewRR(rr)
 	return r.(*dns.A)
+}
+
+func TestFanoutCanReturnUnsuccessRespnse(t *testing.T) {
+	s := newServer(func(w dns.ResponseWriter, r *dns.Msg) {
+		msg := testNxdomainMsg()
+		msg.SetRcode(r, msg.Rcode)
+		w.WriteMsg(msg)
+	})
+	f := NewFanout()
+	c := createFanoutClient(s.Addr)
+	f.addClient(c)
+	defer f.Close()
+	req := new(dns.Msg)
+	req.SetQuestion("example1.", dns.TypeA)
+	writer := &cachedDNSWriter{ResponseWriter: new(test.ResponseWriter)}
+	f.ServeDNS(context.TODO(), writer, req)
+	if len(writer.answers) != 1 {
+		fmt.Println(len(writer.answers))
+		t.FailNow()
+	}
+	if writer.answers[0].MsgHdr.Rcode != dns.RcodeNameError {
+		t.Error("fanout plugin returns first negative answer if other answers on request are negative")
+	}
+}
+func TestFanoutTwoServersNotSuccessResponse(t *testing.T) {
+	rcode := 1
+	s1 := newServer(func(w dns.ResponseWriter, r *dns.Msg) {
+		if r.Question[0].Name == "example1." {
+			msg := testNxdomainMsg()
+			msg.SetRcode(r, rcode)
+			rcode++
+			rcode %= dns.RcodeNotZone
+			w.WriteMsg(msg)
+			//let another server answer
+			<-time.After(time.Millisecond * 100)
+		}
+	})
+	s2 := newServer(func(w dns.ResponseWriter, r *dns.Msg) {
+		if r.Question[0].Name == "example1." {
+			msg := dns.Msg{
+				Answer: []dns.RR{makeRecordA("example1. 3600	IN	A 10.0.0.1")},
+			}
+			msg.SetReply(r)
+			w.WriteMsg(&msg)
+			//let another server answer
+			<-time.After(time.Millisecond * 100)
+		}
+	})
+	defer s1.close()
+	defer s2.close()
+	c1 := createFanoutClient(s1.Addr)
+	c2 := createFanoutClient(s2.Addr)
+	f := NewFanout()
+	f.addClient(c1)
+	f.addClient(c2)
+	defer f.Close()
+	req := new(dns.Msg)
+	writer := &cachedDNSWriter{ResponseWriter: new(test.ResponseWriter)}
+	for i := 0; i < 10; i++ {
+		req.SetQuestion("example1.", dns.TypeA)
+		f.ServeDNS(context.TODO(), writer, req)
+	}
+	for _, m := range writer.answers {
+		if m.MsgHdr.Rcode != dns.RcodeSuccess {
+			t.Error("fanout should return only positive answers")
+		}
+	}
 }
 
 func TestFanoutTwoServers(t *testing.T) {
@@ -120,5 +202,11 @@ func TestFanout(t *testing.T) {
 	}
 	if x := rec.Msg.Answer[0].Header().Name; x != "example.org." {
 		t.Errorf("Expected %s, got %s", "example.org.", x)
+	}
+}
+func testNxdomainMsg() *dns.Msg {
+	return &dns.Msg{MsgHdr: dns.MsgHdr{Rcode: dns.RcodeNameError},
+		Question: []dns.Question{{Name: "wwww.example1.", Qclass: dns.ClassINET, Qtype: dns.TypeTXT}},
+		Ns: []dns.RR{test.SOA("example1.	1800	IN	SOA	example1.net. example1.com 1461471181 14400 3600 604800 14400")},
 	}
 }

@@ -67,38 +67,77 @@ func (f *Fanout) ServeDNS(ctx context.Context, w dns.ResponseWriter, m *dns.Msg)
 	timeoutContext, cancel := context.WithTimeout(ctx, defaultTimeout)
 	defer cancel()
 	clientCount := len(f.clients)
-	result := make(chan connectResult, clientCount)
+	resultCh := make(chan connectResult, clientCount)
 	for i := 0; i < clientCount; i++ {
 		client := f.clients[i]
-		go connect(timeoutContext, client, req, result, f.maxFailCount)
+		go connect(timeoutContext, client, req, resultCh, f.maxFailCount)
 	}
-	var first *connectResult
-	for first == nil {
-		select {
-		case <-timeoutContext.Done():
-			return dns.RcodeServerFailure, errContextDone
-		case conn := <-result:
-			if conn.err != nil {
-				clientCount--
-				if clientCount == 0 {
-					return dns.RcodeServerFailure, errNoHealthy
-				}
-				break
-			}
-			first = &conn
-		}
+	result := getFanoutResult(timeoutContext, clientCount, resultCh)
+	if result == nil {
+		return dns.RcodeServerFailure, errContextDone
 	}
-
-	taperr := toDnstap(ctx, first.client.addr, req, first.response, first.start)
-	if !req.Match(first.response) {
-		debug.Hexdumpf(first.response, "Wrong reply for id: %d, %s %d", first.response.Id, req.QName(), req.QType())
+	if result.err != nil {
+		return dns.RcodeServerFailure, errNoHealthy
+	}
+	taperr := toDnstap(ctx, result.client.addr, req, result.response, result.start)
+	if !req.Match(result.response) {
+		debug.Hexdumpf(result.response, "Wrong reply for id: %d, %s %d", result.response.Id, req.QName(), req.QType())
 		formerr := new(dns.Msg)
 		formerr.SetRcode(req.Req, dns.RcodeFormatError)
 		checkErr(w.WriteMsg(formerr))
 		return 0, taperr
 	}
-	checkErr(w.WriteMsg(first.response))
+	checkErr(w.WriteMsg(result.response))
 	return 0, taperr
+}
+
+func getFanoutResult(ctx context.Context, clientCount int, ch <-chan connectResult) *connectResult {
+	count := clientCount
+	var result *connectResult
+	for {
+		select {
+		case <-ctx.Done():
+			return result
+		case r := <-ch:
+			count--
+			if isBetter(result, &r) {
+				result = &r
+			}
+			if count == 0 {
+				return result
+			}
+			if r.err != nil {
+				break
+			}
+			if r.response.Rcode != dns.RcodeSuccess {
+				break
+			}
+			return &r
+		}
+	}
+}
+
+func isBetter(left, right *connectResult) bool {
+	if right == nil {
+		return false
+	}
+	if left == nil {
+		return true
+	}
+	if right.err != nil {
+		return false
+	}
+	if left.err != nil {
+		return true
+	}
+	if right.response == nil {
+		return false
+	}
+	if left.response == nil {
+		return true
+	}
+	return left.response.MsgHdr.Rcode != dns.RcodeSuccess &&
+		right.response.MsgHdr.Rcode == dns.RcodeSuccess
 }
 
 func connect(ctx context.Context, client *fanoutClient, req request.Request, result chan<- connectResult, maxFailCount int) {
