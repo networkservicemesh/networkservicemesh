@@ -49,7 +49,7 @@ func handleRemoteConnection(egress common.EgressInterfaceType, crossConnect *cro
 		return handleConnection(egress, crossConnect, connect, cOUTGOING)
 	}
 	err := errors.Errorf("remote: invalid connection type")
-	logrus.Errorf(err)
+	logrus.Errorf("%+v", err)
 	return nil, err
 }
 
