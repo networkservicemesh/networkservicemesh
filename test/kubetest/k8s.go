@@ -90,12 +90,14 @@ func (k8s *K8s) createAndBlock(client kubernetes.Interface, namespace string, ti
 			}
 			if err != nil {
 				logrus.Errorf("Failed to create pod. Cause: %v pod: %v", err, pod)
+				k8s.DescribePod(pod)
 				resultChan <- &PodDeployResult{pod, err}
 				return
 			}
 			pod, err = blockUntilPodReady(client, timeout, pod)
 			if err != nil {
 				logrus.Errorf("blockUntilPodReady failed. Cause: %v pod: %v", err, pod)
+				k8s.DescribePod(pod)
 				resultChan <- &PodDeployResult{pod, err}
 				return
 			}
