@@ -190,7 +190,7 @@ func (m *Mechanism) NetNsFileName() (string, error) {
 	}
 	filename, err := fs.ResolvePodNsByInode(inodeNum)
 	if err != nil {
-		return "", errors.Wrapf(err, "no file found in /proc/*/ns/net with inode %d: %v", inodeNum)
+		return "", errors.Wrapf(err, "no file found in /proc/*/ns/net with inode %d", inodeNum)
 	}
 	return filename, nil
 }

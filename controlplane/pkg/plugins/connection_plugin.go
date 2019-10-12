@@ -56,7 +56,7 @@ func (cpm *connectionPluginManager) UpdateConnection(ctx context.Context, wrappe
 		cancel()
 
 		if err != nil {
-			return nil, errors.Wrapf(err, "'%s' connection plugin returned an error: %v", name)
+			return nil, errors.Wrapf(err, "'%s' connection plugin returned an error", name)
 		}
 	}
 	return wrapper.Clone(), nil
