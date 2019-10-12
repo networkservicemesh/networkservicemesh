@@ -1,7 +1,6 @@
 package fs
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
@@ -10,6 +9,7 @@ import (
 	"syscall"
 	"unicode"
 
+	"github.com/pkg/errors"
 	"github.com/vishvananda/netns"
 
 	"github.com/sirupsen/logrus"
@@ -28,11 +28,11 @@ func isDigits(s string) bool {
 func GetInode(file string) (uint64, error) {
 	fileinfo, err := os.Stat(file)
 	if err != nil {
-		return 0, fmt.Errorf("error stat file: %+v", err)
+		return 0, errors.Wrap(err, "error stat file")
 	}
 	stat, ok := fileinfo.Sys().(*syscall.Stat_t)
 	if !ok {
-		return 0, fmt.Errorf("not a stat_t")
+		return 0, errors.New("not a stat_t")
 	}
 	return stat.Ino, nil
 }
@@ -42,7 +42,7 @@ func GetInode(file string) (uint64, error) {
 func ResolvePodNsByInode(inode uint64) (string, error) {
 	files, err := ioutil.ReadDir("/proc")
 	if err != nil {
-		return "", fmt.Errorf("can't read /proc directory: %+v", err)
+		return "", errors.Wrap(err, "can't read /proc directory")
 	}
 
 	for _, f := range files {
@@ -63,13 +63,13 @@ func ResolvePodNsByInode(inode uint64) (string, error) {
 		}
 	}
 
-	return "", fmt.Errorf("not found")
+	return "", errors.New("not found")
 }
 
 func GetAllNetNs() ([]uint64, error) {
 	files, err := ioutil.ReadDir("/proc")
 	if err != nil {
-		return nil, fmt.Errorf("can't read /proc directory: %+v", err)
+		return nil, errors.Wrap(err, "can't read /proc directory")
 	}
 	inodes := make([]uint64, 0, len(files))
 	for _, f := range files {
@@ -99,12 +99,12 @@ func GetNsHandleFromInode(inode string) (netns.NsHandle, error) {
 	/* Parse the string to an integer */
 	inodeNum, err := strconv.ParseUint(inode, 10, 64)
 	if err != nil {
-		return -1, fmt.Errorf("failed parsing inode, must be an unsigned int, instead was: %s", inode)
+		return -1, errors.Errorf("failed parsing inode, must be an unsigned int, instead was: %s", inode)
 	}
 	/* Get filepath from inode */
 	path, err := ResolvePodNsByInode(inodeNum)
 	if err != nil {
-		return -1, fmt.Errorf("failed to find file in /proc/*/ns/net with inode %d: %v", inodeNum, err)
+		return -1, errors.Wrapf(err, "failed to find file in /proc/*/ns/net with inode %d", inodeNum)
 	}
 	/* Get namespace handler from path */
 	return netns.GetFromPath(path)

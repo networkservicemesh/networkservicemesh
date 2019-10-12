@@ -21,6 +21,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
 	"github.com/vishvananda/netns"
@@ -116,7 +117,7 @@ func collectMetrics(devices *RegisteredDevices) (map[string]*crossconnect.Metric
 		}
 	}
 	if len(stats) == 0 {
-		return stats, fmt.Errorf("metrics: failed to extract metrics for any device in list: %v", devices.devices)
+		return stats, errors.Errorf("metrics: failed to extract metrics for any device in list: %v", devices.devices)
 	}
 	return stats, nil
 }

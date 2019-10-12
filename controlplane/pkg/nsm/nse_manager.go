@@ -2,9 +2,9 @@ package nsm
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
+	"github.com/pkg/errors"
 
 	"github.com/sirupsen/logrus"
 
@@ -38,7 +38,7 @@ func (nsem *nseManager) getEndpoint(ctx context.Context, requestConnection conne
 		if endpoint != nil && ignoreEndpoints[endpoint.EndpointName()] == nil {
 			return endpoint.Endpoint, nil
 		} else {
-			return nil, fmt.Errorf("Could not find endpoint with name: %s at local registry", targetEndpoint)
+			return nil, errors.Errorf("Could not find endpoint with name: %s at local registry", targetEndpoint)
 		}
 	}
 
@@ -59,13 +59,13 @@ func (nsem *nseManager) getEndpoint(ctx context.Context, requestConnection conne
 	endpoints := nsem.filterEndpoints(endpointResponse.GetNetworkServiceEndpoints(), ignoreEndpoints)
 
 	if len(endpoints) == 0 {
-		return nil, fmt.Errorf("failed to find NSE for NetworkService %s. Checked: %d of total NSEs: %d",
+		return nil, errors.Errorf("failed to find NSE for NetworkService %s. Checked: %d of total NSEs: %d",
 			requestConnection.GetNetworkService(), len(ignoreEndpoints), len(endpoints))
 	}
 
 	endpoint := nsem.model.GetSelector().SelectEndpoint(requestConnection.(*local.Connection), endpointResponse.GetNetworkService(), endpoints)
 	if endpoint == nil {
-		return nil, fmt.Errorf("failed to find NSE for NetworkService %s. Checked: %d of total NSEs: %d",
+		return nil, errors.Errorf("failed to find NSE for NetworkService %s. Checked: %d of total NSEs: %d",
 			requestConnection.GetNetworkService(), len(ignoreEndpoints), len(endpoints))
 	}
 
@@ -87,7 +87,7 @@ func (nsem *nseManager) createNSEClient(ctx context.Context, endpoint *registry.
 	if nsem.isLocalEndpoint(endpoint) {
 		modelEp := nsem.model.GetEndpoint(endpoint.GetNetworkServiceEndpoint().GetName())
 		if modelEp == nil {
-			return nil, fmt.Errorf("Endpoint not found: %v", endpoint)
+			return nil, errors.Errorf("Endpoint not found: %v", endpoint)
 		}
 		logger.Infof("Create local NSE connection to endpoint: %v", modelEp)
 		client, conn, err := nsem.serviceRegistry.EndpointConnection(span.Context(), modelEp)

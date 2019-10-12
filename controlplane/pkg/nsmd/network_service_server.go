@@ -1,10 +1,10 @@
 package nsmd
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 
@@ -65,7 +65,7 @@ func (srv *networkServiceServer) Close(ctx context.Context, connection *connecti
 	// TODO: check carefully  id of closing connection (need dst connection id)
 	clientConnection := srv.model.GetClientConnection(connection.GetId())
 	if clientConnection == nil {
-		err := fmt.Errorf("there is no such client connection %v", connection)
+		err := errors.Errorf("there is no such client connection %v", connection)
 		logrus.Error(err)
 		return nil, err
 	}

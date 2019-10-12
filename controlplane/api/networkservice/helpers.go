@@ -1,9 +1,8 @@
 package networkservice
 
 import (
-	"fmt"
-
 	"github.com/golang/protobuf/proto"
+	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 )
@@ -56,23 +55,23 @@ func (ns *NetworkServiceRequest) SetRequestMechanismPreferences(mechanismPrefere
 // IsValid returns if request is valid
 func (ns *NetworkServiceRequest) IsValid() error {
 	if ns == nil {
-		return fmt.Errorf("request cannot be nil")
+		return errors.New("request cannot be nil")
 	}
 
 	if ns.GetConnection() == nil {
-		return fmt.Errorf("request.Connection cannot be nil %v", ns)
+		return errors.Errorf("request.Connection cannot be nil %v", ns)
 	}
 
 	if err := ns.GetConnection().IsValid(); err != nil {
-		return fmt.Errorf("request.Connection is invalid: %s: %v", err, ns)
+		return errors.Errorf("request.Connection is invalid: %s: %v", err, ns)
 	}
 
 	if ns.GetMechanismPreferences() == nil {
-		return fmt.Errorf("request.MechanismPreferences cannot be nil: %v", ns)
+		return errors.Errorf("request.MechanismPreferences cannot be nil: %v", ns)
 	}
 
 	if len(ns.GetMechanismPreferences()) < 1 {
-		return fmt.Errorf("request.MechanismPreferences must have at least one entry: %v", ns)
+		return errors.Errorf("request.MechanismPreferences must have at least one entry: %v", ns)
 	}
 
 	return nil

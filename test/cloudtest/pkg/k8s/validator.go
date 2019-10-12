@@ -8,6 +8,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/config"
+	"github.com/pkg/errors"
 )
 
 // KubernetesValidator - a validator to check periodically of cluster livenes.
@@ -74,7 +75,7 @@ func (v *k8sValidator) Validate() error {
 		return nil
 	}
 	msg := fmt.Sprintf("Cluster doesn't have required number of nodes to be available. Required: %v Available: %v\n", requiedNodes, ready)
-	err = fmt.Errorf(msg)
+	err = errors.Errorf(msg)
 	return err
 }
 

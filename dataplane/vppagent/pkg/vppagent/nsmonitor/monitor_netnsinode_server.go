@@ -2,10 +2,10 @@ package nsmonitor
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
@@ -41,7 +41,7 @@ func CreateMonitorNetNsInodeServer(crossConnectServer monitor_crossconnect.Monit
 func (m *MonitorNetNsInodeServer) SendMsg(msg interface{}) error {
 	event, ok := msg.(*crossconnect.CrossConnectEvent)
 	if !ok {
-		return fmt.Errorf("wrong type of msg, crossConnectEvent is needed")
+		return errors.New("wrong type of msg, crossConnectEvent is needed")
 	}
 	m.crossConnectEventCh <- copyEvent(event)
 	return nil

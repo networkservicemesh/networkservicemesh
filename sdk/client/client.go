@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
+	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
 
@@ -78,7 +79,7 @@ func (nsmc *NsmClient) ConnectRetry(ctx context.Context, name, mechanism, descri
 	span.LogObject("Selected mechanism", outgoingMechanism)
 
 	if err != nil {
-		err = fmt.Errorf("failure to prepare the outgoing mechanism preference with error: %+v", err)
+		err = errors.Wrap(err, "failure to prepare the outgoing mechanism preference with error")
 		span.LogError(err)
 		return nil, err
 	}
@@ -123,7 +124,7 @@ func (nsmc *NsmClient) ConnectRetry(ctx context.Context, name, mechanism, descri
 			attemptSpan.LogError(err)
 			cancelProc()
 			if retryCount == 0 {
-				return nil, fmt.Errorf("nsm client: Failed to connect %v", err)
+				return nil, errors.Wrap(err, "nsm client: Failed to connect")
 			} else {
 				attemptLogger.Errorf("nsm client: Failed to connect %v. Retry attempts: %v Delaying: %v", err, retryCount, retryDelay)
 			}
@@ -173,7 +174,7 @@ func (nsmc *NsmClient) Destroy(ctx context.Context) error {
 	defer span.Finish()
 
 	err := nsmc.NsmConnection.Close()
-	span.LogError(fmt.Errorf("failed to close opentracing context %v", err))
+	span.LogError(errors.Wrap(err, "failed to close opentracing context"))
 	if nsmc.tracerCloser != nil {
 		trErr := nsmc.tracerCloser.Close()
 		if trErr != nil {

@@ -133,7 +133,7 @@ func (k8s *K8s) createAndBlock(client kubernetes.Interface, namespace string, ti
 				}
 			}
 			results = append(results, &PodDeployResult{
-				err: fmt.Errorf("Failed to deploy pod"),
+				err: errors.New("Failed to deploy pod"),
 				pod: pod,
 			})
 			return results
@@ -196,7 +196,7 @@ func blockUntilPodReady(client kubernetes.Interface, timeout time.Duration, sour
 		case _, ok := <-watcher.ResultChan():
 
 			if !ok {
-				return sourcePod, fmt.Errorf("Some error watching for pod status")
+				return sourcePod, errors.New("Some error watching for pod status")
 			}
 
 			pod, err := client.CoreV1().Pods(sourcePod.Namespace).Get(sourcePod.Name, metaV1.GetOptions{})
@@ -214,7 +214,7 @@ func blockUntilPodReady(client kubernetes.Interface, timeout time.Duration, sour
 }
 
 func podTimeout(pod *v1.Pod) error {
-	return fmt.Errorf("Timeout during waiting for pod change status for pod %s %v status: ", pod.Name, pod.Status.Conditions)
+	return errors.Errorf("Timeout during waiting for pod change status for pod %s %v status: ", pod.Name, pod.Status.Conditions)
 }
 
 func isPodReady(pod *v1.Pod) bool {
@@ -734,7 +734,7 @@ func (k8s *K8s) CreatePodsRaw(timeout time.Duration, failTest bool, templates ..
 		k8s.g.Expect(len(errs)).To(Equal(0))
 	} else {
 		// Lets construct error
-		err = fmt.Errorf("Errors %v", errs)
+		err = errors.Errorf("Errors %v", errs)
 	}
 
 	return pods, err
@@ -1122,7 +1122,7 @@ func (k8s *K8s) CreateTestNamespace(namespace string) (string, error) {
 		if strings.Contains(err.Error(), "already exists") {
 			nsRes = namespace
 		}
-		return nsRes, fmt.Errorf("failed to create a namespace (error: %v)", err)
+		return nsRes, errors.Wrap(err, "failed to create a namespace")
 	}
 
 	logrus.Printf("namespace %v is created", nsNamespace.GetName())
@@ -1179,7 +1179,7 @@ func (k8s *K8s) DeleteTestNamespace(namespace string) error {
 	var immediate int64
 	err := k8s.clientset.CoreV1().Namespaces().Delete(namespace, &metaV1.DeleteOptions{GracePeriodSeconds: &immediate})
 	if err != nil {
-		return fmt.Errorf("failed to delete namespace %q (error: %v)", namespace, err)
+		return errors.Wrapf(err, "failed to delete namespace %q", namespace)
 	}
 
 	logrus.Printf("namespace %v is deleted", namespace)
@@ -1191,7 +1191,7 @@ func (k8s *K8s) DeleteTestNamespace(namespace string) error {
 func (k8s *K8s) GetNamespace(namespace string) (*v1.Namespace, error) {
 	ns, err := k8s.clientset.CoreV1().Namespaces().Get(namespace, metaV1.GetOptions{})
 	if err != nil {
-		err = fmt.Errorf("failed to get namespace %q (error: %v)", namespace, err)
+		err = errors.Wrapf(err, "failed to get namespace %q", namespace)
 	}
 	return ns, err
 }

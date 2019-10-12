@@ -1,10 +1,9 @@
 package vxlan
 
 import (
-	"fmt"
-
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
+	"github.com/pkg/errors"
 )
 
 type Mechanism interface {
@@ -22,7 +21,7 @@ func NewMechanism(m *connection.Mechanism) (Mechanism, error) {
 			m,
 		}, nil
 	}
-	return nil, fmt.Errorf("Not of Mechanism.Type == %s: %+v", MECHANISM, m)
+	return nil, errors.Errorf("Not of Mechanism.Type == %s: %+v", MECHANISM, m)
 }
 
 func (m *mechanism) SrcIP() (string, error) {

@@ -23,6 +23,7 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
+	"github.com/pkg/errors"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/sirupsen/logrus"
@@ -183,7 +184,7 @@ func NewNSMEndpoint(ctx context.Context, configuration *common.NSConfiguration, 
 	}
 
 	if service == nil {
-		return nil, fmt.Errorf("NewNSMEndpoint must be provided a non-nil service *networkservice.NewNetworkServiceServer argument")
+		return nil, errors.New("NewNSMEndpoint must be provided a non-nil service *networkservice.NewNetworkServiceServer argument")
 	}
 
 	nsmConnection, err := common.NewNSMConnection(ctx, configuration)

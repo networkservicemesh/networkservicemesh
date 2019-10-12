@@ -17,7 +17,6 @@ package vppagent
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"strconv"
 	"strings"
@@ -26,6 +25,7 @@ import (
 	"github.com/ligato/vpp-agent/api/configurator"
 	"github.com/ligato/vpp-agent/api/models/vpp"
 	acl "github.com/ligato/vpp-agent/api/models/vpp/acl"
+	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
@@ -63,7 +63,7 @@ func (a *ACL) Request(ctx context.Context, request *networkservice.NetworkServic
 	iface := connectionMap[request.GetConnection().GetId()]
 
 	if iface == nil || iface.Name == "" {
-		err := fmt.Errorf("found empty incoming connection name")
+		err := errors.New("found empty incoming connection name")
 		return nil, err
 	}
 
@@ -93,7 +93,7 @@ func (a *ACL) Close(ctx context.Context, connection *connection.Connection) (*em
 	iface := connectionMap[connection.GetId()]
 
 	if iface == nil || iface.Name == "" {
-		err := fmt.Errorf("found empty incoming connection name")
+		err := errors.New("found empty incoming connection name")
 		return nil, err
 	}
 
@@ -121,7 +121,7 @@ func NewACL(rules map[string]string) *ACL {
 
 func (a *ACL) appendDataChange(rv *configurator.Config, ingressInterface string) error {
 	if rv == nil {
-		return fmt.Errorf("ACL.appendDataChange cannot be called with rv == nil")
+		return errors.New("ACL.appendDataChange cannot be called with rv == nil")
 	}
 	if rv.VppConfig == nil {
 		rv.VppConfig = &vpp.ConfigData{}
@@ -137,12 +137,12 @@ func (a *ACL) appendDataChange(rv *configurator.Config, ingressInterface string)
 
 		action, err := getAction(parsed)
 		if err != nil {
-			return fmt.Errorf("parsing rule %s failed with %v", rule, err)
+			return errors.Errorf("parsing rule %s failed with %v", rule, err)
 		}
 
 		match, err := getMatch(parsed)
 		if err != nil {
-			return fmt.Errorf("parsing rule %s failed with %v", rule, err)
+			return errors.Errorf("parsing rule %s failed with %v", rule, err)
 		}
 
 		match.Action = action
@@ -166,11 +166,11 @@ func (a *ACL) appendDataChange(rv *configurator.Config, ingressInterface string)
 func getAction(parsed map[string]string) (acl.ACL_Rule_Action, error) {
 	actionName, ok := parsed[action]
 	if !ok {
-		return acl.ACL_Rule_Action(0), fmt.Errorf("rule should have 'action' set")
+		return acl.ACL_Rule_Action(0), errors.New("rule should have 'action' set")
 	}
 	action, ok := acl.ACL_Rule_Action_value[strings.ToUpper(actionName)]
 	if !ok {
-		return acl.ACL_Rule_Action(0), fmt.Errorf("rule should have a valid 'action'")
+		return acl.ACL_Rule_Action(0), errors.New("rule should have a valid 'action'")
 	}
 	return acl.ACL_Rule_Action(action), nil
 }
@@ -181,7 +181,7 @@ func getIP(parsed map[string]string) (*acl.ACL_Rule_IpRule_Ip, error) {
 	if dstNetOk {
 		_, _, err := net.ParseCIDR(dstNet)
 		if err != nil {
-			return nil, fmt.Errorf("dstnet is not a valid CIDR [%v]. Failed with: %v", dstNet, err)
+			return nil, errors.Errorf("dstnet is not a valid CIDR [%v]. Failed with: %v", dstNet, err)
 		}
 	} else {
 		dstNet = ""
@@ -190,7 +190,7 @@ func getIP(parsed map[string]string) (*acl.ACL_Rule_IpRule_Ip, error) {
 	if srcNetOk {
 		_, _, err := net.ParseCIDR(srcNet)
 		if err != nil {
-			return nil, fmt.Errorf("srcnet is not a valid CIDR [%v]. Failed with: %v", srcNet, err)
+			return nil, errors.Errorf("srcnet is not a valid CIDR [%v]. Failed with: %v", srcNet, err)
 		}
 	} else {
 		srcNet = ""
@@ -212,7 +212,7 @@ func getICMP(parsed map[string]string) (*acl.ACL_Rule_IpRule_Icmp, error) {
 	}
 	icmpType8, err := strconv.ParseUint(icmpType, 10, 8)
 	if err != nil {
-		return nil, fmt.Errorf("failed parsing icmptype [%v] with: %v", icmpType, err)
+		return nil, errors.Errorf("failed parsing icmptype [%v] with: %v", icmpType, err)
 	}
 	return &acl.ACL_Rule_IpRule_Icmp{
 		Icmpv6: false,
@@ -234,7 +234,7 @@ func getPort(name string, parsed map[string]string) (uint16, bool, error) {
 	}
 	port16, err := strconv.ParseUint(port, 10, 16)
 	if err != nil {
-		return 0, true, fmt.Errorf("failed parsing %s [%v] with: %v", name, port, err)
+		return 0, true, errors.Errorf("failed parsing %s [%v] with: %v", name, port, err)
 	}
 
 	return uint16(port16), true, nil

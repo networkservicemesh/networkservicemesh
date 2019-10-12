@@ -1,12 +1,12 @@
 package prefix_pool
 
 import (
-	"fmt"
 	"math/big"
 	"net"
 	"sort"
 	"sync"
 
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
@@ -133,7 +133,7 @@ func (impl *prefixPool) ExcludePrefixes(excludedPrefixes []string) ([]string, er
 	}
 	/* Raise an error, if there aren't any available prefixes left after excluding */
 	if len(copyPrefixes) == 0 {
-		err := fmt.Errorf("IPAM: The available address pool is empty, probably intersected by excludedPrefix")
+		err := errors.New("IPAM: The available address pool is empty, probably intersected by excludedPrefix")
 		logrus.Errorf("%v", err)
 		return nil, err
 	}
@@ -168,7 +168,7 @@ func extractSubnet(wider, smaller *net.IPNet) ([]string, error) {
 			leftParts = append(leftParts, sub1.String())
 			root = sub2
 		} else {
-			return nil, fmt.Errorf("split failed")
+			return nil, errors.New("split failed")
 		}
 	}
 	return append(leftParts, rightParts...), nil
@@ -229,7 +229,7 @@ func (impl *prefixPool) Release(connectionId string) error {
 
 	conn := impl.connections[connectionId]
 	if conn == nil {
-		return fmt.Errorf("Failed to release connection infomration: %s", connectionId)
+		return errors.Errorf("Failed to release connection infomration: %s", connectionId)
 	}
 	delete(impl.connections, connectionId)
 
@@ -252,7 +252,7 @@ func (impl *prefixPool) GetConnectionInformation(connectionId string) (string, [
 	defer impl.RUnlock()
 	conn := impl.connections[connectionId]
 	if conn == nil {
-		return "", nil, fmt.Errorf("No connection with id: %s is found", connectionId)
+		return "", nil, errors.Errorf("No connection with id: %s is found", connectionId)
 	}
 	return conn.ipNet.String(), conn.prefixes, nil
 }
@@ -291,9 +291,9 @@ func intersect(first, second *net.IPNet) (bool, bool) {
 func ExtractPrefixes(prefixes []string, requests ...*connectioncontext.ExtraPrefixRequest) (requested []string, remaining []string, err error) {
 	// Check if requests are valid.
 	for _, request := range requests {
-		error := request.IsValid()
-		if error != nil {
-			return nil, prefixes, error
+		err := request.IsValid()
+		if err != nil {
+			return nil, prefixes, err
 		}
 	}
 
@@ -307,9 +307,9 @@ func ExtractPrefixes(prefixes []string, requests ...*connectioncontext.ExtraPref
 	// We need to firstly find required prefixes available.
 	for _, request := range requests {
 		for i := uint32(0); i < request.RequiredNumber; i++ {
-			prefix, leftPrefixes, error := ExtractPrefix(newPrefixes, request.PrefixLen)
-			if error != nil {
-				return nil, prefixes, error
+			prefix, leftPrefixes, err := ExtractPrefix(newPrefixes, request.PrefixLen)
+			if err != nil {
+				return nil, prefixes, err
 			}
 			result = append(result, prefix)
 			newPrefixes = leftPrefixes
@@ -318,8 +318,8 @@ func ExtractPrefixes(prefixes []string, requests ...*connectioncontext.ExtraPref
 	// We need to fit some more prefies up to Requested ones
 	for _, request := range requests {
 		for i := request.RequiredNumber; i < request.RequestedNumber; i++ {
-			prefix, leftPrefixes, error := ExtractPrefix(newPrefixes, request.PrefixLen)
-			if error != nil {
+			prefix, leftPrefixes, err := ExtractPrefix(newPrefixes, request.PrefixLen)
+			if err != nil {
 				// It seems there is no more prefixes available, but since we have all Required already we could go.
 				break
 			}
@@ -328,7 +328,7 @@ func ExtractPrefixes(prefixes []string, requests ...*connectioncontext.ExtraPref
 		}
 	}
 	if len(result) == 0 {
-		return nil, prefixes, fmt.Errorf("Failed to extract prefixes, there is no available %v", prefixes)
+		return nil, prefixes, errors.Errorf("Failed to extract prefixes, there is no available %v", prefixes)
 	}
 	return result, newPrefixes, nil
 }
@@ -340,8 +340,8 @@ func ExtractPrefix(prefixes []string, prefixLen uint32) (string, []string, error
 
 	// Check if we already have required prefix,
 	for idx, prefix := range prefixes {
-		_, netip, error := net.ParseCIDR(prefix)
-		if error != nil {
+		_, netip, err := net.ParseCIDR(prefix)
+		if err != nil {
 			continue
 		}
 		parentLen, _ := netip.Mask.Size()
@@ -363,7 +363,7 @@ func ExtractPrefix(prefixes []string, prefixLen uint32) (string, []string, error
 	// Not found, lets split minimal found prefix
 	if max_prefix_idx == -1 {
 		// There is no room to split
-		return "", prefixes, fmt.Errorf("Failed to find room to have prefix len %d at %v", prefixLen, prefixes)
+		return "", prefixes, errors.Errorf("Failed to find room to have prefix len %d at %v", prefixLen, prefixes)
 	}
 
 	resultPrefixRoot := prefixes[max_prefix_idx]
@@ -376,14 +376,14 @@ func ExtractPrefix(prefixes []string, prefixLen uint32) (string, []string, error
 			// we found required prefix
 			break
 		}
-		sub1, error := subnet(rootCIDRNet, 0)
-		if error != nil {
-			return "", prefixes, error
+		sub1, err := subnet(rootCIDRNet, 0)
+		if err != nil {
+			return "", prefixes, err
 		}
 
-		sub2, error := subnet(rootCIDRNet, 1)
-		if error != nil {
-			return "", prefixes, error
+		sub2, err := subnet(rootCIDRNet, 1)
+		if err != nil {
+			return "", prefixes, err
 		}
 		right_parts = append(right_parts, sub2.String())
 		rootCIDRNet = sub1
@@ -432,9 +432,9 @@ func ReleasePrefixes(prefixes []string, released ...string) (remaining []string,
 	prefixByPrefixLen := map[int][]*net.IPNet{}
 
 	for _, prefix := range result {
-		_, ipnet, error := net.ParseCIDR(prefix)
-		if error != nil {
-			return nil, error
+		_, ipnet, err := net.ParseCIDR(prefix)
+		if err != nil {
+			return nil, err
 		}
 		parentLen, _ := ipnet.Mask.Size()
 		nets := prefixByPrefixLen[parentLen]
@@ -503,11 +503,11 @@ func subnet(ipnet *net.IPNet, subnet_index int) (*net.IPNet, error) {
 	parentLen, addrLen := mask.Size()
 	newPrefixLen := parentLen + 1
 	if newPrefixLen > addrLen {
-		return nil, fmt.Errorf("insufficient address space to extend prefix of %d", parentLen)
+		return nil, errors.Errorf("insufficient address space to extend prefix of %d", parentLen)
 	}
 
 	if uint64(subnet_index) > 2 {
-		return nil, fmt.Errorf("prefix extension does not accommodate a subnet numbered %d", subnet_index)
+		return nil, errors.Errorf("prefix extension does not accommodate a subnet numbered %d", subnet_index)
 	}
 
 	return &net.IPNet{
@@ -635,7 +635,7 @@ func IncrementIP(sourceIp net.IP, ipNet *net.IPNet) (net.IP, error) {
 		}
 	}
 	if !ipNet.Contains(ip) {
-		return nil, fmt.Errorf("Overflowed CIDR while incrementing IP")
+		return nil, errors.Errorf("Overflowed CIDR while incrementing IP")
 	}
 	return ip, nil
 }

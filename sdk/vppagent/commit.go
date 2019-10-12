@@ -2,11 +2,11 @@ package vppagent
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/ligato/vpp-agent/api/configurator"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 
@@ -35,13 +35,13 @@ func (c *Commit) Request(ctx context.Context, request *networkservice.NetworkSer
 	ctx = WithConfig(ctx) // Guarantees we will retrieve a non-nil VppAgentConfig from context.Context
 	vppAgentConfig := Config(ctx)
 	if vppAgentConfig == nil {
-		return nil, fmt.Errorf("received empty VppAgentConfig")
+		return nil, errors.New("received empty VppAgentConfig")
 	}
 
 	endpoint.Log(ctx).Infof("Sending VppAgentConfig to VPP Agent: %v", vppAgentConfig)
 
 	if err := c.send(ctx, vppAgentConfig); err != nil {
-		return nil, fmt.Errorf("failed to send vppAgentConfig to VPP Agent: %v", err)
+		return nil, errors.Wrap(err, "failed to send vppAgentConfig to VPP Agent")
 	}
 	if endpoint.Next(ctx) != nil {
 		return endpoint.Next(ctx).Request(ctx, request)
@@ -58,13 +58,13 @@ func (c *Commit) Close(ctx context.Context, connection *connection.Connection) (
 	vppAgentConfig := Config(ctx)
 
 	if vppAgentConfig == nil {
-		return nil, fmt.Errorf("received empty vppAgentConfig")
+		return nil, errors.New("received empty vppAgentConfig")
 	}
 
 	endpoint.Log(ctx).Infof("Sending vppAgentConfig to VPP Agent: %v", vppAgentConfig)
 
 	if err := c.remove(ctx, vppAgentConfig); err != nil {
-		return nil, fmt.Errorf("failed to send DataChange to VPP Agent: %v", err)
+		return nil, errors.Wrap(err, "failed to send DataChange to VPP Agent")
 	}
 
 	if endpoint.Next(ctx) != nil {
@@ -101,7 +101,7 @@ func (c *Commit) createConnection(ctx context.Context) (*grpc.ClientConn, error)
 
 	rv, err := tools.DialTCPInsecure(c.Endpoint)
 	if err != nil {
-		return nil, fmt.Errorf("can't dial grpc server: %v", err)
+		return nil, errors.Wrap(err, "can't dial grpc server")
 	}
 	logrus.Infof("Connection to vppagent created.  Elapsed time: %s", time.Since(start))
 

@@ -1,9 +1,9 @@
 package nsm
 
 import (
-	"fmt"
 	"strconv"
 
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
@@ -30,7 +30,7 @@ func (srv *networkServiceManager) updateMechanism(requestID string, connection c
 	}
 
 	if connection.GetConnectionMechanism() == nil {
-		return fmt.Errorf("required mechanism are not found... %v ", request.GetRequestMechanismPreferences())
+		return errors.Errorf("required mechanism are not found... %v ", request.GetRequestMechanismPreferences())
 	}
 
 	if connection.GetConnectionMechanism().GetParameters() == nil {
@@ -82,7 +82,7 @@ func (srv *networkServiceManager) selectRemoteMechanism(requestID string, reques
 		return mechanism, nil
 	}
 
-	return nil, fmt.Errorf("failed to select mechanism, no matched mechanisms found")
+	return nil, errors.New("failed to select mechanism, no matched mechanisms found")
 }
 
 func findMechanism(mechanismPreferences []connection.Mechanism, mechanismType connection.MechanismType) connection.Mechanism {

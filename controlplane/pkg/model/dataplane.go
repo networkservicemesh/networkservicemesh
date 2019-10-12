@@ -2,11 +2,11 @@ package model
 
 import (
 	"context"
-	"fmt"
 
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
 	remote "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
+	"github.com/pkg/errors"
 )
 
 // DataplaneState describes state of dataplane
@@ -123,7 +123,7 @@ func (d *dataplaneDomain) SelectDataplane(dataplaneSelector func(dp *Dataplane) 
 	})
 
 	if rv == nil {
-		return nil, fmt.Errorf("no appropriate dataplanes found")
+		return nil, errors.New("no appropriate dataplanes found")
 	}
 
 	return rv, nil

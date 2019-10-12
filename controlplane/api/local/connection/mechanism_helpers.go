@@ -1,11 +1,11 @@
 package connection
 
 import (
-	"fmt"
 	"path"
 	"strconv"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
+	"github.com/pkg/errors"
 
 	"github.com/golang/protobuf/proto"
 
@@ -77,35 +77,35 @@ func (m *Mechanism) SetParameters(parameters map[string]string) {
 // IsValid checks if mechanism is valid
 func (m *Mechanism) IsValid() error {
 	if m == nil {
-		return fmt.Errorf("mechanism cannot be nil")
+		return errors.New("mechanism cannot be nil")
 	}
 
 	if m.GetParameters() == nil {
-		return fmt.Errorf("mechanism.Parameters cannot be nil: %v", m)
+		return errors.Errorf("mechanism.Parameters cannot be nil: %v", m)
 	}
 
 	if m.Type == MechanismType_KERNEL_INTERFACE {
 		if _, ok := m.Parameters[NetNsInodeKey]; !ok {
-			return fmt.Errorf("mechanism.Type %s requires mechanism.Parameters[%s] for network namespace", m.GetType(), NetNsInodeKey)
+			return errors.Errorf("mechanism.Type %s requires mechanism.Parameters[%s] for network namespace", m.GetType(), NetNsInodeKey)
 		}
 
 		if _, err := strconv.ParseUint(m.Parameters[NetNsInodeKey], 10, 64); err != nil {
-			return fmt.Errorf("mechanism.Parameters[%s] must be an unsigned int, instead was: %s: %v", NetNsInodeKey, m.Parameters[NetNsInodeKey], m)
+			return errors.Wrapf(err, "mechanism.Parameters[%s] must be an unsigned int, instead was: %s: %v", NetNsInodeKey, m.Parameters[NetNsInodeKey], m)
 		}
 
 		iface, ok := m.GetParameters()[InterfaceNameKey]
 		if !ok {
-			return fmt.Errorf("mechanism.Type %s mechanism.Parameters[%s] cannot be empty", m.Type, InterfaceNameKey)
+			return errors.Errorf("mechanism.Type %s mechanism.Parameters[%s] cannot be empty", m.Type, InterfaceNameKey)
 		}
 		if len(iface) > LinuxIfMaxLength {
-			return fmt.Errorf("mechanism.Type %s mechanism.Parameters[%s]: %s may not exceed %d characters", m.Type, InterfaceNameKey, m.GetParameters()[InterfaceNameKey], LinuxIfMaxLength)
+			return errors.Errorf("mechanism.Type %s mechanism.Parameters[%s]: %s may not exceed %d characters", m.Type, InterfaceNameKey, m.GetParameters()[InterfaceNameKey], LinuxIfMaxLength)
 		}
 	}
 
 	if m.Type == MechanismType_MEM_INTERFACE {
 		_, ok := m.GetParameters()[InterfaceNameKey]
 		if !ok {
-			return fmt.Errorf("mechanism.Type %s mechanism.Parameters[%s] cannot be empty", m.Type, InterfaceNameKey)
+			return errors.Errorf("mechanism.Type %s mechanism.Parameters[%s] cannot be empty", m.Type, InterfaceNameKey)
 		}
 	}
 
@@ -173,23 +173,23 @@ func (m *Mechanism) GetWorkspace() string {
 // NetNsFileName - filename of kernel connection socket
 func (m *Mechanism) NetNsFileName() (string, error) {
 	if m == nil {
-		return "", fmt.Errorf("mechanism cannot be nil")
+		return "", errors.New("mechanism cannot be nil")
 	}
 	if m.GetParameters() == nil {
-		return "", fmt.Errorf("Mechanism.Parameters cannot be nil: %v", m)
+		return "", errors.Errorf("Mechanism.Parameters cannot be nil: %v", m)
 	}
 
 	if _, ok := m.Parameters[NetNsInodeKey]; !ok {
-		return "", fmt.Errorf("Mechanism.Type %s requires Mechanism.Parameters[%s] for network namespace", m.GetType(), NetNsInodeKey)
+		return "", errors.Errorf("Mechanism.Type %s requires Mechanism.Parameters[%s] for network namespace", m.GetType(), NetNsInodeKey)
 	}
 
 	inodeNum, err := strconv.ParseUint(m.Parameters[NetNsInodeKey], 10, 64)
 	if err != nil {
-		return "", fmt.Errorf("Mechanism.Parameters[%s] must be an unsigned int, instead was: %s: %v", NetNsInodeKey, m.Parameters[NetNsInodeKey], m)
+		return "", errors.Errorf("Mechanism.Parameters[%s] must be an unsigned int, instead was: %s: %v", NetNsInodeKey, m.Parameters[NetNsInodeKey], m)
 	}
 	filename, err := fs.ResolvePodNsByInode(inodeNum)
 	if err != nil {
-		return "", fmt.Errorf("no file found in /proc/*/ns/net with inode %d: %v", inodeNum, err)
+		return "", errors.Wrapf(err, "no file found in /proc/*/ns/net with inode %d: %v", inodeNum)
 	}
 	return filename, nil
 }

@@ -1,11 +1,11 @@
 package prefix_pool
 
 import (
-	"fmt"
 	"net"
 	"testing"
 
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
@@ -429,5 +429,5 @@ func TestExcludePrefixesFullOverlap(t *testing.T) {
 
 	_, err = pool.ExcludePrefixes(excludedPrefix)
 
-	g.Expect(err).To(Equal(fmt.Errorf("IPAM: The available address pool is empty, probably intersected by excludedPrefix")))
+	g.Expect(err).To(Equal(errors.New("IPAM: The available address pool is empty, probably intersected by excludedPrefix")))
 }

@@ -2,12 +2,12 @@ package vppagent
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/ligato/vpp-agent/api/configurator"
 	"github.com/ligato/vpp-agent/api/models/vpp"
 	l2 "github.com/ligato/vpp-agent/api/models/vpp/l2"
+	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
@@ -78,7 +78,7 @@ func NewXConnect(configuration *common.NSConfiguration) *XConnect {
 
 func (xc *XConnect) appendDataChange(rv *configurator.Config, in, out string) error {
 	if rv == nil {
-		return fmt.Errorf("XConnect.appendDataChange cannot be called with rv == nil")
+		return errors.New("XConnect.appendDataChange cannot be called with rv == nil")
 	}
 	if rv.VppConfig == nil {
 		rv.VppConfig = &vpp.ConfigData{}
@@ -99,15 +99,15 @@ func (xc *XConnect) appendDataChange(rv *configurator.Config, in, out string) er
 
 func (xc *XConnect) validateConfig(vppAgentConfig *configurator.Config) error {
 	if vppAgentConfig.VppConfig == nil || vppAgentConfig.VppConfig.Interfaces == nil || len(vppAgentConfig.VppConfig.Interfaces) < 2 {
-		return fmt.Errorf("vppAgentConfig lacks 2 interfaces to cross connect")
+		return errors.New("vppAgentConfig lacks 2 interfaces to cross connect")
 	}
 
 	if vppAgentConfig.VppConfig.Interfaces[0].Name == "" {
-		err := fmt.Errorf("received empty incoming connection name")
+		err := errors.New("received empty incoming connection name")
 		return err
 	}
 	if vppAgentConfig.VppConfig.Interfaces[1].Name == "" {
-		err := fmt.Errorf("received empty outgoing connection name")
+		err := errors.New("received empty outgoing connection name")
 		return err
 	}
 	return nil

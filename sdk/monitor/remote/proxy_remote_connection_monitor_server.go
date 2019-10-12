@@ -2,12 +2,12 @@ package remote
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 
 	"github.com/networkservicemesh/networkservicemesh/utils/interdomain"
 
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
@@ -43,7 +43,7 @@ func (s *proxyMonitorServer) MonitorConnections(selector *connection.MonitorScop
 
 	remotePeerName, remotePeerURL, err := interdomain.ParseNsmURL(selector.DestinationNetworkServiceManagerName)
 	if err != nil {
-		return fmt.Errorf("ProxyNSM-Monitor: %s", err.Error())
+		return errors.Wrap(err, "ProxyNSM-Monitor")
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -125,7 +125,7 @@ func (s *proxyMonitorServer) monitorConnection(
 func (s *proxyMonitorServer) handleRemoteConnection(connectionServer connection.MonitorConnection_MonitorConnectionsServer, entity monitor.Entity, event monitor.Event) error {
 	remoteConnection, ok := entity.(*connection.Connection)
 	if !ok {
-		return fmt.Errorf("unable to cast %v to remote.Connection", entity)
+		return errors.Errorf("unable to cast %v to remote.Connection", entity)
 	}
 
 	msg, _ := event.Message()

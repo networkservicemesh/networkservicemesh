@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
+	"github.com/pkg/errors"
 
 	"github.com/sirupsen/logrus"
 
@@ -70,11 +71,11 @@ func createPlugin(ctx context.Context, name, endpoint string, services map[plugi
 		case plugins.PluginCapability_CONNECTION:
 			connectionService, ok := service.(plugins.ConnectionPluginServer)
 			if !ok {
-				return fmt.Errorf("the service cannot be used as a connection plugin since it does not implement ConnectionPluginServer interface")
+				return errors.New("the service cannot be used as a connection plugin since it does not implement ConnectionPluginServer interface")
 			}
 			plugins.RegisterConnectionPluginServer(server, connectionService)
 		default:
-			return fmt.Errorf("unsupported capability: %v", capability)
+			return errors.Errorf("unsupported capability: %v", capability)
 		}
 	}
 
@@ -93,7 +94,7 @@ func registerPlugin(ctx context.Context, name, endpoint, registry string, capabi
 	_ = tools.WaitForPortAvailable(span.Context(), "unix", registry, 100*time.Millisecond)
 	conn, err := tools.DialContextUnix(span.Context(), registry)
 	if err != nil {
-		return fmt.Errorf("cannot connect to the Plugin Registry: %v", err)
+		return errors.Wrap(err, "cannot connect to the Plugin Registry")
 	}
 	defer func() {
 		err = conn.Close()
