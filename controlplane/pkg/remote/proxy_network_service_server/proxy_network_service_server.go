@@ -6,8 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/utils/interdomain"
 	"github.com/pkg/errors"
+
+	"github.com/networkservicemesh/networkservicemesh/utils/interdomain"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/sirupsen/logrus"

@@ -1,9 +1,10 @@
 package vxlan
 
 import (
+	"github.com/pkg/errors"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
-	"github.com/pkg/errors"
 )
 
 type Mechanism interface {

@@ -3,10 +3,11 @@ package model
 import (
 	"context"
 
+	"github.com/pkg/errors"
+
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
 	remote "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
-	"github.com/pkg/errors"
 )
 
 // DataplaneState describes state of dataplane

@@ -3,9 +3,10 @@ package crossconnect
 import (
 	context "context"
 
+	"github.com/pkg/errors"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
-	"github.com/pkg/errors"
 )
 
 // Event is a monitor.Event for crossconnect GRPC API

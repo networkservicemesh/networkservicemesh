@@ -1,10 +1,11 @@
 package crossconnect
 
 import (
+	"github.com/pkg/errors"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	connection2 "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
 	connection3 "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
-	"github.com/pkg/errors"
 )
 
 // NewCrossConnect creates a new crossConnect

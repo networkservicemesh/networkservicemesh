@@ -7,8 +7,9 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 
-	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/config"
 	"github.com/pkg/errors"
+
+	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/config"
 )
 
 // KubernetesValidator - a validator to check periodically of cluster livenes.

@@ -1,8 +1,9 @@
 package registryserver
 
 import (
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/registryserver/resourcecache"
 	"github.com/pkg/errors"
+
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/registryserver/resourcecache"
 
 	"github.com/sirupsen/logrus"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"

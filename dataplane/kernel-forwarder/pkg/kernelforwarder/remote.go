@@ -18,12 +18,13 @@ package kernelforwarder
 import (
 	"runtime"
 
+	"github.com/pkg/errors"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	remote "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/utils/fs"
-	"github.com/pkg/errors"
 
 	"net"
 

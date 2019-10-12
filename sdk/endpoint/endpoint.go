@@ -21,9 +21,10 @@ import (
 	"io"
 	"net"
 
+	"github.com/pkg/errors"
+
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
-	"github.com/pkg/errors"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/sirupsen/logrus"

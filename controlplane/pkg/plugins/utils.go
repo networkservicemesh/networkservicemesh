@@ -7,8 +7,9 @@ import (
 	"path"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 	"github.com/pkg/errors"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	"github.com/sirupsen/logrus"
 

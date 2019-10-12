@@ -3,9 +3,10 @@ package remote
 import (
 	context "context"
 
+	"github.com/pkg/errors"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
-	"github.com/pkg/errors"
 )
 
 type event struct {

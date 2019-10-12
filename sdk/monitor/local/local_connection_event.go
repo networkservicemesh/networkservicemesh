@@ -3,9 +3,10 @@ package local
 import (
 	context "context"
 
+	"github.com/pkg/errors"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
-	"github.com/pkg/errors"
 )
 
 type event struct {
