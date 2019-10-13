@@ -18,6 +18,12 @@ import (
 
 func TestSimpleMetrics(t *testing.T) {
 	g := NewWithT(t)
+
+	if !kubetest.IsBrokeTestsEnabled() {
+		t.Skip("Temporary skip TestSimpleMetrics with vpp-agent v2.3.0")
+		return
+	}
+
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
