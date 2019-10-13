@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/coredns/coredns/request"
+	"github.com/pkg/errors"
 
 	"github.com/miekg/dns"
 )
@@ -78,7 +79,7 @@ func (p *fanoutClient) Connect(request request.Request) (*dns.Msg, error) {
 			log.Error(err)
 		}
 		if dialErr == io.EOF && cached {
-			return nil, errCachedClosed
+			return nil, errors.WithStack(errCachedClosed)
 		}
 		return nil, dialErr
 	}
@@ -96,7 +97,7 @@ func (p *fanoutClient) Connect(request request.Request) (*dns.Msg, error) {
 				log.Error(err)
 			}
 			if dialErr == io.EOF && cached {
-				return nil, errCachedClosed
+				return nil, errors.WithStack(errCachedClosed)
 			}
 			return ret, dialErr
 		}

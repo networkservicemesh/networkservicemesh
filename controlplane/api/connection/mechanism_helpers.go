@@ -16,10 +16,10 @@
 package connection
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/pkg/errors"
 )
 
 // Equals returns if mechanism equals given mechanism
@@ -45,7 +45,7 @@ func AddMechanism(mtype string, validator func(*Mechanism) error) {
 // IsValid - is the Mechanism Valid?
 func (m *Mechanism) IsValid() error {
 	if m == nil {
-		return fmt.Errorf("mechanism cannot be nil")
+		return errors.New("mechanism cannot be nil")
 	}
 	validator, ok := mechanismValidators[m.GetType()]
 	if ok {

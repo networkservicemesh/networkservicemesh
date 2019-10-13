@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
+	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/probes"
 
@@ -488,7 +489,7 @@ func (srv *nsmdFullServerImpl) registerFakeEndpointWithName(networkServiceName s
 		panic(err)
 	}
 	if regResp.NetworkService.Name != networkServiceName {
-		panic(fmt.Errorf("%s is not equal to %s", regResp.NetworkService.Name, networkServiceName))
+		panic(errors.Errorf("%s is not equal to %s", regResp.NetworkService.Name, networkServiceName))
 	}
 
 	return &model.Endpoint{
@@ -531,7 +532,7 @@ func (srv *nsmdFullServerImpl) RequestNSM(clientName string) *nsmdapi.ClientConn
 	logrus.Printf("workspace %s", response.Workspace)
 
 	if response.Workspace != clientName {
-		panic(fmt.Errorf("%s is not equal to %s", response.Workspace, clientName))
+		panic(errors.Errorf("%s is not equal to %s", response.Workspace, clientName))
 	}
 	return response
 }

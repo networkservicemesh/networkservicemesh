@@ -17,9 +17,9 @@ package endpoint
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
@@ -60,7 +60,7 @@ func (mce *MonitorEndpoint) Request(ctx context.Context, request *networkservice
 
 		return incomingConnection, nil
 	}
-	return nil, fmt.Errorf("MonitorEndpoint.Request - cannot create requested connection")
+	return nil, errors.New("MonitorEndpoint.Request - cannot create requested connection")
 }
 
 // Close implements the close handler
@@ -79,7 +79,7 @@ func (mce *MonitorEndpoint) Close(ctx context.Context, connection *connection.Co
 		mce.monitorConnectionServer.Delete(ctx, connection)
 		return rv, err
 	}
-	return nil, fmt.Errorf("monitor DeleteConnection cannot close connection")
+	return nil, errors.New("monitor DeleteConnection cannot close connection")
 }
 
 // Name returns the composite name

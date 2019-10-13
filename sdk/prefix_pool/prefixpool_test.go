@@ -1,7 +1,6 @@
 package prefix_pool
 
 import (
-	"fmt"
 	"net"
 	"testing"
 
@@ -429,5 +428,5 @@ func TestExcludePrefixesFullOverlap(t *testing.T) {
 
 	_, err = pool.ExcludePrefixes(excludedPrefix)
 
-	g.Expect(err).To(Equal(fmt.Errorf("IPAM: The available address pool is empty, probably intersected by excludedPrefix")))
+	g.Expect(err.Error()).To(Equal("IPAM: The available address pool is empty, probably intersected by excludedPrefix"))
 }

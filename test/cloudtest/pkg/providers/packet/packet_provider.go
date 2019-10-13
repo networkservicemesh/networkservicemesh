@@ -12,6 +12,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"github.com/packethost/packngo"
 	"github.com/sirupsen/logrus"
 
@@ -78,7 +80,7 @@ func (pi *packetInstance) CheckIsAlive() error {
 	if pi.started {
 		return pi.validator.Validate()
 	}
-	return fmt.Errorf("cluster is not running")
+	return errors.New("cluster is not running")
 }
 
 func (pi *packetInstance) IsRunning() bool {
@@ -89,7 +91,7 @@ func (pi *packetInstance) GetClusterConfig() (string, error) {
 	if pi.started {
 		return pi.configLocation, nil
 	}
-	return "", fmt.Errorf("cluster is not started yet")
+	return "", errors.New("cluster is not started yet")
 }
 
 func (pi *packetInstance) Start(timeout time.Duration) (string, error) {
@@ -128,7 +130,7 @@ func (pi *packetInstance) Start(timeout time.Duration) (string, error) {
 		// Relative file
 		keyFile = path.Join(pi.root, keyFile)
 		if !utils.FileExists(keyFile) {
-			err = fmt.Errorf("failed to locate generated key file, please specify init script to generate it")
+			err = errors.New("failed to locate generated key file, please specify init script to generate it")
 			logrus.Errorf(err.Error())
 			return "", err
 		}
@@ -211,7 +213,7 @@ func (pi *packetInstance) updateKUBEConfig(context context.Context) error {
 	if pi.configLocation == "" {
 		output, err := utils.ExecRead(context, "", strings.Split(pi.configScript, " "))
 		if err != nil {
-			err = fmt.Errorf("failed to retrieve configuration location %v", err)
+			err = errors.Wrap(err, "failed to retrieve configuration location")
 			logrus.Errorf(err.Error())
 		}
 		pi.configLocation = output[0]
@@ -266,7 +268,7 @@ func (pi *packetInstance) waitDevicesStartup(context context.Context) error {
 			continue
 		case <-context.Done():
 			_, _ = writer.WriteString(fmt.Sprintf("Timeout"))
-			return fmt.Errorf("timeout %v", context.Err())
+			return errors.Wrap(context.Err(), "timeout")
 		}
 	}
 	_, _ = writer.WriteString(fmt.Sprintf("All devices online"))
@@ -425,7 +427,7 @@ func (pi *packetInstance) Destroy(timeout time.Duration) error {
 			case <-ctx.Done():
 				msg := fmt.Sprintf("Timeout for destroying cluster devices %v %v", pi.devices, ctx.Err())
 				_, _ = logFile.WriteString(msg)
-				return fmt.Errorf("err: %v", msg)
+				return errors.Errorf("err: %v", msg)
 			}
 		}
 		msg := fmt.Sprintf("Devices destroy complete %v", pi.devices)
@@ -481,7 +483,7 @@ func (pi *packetInstance) updateProject() error {
 	pi.manager.AddLog(pi.id, "list-projects", out.String())
 
 	if pi.project == nil {
-		err := fmt.Errorf("%s - specified project are not found on Packet %v", pi.id, pi.projectID)
+		err := errors.Errorf("%s - specified project are not found on Packet %v", pi.id, pi.projectID)
 		logrus.Errorf(err.Error())
 		return err
 	}
@@ -626,15 +628,15 @@ func NewPacketClusterProvider(root string) providers.ClusterProvider {
 func (p *packetProvider) ValidateConfig(config *config.ClusterProviderConfig) error {
 
 	if config.Packet == nil {
-		return fmt.Errorf("packet configuration element should be specified")
+		return errors.New("packet configuration element should be specified")
 	}
 
 	if len(config.Packet.Facilities) == 0 {
-		return fmt.Errorf("packet configuration facilities should be specified")
+		return errors.New("packet configuration facilities should be specified")
 	}
 
 	if len(config.Packet.Devices) == 0 {
-		return fmt.Errorf("packet configuration devices should be specified")
+		return errors.New("packet configuration devices should be specified")
 	}
 
 	if _, ok := config.Scripts[configScript]; !ok {
@@ -646,28 +648,28 @@ func (p *packetProvider) ValidateConfig(config *config.ClusterProviderConfig) er
 			}
 		}
 		if !hasKubeConfig {
-			return fmt.Errorf("invalid config location")
+			return errors.New("invalid config location")
 		}
 	}
 	if _, ok := config.Scripts[startScript]; !ok {
-		return fmt.Errorf("invalid start script")
+		return errors.New("invalid start script")
 	}
 
 	for _, envVar := range config.EnvCheck {
 		envValue := os.Getenv(envVar)
 		if envValue == "" {
-			return fmt.Errorf("environment variable are not specified %s Required variables: %v", envValue, config.EnvCheck)
+			return errors.Errorf("environment variable are not specified %s Required variables: %v", envValue, config.EnvCheck)
 		}
 	}
 
 	envValue := os.Getenv("PACKET_AUTH_TOKEN")
 	if envValue == "" {
-		return fmt.Errorf("environment variable are not specified PACKET_AUTH_TOKEN")
+		return errors.New("environment variable are not specified PACKET_AUTH_TOKEN")
 	}
 
 	envValue = os.Getenv("PACKET_PROJECT_ID")
 	if envValue == "" {
-		return fmt.Errorf("environment variable are not specified PACKET_AUTH_TOKEN")
+		return errors.New("environment variable are not specified PACKET_AUTH_TOKEN")
 	}
 
 	return nil

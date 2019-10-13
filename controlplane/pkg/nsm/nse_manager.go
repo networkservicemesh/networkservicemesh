@@ -2,7 +2,8 @@ package nsm
 
 import (
 	"context"
-	"fmt"
+
+	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
@@ -38,7 +39,7 @@ func (nsem *nseManager) GetEndpoint(ctx context.Context, requestConnection conne
 		if endpoint != nil && ignoreEndpoints[endpoint.Endpoint.GetEndpointNSMName()] == nil {
 			return endpoint.Endpoint, nil
 		} else {
-			return nil, fmt.Errorf("Could not find endpoint with name: %s at local registry", targetEndpoint)
+			return nil, errors.Errorf("Could not find endpoint with name: %s at local registry", targetEndpoint)
 		}
 	}
 
@@ -61,7 +62,7 @@ func (nsem *nseManager) GetEndpoint(ctx context.Context, requestConnection conne
 	endpoints := nsem.filterEndpoints(endpointResponse.GetNetworkServiceEndpoints(), endpointResponse.NetworkServiceManagers, ignoreEndpoints)
 
 	if len(endpoints) == 0 {
-		err = fmt.Errorf("failed to find NSE for NetworkService %s. Checked: %d of total NSEs: %d",
+		err = errors.Errorf("failed to find NSE for NetworkService %s. Checked: %d of total NSEs: %d",
 			requestConnection.GetNetworkService(), len(ignoreEndpoints), len(endpoints))
 		span.LogError(err)
 		return nil, err
@@ -69,7 +70,7 @@ func (nsem *nseManager) GetEndpoint(ctx context.Context, requestConnection conne
 
 	endpoint := nsem.model.GetSelector().SelectEndpoint(requestConnection.(*local.Connection), endpointResponse.GetNetworkService(), endpoints)
 	if endpoint == nil {
-		err = fmt.Errorf("failed to find NSE for NetworkService %s. Checked: %d of total NSEs: %d",
+		err = errors.Errorf("failed to find NSE for NetworkService %s. Checked: %d of total NSEs: %d",
 			requestConnection.GetNetworkService(), len(ignoreEndpoints), len(endpoints))
 		span.LogError(err)
 		return nil, err
@@ -93,7 +94,7 @@ func (nsem *nseManager) CreateNSEClient(ctx context.Context, endpoint *registry.
 	if nsem.IsLocalEndpoint(endpoint) {
 		modelEp := nsem.model.GetEndpoint(endpoint.GetNetworkServiceEndpoint().GetName())
 		if modelEp == nil {
-			return nil, fmt.Errorf("Endpoint not found: %v", endpoint)
+			return nil, errors.Errorf("Endpoint not found: %v", endpoint)
 		}
 		logger.Infof("Create local NSE connection to endpoint: %v", modelEp)
 		client, conn, err := nsem.serviceRegistry.EndpointConnection(span.Context(), modelEp)

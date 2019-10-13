@@ -2,11 +2,12 @@ package kubetest
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	. "github.com/onsi/gomega"
@@ -53,7 +54,7 @@ func (e *SingleEventChecker) Check(eventCh <-chan *crossconnect.CrossConnectEven
 		logrus.Infof("Accept new event, type - %v", actual.GetType())
 
 		if actual.GetType() != e.EventType {
-			return fmt.Errorf("event type %v expected to be %v", actual.GetType(), e.EventType)
+			return errors.Errorf("event type %v expected to be %v", actual.GetType(), e.EventType)
 		}
 
 		if actual.GetType() == crossconnect.CrossConnectEventType_DELETE {
@@ -62,7 +63,7 @@ func (e *SingleEventChecker) Check(eventCh <-chan *crossconnect.CrossConnectEven
 		}
 
 		if e.Empty != (len(actual.GetCrossConnects()) == 0) {
-			return fmt.Errorf("expected event with 1 cross-connect, actual - %v", len(actual.GetCrossConnects()))
+			return errors.Errorf("expected event with 1 cross-connect, actual - %v", len(actual.GetCrossConnects()))
 		}
 
 		for _, xcon := range actual.GetCrossConnects() {
@@ -72,7 +73,7 @@ func (e *SingleEventChecker) Check(eventCh <-chan *crossconnect.CrossConnectEven
 			}
 		}
 	case <-time.After(e.Timeout):
-		return fmt.Errorf("no event during %v seconds, type %v", e.Timeout, e.EventType)
+		return errors.Errorf("no event during %v seconds, type %v", e.Timeout, e.EventType)
 	}
 
 	return nil
@@ -215,7 +216,7 @@ func checkXcon(actual *crossconnect.CrossConnect, srcUp, dstUp bool) error {
 }
 
 func xconStateError(xcon *crossconnect.CrossConnect, side string, expected bool) error {
-	return fmt.Errorf("%s, expected %s state to be %v", XconToString(xcon), side, expected)
+	return errors.Errorf("%s, expected %s state to be %v", XconToString(xcon), side, expected)
 }
 
 func getEventCh(mc MonitorClient, cf context.CancelFunc, stopCh <-chan struct{}) <-chan *crossconnect.CrossConnectEvent {
@@ -337,7 +338,7 @@ func CollectXcons(ch <-chan *crossconnect.CrossConnectEvent,
 				return rv, nil
 			}
 		case <-time.After(timeout):
-			return nil, fmt.Errorf("no events during %v", timeout)
+			return nil, errors.Errorf("no events during %v", timeout)
 		}
 	}
 }

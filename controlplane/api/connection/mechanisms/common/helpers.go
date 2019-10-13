@@ -1,8 +1,9 @@
 package common
 
 import (
-	"fmt"
 	"net"
+
+	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 )
@@ -19,21 +20,21 @@ func GetDstIP(m *connection.Mechanism) (string, error) {
 
 func getIPParameter(m *connection.Mechanism, name string) (string, error) {
 	if m == nil {
-		return "", fmt.Errorf("mechanism cannot be nil")
+		return "", errors.New("mechanism cannot be nil")
 	}
 
 	if m.GetParameters() == nil {
-		return "", fmt.Errorf("mechanism.Parameters cannot be nil: %v", m)
+		return "", errors.Errorf("mechanism.Parameters cannot be nil: %v", m)
 	}
 
 	ip, ok := m.Parameters[name]
 	if !ok {
-		return "", fmt.Errorf("mechanism.Type %s requires mechanism.Parameters[%s] for the VXLAN tunnel", m.GetType(), name)
+		return "", errors.Errorf("mechanism.Type %s requires mechanism.Parameters[%s] for the VXLAN tunnel", m.GetType(), name)
 	}
 
 	parsedIP := net.ParseIP(ip)
 	if parsedIP == nil {
-		return "", fmt.Errorf("mechanism.Parameters[%s] must be a valid IPv4 or IPv6 address, instead was: %s: %v", name, ip, m)
+		return "", errors.Errorf("mechanism.Parameters[%s] must be a valid IPv4 or IPv6 address, instead was: %s: %v", name, ip, m)
 	}
 
 	return ip, nil

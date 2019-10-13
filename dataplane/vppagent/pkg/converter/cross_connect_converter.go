@@ -1,8 +1,9 @@
 package converter
 
 import (
-	"fmt"
 	"path"
+
+	"github.com/pkg/errors"
 
 	"github.com/ligato/vpp-agent/api/configurator"
 	"github.com/ligato/vpp-agent/api/models/vpp"
@@ -30,7 +31,7 @@ func NewCrossConnectConverter(c *crossconnect.CrossConnect, conversionParameters
 
 func (c *CrossConnectConverter) ToDataRequest(rv *configurator.Config, connect bool) (*configurator.Config, error) {
 	if c == nil {
-		return rv, fmt.Errorf("CrossConnectConverter cannot be nil")
+		return rv, errors.New("CrossConnectConverter cannot be nil")
 	}
 	if err := c.IsComplete(); err != nil {
 		return rv, err
@@ -55,7 +56,7 @@ func (c *CrossConnectConverter) ToDataRequest(rv *configurator.Config, connect b
 		}
 		rv, err := NewLocalConnectionConverter(c.GetLocalSource(), conversionParameters).ToDataRequest(rv, connect)
 		if err != nil {
-			return rv, fmt.Errorf("Error Converting CrossConnect %v: %s", c, err)
+			return rv, errors.Wrapf(err, "Error Converting CrossConnect %v", c)
 		}
 	}
 
@@ -69,7 +70,7 @@ func (c *CrossConnectConverter) ToDataRequest(rv *configurator.Config, connect b
 		}
 		rv, err := NewLocalConnectionConverter(c.GetLocalDestination(), conversionParameters).ToDataRequest(rv, connect)
 		if err != nil {
-			return rv, fmt.Errorf("Error Converting CrossConnect %v: %s", c, err)
+			return rv, errors.Wrapf(err, "Error Converting CrossConnect %v", c)
 		}
 	}
 
@@ -79,7 +80,7 @@ func (c *CrossConnectConverter) ToDataRequest(rv *configurator.Config, connect b
 	}
 
 	if len(rv.VppConfig.Interfaces) < 2 {
-		return nil, fmt.Errorf("did not create enough interfaces to cross connect, expected at least 2, got %d", len(rv.VppConfig.Interfaces))
+		return nil, errors.Errorf("did not create enough interfaces to cross connect, expected at least 2, got %d", len(rv.VppConfig.Interfaces))
 	}
 	ifaces := rv.VppConfig.Interfaces[len(rv.VppConfig.Interfaces)-2:]
 	rv.VppConfig.XconnectPairs = append(rv.VppConfig.XconnectPairs, &vpp_l2.XConnectPair{
@@ -109,14 +110,14 @@ func (c *CrossConnectConverter) MechanismsToDataRequest(rv *configurator.Config,
 	if c.GetRemoteSource() != nil {
 		rv, err = NewRemoteConnectionConverter(c.GetRemoteSource(), srcName, SOURCE).ToDataRequest(rv, connect)
 		if err != nil {
-			return rv, fmt.Errorf("error Converting CrossConnect %v: %s", c, err)
+			return rv, errors.Wrapf(err, "error Converting CrossConnect %v", c)
 		}
 	}
 
 	if c.GetRemoteDestination() != nil {
 		rv, err = NewRemoteConnectionConverter(c.GetRemoteDestination(), "DST-"+c.GetId(), DESTINATION).ToDataRequest(rv, connect)
 		if err != nil {
-			return rv, fmt.Errorf("error Converting CrossConnect %v: %s", c, err)
+			return rv, errors.Wrapf(err, "error Converting CrossConnect %v", c)
 		}
 	}
 

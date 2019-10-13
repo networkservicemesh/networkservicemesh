@@ -2,10 +2,10 @@ package tests
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/ligato/vpp-agent/api/configurator"
 	"github.com/mesos/mesos-go/api/v0/examples/Godeps/_workspace/src/github.com/gogo/protobuf/proto"
+	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/sdk/vppagent"
 
@@ -29,7 +29,7 @@ func (c *TestCommit) Request(ctx context.Context, request *networkservice.Networ
 	ctx = vppagent.WithConfig(ctx) // Guarantees we will retrieve a non-nil VppAgentConfig from context.Context
 	vppAgentConfig := vppagent.Config(ctx)
 	if vppAgentConfig == nil {
-		return nil, fmt.Errorf("received empty VppAgentConfig")
+		return nil, errors.New("received empty VppAgentConfig")
 	}
 
 	endpoint.Log(ctx).Infof("Sending VppAgentConfig to VPP Agent: %v", vppAgentConfig)
@@ -50,7 +50,7 @@ func (c *TestCommit) Close(ctx context.Context, connection *connection.Connectio
 	vppAgentConfig := vppagent.Config(ctx)
 
 	if vppAgentConfig == nil {
-		return nil, fmt.Errorf("received empty vppAgentConfig")
+		return nil, errors.New("received empty vppAgentConfig")
 	}
 
 	endpoint.Log(ctx).Infof("Sending vppAgentConfig to VPP Agent: %v", vppAgentConfig)

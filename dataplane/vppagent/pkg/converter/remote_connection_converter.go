@@ -16,11 +16,10 @@
 package converter
 
 import (
-	"fmt"
-
 	"github.com/ligato/vpp-agent/api/configurator"
 	"github.com/ligato/vpp-agent/api/models/vpp"
 	vpp_interfaces "github.com/ligato/vpp-agent/api/models/vpp/interfaces"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
@@ -48,13 +47,13 @@ func NewRemoteConnectionConverter(c *connection.Connection, name string, side Co
 // ToDataRequest handles the data request
 func (c *RemoteConnectionConverter) ToDataRequest(rv *configurator.Config, connect bool) (*configurator.Config, error) {
 	if c == nil {
-		return rv, fmt.Errorf("RemoteConnectionConverter cannot be nil")
+		return rv, errors.New("RemoteConnectionConverter cannot be nil")
 	}
 	if err := c.IsComplete(); err != nil {
 		return rv, err
 	}
 	if c.GetMechanism().GetType()&SupportedMechanisms == 0 {
-		return rv, fmt.Errorf("attempt to use not supported Connection.Mechanism.Type %s", c.GetMechanism().GetType())
+		return rv, errors.Errorf("attempt to use not supported Connection.Mechanism.Type %s", c.GetMechanism().GetType())
 	}
 	if rv == nil {
 		rv = &configurator.Config{}

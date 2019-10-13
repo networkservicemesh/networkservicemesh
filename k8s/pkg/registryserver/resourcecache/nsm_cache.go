@@ -1,8 +1,7 @@
 package resourcecache
 
 import (
-	"fmt"
-
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -65,7 +64,7 @@ func (c *NetworkServiceManagerCache) Start(f SharedInformerFactory, init ...v1.N
 func (c *NetworkServiceManagerCache) StartWithResync(f SharedInformerFactory, cs *versioned.Clientset) (func(), error) {
 	l, err := cs.NetworkservicemeshV1alpha1().NetworkServiceManagers(namespace.GetNamespace()).List(v12.ListOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("unable to list NSMs for cache initialization: %v", err)
+		return nil, errors.Wrap(err, "unable to list NSMs for cache initialization")
 	}
 	return c.Start(f, l.Items...)
 }

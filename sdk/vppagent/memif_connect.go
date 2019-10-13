@@ -2,7 +2,6 @@ package vppagent
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path"
 
@@ -10,6 +9,7 @@ import (
 	"github.com/ligato/vpp-agent/api/configurator"
 	"github.com/ligato/vpp-agent/api/models/vpp"
 	interfaces "github.com/ligato/vpp-agent/api/models/vpp/interfaces"
+	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
@@ -99,7 +99,7 @@ func appendMemifInterface(rv *configurator.Config, connection *connection.Connec
 	}
 
 	if rv == nil {
-		return fmt.Errorf("MemifConnect.appendDataChange cannot be called with rv == nil")
+		return errors.New("MemifConnect.appendDataChange cannot be called with rv == nil")
 	}
 	if rv.VppConfig == nil {
 		rv.VppConfig = &vpp.ConfigData{}

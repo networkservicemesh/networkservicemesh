@@ -16,7 +16,6 @@ package nsmd
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"path"
 	"time"
@@ -24,6 +23,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 	"google.golang.org/grpc"
@@ -117,7 +117,7 @@ func (r *DataplaneRegistrarServer) RequestDataplaneRegistration(ctx context.Cont
 	if r.model.GetDataplane(req.DataplaneName) != nil {
 		logrus.Errorf("dataplane with name %s already exist", req.DataplaneName)
 		// TODO (sbezverk) Need to decide the right action, fail or not, failing for now
-		return &dataplaneregistrarapi.DataplaneRegistrationReply{Registered: false}, fmt.Errorf("dataplane with name %s already registered", req.DataplaneName)
+		return &dataplaneregistrarapi.DataplaneRegistrationReply{Registered: false}, errors.Errorf("dataplane with name %s already registered", req.DataplaneName)
 	}
 	// Instantiating dataplane object with parameters from the request and creating a new object in the Object store
 	dataplane := &model.Dataplane{

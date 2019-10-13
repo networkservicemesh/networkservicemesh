@@ -19,6 +19,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	unified_nsm "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"

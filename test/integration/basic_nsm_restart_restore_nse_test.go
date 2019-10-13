@@ -3,8 +3,9 @@
 package nsmd_integration_tests
 
 import (
-	"fmt"
 	"testing"
+
+	"github.com/pkg/errors"
 
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
@@ -105,5 +106,5 @@ func deployNSEPod(g *WithT, k8s *kubetest.K8s, node *v1.Node, name string) (*v1.
 		}
 	}
 
-	return nil, "", fmt.Errorf("no name found")
+	return nil, "", errors.New("no name found")
 }

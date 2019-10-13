@@ -15,9 +15,8 @@
 package nsmd
 
 import (
-	"fmt"
-
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
@@ -54,7 +53,7 @@ func (es *registryServer) RegisterNSE(ctx context.Context, request *registry.NSE
 	// success will be returned to NSE, since it is a case of NSE pod coming back up.
 	client, err := es.nsm.serviceRegistry.NseRegistryClient(span.Context())
 	if err != nil {
-		err = fmt.Errorf("attempt to connect to upstream registry failed with: %v", err)
+		err = errors.Wrap(err, "attempt to connect to upstream registry failed with")
 		span.LogError(err)
 		return nil, err
 	}
@@ -88,7 +87,7 @@ func (es *registryServer) RegisterNSEWithClient(ctx context.Context, request *re
 
 	registration, err := client.RegisterNSE(ctx, request)
 	if err != nil {
-		err = fmt.Errorf("attempt to pass through from nsm to upstream registry failed with: %v", err)
+		err = errors.Wrap(err, "attempt to pass through from nsm to upstream registry failed with")
 		logrus.Error(err)
 		return nil, err
 	}
@@ -118,13 +117,13 @@ func (es *registryServer) RemoveNSE(ctx context.Context, request *registry.Remov
 	span.Logger().Infof("Received Endpoint Remove request: %+v", request)
 	client, err := es.nsm.serviceRegistry.NseRegistryClient(span.Context())
 	if err != nil {
-		err = fmt.Errorf("attempt to pass through from nsm to upstream registry failed with: %v", err)
+		err = errors.Wrap(err, "attempt to pass through from nsm to upstream registry failed with")
 		span.LogError(err)
 		return nil, err
 	}
 	_, err = client.RemoveNSE(span.Context(), request)
 	if err != nil {
-		err = fmt.Errorf("attempt to pass through from nsm to upstream registry failed with: %v", err)
+		err = errors.Wrap(err, "attempt to pass through from nsm to upstream registry failed")
 		span.LogError(err)
 		return nil, err
 	}

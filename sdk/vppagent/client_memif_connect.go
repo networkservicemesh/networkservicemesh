@@ -2,9 +2,9 @@ package vppagent
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
@@ -29,7 +29,7 @@ func (cmc *ClientMemifConnect) Request(ctx context.Context, request *networkserv
 	incomingConnection := request.GetConnection()
 	outgoingConnection := endpoint.ClientConnection(ctx)
 	if outgoingConnection == nil {
-		return nil, fmt.Errorf("endpoint.ClientConnection(ctx) - returned nil value")
+		return nil, errors.New("endpoint.ClientConnection(ctx) - returned nil value")
 	}
 
 	// Copy context to incoming, since it should match.
@@ -58,7 +58,7 @@ func (cmc *ClientMemifConnect) Close(ctx context.Context, connection *connection
 
 	outgoingConnection := endpoint.ClientConnection(ctx)
 	if outgoingConnection == nil {
-		return nil, fmt.Errorf("endpoint.ClientConnection(ctx) - returned nil value")
+		return nil, errors.Errorf("endpoint.ClientConnection(ctx) - returned nil value")
 	}
 
 	if err := appendMemifInterface(vppAgentConfig, outgoingConnection, cmc.Workspace, false); err != nil {

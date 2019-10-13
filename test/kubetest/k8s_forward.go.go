@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 
+	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/httpstream"
 	spdy2 "k8s.io/apimachinery/pkg/util/httpstream/spdy"
@@ -44,12 +45,12 @@ func (p *PortForward) Start() error {
 
 	listenPort, err := p.getListenPort()
 	if err != nil {
-		return fmt.Errorf("Could not find a port to bind to %v", err)
+		return errors.Wrap(err, "Could not find a port to bind to")
 	}
 
 	dialer, err := p.dialer()
 	if err != nil {
-		return fmt.Errorf("Could not create a dialer %v", err)
+		return errors.Wrap(err, "Could not create a dialer")
 	}
 
 	ports := []string{
@@ -59,7 +60,7 @@ func (p *PortForward) Start() error {
 	discard := ioutil.Discard
 	pf, err := portforward.New(dialer, ports, p.stopChan, readyChan, discard, discard)
 	if err != nil {
-		return fmt.Errorf("Could not port forward into pod %v", err)
+		return errors.Wrap(err, "Could not port forward into pod")
 	}
 	p.pf = pf
 
@@ -69,7 +70,7 @@ func (p *PortForward) Start() error {
 
 	select {
 	case err = <-errChan:
-		return fmt.Errorf("Could not create port forward %v", err)
+		return errors.Wrap(err, "Could not create port forward")
 	case <-readyChan:
 		return nil
 	}
@@ -111,7 +112,7 @@ func (p *PortForward) dialer() (httpstream.Dialer, error) {
 	if p.pod != nil {
 		podname = p.pod.Name
 	} else {
-		return nil, fmt.Errorf("Could not do POST request for a non-existing pod")
+		return nil, errors.New("Could not do POST request for a non-existing pod")
 	}
 	url := p.k8s.clientset.CoreV1().RESTClient().Post().
 		Resource("pods").
@@ -121,7 +122,7 @@ func (p *PortForward) dialer() (httpstream.Dialer, error) {
 
 	transport, upgrader, err := roundTripperFor(p.k8s.config)
 	if err != nil {
-		return nil, fmt.Errorf("Could not create round tripper %v", err)
+		return nil, errors.Wrap(err, "Could not create round tripper")
 	}
 
 	dialer := spdy.NewDialer(upgrader, &http.Client{Transport: transport}, "POST", url)

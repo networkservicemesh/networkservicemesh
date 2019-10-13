@@ -2,7 +2,6 @@ package nsm
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -14,6 +13,7 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 	net_context "golang.org/x/net/context"
 	"google.golang.org/grpc"
 
@@ -223,7 +223,7 @@ func TestHealDstDown_LocalClientLocalEndpoint_RequestFailed(t *testing.T) {
 	connection := data.createClientConnection("id", xcon, nse1, localNSMName, dataplane1Name, request)
 	data.model.AddClientConnection(context.Background(), connection)
 
-	data.connectionManager.requestError = fmt.Errorf("request error")
+	data.connectionManager.requestError = errors.New("request error")
 
 	healed := data.healProcessor.healDstDown(context.Background(), data.cloneClientConnection(connection))
 	g.Expect(healed).To(BeFalse())
@@ -295,7 +295,7 @@ type discoveryClientStub struct {
 
 func (stub *discoveryClientStub) FindNetworkService(ctx net_context.Context, in *registry.FindNetworkServiceRequest, opts ...grpc.CallOption) (*registry.FindNetworkServiceResponse, error) {
 	if in.GetNetworkServiceName() != networkServiceName {
-		return nil, fmt.Errorf("wrong Network Service name")
+		return nil, errors.New("wrong Network Service name")
 	}
 	return stub.response, stub.error
 }
@@ -355,7 +355,7 @@ func (stub *connectionManagerStub) request(ctx context.Context, request networks
 			existingConnection.Endpoint = stub.nse
 		} else {
 			stub.model.DeleteClientConnection(context.Background(), existingConnection.GetID())
-			return nil, fmt.Errorf("no NSE available")
+			return nil, errors.New("no NSE available")
 		}
 	} else {
 		if stub.nse != nil {

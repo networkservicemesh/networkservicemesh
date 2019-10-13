@@ -16,7 +16,6 @@ package nsmd
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"time"
 
@@ -25,7 +24,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
-
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 
@@ -311,7 +310,7 @@ func (client *NsmMonitorCrossConnectClient) connectToEndpoint(endpoint *model.En
 func (client *NsmMonitorCrossConnectClient) handleLocalConnection(entity monitor.Entity, eventType monitor.EventType, parameters map[string]string) error {
 	localConnection, ok := entity.(*local.Connection)
 	if !ok {
-		return fmt.Errorf("unable to cast %v to local.Connection", entity)
+		return errors.Errorf("unable to cast %v to local.Connection", entity)
 	}
 
 	// We could do so because for local NSE connections ID is assigned by NSMgr itself.
@@ -364,7 +363,7 @@ func (client *NsmMonitorCrossConnectClient) dataplaneCrossConnectMonitor(ctx con
 func (client *NsmMonitorCrossConnectClient) handleXcon(entity monitor.Entity, eventType monitor.EventType, parameters map[string]string) error {
 	xcon, ok := entity.(*crossconnect.CrossConnect)
 	if !ok {
-		return fmt.Errorf("unable to cast %v to CrossConnect", entity)
+		return errors.Errorf("unable to cast %v to CrossConnect", entity)
 	}
 
 	// Let's add this into Span.
@@ -401,7 +400,7 @@ func (client *NsmMonitorCrossConnectClient) handleXcon(entity monitor.Entity, ev
 func (client *NsmMonitorCrossConnectClient) handleXconEvent(event monitor.Event, dataplane *model.Dataplane, _ map[string]string) error {
 	xconEvent, ok := event.(*monitor_crossconnect.Event)
 	if !ok {
-		return fmt.Errorf("unable to cast %v to crossconnect.Event", event)
+		return errors.Errorf("unable to cast %v to crossconnect.Event", event)
 	}
 
 	if len(xconEvent.Statistics) > 0 {
@@ -456,7 +455,7 @@ func (client *NsmMonitorCrossConnectClient) remotePeerConnectionMonitor(ctx cont
 func (client *NsmMonitorCrossConnectClient) handleRemoteConnection(entity monitor.Entity, eventType monitor.EventType, parameters map[string]string) error {
 	remoteConnection, ok := entity.(*remote.Connection)
 	if !ok {
-		return fmt.Errorf("unable to cast %v to remote.Connection", entity)
+		return errors.Errorf("unable to cast %v to remote.Connection", entity)
 	}
 	peerName := parameters[peerName]
 	if cc := client.xconManager.GetClientConnectionByRemoteDst(remoteConnection.GetId(), peerName); cc != nil {

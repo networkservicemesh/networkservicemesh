@@ -2,7 +2,8 @@ package registryserver
 
 import (
 	"context"
-	"fmt"
+
+	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
@@ -37,7 +38,7 @@ func (n *nsmRegistryService) RegisterNSM(ctx context.Context, nsm *registry.Netw
 
 	span.LogObject("registered-nsm", registeredNsm)
 	if err != nil {
-		err = fmt.Errorf("failed to create or update nsm: %s", err)
+		err = errors.Wrap(err, "failed to create or update nsm: %s")
 		span.LogError(err)
 		return nil, err
 	}

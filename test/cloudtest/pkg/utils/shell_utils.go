@@ -8,13 +8,15 @@ import (
 	"os"
 	"strings"
 	"sync"
+
+	"github.com/pkg/errors"
 )
 
 // ParseVariable - parses var=value variable format.
 func ParseVariable(variable string) (string, string, error) {
 	pos := strings.Index(variable, "=")
 	if pos == -1 {
-		return "", "", fmt.Errorf("variable passed are invalid")
+		return "", "", errors.Errorf("variable passed are invalid")
 	}
 	return variable[:pos], variable[pos+1:], nil
 }
@@ -95,7 +97,7 @@ func SubstituteVariable(variable string, vars, args map[string]string) (string, 
 					if varValue, ok := vars[varName]; ok {
 						_, _ = result.WriteString(varValue)
 					} else {
-						return "", fmt.Errorf("failed to find variable %v in passed variables", varName)
+						return "", errors.Errorf("failed to find variable %v in passed variables", varName)
 					}
 
 				} else if nextChar == '(' {
@@ -108,7 +110,7 @@ func SubstituteVariable(variable string, vars, args map[string]string) (string, 
 					if argValue, ok := args[varName]; ok {
 						_, _ = result.WriteString(argValue)
 					} else {
-						return "", fmt.Errorf("failed to find argument %v in passed arguments", varName)
+						return "", errors.Errorf("failed to find argument %v in passed arguments", varName)
 					}
 				}
 
@@ -185,7 +187,7 @@ func RunCommand(context context.Context, cmd, dir string, logger func(str string
 	cmdLine := ParseCommandLine(finalCmd)
 	proc, err := ExecProc(context, dir, cmdLine, finalEnv)
 	if err != nil {
-		return "", fmt.Errorf("failed to run %s %v", finalCmd, err)
+		return "", errors.Wrapf(err, "failed to run %s", finalCmd)
 	}
 
 	builder := strings.Builder{}
@@ -196,7 +198,7 @@ func RunCommand(context context.Context, cmd, dir string, logger func(str string
 	wg.Wait()
 	code := proc.ExitCode()
 	if code != 0 {
-		return "", fmt.Errorf("failed to run %v ExitCode: %v", finalCmd, code)
+		return "", errors.Errorf("failed to run %v ExitCode: %v", finalCmd, code)
 	}
 	if returnStdout {
 		return builder.String(), nil

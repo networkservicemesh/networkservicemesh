@@ -1,6 +1,6 @@
 package fanout
 
-import "errors"
+import "github.com/pkg/errors"
 
 var (
 	errContextDone  = errors.New("context is done")

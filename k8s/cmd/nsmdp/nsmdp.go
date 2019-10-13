@@ -26,6 +26,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	"github.com/gogo/protobuf/proto"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	pluginapi "k8s.io/kubernetes/pkg/kubelet/apis/deviceplugin/v1beta1"
@@ -117,7 +118,7 @@ func Register(ctx context.Context, kubeletEndpoint string) error {
 	defer span.Finish()
 	conn, err := tools.DialUnixInsecure(kubeletEndpoint)
 	if err != nil {
-		return fmt.Errorf("device-plugin: cannot connect to kubelet service: %v", err)
+		return errors.Wrap(err, "device-plugin: cannot connect to kubelet service")
 	}
 	defer func() { _ = conn.Close() }()
 
@@ -133,7 +134,7 @@ func Register(ctx context.Context, kubeletEndpoint string) error {
 	span.Logger().Infof("Register done")
 	span.LogError(err)
 	if err != nil {
-		return fmt.Errorf("device-plugin: cannot register to kubelet service: %v", err)
+		return errors.Wrap(err, "device-plugin: cannot register to kubelet service")
 	}
 	return nil
 }

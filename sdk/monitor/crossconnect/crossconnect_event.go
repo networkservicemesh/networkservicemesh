@@ -2,7 +2,8 @@ package crossconnect
 
 import (
 	context "context"
-	"fmt"
+
+	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
@@ -58,7 +59,7 @@ func (m *eventFactory) NewEvent(ctx context.Context, eventType monitor.EventType
 func (m *eventFactory) EventFromMessage(ctx context.Context, message interface{}) (monitor.Event, error) {
 	xconEvent, ok := message.(*crossconnect.CrossConnectEvent)
 	if !ok {
-		return nil, fmt.Errorf("unable to cast %v to CrossConnectEvent", message)
+		return nil, errors.Errorf("unable to cast %v to CrossConnectEvent", message)
 	}
 
 	eventType, err := xconEventTypeToEventType(xconEvent.GetType())
@@ -83,7 +84,7 @@ func eventTypeToXconEventType(eventType monitor.EventType) (crossconnect.CrossCo
 	case monitor.EventTypeDelete:
 		return crossconnect.CrossConnectEventType_DELETE, nil
 	default:
-		return 0, fmt.Errorf("unable to cast %v to CrossConnectEventType", eventType)
+		return 0, errors.Errorf("unable to cast %v to CrossConnectEventType", eventType)
 	}
 }
 
@@ -96,7 +97,7 @@ func xconEventTypeToEventType(connectionEventType crossconnect.CrossConnectEvent
 	case crossconnect.CrossConnectEventType_DELETE:
 		return monitor.EventTypeDelete, nil
 	default:
-		return "", fmt.Errorf("unable to cast %v to monitor.EventType", connectionEventType)
+		return "", errors.Errorf("unable to cast %v to monitor.EventType", connectionEventType)
 	}
 }
 
@@ -107,7 +108,7 @@ func xconsFromEntities(entities map[string]monitor.Entity) (map[string]*crosscon
 		if conn, ok := v.(*crossconnect.CrossConnect); ok {
 			xcons[k] = conn
 		} else {
-			return nil, fmt.Errorf("unable to cast Entity to CrossConnect")
+			return nil, errors.New("unable to cast Entity to CrossConnect")
 		}
 	}
 

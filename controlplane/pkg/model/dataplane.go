@@ -2,7 +2,8 @@ package model
 
 import (
 	"context"
-	"fmt"
+
+	"github.com/pkg/errors"
 
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
@@ -123,7 +124,7 @@ func (d *dataplaneDomain) SelectDataplane(dataplaneSelector func(dp *Dataplane) 
 	})
 
 	if rv == nil {
-		return nil, fmt.Errorf("no appropriate dataplanes found")
+		return nil, errors.New("no appropriate dataplanes found")
 	}
 
 	return rv, nil

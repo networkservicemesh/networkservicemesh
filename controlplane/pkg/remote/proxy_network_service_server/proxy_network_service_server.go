@@ -2,10 +2,11 @@ package proxynetworkserviceserver
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/utils/interdomain"
 
@@ -50,7 +51,7 @@ func (srv *proxyNetworkServiceServer) Request(ctx context.Context, request *remo
 	destNsmName := request.Connection.DestinationNetworkServiceManagerName
 	dNsmName, dNsmAddress, err := interdomain.ParseNsmURL(destNsmName)
 	if err != nil {
-		return nil, fmt.Errorf("ProxyNSMD: Failed to extract destination nsm address")
+		return nil, errors.New("ProxyNSMD: Failed to extract destination nsm address")
 	}
 
 	request.Connection.DestinationNetworkServiceManagerName = dNsmName
@@ -165,7 +166,7 @@ func (srv *proxyNetworkServiceServer) Close(ctx context.Context, connection *rem
 	destNsmName := connection.DestinationNetworkServiceManagerName
 	dNsmName, dNsmAddress, err := interdomain.ParseNsmURL(destNsmName)
 	if err != nil {
-		return nil, fmt.Errorf("ProxyNSMD: Failed to extract destination nsm address")
+		return nil, errors.Errorf("ProxyNSMD: Failed to extract destination nsm address")
 	}
 
 	dNsm := &registry.NetworkServiceManager{

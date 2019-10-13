@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
@@ -92,13 +94,13 @@ func main() {
 	// Starting dataplane
 	logrus.Info("Starting Dataplane registration server...")
 	if err := server.StartDataplaneRegistratorServer(span.Context()); err != nil {
-		span.LogError(fmt.Errorf("error starting dataplane service: %+v", err))
+		span.LogError(errors.Wrap(err, "error starting dataplane service"))
 		return
 	}
 
 	// Wait for dataplane to be connecting to us
 	if err := manager.WaitForDataplane(span.Context(), nsmd.DataplaneTimeout); err != nil {
-		span.LogError(fmt.Errorf("error waiting for dataplane: %+v", err))
+		span.LogError(errors.Wrap(err, "error waiting for dataplane"))
 		return
 	}
 
@@ -110,7 +112,7 @@ func main() {
 	span.LogObject("api-address", nsmdAPIAddress)
 	sock, err := apiRegistry.NewPublicListener(nsmdAPIAddress)
 	if err != nil {
-		span.LogError(fmt.Errorf("failed to start Public API server: %+v", err))
+		span.LogError(errors.Wrap(err, "failed to start Public API server: %+v"))
 		return
 	}
 	span.Logger().Info("Public listener is ready")

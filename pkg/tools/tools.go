@@ -16,7 +16,6 @@ package tools
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"net/url"
 	"os"
@@ -27,8 +26,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/go-errors/errors"
-	pkgerrors "github.com/pkg/errors"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -73,7 +71,7 @@ func GetCurrentNS() (string, error) {
 	if len(submatches) >= 1 {
 		return submatches[1], nil
 	}
-	return "", fmt.Errorf("namespace is not found")
+	return "", errors.New("namespace is not found")
 }
 
 // SocketCleanup check for the presence of a stale socket and if it finds it, removes it.
@@ -81,11 +79,11 @@ func SocketCleanup(listenEndpoint string) error {
 	fi, err := os.Stat(listenEndpoint)
 	if err == nil && (fi.Mode()&os.ModeSocket) != 0 {
 		if err := os.Remove(listenEndpoint); err != nil {
-			return fmt.Errorf("cannot remove listen endpoint %s with error: %+v", listenEndpoint, err)
+			return errors.Wrapf(err, "cannot remove listen endpoint %s", listenEndpoint)
 		}
 	}
 	if err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("failure stat of socket file %s with error: %+v", listenEndpoint, err)
+		return errors.Wrapf(err, "failure stat of socket file %s", listenEndpoint)
 	}
 	return nil
 }
@@ -177,11 +175,11 @@ func parseNSUrl(urlString string) (*NSUrl, error) {
 	}
 	path := strings.Split(url.Path, "/")
 	if len(path) > 2 {
-		return nil, fmt.Errorf("Invalid NSUrl format")
+		return nil, errors.New("Invalid NSUrl format")
 	}
 	if len(path) == 2 {
 		if len(path[1]) > 15 {
-			return nil, fmt.Errorf("Interface part cannot exceed 15 characters")
+			return nil, errors.New("Interface part cannot exceed 15 characters")
 		}
 		result.Intf = path[1]
 	}
@@ -217,7 +215,7 @@ func ReadEnvBool(env string, value bool) (bool, error) {
 func IsInsecure() (bool, error) {
 	insecure, err := ReadEnvBool(InsecureEnv, insecureDefault)
 	if err != nil {
-		return false, pkgerrors.WithMessage(err, "unable to clarify secure or insecure mode")
+		return false, errors.WithMessage(err, "unable to clarify secure or insecure mode")
 	}
 	return insecure, nil
 }

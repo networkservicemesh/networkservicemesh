@@ -1,10 +1,11 @@
 package memifproxy
 
 import (
-	"errors"
 	"net"
 	"os"
 	"syscall"
+
+	"github.com/pkg/errors"
 
 	"github.com/sirupsen/logrus"
 )
