@@ -16,9 +16,9 @@ package local
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
@@ -37,7 +37,7 @@ func (cce *сrossConnectService) Request(ctx context.Context, request *networkse
 	clientConnection := common.ModelConnection(ctx)
 
 	if endpointConnection == nil || endpoint == nil || clientConnection == nil {
-		err := fmt.Errorf("endpoint connection/Endpoint/ClientConnection should be specified with context")
+		err := errors.Errorf("endpoint connection/Endpoint/ClientConnection should be specified with context")
 		logger.Error(err)
 		return nil, err
 	}

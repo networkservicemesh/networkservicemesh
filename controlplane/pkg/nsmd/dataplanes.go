@@ -161,7 +161,7 @@ func (r *DataplaneRegistrarServer) startDataplaneRegistrarServer(ctx context.Con
 	var err error
 	r.sock, err = net.Listen("unix", dataplaneRegistrar)
 	if err != nil {
-		span.LogError(fmt.Errorf("failure to listen on socket %s with error: %+v", dataplaneRegistrar, err))
+		span.LogError(errors.WithMessagef(err, "failure to listen on socket %s", dataplaneRegistrar))
 		return err
 	}
 
@@ -173,7 +173,7 @@ func (r *DataplaneRegistrarServer) startDataplaneRegistrarServer(ctx context.Con
 	span.Logger().Infof("Starting Dataplane Registrar gRPC server listening on socket: %s", dataplaneRegistrar)
 	go func() {
 		if serverErr := r.grpcServer.Serve(r.sock); serverErr != nil {
-			serverErr = fmt.Errorf("unable to start dataplane registrar grpc server: %v %v", dataplaneRegistrar, serverErr)
+			serverErr = errors.Errorf("unable to start dataplane registrar grpc server: %v %v", dataplaneRegistrar, serverErr)
 			span.LogError(serverErr)
 			span.Logger().Fatalln(serverErr)
 		}
@@ -181,7 +181,7 @@ func (r *DataplaneRegistrarServer) startDataplaneRegistrarServer(ctx context.Con
 
 	conn, dialErr := tools.DialContextUnix(span.Context(), dataplaneRegistrar)
 	if dialErr != nil {
-		span.LogError(fmt.Errorf("failure to communicate with the socket %s with error: %+v", dataplaneRegistrar, dialErr))
+		span.LogError(errors.Errorf("failure to communicate with the socket %s with error: %+v", dataplaneRegistrar, dialErr))
 		return err
 	}
 	_ = conn.Close()

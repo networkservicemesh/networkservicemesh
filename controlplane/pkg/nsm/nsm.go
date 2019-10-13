@@ -165,7 +165,7 @@ func (srv *networkServiceManager) WaitForDataplane(ctx context.Context, timeout 
 	case <-srv.stateRestored:
 		return nil
 	case <-time.After(timeout):
-		return fmt.Errorf("failed to wait for NSMD stare restore... timeout %v happened", timeout)
+		return errors.Errorf("failed to wait for NSMD stare restore... timeout %v happened", timeout)
 	}
 }
 

@@ -16,9 +16,10 @@ package remote
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
@@ -27,7 +28,7 @@ import (
 	"github.com/golang/protobuf/ptypes/empty"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
-	unified_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
+	unifiedconnection "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
@@ -63,7 +64,7 @@ func (cce *dataplaneService) selectDataplane(request *networkservice.NetworkServ
 	})
 	return dp, err
 }
-func (cce *dataplaneService) findMechanism(mechanismPreferences []unified_connection.Mechanism, mechanismType unified_connection.MechanismType) unified_connection.Mechanism {
+func (cce *dataplaneService) findMechanism(mechanismPreferences []unifiedconnection.Mechanism, mechanismType unifiedconnection.MechanismType) unifiedconnection.Mechanism {
 	for _, m := range mechanismPreferences {
 		if m.GetMechanismType() == mechanismType {
 			return m
@@ -93,24 +94,24 @@ func (cce *dataplaneService) selectRemoteMechanism(request *networkservice.Netwo
 		return mechanism.(*connection.Mechanism), nil
 	}
 
-	return nil, fmt.Errorf("failed to select mechanism, no matched mechanisms found")
+	return nil, errors.Errorf("failed to select mechanism, no matched mechanisms found")
 }
 
 func (cce *dataplaneService) updateMechanism(request *networkservice.NetworkServiceRequest, dp *model.Dataplane) error {
-	connection := request.GetConnection()
+	conn := request.GetConnection()
 	// 5.x
 	if m, err := cce.selectRemoteMechanism(request, dp); err == nil {
-		connection.SetConnectionMechanism(m.Clone())
+		conn.SetConnectionMechanism(m.Clone())
 	} else {
 		return err
 	}
 
-	if connection.GetConnectionMechanism() == nil {
-		return fmt.Errorf("required mechanism are not found... %v ", request.GetRequestMechanismPreferences())
+	if conn.GetConnectionMechanism() == nil {
+		return errors.Errorf("required mechanism are not found... %v ", request.GetRequestMechanismPreferences())
 	}
 
-	if connection.GetConnectionMechanism().GetParameters() == nil {
-		connection.GetConnectionMechanism().SetParameters(map[string]string{})
+	if conn.GetConnectionMechanism().GetParameters() == nil {
+		conn.GetConnectionMechanism().SetParameters(map[string]string{})
 	}
 
 	return nil
@@ -136,7 +137,7 @@ func (cce *dataplaneService) Request(ctx context.Context, request *networkservic
 	if err != nil {
 		// 5.1 Close Datplane connection, if had existing one and NSE is closed.
 		cce.doFailureClose(ctx)
-		return nil, fmt.Errorf("NSM:(5.1) %v", err)
+		return nil, errors.Errorf("NSM:(5.1) %v", err)
 	}
 
 	logger.Infof("NSM:(5.1) Remote mechanism selected %v", request.Connection.Mechanism)
@@ -173,11 +174,11 @@ func (cce *dataplaneService) Close(ctx context.Context, conn *connection.Connect
 
 	cc := common.ModelConnection(ctx)
 	logger := common.Log(ctx)
-	empty, err := ProcessClose(ctx, conn)
+	empt, err := ProcessClose(ctx, conn)
 	if closeErr := cce.performClose(ctx, cc, logger); closeErr != nil {
 		logger.Errorf("Failed to close: %v", closeErr)
 	}
-	return empty, err
+	return empt, err
 }
 
 func (cce *dataplaneService) performClose(ctx context.Context, cc *model.ClientConnection, logger logrus.FieldLogger) error {
@@ -231,9 +232,8 @@ func (cce *dataplaneService) programDataplane(ctx context.Context, conn *connect
 
 		logger.Infof("NSM:(9.1) Sending request to dataplane: %v retry: %v", clientConnection.Xcon, dpRetry)
 		dpCtx, cancel := context.WithTimeout(ctx, DataplaneTimeout)
-		defer cancel()
 		newXcon, err = dataplaneClient.Request(dpCtx, clientConnection.Xcon)
-
+		cancel()
 		if err != nil {
 			logger.Errorf("NSM:(9.1.1) Dataplane request failed: %v retry: %v", err, dpRetry)
 

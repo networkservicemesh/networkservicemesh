@@ -335,9 +335,9 @@ func TestXconMonitorNsmgrRestart(t *testing.T) {
 		DstUp:     true,
 	})
 
-	k8s.DeletePods(nodesConf[0].Nsmd)
 	waitFunc()
 	closeFunc()
+	k8s.DeletePods(nodesConf[0].Nsmd)
 
 	nodesConf[0].Nsmd = k8s.CreatePod(pods.NSMgrPodWithConfig("recovered-nsmgr", nodesConf[0].Node,
 		&pods.NSMgrPodConfig{Namespace: k8s.GetK8sNamespace()})) // Recovery NSEs

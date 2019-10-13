@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	local_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
@@ -90,7 +92,7 @@ func (p *healProcessor) Heal(ctx context.Context, clientConnection nsm.ClientCon
 		logger.Errorf("NSM_Heal(%v) Trying to heal not existing connection", healID)
 		return
 	} else if modelCC.ConnectionState != model.ClientConnectionReady {
-		healErr := fmt.Errorf("NSM_Heal(%v) Trying to heal connection in bad state", healID)
+		healErr := errors.Errorf("NSM_Heal(%v) Trying to heal connection in bad state", healID)
 		span.LogError(healErr)
 		return
 	}
@@ -234,7 +236,7 @@ func (p *healProcessor) healDataplaneDown(ctx context.Context, cc *model.ClientC
 	// 1. Wait for dataplane to appear.
 	logger.Infof("NSM_Heal(3.1) Waiting for Dataplane to recovery...")
 	if err := p.serviceRegistry.WaitForDataplaneAvailable(span.Context(), p.model, p.properties.HealDataplaneTimeout); err != nil {
-		err = fmt.Errorf("NSM_Heal(3.1) Dataplane is not available on recovery for timeout %v: %v", p.properties.HealDataplaneTimeout, err)
+		err = errors.Errorf("NSM_Heal(3.1) Dataplane is not available on recovery for timeout %v: %v", p.properties.HealDataplaneTimeout, err)
 		span.LogError(err)
 		return false
 	}
@@ -337,7 +339,7 @@ func (p *healProcessor) healDstMgrDown(ctx context.Context, cc *model.ClientConn
 			attemptSpan.LogObject("state", "healed")
 			return true
 		}
-		err = fmt.Errorf("heal(6.2.3) Failed to heal connection: %v. Delaying: %v", err, p.properties.HealRetryDelay)
+		err = errors.Errorf("heal(6.2.3) Failed to heal connection: %v. Delaying: %v", err, p.properties.HealRetryDelay)
 		span.LogError(err)
 		attemptSpan.Finish()
 		if attempt+1 < p.properties.HealRetryCount {
@@ -435,7 +437,7 @@ func (p *healProcessor) waitNSE(ctx context.Context, endpointName, networkServic
 		}
 
 		if time.Since(st) > p.properties.HealDSTNSEWaitTimeout {
-			span.LogError(fmt.Errorf("timeout waiting for NetworkService: %v timeout: %v", networkService, time.Since(st)))
+			span.LogError(errors.Errorf("timeout waiting for NetworkService: %v timeout: %v", networkService, time.Since(st)))
 			return false
 		}
 		// Wait a bit

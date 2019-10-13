@@ -11,8 +11,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 	"github.com/pkg/errors"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/probes"
 
@@ -351,7 +352,7 @@ func (impl *nsmdTestServiceRegistry) NSMDApiClient(ctx context.Context) (nsmdapi
 	}
 	conn, err := tools.DialContextTCP(span.Context(), addr)
 	if err != nil {
-		err = fmt.Errorf("failed to dial Network Service Registry at %s: %s", addr, err)
+		err = errors.Errorf("failed to dial Network Service Registry at %s: %s", addr, err)
 		span.LogError(err)
 		return nil, nil, err
 	}

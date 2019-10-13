@@ -16,6 +16,7 @@ package nsmd
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -23,10 +24,11 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
@@ -215,7 +217,7 @@ func (client *NsmMonitorCrossConnectClient) ClientConnectionDeleted(ctx context.
 		}
 		span.Logger().Infof("connection removed from monitor")
 	} else {
-		span.LogError(fmt.Errorf("remote peer for NSM is already closed: %v", clientConnection))
+		span.LogError(errors.Errorf("remote peer for NSM is already closed: %v", clientConnection))
 	}
 }
 
@@ -391,7 +393,7 @@ func (client *NsmMonitorCrossConnectClient) handleXcon(entity monitor.Entity, ev
 			client.monitorManager.CrossConnectMonitor().Delete(span.Context(), xcon)
 		}
 	} else {
-		span.LogError(fmt.Errorf("failed to Send cross connect event: %v. No Client connection is found", xcon))
+		span.LogError(errors.Errorf("failed to Send cross connect event: %v. No Client connection is found", xcon))
 	}
 
 	return nil

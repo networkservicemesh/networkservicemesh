@@ -16,7 +16,8 @@ package remote
 
 import (
 	"context"
-	"fmt"
+
+	"github.com/pkg/errors"
 
 	"github.com/golang/protobuf/ptypes/empty"
 
@@ -26,7 +27,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 )
 
-// ConnectionService makes basic Mechanism selection for the incoming connection
+// сrossConnectService - makes basic Mechanism selection for the incoming connection
 type сrossConnectService struct {
 }
 
@@ -37,7 +38,7 @@ func (cce *сrossConnectService) Request(ctx context.Context, request *networkse
 	clientConnection := common.ModelConnection(ctx)
 
 	if endpointConnection == nil || endpoint == nil || clientConnection == nil {
-		err := fmt.Errorf("endpoint connection/Endpoint/ClientConnection should be specified with context")
+		err := errors.Errorf("endpoint connection/Endpoint/ClientConnection should be specified with context")
 		logger.Error(err)
 		return nil, err
 	}

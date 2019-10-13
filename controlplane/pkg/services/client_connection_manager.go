@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
@@ -69,7 +71,7 @@ func (m *ClientConnectionManager) UpdateXcon(ctx context.Context, cc nsm.ClientC
 	}); upd != nil {
 		cc = upd
 	} else {
-		err := fmt.Errorf("trying to update not existing connection: %v", cc.GetID())
+		err := errors.Errorf("trying to update not existing connection: %v", cc.GetID())
 		span.LogError(err)
 		return
 	}
@@ -184,7 +186,7 @@ func (m *ClientConnectionManager) destinationUpdated(ctx context.Context, cc nsm
 	}); upd != nil {
 		cc = upd
 	} else {
-		err := fmt.Errorf("trying to update not existing connection: %v", cc.GetID())
+		err := errors.Errorf("trying to update not existing connection: %v", cc.GetID())
 		span.LogError(err)
 		return
 	}
@@ -283,7 +285,7 @@ func (m *ClientConnectionManager) WaitPendingConnections(ctx context.Context, id
 		for len(pendingConnections) > 0 {
 			select {
 			case <-ctx.Done():
-				return nil, fmt.Errorf("timeout during wait for connection with connectionId=%v and remoteName=%s", id, remoteName)
+				return nil, errors.Errorf("timeout during wait for connection with connectionId=%v and remoteName=%s", id, remoteName)
 			case c := <-listener.channel:
 				// If connection status is changed or it removed.
 				if !m.isConnectionPending(c) || m.model.GetClientConnection(c.GetID()) == nil {
@@ -305,7 +307,7 @@ func (m *ClientConnectionManager) WaitPendingConnections(ctx context.Context, id
 		return nil, nil
 	}
 	// If no pending connections and we could not find, but lets check again.
-	return nil, fmt.Errorf("no connection with id=%v and remoteName=%v are found", id, remoteName)
+	return nil, errors.Errorf("no connection with id=%v and remoteName=%v are found", id, remoteName)
 }
 
 func (m *ClientConnectionManager) isConnectionPending(cc *model.ClientConnection) bool {

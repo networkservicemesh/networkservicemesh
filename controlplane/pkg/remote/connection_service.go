@@ -15,7 +15,7 @@
 package remote
 
 import (
-	"fmt"
+	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
@@ -52,7 +52,7 @@ func (cce *connectionService) Request(ctx context.Context, request *networkservi
 		if clientConnection.ConnectionState == model.ClientConnectionRequesting ||
 			clientConnection.ConnectionState == model.ClientConnectionHealing ||
 			clientConnection.ConnectionState == model.ClientConnectionClosing {
-			err := fmt.Errorf("trying to request connection in bad state")
+			err := errors.Errorf("trying to request connection in bad state")
 			span.LogError(err)
 			return nil, err
 		}
@@ -102,7 +102,7 @@ func (cce *connectionService) Close(ctx context.Context, connection *connection.
 
 	clientConnection := cce.model.GetClientConnection(connection.GetId())
 	if clientConnection == nil {
-		err := fmt.Errorf("there is no such client connection %v", connection)
+		err := errors.Errorf("there is no such client connection %v", connection)
 		logger.Error(err)
 		return nil, err
 	}

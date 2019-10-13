@@ -17,12 +17,12 @@ package remote
 import (
 	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/remote"
 
-	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
+	remotenetworkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
 )
 
 // NewRemoteNetworkServiceServer -  creates a new remote.NetworkServiceServer
-func NewRemoteNetworkServiceServer(manager nsm.NetworkServiceManager, connectionMonitor remote.MonitorServer) remote_networkservice.NetworkServiceServer {
+func NewRemoteNetworkServiceServer(manager nsm.NetworkServiceManager, connectionMonitor remote.MonitorServer) remotenetworkservice.NetworkServiceServer {
 	return NewCompositeService(
 		NewRequestValidator(),
 		NewMonitorService(connectionMonitor),

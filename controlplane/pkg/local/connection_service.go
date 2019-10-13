@@ -15,14 +15,14 @@
 package local
 
 import (
-	"fmt"
+	"context"
+
+	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/sirupsen/logrus"
-
-	"golang.org/x/net/context"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
@@ -60,14 +60,14 @@ func (cce *connectionService) Request(ctx context.Context, request *networkservi
 	if clientConnection == nil {
 		clientConnection = cce.model.GetClientConnection(id)
 	} else if cce.model.GetClientConnection(id) == nil {
-		err := fmt.Errorf("trying to request not existing connection")
+		err := errors.Errorf("trying to request not existing connection")
 		span.LogError(err)
 		return nil, err
 	}
 	if clientConnection != nil {
 		// If one of in progress states, we need to exit with failure, since operation on this connection are in progress already.
 		if cce.isConnectionInProgress(clientConnection) {
-			err := fmt.Errorf("trying to request connection in bad state")
+			err := errors.Errorf("trying to request connection in bad state")
 			span.LogError(err)
 			return nil, err
 		}
@@ -136,7 +136,7 @@ func (cce *connectionService) Close(ctx context.Context, connection *connection.
 
 	clientConnection := cce.model.GetClientConnection(connection.GetId())
 	if clientConnection == nil {
-		err := fmt.Errorf("there is no such client connection %v", connection)
+		err := errors.Errorf("there is no such client connection %v", connection)
 		logrus.Error(err)
 		return nil, err
 	}

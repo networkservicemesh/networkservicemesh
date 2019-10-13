@@ -67,7 +67,7 @@ func (es *registryServer) RegisterNSE(ctx context.Context, request *registry.NSE
 	// Append to workspace...
 	err = es.workspace.localRegistry.AppendNSERegRequest(es.workspace.name, reg)
 	if err != nil {
-		err = fmt.Errorf("failed to store NSE into local registry service: %v", err)
+		err = errors.Errorf("failed to store NSE into local registry service: %v", err)
 		span.LogError(err)
 		_, _ = client.RemoveNSE(span.Context(), &registry.RemoveNSERequest{NetworkServiceEndpointName: reg.GetNetworkServiceEndpoint().GetName()})
 		return nil, err
