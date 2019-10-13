@@ -268,6 +268,8 @@ func (ctx *executionContext) performExecution() error {
 	defer cancelFunc()
 
 	termChannel := tools.NewOSSignalChannel()
+	timectx, _ := context.WithTimeout(context.Background(), 30*time.Second)
+
 	for len(ctx.tasks) > 0 || len(ctx.running) > 0 {
 		// WE take 1 test task from list and do execution.
 		ctx.assignTasks()
@@ -283,8 +285,9 @@ func (ctx *executionContext) performExecution() error {
 				// Remove from running onces.
 				ctx.processTaskUpdate(event)
 			}
-		case <-time.After(30 * time.Second):
+		case <-timectx.Done():
 			ctx.printStatistics()
+			timectx, _ = context.WithTimeout(context.Background(), 30*time.Second)
 		case <-termChannel:
 			return errors.New("termination request is received")
 		case <-timeoutCtx.Done():
@@ -468,6 +471,8 @@ func (ctx *executionContext) printStatistics() {
 	skippedTests := 0
 	timeoutTests := 0
 
+	failedNames := ""
+
 	for _, t := range ctx.completed {
 		switch t.test.Status {
 		case model.StatusSuccess:
@@ -478,6 +483,7 @@ func (ctx *executionContext) printStatistics() {
 			skippedTests++
 		case model.StatusFailed:
 			failedTests++
+			failedNames += "\n\t\t" + t.test.Name
 		case model.StatusSkippedSinceNoClusters:
 			skippedTests++
 		}
@@ -490,9 +496,9 @@ func (ctx *executionContext) printStatistics() {
 		fmt.Sprintf("\n\t		Remaining: %v (%d).\n", remaining, len(ctx.running)+len(ctx.tasks)) +
 		fmt.Sprintf("%s%s", running, clustersMsg) +
 		fmt.Sprintf("\n\tStatus  Passed: %d"+
-			"\n\tStatus  Failed: %d"+
+			"\n\tStatus  Failed: %d%v"+
 			"\n\tStatus  Timeout: %d"+
-			"\n\tStatus  Skipped: %d", successTests, failedTests, timeoutTests, skippedTests))
+			"\n\tStatus  Skipped: %d", successTests, failedTests, failedNames, timeoutTests, skippedTests))
 }
 
 func fromClusterState(state clusterState) string {

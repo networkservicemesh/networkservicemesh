@@ -3,6 +3,7 @@ package kubetest
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"os"
@@ -97,7 +98,7 @@ func (k8s *K8s) createAndBlock(client kubernetes.Interface, namespace string, ti
 			}
 			pod, err = blockUntilPodReady(client, timeout, pod)
 			if err != nil {
-				logrus.Errorf("blockUntilPodReady failed. Cause: %v pod: %v", err, pod)
+				logrus.Errorf("blockUntilPodReady failed. Cause: %v pod: %v", err, pod.Name)
 				k8s.DescribePod(pod)
 				resultChan <- &PodDeployResult{pod, err}
 				return
@@ -107,7 +108,7 @@ func (k8s *K8s) createAndBlock(client kubernetes.Interface, namespace string, ti
 
 			updated_pod, err := client.CoreV1().Pods(namespace).Get(pod.Name, metaV1.GetOptions{})
 			if err != nil {
-				logrus.Errorf("Failed to Get endpoint. Cause: %v pod: %v", err, pod)
+				logrus.Errorf("Failed to Get endpoint. Cause: %v pod: %v", err, pod.Name)
 				resultChan <- &PodDeployResult{pod, err}
 				return
 			}
@@ -116,7 +117,14 @@ func (k8s *K8s) createAndBlock(client kubernetes.Interface, namespace string, ti
 		}(pod)
 	}
 
-	if !waitTimeout(fmt.Sprintf("createAndBlock with pods: %v", pods), &wg, timeout) {
+	podNames := ""
+	for _, pod := range pods {
+		if len(podNames) > 0 {
+			podNames += ", "
+		}
+		podNames += pod.Name
+	}
+	if !waitTimeout(fmt.Sprintf("createAndBlock with pods: %v", podNames), &wg, timeout) {
 		logrus.Errorf("Failed to deploy pod, trying to get any information")
 		results := []*PodDeployResult{}
 		for _, p := range pods {
@@ -124,16 +132,21 @@ func (k8s *K8s) createAndBlock(client kubernetes.Interface, namespace string, ti
 			if err != nil {
 				logrus.Errorf("Failed to get pod information: %v", err)
 			}
-			k8s.DescribePod(pod)
 			if pod != nil {
-				logrus.Infof("Pod information: %v", pod)
-				for _, cs := range pod.Status.ContainerStatuses {
-					if !cs.Ready {
-						logs, _ := k8s.GetLogs(pod, cs.Name)
-						logrus.Infof("Pod %v container not started: %v Logs: %v", pod.Name, cs.Name, logs)
-					}
+				logrus.Infof("Pod container information: %v", pod.Name)
+				for _, cs := range pod.Status.InitContainerStatuses {
+					logs, _ := k8s.GetLogs(pod, cs.Name)
+					logrus.Infof("Pod %v: container: %v status: %v: Logs: %v", pod.Name, cs.Name, cs.Ready, logs)
 				}
+				for _, cs := range pod.Status.ContainerStatuses {
+					logs, _ := k8s.GetLogs(pod, cs.Name)
+					logrus.Infof("Pod %v: container: %v status: %v: Logs: %v", pod.Name, cs.Name, cs.Ready, logs)
+				}
+				logrus.Infof("pod %s object:\n>>>>>>>>>>>%v\n<<<<<<<<<<", pod.Name, prettyPrint(pod))
+
 			}
+			k8s.DescribePod(p)
+
 			results = append(results, &PodDeployResult{
 				err: errors.New("Failed to deploy pod"),
 				pod: pod,
@@ -157,6 +170,15 @@ func (k8s *K8s) createAndBlock(client kubernetes.Interface, namespace string, ti
 	return results
 }
 
+func prettyPrint(value interface{}) string {
+	res := value
+	msg, jerr := json.Marshal(value)
+	if jerr == nil {
+		res = string(msg)
+	}
+	return fmt.Sprintf("%v", res)
+}
+
 func blockUntilPodReady(client kubernetes.Interface, timeout time.Duration, sourcePod *v1.Pod) (*v1.Pod, error) {
 	st := time.Now()
 	infoPrinted := false
@@ -176,7 +198,7 @@ func blockUntilPodReady(client kubernetes.Interface, timeout time.Duration, sour
 		}
 
 		if time.Since(st) > timeout/2 && !infoPrinted {
-			logrus.Infof("Pod deploy half time passed: %v", pod)
+			logrus.Infof("Pod deploy half time passed: %v", pod.Name)
 			infoPrinted = true
 		}
 
@@ -604,7 +626,7 @@ func (k8s *K8s) DescribePod(pod *v1.Pod) {
 
 	for i := len(events.Items) - 1; i >= 0; i-- {
 		if pod.UID == events.Items[i].InvolvedObject.UID {
-			logrus.Info(events.Items[i])
+			logrus.Infof("Pod %s event: %v", pod.Name, prettyPrint(events.Items[i]))
 		}
 	}
 }

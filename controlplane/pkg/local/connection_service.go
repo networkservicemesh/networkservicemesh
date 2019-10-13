@@ -140,6 +140,10 @@ func (cce *connectionService) Close(ctx context.Context, connection *connection.
 		logrus.Error(err)
 		return nil, err
 	}
+	if cce.isConnectionInProgress(clientConnection) {
+		return nil, errors.Errorf("connection could not be closed, state: %v", clientConnection.ConnectionState)
+	}
+
 	clientConnection = cce.model.ApplyClientConnectionChanges(ctx, clientConnection.GetID(), func(modelCC *model.ClientConnection) {
 		modelCC.ConnectionState = model.ClientConnectionClosing
 	})
