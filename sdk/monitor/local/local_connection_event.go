@@ -5,6 +5,9 @@ import (
 
 	"github.com/pkg/errors"
 
+	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
+
+	unified "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
 )
@@ -92,6 +95,8 @@ func connectionsFromEntities(entities map[string]monitor.Entity) (map[string]*co
 	for k, v := range entities {
 		if conn, ok := v.(*connection.Connection); ok {
 			connections[k] = conn
+		} else if conn, ok := v.(*unified.Connection); ok {
+			connections[k] = compat.ConnectionUnifiedToLocal(conn)
 		} else {
 			return nil, errors.New("unable to cast Entity to local.Connection")
 		}

@@ -17,6 +17,7 @@ package main
 import (
 	"context"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
 
 	"github.com/sirupsen/logrus"
@@ -52,7 +53,7 @@ func main() {
 	}
 	logrus.Info(nscLogFormat, "nsm client: initialization is completed successfully")
 
-	_, err = nsc.ConnectRetry(context.Background(), "nsm", "kernel", "Primary interface", client.ConnectionRetry, client.RequestDelay)
+	_, err = nsc.ConnectRetry(context.Background(), "nsm", kernel.MECHANISM, "Primary interface", client.ConnectionRetry, client.RequestDelay)
 	if err != nil {
 		logrus.Fatalf(nscLogWithParamFormat, "Failed to connect", err)
 	}

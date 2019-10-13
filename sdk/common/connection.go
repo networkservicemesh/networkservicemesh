@@ -23,9 +23,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 
-	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
-
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
@@ -73,7 +71,7 @@ func NewNSMConnection(ctx context.Context, configuration *NSConfiguration) (*Nsm
 	}
 	logrus.Infof("nsm: connection to nsm server on socket: %s succeeded.", configuration.NsmServerSocket)
 
-	conn.NsClient = compat.NewLocalNetworkServiceClient(conn.GrpcClient)
+	conn.NsClient = networkservice.NewNetworkServiceClient(conn.GrpcClient)
 
 	return &conn, nil
 }

@@ -18,6 +18,8 @@ package main
 import (
 	"github.com/sirupsen/logrus"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/memif"
+
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
@@ -33,7 +35,7 @@ func main() {
 	logrus.Infof("Version: %v", version)
 
 	configuration := (&common.NSConfiguration{
-		MechanismType: "mem",
+		MechanismType: memif.MECHANISM,
 	}).FromEnv()
 
 	podName := endpoint.CreatePodNameMutator()

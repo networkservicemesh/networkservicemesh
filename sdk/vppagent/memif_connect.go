@@ -11,8 +11,10 @@ import (
 	interfaces "github.com/ligato/vpp-agent/api/models/vpp/interfaces"
 	"github.com/pkg/errors"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/memif"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
 )
@@ -85,7 +87,7 @@ func NewMemifConnect(configuration *common.NSConfiguration) *MemifConnect {
 }
 
 func appendMemifInterface(rv *configurator.Config, connection *connection.Connection, workspace string, master bool) error {
-	socketFilename := path.Join(workspace, connection.GetMechanism().GetSocketFilename())
+	socketFilename := path.Join(workspace, memif.ToMechanism(connection.GetMechanism()).GetSocketFilename())
 	socketDir := path.Dir(socketFilename)
 
 	if err := os.MkdirAll(socketDir, os.ModePerm); err != nil {

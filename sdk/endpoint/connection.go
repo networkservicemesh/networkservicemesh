@@ -24,14 +24,18 @@ import (
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/teris-io/shortid"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/cls"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 )
 
 // ConnectionEndpoint makes basic Mechanism selection for the incoming connection
 type ConnectionEndpoint struct {
-	mechanismType connection.MechanismType
+	mechanismType string
 	// TODO - id doesn't seem to be used, and should be
 	id *shortid.Shortid
 }
@@ -46,7 +50,7 @@ func (cce *ConnectionEndpoint) Request(ctx context.Context, request *networkserv
 		return nil, err
 	}
 
-	mechanism, err := connection.NewMechanism(cce.mechanismType, cce.generateIfName(), "NSM Endpoint")
+	mechanism, err := common.NewMechanism(cls.LOCAL, cce.mechanismType, cce.generateIfName(), "NSM Endpoint")
 	if err != nil {
 		Log(ctx).Errorf("Mechanism not created: %v", err)
 		return nil, err
@@ -93,8 +97,11 @@ func NewConnectionEndpoint(configuration *common.NSConfiguration) *ConnectionEnd
 	rand.Seed(time.Now().UTC().UnixNano())
 
 	self := &ConnectionEndpoint{
-		mechanismType: common.MechanismFromString(configuration.MechanismType),
+		mechanismType: configuration.MechanismType,
 		id:            shortid.MustNew(1, shortid.DefaultABC, rand.Uint64()),
+	}
+	if self.mechanismType == "" {
+		self.mechanismType = kernel.MECHANISM
 	}
 
 	return self

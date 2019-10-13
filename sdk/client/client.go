@@ -23,15 +23,17 @@ import (
 
 	"github.com/pkg/errors"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/cls"
+
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 )
@@ -68,14 +70,13 @@ func (nsmc *NsmClient) ConnectRetry(ctx context.Context, name, mechanism, descri
 	span.Logger().Infof("Initiating an outgoing connection.")
 	nsmc.Lock()
 	defer nsmc.Unlock()
-	mechanismType := common.MechanismFromString(mechanism)
 
 	if nsmc.NscInterfaceName != "" {
 		// The environment variable will override local call parameters
 		name = nsmc.NscInterfaceName
 	}
 
-	outgoingMechanism, err := connection.NewMechanism(mechanismType, name, description)
+	outgoingMechanism, err := common.NewMechanism(cls.LOCAL, mechanism, name, description)
 
 	span.LogObject("Selected mechanism", outgoingMechanism)
 

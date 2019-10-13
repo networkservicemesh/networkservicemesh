@@ -25,7 +25,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/memif"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/client"
 )
@@ -90,7 +91,7 @@ func main() {
 	}
 
 	var outgoingConnection *connection.Connection
-	outgoingConnection, err = nsmClient.Connect(ctx, "if1", "mem", "Primary interface")
+	outgoingConnection, err = nsmClient.Connect(ctx, "if1", memif.MECHANISM, "Primary interface")
 	if err != nil {
 		logrus.Fatalf("Unable to connect %v", err)
 	}

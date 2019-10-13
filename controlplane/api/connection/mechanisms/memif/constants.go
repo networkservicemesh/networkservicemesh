@@ -2,7 +2,7 @@ package memif
 
 const (
 	// Mechanism string
-	Mechanism = "MEMIF"
+	MECHANISM = "MEMIF"
 
 	// Mechanism parameters
 
