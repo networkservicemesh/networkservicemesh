@@ -15,7 +15,6 @@
 package converter
 
 import (
-	"fmt"
 	"os"
 	"path"
 
@@ -23,6 +22,7 @@ import (
 	"github.com/ligato/vpp-agent/api/models/vpp"
 	vpp_interfaces "github.com/ligato/vpp-agent/api/models/vpp/interfaces"
 	vpp_l3 "github.com/ligato/vpp-agent/api/models/vpp/l3"
+	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
@@ -73,7 +73,7 @@ func (c *MemifInterfaceConverter) ToDataRequest(rv *configurator.Config, connect
 	}
 
 	if c.conversionParameters.Name == "" {
-		return nil, fmt.Errorf("ConnnectionConversionParameters.Name cannot be empty")
+		return nil, errors.New("ConnnectionConversionParameters.Name cannot be empty")
 	}
 
 	rv.VppConfig.Interfaces = append(rv.VppConfig.Interfaces, &vpp.Interface{

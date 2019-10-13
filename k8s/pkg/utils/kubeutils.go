@@ -2,9 +2,9 @@ package utils
 
 import (
 	"flag"
-	"fmt"
 	"path/filepath"
 
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -29,7 +29,7 @@ func NewClientSet() (*versioned.Clientset, *rest.Config, error) {
 		logrus.Println("Unable to get in cluster config, attempting to fall back to kubeconfig", err)
 		config, err = clientcmd.BuildConfigFromFlags("", *kubeconfig)
 		if err != nil {
-			return nil, nil, fmt.Errorf("unable to build config:%v", err)
+			return nil, nil, errors.Wrap(err, "unable to build config")
 		}
 	}
 

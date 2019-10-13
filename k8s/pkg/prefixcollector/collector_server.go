@@ -1,9 +1,9 @@
 package prefixcollector
 
 import (
-	"fmt"
 	"net"
 
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -40,7 +40,7 @@ func WatchPodCIDR(clientset *kubernetes.Clientset) (*SubnetWatcher, error) {
 	nodeCast := func(obj runtime.Object) (*v1.Node, error) {
 		node, ok := obj.(*v1.Node)
 		if !ok {
-			return nil, fmt.Errorf("Casting object to *v1.Service failed. Object: %v", obj)
+			return nil, errors.Errorf("Casting object to *v1.Service failed. Object: %v", obj)
 		}
 		return node, nil
 	}
@@ -78,7 +78,7 @@ func WatchServiceIpAddr(cs *kubernetes.Clientset) (*SubnetWatcher, error) {
 	serviceCast := func(obj runtime.Object) (*v1.Service, error) {
 		service, ok := obj.(*v1.Service)
 		if !ok {
-			return nil, fmt.Errorf("Casting object to *v1.Service failed. Object: %v", obj)
+			return nil, errors.Errorf("Casting object to *v1.Service failed. Object: %v", obj)
 		}
 		return service, nil
 	}

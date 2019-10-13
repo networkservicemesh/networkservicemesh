@@ -16,9 +16,8 @@
 package connection
 
 import (
-	"fmt"
-
 	"github.com/golang/protobuf/proto"
+	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
 )
@@ -58,16 +57,16 @@ func (c *Connection) UpdateContext(context *connectioncontext.ConnectionContext)
 // IsValid checks if connection is minimally valid
 func (c *Connection) IsValid() error {
 	if c == nil {
-		return fmt.Errorf("connection cannot be nil")
+		return errors.New("connection cannot be nil")
 	}
 
 	if c.GetNetworkService() == "" {
-		return fmt.Errorf("connection.NetworkService cannot be empty: %v", c)
+		return errors.Errorf("connection.NetworkService cannot be empty: %v", c)
 	}
 
 	if c.GetMechanism() != nil {
 		if err := c.GetMechanism().IsValid(); err != nil {
-			return fmt.Errorf("invalid Mechanism in %v: %s", c, err)
+			return errors.Wrapf(err, "invalid Mechanism in %v", c)
 		}
 	}
 	return nil
@@ -80,7 +79,7 @@ func (c *Connection) IsComplete() error {
 	}
 
 	if c.GetId() == "" {
-		return fmt.Errorf("connection.Id cannot be empty: %v", c)
+		return errors.Errorf("connection.Id cannot be empty: %v", c)
 	}
 
 	if err := c.GetContext().IsValid(); err != nil {

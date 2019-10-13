@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/gogo/protobuf/proto"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	pluginapi "k8s.io/kubernetes/pkg/kubelet/apis/deviceplugin/v1beta1"
@@ -109,7 +110,7 @@ func (n *nsmClientEndpoints) Allocate(ctx context.Context, reqs *pluginapi.Alloc
 func Register(kubeletEndpoint string) error {
 	conn, err := tools.DialUnixInsecure(kubeletEndpoint)
 	if err != nil {
-		return fmt.Errorf("device-plugin: cannot connect to kubelet service: %v", err)
+		return errors.Wrap(err, "device-plugin: cannot connect to kubelet service")
 	}
 	defer func() { _ = conn.Close() }()
 
@@ -122,7 +123,7 @@ func Register(kubeletEndpoint string) error {
 
 	_, err = client.Register(context.Background(), reqt)
 	if err != nil {
-		return fmt.Errorf("device-plugin: cannot register to kubelet service: %v", err)
+		return errors.Wrap(err, "device-plugin: cannot register to kubelet service")
 	}
 	return nil
 }

@@ -19,6 +19,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	"github.com/golang/protobuf/proto"
@@ -124,11 +126,11 @@ func (srv *networkServiceManager) request(ctx context.Context, request networkse
 		logger.Infof("NSM:(%v) Called with existing connection passed: %v", requestID, existingCC)
 
 		if modelCC := srv.model.GetClientConnection(existingCC.GetID()); modelCC == nil {
-			err := fmt.Errorf("trying to request not existing connection")
+			err := errors.New("trying to request not existing connection")
 			logger.Errorf("Error %v", err)
 			return nil, err
 		} else if modelCC.ConnectionState != model.ClientConnectionReady && modelCC.ConnectionState != model.ClientConnectionHealing {
-			err := fmt.Errorf("trying to request connection in bad state")
+			err := errors.New("trying to request connection in bad state")
 			logger.Errorf("Error %v", err)
 			return nil, err
 		}
@@ -198,7 +200,7 @@ func (srv *networkServiceManager) request(ctx context.Context, request networkse
 	if err != nil {
 		// 5.1 Close Datplane connection, if had existing one and NSE is closed.
 		srv.requestFailed(ctx, requestID, existingCC, existingCC, false, closeDataplaneOnNSEFailed)
-		return nil, fmt.Errorf("NSM:(5.1-%v) %v", requestID, err)
+		return nil, errors.Wrapf(err, "NSM:(5.1-%v)", requestID)
 	}
 
 	// 6. Prepare dataplane connection is fine.
@@ -234,7 +236,7 @@ func (srv *networkServiceManager) request(ctx context.Context, request networkse
 
 		// 7.3 Destination context probably has been changed, so we need to update source context.
 		if err = srv.updateConnectionContext(ctx, cc.GetConnectionSource(), cc.GetConnectionDestination()); err != nil {
-			err = fmt.Errorf("NSM:(7.3-%v) Failed to update source connection context: %v", requestID, err)
+			err = errors.Wrapf(err, "NSM:(7.3-%v) Failed to update source connection context", requestID)
 			srv.requestFailed(ctx, requestID, cc, existingCC, true, true)
 			return nil, err
 		}
@@ -394,7 +396,7 @@ func (srv *networkServiceManager) findConnectNSE(ctx context.Context, requestID 
 		if err != nil {
 			// 7.1.5 No endpoints found, we need to return error, including last error for previous NSE
 			if last_error != nil {
-				return nil, fmt.Errorf("NSM:(7.1.5-%v) %v. Last NSE Error: %v", requestID, err, last_error)
+				return nil, errors.Errorf("NSM:(7.1.5-%v) %v. Last NSE Error: %v", requestID, err, last_error)
 			} else {
 				return nil, err
 			}
@@ -404,7 +406,7 @@ func (srv *networkServiceManager) findConnectNSE(ctx context.Context, requestID 
 		// 7.1.6 Update Request with exclude_prefixes, etc
 		nseConn, err = srv.updateConnection(span.Context(), nseConn)
 		if err != nil {
-			return nil, fmt.Errorf("NSM:(7.1.6-%v) Failed to update connection: %v", requestID, err)
+			return nil, errors.Wrapf(err, "NSM:(7.1.6-%v) Failed to update connection", requestID)
 		}
 
 		// 7.1.7 perform request to NSE/remote NSMD/NSE
@@ -426,7 +428,7 @@ func (srv *networkServiceManager) Close(ctx context.Context, clientConnection ns
 	cc := clientConnection.(*model.ClientConnection)
 
 	if modelCC := srv.model.GetClientConnection(cc.GetID()); modelCC == nil || modelCC.ConnectionState == model.ClientConnectionClosing {
-		return fmt.Errorf("closing already closed connection")
+		return errors.New("closing already closed connection")
 	}
 
 	srv.model.ApplyClientConnectionChanges(ctx, cc.GetID(), func(modelCC *model.ClientConnection) {
@@ -442,7 +444,7 @@ func (srv *networkServiceManager) Close(ctx context.Context, clientConnection ns
 	srv.model.DeleteClientConnection(ctx, cc.GetID())
 
 	if nseErr != nil || dpErr != nil {
-		return fmt.Errorf("NSM: Close error: %v", []error{nseErr, dpErr})
+		return errors.Errorf("NSM: Close error: %v", []error{nseErr, dpErr})
 	}
 
 	return nil
@@ -458,7 +460,7 @@ func (srv *networkServiceManager) performNSERequest(ctx context.Context, request
 	client, err := srv.nseManager.createNSEClient(span.Context(), endpoint)
 	if err != nil {
 		// 7.2.6.1
-		return nil, fmt.Errorf("NSM:(7.2.6.1) Failed to create NSE Client. %v", err)
+		return nil, errors.Wrap(err, "NSM:(7.2.6.1) Failed to create NSE Client.")
 	}
 	defer func() {
 		err := client.Cleanup()
@@ -485,7 +487,7 @@ func (srv *networkServiceManager) performNSERequest(ctx context.Context, request
 
 	// 7.2.6.2.2
 	if err = srv.updateConnectionContext(span.Context(), requestConn, nseConn); err != nil {
-		err = fmt.Errorf("NSM:(7.2.6.2.2-%v) failure Validating NSE Connection: %s", requestID, err)
+		err = errors.Wrapf(err, "NSM:(7.2.6.2.2-%v) failure Validating NSE Connection", requestID)
 		return nil, err
 	}
 
@@ -600,7 +602,7 @@ func (srv *networkServiceManager) validateConnection(ctx context.Context, conn c
 	}
 
 	if result.GetStatus() != pluginsapi.ConnectionValidationStatus_SUCCESS {
-		return fmt.Errorf(result.GetErrorMessage())
+		return errors.New(result.GetErrorMessage())
 	}
 
 	return nil
@@ -664,7 +666,7 @@ func (srv *networkServiceManager) WaitForDataplane(ctx context.Context, timeout 
 	case <-srv.stateRestored:
 		return nil
 	case <-time.After(timeout):
-		return fmt.Errorf("Failed to wait for NSMD stare restore... timeout %v happened", timeout)
+		return errors.Errorf("Failed to wait for NSMD stare restore... timeout %v happened", timeout)
 	}
 }
 

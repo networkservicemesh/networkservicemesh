@@ -2,10 +2,10 @@ package network_service_server
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
@@ -58,7 +58,7 @@ func (srv *remoteNetworkServiceServer) Close(ctx context.Context, connection *re
 	logrus.Infof("Remote closing connection: %v", *connection)
 	clientConnection := srv.model.GetClientConnection(connection.GetId())
 	if clientConnection == nil {
-		return nil, fmt.Errorf("There is no such client connection %v", connection)
+		return nil, errors.Errorf("There is no such client connection %v", connection)
 	}
 	err := srv.manager.Close(ctx, clientConnection)
 	if err != nil {

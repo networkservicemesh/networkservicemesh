@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/config"
@@ -66,7 +67,7 @@ func (si *shellInstance) CheckIsAlive() error {
 	if si.started {
 		return si.validator.Validate()
 	}
-	return fmt.Errorf("cluster is not running")
+	return errors.New("cluster is not running")
 }
 
 func (si *shellInstance) IsRunning() bool {
@@ -77,7 +78,7 @@ func (si *shellInstance) GetClusterConfig() (string, error) {
 	if si.started {
 		return si.configLocation, nil
 	}
-	return "", fmt.Errorf("cluster is not started yet")
+	return "", errors.New("cluster is not started yet")
 }
 
 func (si *shellInstance) Start(timeout time.Duration) (string, error) {
@@ -111,7 +112,7 @@ func (si *shellInstance) Start(timeout time.Duration) (string, error) {
 		}
 		zonesList := strings.Split(zones, "\n")
 		if len(zonesList) == 0 {
-			return "", fmt.Errorf("failed to retrieve a zone list")
+			return "", errors.New("failed to retrieve a zone list")
 		}
 
 		selectedZone += zonesList[rand.Intn(len(zonesList))]
@@ -281,20 +282,20 @@ func (p *shellProvider) ValidateConfig(config *config.ClusterProviderConfig) err
 			}
 		}
 		if !hasKubeConfig {
-			return fmt.Errorf("invalid config location")
+			return errors.New("invalid config location")
 		}
 	}
 	if _, ok := config.Scripts[startScript]; !ok {
-		return fmt.Errorf("invalid start script")
+		return errors.New("invalid start script")
 	}
 	if _, ok := config.Scripts[stopScript]; !ok {
-		return fmt.Errorf("invalid shutdown script location")
+		return errors.New("invalid shutdown script location")
 	}
 
 	for _, envVar := range config.EnvCheck {
 		envValue := os.Getenv(envVar)
 		if envValue == "" {
-			return fmt.Errorf("environment variable are not specified %s Required variables: %v", envValue, config.EnvCheck)
+			return errors.Errorf("environment variable are not specified %s Required variables: %v", envValue, config.EnvCheck)
 		}
 	}
 

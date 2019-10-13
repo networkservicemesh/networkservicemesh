@@ -2,10 +2,11 @@ package plugins
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"sync"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
@@ -80,7 +81,7 @@ func (pr *pluginRegistry) Stop() error {
 		conn := value.(*grpc.ClientConn)
 
 		if err := conn.Close(); err != nil {
-			rv = fmt.Errorf("failed to close connection to '%s' plugin: %v", name, err)
+			rv = errors.Wrapf(err, "failed to close connection to '%s' plugin", name)
 			return false
 		}
 		return true
@@ -90,7 +91,7 @@ func (pr *pluginRegistry) Stop() error {
 
 func (pr *pluginRegistry) Register(ctx context.Context, info *plugins.PluginInfo) (*empty.Empty, error) {
 	if info.GetName() == "" || info.GetEndpoint() == "" || len(info.Capabilities) == 0 {
-		return nil, fmt.Errorf("invalid registration data, expected non-empty name, endpoint and capabilities list")
+		return nil, errors.New("invalid registration data, expected non-empty name, endpoint and capabilities list")
 	}
 	logrus.Infof("Registering a plugin: name '%s', endpoint '%s', capabilities %v", info.GetName(), info.GetEndpoint(), info.GetCapabilities())
 
@@ -104,7 +105,7 @@ func (pr *pluginRegistry) Register(ctx context.Context, info *plugins.PluginInfo
 		case plugins.PluginCapability_CONNECTION:
 			pr.connectionPluginManager.Register(info.GetName(), conn)
 		default:
-			return nil, fmt.Errorf("unsupported capability: %v", capability)
+			return nil, errors.Errorf("unsupported capability: %v", capability)
 		}
 	}
 
@@ -120,7 +121,7 @@ func (pr *pluginRegistry) createConnection(name, endpoint string) (*grpc.ClientC
 	if c, ok := pr.connections.Load(name); ok {
 		oldConn := c.(*grpc.ClientConn)
 		if conn.Target() != oldConn.Target() {
-			return nil, fmt.Errorf("already have a plugin with the same name but different endpoint")
+			return nil, errors.New("already have a plugin with the same name but different endpoint")
 		}
 
 		_ = oldConn.Close()

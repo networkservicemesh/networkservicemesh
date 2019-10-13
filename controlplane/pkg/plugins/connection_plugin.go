@@ -2,10 +2,11 @@ package plugins
 
 import (
 	"context"
-	"fmt"
 	"sync"
 
 	"google.golang.org/grpc"
+
+	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/plugins"
 )
@@ -55,7 +56,7 @@ func (cpm *connectionPluginManager) UpdateConnection(ctx context.Context, wrappe
 		cancel()
 
 		if err != nil {
-			return nil, fmt.Errorf("'%s' connection plugin returned an error: %v", name, err)
+			return nil, errors.Wrapf(err, "'%s' connection plugin returned an error", name)
 		}
 	}
 	return wrapper.Clone(), nil
@@ -69,7 +70,7 @@ func (cpm *connectionPluginManager) ValidateConnection(ctx context.Context, wrap
 		cancel()
 
 		if err != nil {
-			return nil, fmt.Errorf("'%s' connection plugin returned an error: %v", name, err)
+			return nil, errors.Wrapf(err, "'%s' connection plugin returned an error", name)
 		}
 
 		if result.GetStatus() != plugins.ConnectionValidationStatus_SUCCESS {

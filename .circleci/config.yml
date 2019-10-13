@@ -30,6 +30,9 @@ jobs:
       - run:
           name: Run Shellcheck
           command: make check
+      - run:
+          name: Run Error Usage Check
+          command: ./scripts/check_errors.sh
       - skip_on_pattern
       - run:
           command: |

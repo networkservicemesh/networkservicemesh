@@ -17,8 +17,9 @@ package security
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"errors"
 	"net"
+
+	"github.com/pkg/errors"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spiffe/spire/api/workload"

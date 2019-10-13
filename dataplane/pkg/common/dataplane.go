@@ -17,11 +17,12 @@ package common
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -260,7 +261,7 @@ func SanityCheckConnectionType(mechanisms *Mechanisms, crossConnect *crossconnec
 	}
 	/* If none of them matched, mechanism is not supported by the forwarding plane */
 	if !localFound && !remoteFound {
-		return fmt.Errorf("connection mechanism type not supported by the forwarding plane")
+		return errors.New("connection mechanism type not supported by the forwarding plane")
 	}
 	return nil
 }

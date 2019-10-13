@@ -1,15 +1,16 @@
 package interdomain
 
 import (
-	"fmt"
 	"net"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 // ParseNsmURL parses nsm url of the form nsmName@nsmAddress
 func ParseNsmURL(nsmURL string) (nsmName, nsmAddress string, err error) {
 	if !strings.Contains(nsmURL, "@") {
-		return nsmURL, "", fmt.Errorf("cannot parse Network Service Manager URL: %s", nsmURL)
+		return nsmURL, "", errors.Errorf("cannot parse Network Service Manager URL: %s", nsmURL)
 	}
 
 	t := strings.SplitN(nsmURL, "@", 2)

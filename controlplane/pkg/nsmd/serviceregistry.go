@@ -2,12 +2,13 @@ package nsmd
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"os"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
@@ -125,7 +126,7 @@ func (impl *nsmdServiceRegistry) NseRegistryClient(ctx context.Context) (registr
 	if impl.registryClientConnection != nil {
 		return registry.NewNetworkServiceRegistryClient(impl.registryClientConnection), nil
 	}
-	return nil, fmt.Errorf("Connection to Network Registry Server is not available")
+	return nil, errors.New("Connection to Network Registry Server is not available")
 }
 
 func (impl *nsmdServiceRegistry) NsmRegistryClient(ctx context.Context) (registry.NsmRegistryClient, error) {
@@ -137,7 +138,7 @@ func (impl *nsmdServiceRegistry) NsmRegistryClient(ctx context.Context) (registr
 	if impl.registryClientConnection != nil {
 		return registry.NewNsmRegistryClient(impl.registryClientConnection), nil
 	}
-	return nil, fmt.Errorf("Connection to Network Registry Server is not available")
+	return nil, errors.New("Connection to Network Registry Server is not available")
 }
 
 func (impl *nsmdServiceRegistry) GetPublicAPI() string {
@@ -154,7 +155,7 @@ func (impl *nsmdServiceRegistry) DiscoveryClient(ctx context.Context) (registry.
 	if impl.registryClientConnection != nil {
 		return registry.NewNetworkServiceDiscoveryClient(impl.registryClientConnection), nil
 	}
-	return nil, fmt.Errorf("Connection to Network Registry Server is not available")
+	return nil, errors.New("Connection to Network Registry Server is not available")
 }
 
 func (impl *nsmdServiceRegistry) initRegistryClient(ctx context.Context) {
@@ -170,7 +171,7 @@ func (impl *nsmdServiceRegistry) initRegistryClient(ctx context.Context) {
 	for impl.stopRedial {
 		err := tools.WaitForPortAvailable(span.Context(), "tcp", impl.registryAddress, 100*time.Millisecond)
 		if err != nil {
-			err = fmt.Errorf("failed to dial Network Service Registry at %s: %s", impl.registryAddress, err)
+			err = errors.Wrapf(err, "failed to dial Network Service Registry at %s", impl.registryAddress)
 			span.LogError(err)
 			continue
 		}
@@ -233,7 +234,7 @@ func (impl *nsmdServiceRegistry) WaitForDataplaneAvailable(ctx context.Context, 
 			return nil
 		}
 		if time.Since(st) > timeout {
-			err := fmt.Errorf("error waiting for dataplane... timeout happened")
+			err := errors.New("error waiting for dataplane... timeout happened")
 			span.LogError(err)
 		}
 	}
