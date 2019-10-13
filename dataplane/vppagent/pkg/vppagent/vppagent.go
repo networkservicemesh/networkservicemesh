@@ -145,7 +145,12 @@ func (v *VPPAgent) programMgmtInterface() error {
 	client := configurator.NewConfiguratorClient(conn)
 
 	vppArpEntries := []*vpp.ARPEntry{}
+	vppArpEntriesMap := make(map[string]bool)
 	for _, arpEntry := range v.common.EgressInterface.ArpEntries() {
+		if _, ok := vppArpEntriesMap[arpEntry.IPAddress]; ok {
+			continue
+		}
+		vppArpEntriesMap[arpEntry.IPAddress] = true
 		vppArpEntries = append(vppArpEntries, &vpp.ARPEntry{
 			Interface:   ManagementInterface,
 			IpAddress:   arpEntry.IPAddress,
