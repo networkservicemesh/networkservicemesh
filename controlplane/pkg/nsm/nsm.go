@@ -173,6 +173,7 @@ func (srv *networkServiceManager) WaitForDataplane(ctx context.Context, timeout 
 
 func (srv *networkServiceManager) RestoreConnections(xcons []*crossconnect.CrossConnect, dataplane string, manager nsm.MonitorManager) {
 	span := spanhelper.FromContext(srv.Context(), "Nsmgr.RestoreConnections")
+	defer span.Finish()
 	logger := span.Logger()
 	for _, xcon := range xcons {
 		srv.restoreXconnection(span.Context(), xcon, logger, dataplane, manager)
@@ -186,6 +187,7 @@ func (srv *networkServiceManager) restoreXconnection(ctx context.Context, xcon *
 	// Model should increase its id counter to max of xcons restored from dataplane
 	srv.model.CorrectIDGenerator(xcon.GetId())
 	span := spanhelper.FromContext(ctx, "restoreXConnection")
+	defer span.Finish()
 	span.LogObject("dataplane", dataplane)
 	span.LogObject("xcon", xcon)
 
@@ -220,13 +222,14 @@ func (srv *networkServiceManager) restoreXconnection(ctx context.Context, xcon *
 		}
 
 		monitor := manager.LocalConnectionMonitor(workspaceName)
+		clientConnection := srv.createConnection(xcon, request, endpoint, dp, connectionState, manager, monitor)
+		srv.model.AddClientConnection(span.Context(), clientConnection)
+
 		if monitor == nil {
-			span.LogError(errors.Errorf("failed to restore connection %v. wWorkspace could be found for %v", xcon, workspaceName))
+			span.LogError(errors.Errorf("failed to restore connection %v. Workspace could be found for %v. closing", xcon, workspaceName))
+			srv.CloseConnection(span.Context(), clientConnection)
 			return
 		}
-		clientConnection := srv.createConnection(xcon, request, endpoint, dp, connectionState, manager, monitor)
-
-		srv.model.AddClientConnection(span.Context(), clientConnection)
 
 		srv.performHeal(span.Context(), xcon, endpoint, endpointRenamed, clientConnection, logger)
 		span.LogObject("restored", xcon)
