@@ -47,7 +47,7 @@ func TestNSMHealLocalDieNSMD(t *testing.T) {
 	k8s.DeletePods(nodes_setup[0].Nsmd)
 
 	logrus.Infof("Waiting for NSE with network service")
-	k8s.WaitLogsContains(nodes_setup[1].Nsmd, "nsmd", "NSM: Remote opened connection is not monitored and put into Healing state", defaultTimeout)
+	k8s.WaitLogsContains(nodes_setup[1].Nsmd, "nsmd", "NSM: Remote (intentionally broken) opened connection is not monitored and put into Healing state", defaultTimeout)
 	// Now are are in dataplane dead state, and in Heal procedure waiting for dataplane.
 	nsmdName := fmt.Sprintf("%s-recovered", nodes_setup[0].Nsmd.Name)
 

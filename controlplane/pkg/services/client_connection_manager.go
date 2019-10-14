@@ -203,6 +203,8 @@ func (m *ClientConnectionManager) GetClientConnectionBySource(networkServiceName
 
 func (m *ClientConnectionManager) UpdateRemoteMonitorDone(networkServiceManagerName string) {
 	// We need to be sure there is no active connections from selected Remote NSM.
+	logrus.Infof("EAW DEBUG entering UpdateRemoteMonitorDone - networkServiceManagerName: \"%s\"", networkServiceManagerName)
+	logrus.Infof("EAW DEBUG entering UpdateRemoteMonitorDone: m.GetClientConnectionBySource(%s): %+v", networkServiceManagerName, m.GetClientConnectionBySource(networkServiceManagerName))
 	for _, conn := range m.GetClientConnectionBySource(networkServiceManagerName) {
 		// Since remote monitor is done, and if connection is not closed we need to close them.
 		m.manager.RemoteConnectionLost(conn)
@@ -210,5 +212,6 @@ func (m *ClientConnectionManager) UpdateRemoteMonitorDone(networkServiceManagerN
 }
 
 func (m *ClientConnectionManager) UpdateFromInitialState(xcons []*crossconnect.CrossConnect, dataplane *model.Dataplane) {
+	logrus.Infof("EAW DEBUG entering UpdateFromInitialState - len(xcons): %d", len(xcons))
 	m.manager.RestoreConnections(xcons, dataplane.RegisteredName)
 }

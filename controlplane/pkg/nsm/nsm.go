@@ -671,12 +671,14 @@ func (srv *networkServiceManager) WaitForDataplane(ctx context.Context, timeout 
 }
 
 func (srv *networkServiceManager) RestoreConnections(xcons []*crossconnect.CrossConnect, dataplane string) {
+	logrus.Infof("EAW DEBUG entering RestoreConnections - len(xcons):%d", len(xcons))
 	for _, xcon := range xcons {
-
+		logrus.Infof("EAW DEBUG in RestoreConnections - Looping through xcons, now on xcon: %+v", xcon)
 		// Model should increase its id counter to max of xcons restored from dataplane
 		srv.model.CorrectIDGenerator(xcon.GetId())
 
 		existing := srv.model.GetClientConnection(xcon.GetId())
+		logrus.Infof("EAW DEBUG in RestoreConnections - Looping through xcons, existing: %+v", existing)
 		if existing == nil {
 			logrus.Infof("Restoring state of active connection %v", xcon)
 
@@ -790,7 +792,9 @@ func (srv *networkServiceManager) RestoreConnections(xcons []*crossconnect.Cross
 			srv.model.AddClientConnection(context.Background(), clientConnection)
 
 			// Add healing timer, for connection to be healed from source side.
+			logrus.Infof("EAW DEBUG in RestoreConnections - Looping through xcons, xcon.GetSourceConnection().IsRemote(): %t", xcon.GetSourceConnection().IsRemote())
 			if src := xcon.GetSourceConnection(); src.IsRemote() {
+				logrus.Infof("EAW DEBUG in RestoreConnections - endpoint: %+v", endpoint)
 				if endpoint != nil {
 					if endpointRenamed {
 						// close current connection and wait for a new one
