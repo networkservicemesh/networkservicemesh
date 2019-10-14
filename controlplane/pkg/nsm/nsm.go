@@ -19,6 +19,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
+
 	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
@@ -183,44 +185,28 @@ func (srv *networkServiceManager) RestoreConnections(xcons []*crossconnect.Cross
 func (srv *networkServiceManager) restoreXconnection(ctx context.Context, xcon *crossconnect.CrossConnect, logger logrus.FieldLogger, dataplane string, manager nsm.MonitorManager) {
 	// Model should increase its id counter to max of xcons restored from dataplane
 	srv.model.CorrectIDGenerator(xcon.GetId())
+	span := spanhelper.FromContext(ctx, "restoreXConnection")
+	span.LogObject("dataplane", dataplane)
+	span.LogObject("xcon", xcon)
 
 	existing := srv.model.GetClientConnection(xcon.GetId())
 	if existing == nil {
-		logger.Infof("Restoring state of active connection %v", xcon)
+		span.Logger().Infof("Restoring state of active connection %v", xcon)
 
 		endpointName := ""
 		networkServiceName := ""
-		var endpoint *registry.NSERegistration
 		var connectionState model.ClientConnectionState
 
 		dp := srv.model.GetDataplane(dataplane)
-		discovery, err := srv.serviceRegistry.DiscoveryClient(ctx)
+		discovery, err := srv.serviceRegistry.DiscoveryClient(span.Context())
+		span.LogError(err)
 		if err != nil {
-			logger.Errorf("Failed to find NSE to recovery: %v", err)
+			span.LogError(errors.WithMessage(err, "failed to created discovery client"))
+			return
 		}
-
 		connectionState, networkServiceName, endpointName = srv.getConnectionParameters(xcon, logger)
 
-		endpointRenamed := false
-		if endpointName != "" {
-			endpoint = srv.getEndpoint(ctx, networkServiceName, endpointName, discovery, xcon)
-
-			if endpoint == nil {
-				// Check if endpoint was renamed
-				if newEndpointName, ok := srv.renamedEndpoints[endpointName]; ok {
-					logger.Infof("Endpoint was renamed %v => %v", endpointName, newEndpointName)
-					localEndpoint := srv.model.GetEndpoint(newEndpointName)
-					if localEndpoint != nil {
-						endpoint = localEndpoint.Endpoint
-						endpointRenamed = true
-					}
-				} else {
-					logger.Errorf("Failed to find Endpoint %s", endpointName)
-				}
-			} else {
-				logger.Infof("Endpoint found: %v", endpoint)
-			}
-		}
+		endpoint, endpointRenamed := srv.findEndpoint(span.Context(), endpointName, networkServiceName, discovery, xcon, span)
 
 		var request networkservice.Request
 		workspaceName := ""
@@ -233,12 +219,43 @@ func (srv *networkServiceManager) restoreXconnection(ctx context.Context, xcon *
 			workspaceName = src.GetConnectionMechanism().GetParameters()[local_connection.Workspace]
 		}
 
-		clientConnection := srv.createConnection(xcon, request, endpoint, dp, connectionState, manager, workspaceName)
-		srv.model.AddClientConnection(ctx, clientConnection)
+		monitor := manager.LocalConnectionMonitor(workspaceName)
+		if monitor == nil {
+			span.LogError(errors.Errorf("failed to restore connection %v. wWorkspace could be found for %v", xcon, workspaceName))
+			return
+		}
+		clientConnection := srv.createConnection(xcon, request, endpoint, dp, connectionState, manager, monitor)
 
-		srv.performHeal(ctx, xcon, endpoint, endpointRenamed, clientConnection, logger)
-		logger.Infof("Active connection state %v is Restored", xcon)
+		srv.model.AddClientConnection(span.Context(), clientConnection)
+
+		srv.performHeal(span.Context(), xcon, endpoint, endpointRenamed, clientConnection, logger)
+		span.LogObject("restored", xcon)
 	}
+}
+
+func (srv *networkServiceManager) findEndpoint(ctx context.Context, endpointName string, networkServiceName string, discovery registry.NetworkServiceDiscoveryClient, xcon *crossconnect.CrossConnect, span spanhelper.SpanHelper) (*registry.NSERegistration, bool) {
+	var endpoint *registry.NSERegistration
+	endpointRenamed := false
+	if endpointName != "" {
+		endpoint = srv.getEndpoint(ctx, networkServiceName, endpointName, discovery, xcon)
+
+		if endpoint == nil {
+			// Check if endpoint was renamed
+			if newEndpointName, ok := srv.renamedEndpoints[endpointName]; ok {
+				span.Logger().Infof("Endpoint was renamed %v => %v", endpointName, newEndpointName)
+				localEndpoint := srv.model.GetEndpoint(newEndpointName)
+				if localEndpoint != nil {
+					endpoint = localEndpoint.Endpoint
+					endpointRenamed = true
+				}
+			} else {
+				span.LogError(errors.Errorf("failed to find Endpoint %s", endpointName))
+			}
+		} else {
+			span.LogObject("endpoint", endpoint)
+		}
+	}
+	return endpoint, endpointRenamed
 }
 
 func (srv *networkServiceManager) performHeal(ctx context.Context, xcon *crossconnect.CrossConnect, endpoint *registry.NSERegistration, endpointRenamed bool, clientConnection nsm.ClientConnection, logger logrus.FieldLogger) {
@@ -275,7 +292,7 @@ func (srv *networkServiceManager) performHeal(ctx context.Context, xcon *crossco
 	}
 }
 
-func (srv *networkServiceManager) createConnection(xcon *crossconnect.CrossConnect, request networkservice.Request, endpoint *registry.NSERegistration, dp *model.Dataplane, state model.ClientConnectionState, manager nsm.MonitorManager, workspaceName string) *model.ClientConnection {
+func (srv *networkServiceManager) createConnection(xcon *crossconnect.CrossConnect, request networkservice.Request, endpoint *registry.NSERegistration, dp *model.Dataplane, state model.ClientConnectionState, manager nsm.MonitorManager, monitor monitor.Server) *model.ClientConnection {
 	return &model.ClientConnection{
 		ConnectionID:            xcon.GetId(),
 		Request:                 request,
@@ -284,7 +301,7 @@ func (srv *networkServiceManager) createConnection(xcon *crossconnect.CrossConne
 		DataplaneRegisteredName: dp.RegisteredName,
 		ConnectionState:         state,
 		DataplaneState:          model.DataplaneStateReady, // It is configured already.
-		Monitor:                 manager.LocalConnectionMonitor(workspaceName),
+		Monitor:                 monitor,
 	}
 }
 

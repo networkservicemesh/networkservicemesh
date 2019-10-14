@@ -106,6 +106,9 @@ func (cce *connectionService) Close(ctx context.Context, connection *connection.
 		logger.Error(err)
 		return nil, err
 	}
+	if clientConnection.ConnectionState == model.ClientConnectionClosing {
+		return nil, errors.New("connection could not be closed, it is already closing")
+	}
 	// Pass model connection with context
 	ctx = common.WithModelConnection(ctx, clientConnection)
 
