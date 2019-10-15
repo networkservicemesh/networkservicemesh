@@ -11,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
+	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
 
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -76,7 +77,7 @@ func (impl *nsmdServiceRegistry) RemoteNetworkServiceClient(ctx context.Context,
 		logrus.Errorf("Failed to dial Remote Network Service Manager %s at %s: %s", nsm.GetName(), nsm.Url, err)
 		return nil, nil, err
 	}
-	client := remote_networkservice.NewNetworkServiceClient(conn)
+	client := compat.NewRemoteNetworkServiceClient(conn)
 	logrus.Infof("Connection with Remote Network Service %s at %s is established", nsm.GetName(), nsm.GetUrl())
 	return client, conn, nil
 }
@@ -87,7 +88,7 @@ func (impl *nsmdServiceRegistry) EndpointConnection(ctx context.Context, endpoin
 		logrus.Errorf("unable to connect to nse %v", endpoint)
 		return nil, nil, err
 	}
-	client := networkservice.NewNetworkServiceClient(nseConn)
+	client := compat.NewLocalNetworkServiceClient(nseConn)
 
 	return client, nseConn, nil
 }

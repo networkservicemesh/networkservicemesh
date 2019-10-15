@@ -6,14 +6,15 @@ import (
 	"testing"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/remote"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
@@ -66,7 +67,7 @@ func startAPIServer(model model.Model, nsmdApiAddress string) (*grpc.Server, mon
 	}
 
 	crossconnect.RegisterMonitorCrossConnectServer(grpcServer, monitorManager.crossConnectMonitor)
-	connection.RegisterMonitorConnectionServer(grpcServer, monitorManager.remoteConnectionMonitor)
+	connection.RegisterMonitorConnectionServer(grpcServer, compat.NewMonitorConnectionServerAdapter(monitorManager.remoteConnectionMonitor, nil))
 
 	monitorClient := nsmd.NewMonitorCrossConnectClient(model, monitorManager, xconManager, &endpointManager{model: model})
 	model.AddListener(monitorClient)

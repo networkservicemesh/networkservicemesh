@@ -7,28 +7,30 @@ import (
 	"sync"
 	"time"
 
+	remoteApi "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
+	remoteMonitor "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/remote"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/remote"
+
 	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
-
-	"github.com/networkservicemesh/networkservicemesh/pkg/probes"
-	"github.com/networkservicemesh/networkservicemesh/pkg/probes/health"
-
-	remote_server "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/remote"
+	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 
+	"github.com/networkservicemesh/networkservicemesh/pkg/probes"
+	"github.com/networkservicemesh/networkservicemesh/pkg/probes/health"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
+	unified "github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsmdapi"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
-	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/remote"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nseregistry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/services"
@@ -69,8 +71,8 @@ type nsmServer struct {
 
 	xconManager             *services.ClientConnectionManager
 	crossConnectMonitor     monitor_crossconnect.MonitorServer
-	remoteConnectionMonitor remote.MonitorServer
-	remoteServer            remote_networkservice.NetworkServiceServer
+	remoteConnectionMonitor remoteMonitor.MonitorServer
+	remoteServer            remoteApi.NetworkServiceServer
 }
 
 func (nsm *nsmServer) XconManager() *services.ClientConnectionManager {
@@ -488,7 +490,7 @@ func StartNSMServer(ctx context.Context, model model.Model, manager nsm.NetworkS
 	span.Logger().Infof("create monitor servers")
 	nsm.initMonitorServers()
 
-	nsm.remoteServer = remote_server.NewRemoteNetworkServiceServer(nsm.manager, nsm.remoteConnectionMonitor)
+	nsm.remoteServer = remote.NewRemoteNetworkServiceServer(nsm.manager, nsm.remoteConnectionMonitor)
 	nsm.manager.SetRemoteServer(nsm.remoteServer)
 
 	// Restore existing clients in case of NSMd restart.
@@ -514,7 +516,7 @@ func (nsm *nsmServer) initMonitorServers() {
 	// Start CrossConnect monitor server
 	nsm.crossConnectMonitor = monitor_crossconnect.NewMonitorServer()
 	// Start Connection monitor server
-	nsm.remoteConnectionMonitor = remote.NewMonitorServer(nsm.xconManager)
+	nsm.remoteConnectionMonitor = remoteMonitor.NewMonitorServer(nsm.xconManager)
 }
 
 func (nsm *nsmServer) StartDataplaneRegistratorServer(ctx context.Context) error {
@@ -561,12 +563,13 @@ func (nsm *nsmServer) StartAPIServerAt(ctx context.Context, sock net.Listener, p
 	grpcServer := tools.NewServer(span.Context())
 
 	crossconnect.RegisterMonitorCrossConnectServer(grpcServer, nsm.crossConnectMonitor)
-	connection.RegisterMonitorConnectionServer(grpcServer, nsm.remoteConnectionMonitor)
+	connection.RegisterMonitorConnectionServer(grpcServer, compat.NewMonitorConnectionServerAdapter(nsm.remoteConnectionMonitor, nil))
 	probes.Append(health.NewGrpcHealth(grpcServer, sock.Addr(), time.Minute))
 
 	// Register Remote NetworkServiceManager
-	remote_networkservice.RegisterNetworkServiceServer(grpcServer, nsm.remoteServer)
+	unified.RegisterNetworkServiceServer(grpcServer, compat.NewUnifiedNetworkServiceServerAdapter(nsm.remoteServer, nil))
 
+	// TODO: Add more public API services here.
 	go func() {
 		if err := grpcServer.Serve(sock); err != nil {
 			span.Logger().Fatalf("Failed to start NSM API server: %+v", err)
