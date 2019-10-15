@@ -881,6 +881,7 @@ func (k8s *K8s) WaitLogsContains(pod *v1.Pod, container, pattern string, timeout
 	matcher := func(s string) bool {
 		return strings.Contains(s, pattern)
 	}
+
 	description := fmt.Sprintf("Timeout waiting for logs pattern %v in %v::%v.", pattern, pod.Name, container)
 
 	k8s.waitLogsMatch(ctx, pod, container, matcher, description)
@@ -908,6 +909,9 @@ func (k8s *K8s) WaitLogsContainsRegex(pod *v1.Pod, container, pattern string, ti
 
 //GetFullLogs - return full logs
 func (k8s *K8s) GetFullLogs(pod *v1.Pod, container string, previous bool) (string, error) {
+
+	container = k8s.fixContainer(pod, container)
+
 	getLogsOpt := &v1.PodLogOptions{}
 	if len(container) > 0 {
 		getLogsOpt.Container = container
@@ -921,10 +925,32 @@ func (k8s *K8s) GetFullLogs(pod *v1.Pod, container string, previous bool) (strin
 	return fmt.Sprintf("%s", result), nil
 }
 
+func (k8s *K8s) fixContainer(pod *v1.Pod, container string) string {
+	updatedPod, err := k8s.GetPod(pod)
+	if err != nil {
+		logrus.Error(errors.WithMessagef(err, "failed to get update pod %v", pod.Name))
+	}
+	if container != "" && len(updatedPod.Spec.Containers) == 1 {
+		logrus.Infof("getting logs without container %v=none", container)
+		container = ""
+	}
+	return container
+}
+
 func (k8s *K8s) waitLogsMatch(ctx context.Context, pod *v1.Pod, container string, matcher func(string) bool, description string) {
-	options := &v1.PodLogOptions{
-		Container: container,
-		Follow:    true,
+	container = k8s.fixContainer(pod, container)
+
+	var options *v1.PodLogOptions
+
+	if container != "" {
+		options = &v1.PodLogOptions{
+			Container: container,
+			Follow:    true,
+		}
+	} else {
+		options = &v1.PodLogOptions{
+			Follow: true,
+		}
 	}
 
 	var builder strings.Builder
@@ -947,7 +973,8 @@ func (k8s *K8s) waitLogsMatch(ctx context.Context, pod *v1.Pod, container string
 					k8s.g.Expect(false).To(BeTrue())
 				}
 			}
-			<-time.After(100 * time.Millisecond)
+			<-time.After(1000 * time.Millisecond)
+
 			linesChan, errChan = k8s.GetLogsChannel(ctx, pod, options)
 		case line := <-linesChan:
 			_, _ = builder.WriteString(line)
@@ -956,6 +983,14 @@ func (k8s *K8s) waitLogsMatch(ctx context.Context, pod *v1.Pod, container string
 				return
 			}
 		case <-ctx.Done():
+			updPod, err := k8s.GetPod(pod)
+			if err != nil {
+				logrus.Errorf("error retriving pod info %v %v", pod.Name, err)
+			} else {
+				logrus.Infof("pod info: %v %v", pod.Name, prettyPrint(updPod))
+			}
+			k8s.DescribePod(pod)
+
 			logrus.Errorf("%v Last logs: %v", description, builder.String())
 			k8s.g.Expect(false).To(BeTrue())
 			return
