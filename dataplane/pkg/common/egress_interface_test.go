@@ -32,7 +32,7 @@ func TestParseProcContent(t *testing.T) {
 	s := bufio.NewScanner(strings.NewReader("Iface	Destination	Gateway 	Flags	RefCnt	Use	Metric	Mask		MTU	Window	IRTT\n" +
 		"eth0	00000000	010011AC	0003	0	0	0	00000000	0	0	0\n" +
 		"eth0	000011AC	00000000	0001	0	0	0	0000FFFF	0	0	0\n" +
-		"\n"+
+		"\n" +
 		"eth1	000011AB	00000000	0004	0	0	0	0000BBBB	0	0	0\n"))
 
 	eth0, gw, err := parseProcFile(s)

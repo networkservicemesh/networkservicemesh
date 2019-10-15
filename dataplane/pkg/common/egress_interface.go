@@ -66,7 +66,7 @@ func findDefaultGateway4() (string, net.IP, error) {
 
 func parseProcFile(scanner *bufio.Scanner) (string, net.IP, error) {
 	for scanner.Scan() {
-		if err := scanner.Err(); err != nil  {
+		if err := scanner.Err(); err != nil {
 			logrus.Errorf("Failed to read routes files: %v", err)
 			break
 		}
