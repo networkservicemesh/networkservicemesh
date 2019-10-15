@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: spire-server
-  namespace: {{ .Release.Namespace }}
+  namespace: {{ .Values.namespace }}
 spec:
   type: NodePort
   ports:
