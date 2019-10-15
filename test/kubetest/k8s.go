@@ -930,6 +930,15 @@ func (k8s *K8s) fixContainer(pod *v1.Pod, container string) string {
 	if err != nil {
 		logrus.Error(errors.WithMessagef(err, "failed to get update pod %v", pod.Name))
 	}
+
+	// Check if it is init container name
+	for _, c := range updatedPod.Spec.InitContainers {
+		if c.Name == container {
+			// All ok and it is allowed.
+			return container
+		}
+	}
+
 	if container != "" && len(updatedPod.Spec.Containers) == 1 {
 		logrus.Infof("getting logs without container %v=none", container)
 		container = ""
