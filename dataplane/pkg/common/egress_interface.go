@@ -60,24 +60,17 @@ func findDefaultGateway4() (string, net.IP, error) {
 	}
 	defer f.Close()
 
-	reader := bufio.NewReader(f)
-	return parseProcFile(reader)
+	scanner := bufio.NewScanner(f)
+	return parseProcFile(scanner)
 }
 
-func parseProcFile(reader *bufio.Reader) (string, net.IP, error) {
-	for {
-		line, err := reader.ReadString('\n')
-		if err != nil {
-			if err != io.EOF {
-				break
-			}
+func parseProcFile(scanner *bufio.Scanner) (string, net.IP, error) {
+	for scanner.Scan() {
+		if err := scanner.Err(); err != nil  {
 			logrus.Errorf("Failed to read routes files: %v", err)
 			break
 		}
-		if line == "" {
-			break
-		}
-		line = strings.TrimSpace(line)
+		line := strings.TrimSpace(scanner.Text())
 		parts := strings.Split(line, "\t")
 
 		if strings.TrimSpace(parts[1]) == "00000000" {
