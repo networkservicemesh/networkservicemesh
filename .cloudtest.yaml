@@ -13,6 +13,37 @@ import:
 reporting:
   junit-report: "results/junit.xml"
 executions:
+  - name: "Single cluster tests"
+    env:
+      - STORE_POD_LOGS_IN_FILES=true
+      - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)
+    tags:
+      - basic
+      - recover
+      - usecase
+    root: ./test/integration
+    timeout: 300
+    cluster-count: 1
+    kubernetes-env:
+      - KUBECONFIG
+    on_fail: |
+      make k8s-delete-nsm-namespaces
+  - name: "Benchmark tests"
+    env:
+      - STORE_POD_LOGS_IN_FILES=true
+      - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)
+    tags:
+      - bench
+    root: ./test/integration
+    timeout: 600
+    cluster-count: 1
+    cluster-selector:
+      - packet
+    kubernetes-env:
+      - KUBECONFIG
+    on_fail: |
+      make k8s-delete-nsm-namespaces
+
   - name: "Interdomain tests packet-aws"
     env:
       - STORE_POD_LOGS_IN_FILES=true
