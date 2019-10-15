@@ -912,10 +912,11 @@ func (k8s *K8s) GetFullLogs(pod *v1.Pod, container string, previous bool) (strin
 
 	container = k8s.fixContainer(pod, container)
 
-	getLogsOpt := &v1.PodLogOptions{}
+	getLogsOpt := &v1.PodLogOptions{
+		Previous: previous,
+	}
 	if len(container) > 0 {
 		getLogsOpt.Container = container
-		getLogsOpt.Previous = previous
 	}
 	response := k8s.clientset.CoreV1().Pods(k8s.namespace).GetLogs(pod.Name, getLogsOpt)
 	result, error := response.DoRaw()
