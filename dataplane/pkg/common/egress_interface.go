@@ -71,14 +71,16 @@ func parseProcFile(scanner *bufio.Scanner) (string, net.IP, error) {
 			break
 		}
 		line := strings.TrimSpace(scanner.Text())
-		parts := strings.Split(line, "\t")
+		if len(line) > 0 {
+			parts := strings.Split(line, "\t")
 
-		if strings.TrimSpace(parts[1]) == "00000000" {
-			outgoingInterface := strings.TrimSpace(parts[0])
-			defaultGateway := strings.TrimSpace(parts[2])
-			ip := parseGatewayIP(defaultGateway)
-			logrus.Printf("Found default gateway %v outgoing: %v", ip.String(), outgoingInterface)
-			return outgoingInterface, ip, nil
+			if strings.TrimSpace(parts[1]) == "00000000" {
+				outgoingInterface := strings.TrimSpace(parts[0])
+				defaultGateway := strings.TrimSpace(parts[2])
+				ip := parseGatewayIP(defaultGateway)
+				logrus.Printf("Found default gateway %v outgoing: %v", ip.String(), outgoingInterface)
+				return outgoingInterface, ip, nil
+			}
 		}
 	}
 
