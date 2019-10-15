@@ -37,6 +37,7 @@ type ExecutionConfig struct {
 	Kind            string   `yaml:"kind"`             // Execution kind, default is 'gotest', 'shell' could be used for pure shell tests.
 	Name            string   `yaml:"name"`             // Execution name
 	Tags            []string `yaml:"tags"`             // A list of tags for this configured execution.
+	OnlyRun         []string `yaml:"only-run"`         // If non-empty, only run the listed tests
 	PackageRoot     string   `yaml:"root"`             // A package root for this test execution, default .
 	Timeout         int64    `yaml:"timeout"`          // Invidiaul test timeout, "60" passed to gotest, in seconds
 	ExtraOptions    []string `yaml:"extra-options"`    // Extra options to pass to gotest
