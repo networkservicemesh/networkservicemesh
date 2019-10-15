@@ -87,14 +87,35 @@ func (cce *dataplaneService) selectRemoteMechanism(request *networkservice.Netwo
 			dpParameters := dpMechanism.GetParameters()
 
 			parameters[connection.VXLANDstIP] = dpParameters[connection.VXLANSrcIP]
+			var vni uint32
 
-			vni := cce.serviceRegistry.VniAllocator().Vni(dpParameters[connection.VXLANSrcIP], parameters[connection.VXLANSrcIP])
+			extSrcIP := parameters[connection.VXLANSrcIP]
+			extDstIP := dpParameters[connection.VXLANSrcIP]
+			srcIP := parameters[connection.VXLANSrcIP]
+			dstIP := dpParameters[connection.VXLANSrcIP]
+
+			if ip, ok := parameters[connection.VXLANSrcOriginalIP]; ok {
+				srcIP = ip
+			}
+
+			if ip, ok := parameters[connection.VXLANDstExternalIP]; ok {
+				extDstIP = ip
+			}
+
+			if extDstIP != extSrcIP {
+				vni = cce.serviceRegistry.VniAllocator().Vni(extDstIP, extSrcIP)
+			} else {
+				vni = cce.serviceRegistry.VniAllocator().Vni(dstIP, srcIP)
+			}
+
 			parameters[connection.VXLANVNI] = strconv.FormatUint(uint64(vni), 10)
 		}
+
+		logrus.Infof("NSM:(5.1) Remote mechanism selected %v", mechanism)
 		return mechanism.(*connection.Mechanism), nil
 	}
 
-	return nil, errors.Errorf("failed to select mechanism, no matched mechanisms found")
+	return nil, errors.New("failed to select mechanism, no matched mechanisms found")
 }
 
 func (cce *dataplaneService) updateMechanism(request *networkservice.NetworkServiceRequest, dp *model.Dataplane) error {
