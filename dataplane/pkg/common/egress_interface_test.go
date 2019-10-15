@@ -8,11 +8,18 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 )
+func TestParseGatewayZero(t *testing.T) {
+	g := NewWithT(t)
 
+	gw, err := parseGatewayIP("0")
+	g.Expect(err.Error()).To(Equal("Failed to locate default route..."))
+	g.Expect(gw.IsUnspecified()).To(BeTrue())
+}
 func TestParseDefaultGateway(t *testing.T) {
 	g := NewWithT(t)
 
-	gw := parseGatewayIP("010011AC")
+	gw, err := parseGatewayIP("010011AC")
+	g.Expect(err).To(BeNil())
 	logrus.Printf("Value %v", gw.String())
 	g.Expect(gw.String(), "172.17.0.1")
 }

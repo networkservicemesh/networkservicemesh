@@ -83,7 +83,11 @@ func parseProcFile(reader *bufio.Reader) (string, net.IP, error) {
 		if strings.TrimSpace(parts[1]) == "00000000" {
 			outgoingInterface := strings.TrimSpace(parts[0])
 			defaultGateway := strings.TrimSpace(parts[2])
-			ip := parseGatewayIP(defaultGateway)
+			ip, err := parseGatewayIP(defaultGateway)
+			if err != nil {
+				logrus.Printf("Error Processing gateway IP %v for outgoing interface: %v", defaultGateway, outgoingInterface)
+				break
+			}
 			logrus.Printf("Found default gateway %v outgoing: %v", ip.String(), outgoingInterface)
 			return outgoingInterface, ip, nil
 		}
@@ -92,17 +96,20 @@ func parseProcFile(reader *bufio.Reader) (string, net.IP, error) {
 	return "", nil, errors.New("Failed to locate default route...")
 }
 
-func parseGatewayIP(defaultGateway string) net.IP {
+func parseGatewayIP(defaultGateway string) (net.IP, error) {
 	ip := net.IP{0, 0, 0, 0}
-	iv0, _ := strconv.ParseInt(defaultGateway[0:2], 16, 32)
-	iv1, _ := strconv.ParseInt(defaultGateway[2:4], 16, 32)
-	iv2, _ := strconv.ParseInt(defaultGateway[4:6], 16, 32)
-	iv3, _ := strconv.ParseInt(defaultGateway[6:], 16, 32)
-	ip[0] = byte(iv3)
-	ip[1] = byte(iv2)
-	ip[2] = byte(iv1)
-	ip[3] = byte(iv0)
-	return ip
+	if len(defaultGateway) == 8 {
+		iv0, _ := strconv.ParseInt(defaultGateway[0:2], 16, 32)
+		iv1, _ := strconv.ParseInt(defaultGateway[2:4], 16, 32)
+		iv2, _ := strconv.ParseInt(defaultGateway[4:6], 16, 32)
+		iv3, _ := strconv.ParseInt(defaultGateway[6:], 16, 32)
+		ip[0] = byte(iv3)
+		ip[1] = byte(iv2)
+		ip[2] = byte(iv1)
+		ip[3] = byte(iv0)
+		return ip, nil
+	}
+	return ip, errors.New("Failed to parse IP from string")
 }
 
 func getArpEntries() ([]*ARPEntry, error) {
