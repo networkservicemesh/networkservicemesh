@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: spire-agent
-  namespace: {{ .Release.Namespace }}
+  namespace: {{ .Values.namespace }}
   labels:
     app: spire-agent
 spec:

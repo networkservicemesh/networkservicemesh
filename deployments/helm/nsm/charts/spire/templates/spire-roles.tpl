@@ -28,7 +28,7 @@ metadata:
 subjects:
   - kind: ServiceAccount
     name: spire-agent
-    namespace: {{ .Release.Namespace }}
+    namespace: {{ .Values.namespace }}
 roleRef:
   kind: ClusterRole
   name: spire-agent-role
@@ -42,7 +42,7 @@ metadata:
 subjects:
   - kind: ServiceAccount
     name: spire-server
-    namespace: {{ .Release.Namespace }}
+    namespace: {{ .Values.namespace }}
 roleRef:
   kind: ClusterRole
   name: spire-server-role

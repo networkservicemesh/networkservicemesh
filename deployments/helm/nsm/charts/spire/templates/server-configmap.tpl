@@ -2,13 +2,13 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: spire-bundle
-  namespace: {{ .Release.Namespace }}
+  namespace: {{ .Values.namespace }}
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: spire-server
-  namespace: {{ .Release.Namespace }}
+  namespace: {{ .Values.namespace }}
 data:
   server.conf: |
     server {
@@ -38,7 +38,7 @@ data:
             # NOTE: Change this to your cluster name
             "kubernetes" = {
               use_token_review_api_validation = true
-              service_account_whitelist = ["{{ .Release.Namespace }}:spire-agent"]
+              service_account_whitelist = ["{{ .Values.namespace }}:spire-agent"]
             }
           }
         }
