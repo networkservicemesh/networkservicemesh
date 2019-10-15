@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 )
+
 func TestParseGatewayZero(t *testing.T) {
 	g := NewWithT(t)
 
