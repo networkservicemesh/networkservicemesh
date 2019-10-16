@@ -59,11 +59,9 @@ func (s networkServiceServerAdapter) Close(ctx context.Context, conn *connection
 		return s.localServer.Close(ctx, ConnectionUnifiedToLocal(conn))
 	} else if conn.GetMechanism().GetCls() == cls.REMOTE && s.remoteServer != nil {
 		return s.remoteServer.Close(ctx, ConnectionUnifiedToRemote(conn))
-	} else {
-		return nil, errors.Errorf("No NetworkServiceServer available for Connection.GetMechanism().GetCls(): %+s", conn.GetMechanism().GetCls())
 	}
 
-	return &empty.Empty{}, nil
+	return nil, errors.Errorf("No NetworkServiceServer available for Connection.GetMechanism().GetCls(): %+s", conn.GetMechanism().GetCls())
 }
 
 func NewUnifiedNetworkServiceServerAdapter(remoteServer remote.NetworkServiceServer, localServer local.NetworkServiceServer) networkservice.NetworkServiceServer {

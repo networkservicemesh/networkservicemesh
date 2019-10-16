@@ -86,7 +86,7 @@ deps:
 	@${GOGET} -u github.com/golang/protobuf/protoc-gen-go
 
 generate:
-	@${GOGENERATE} ./...
+	@./scripts/for-each-module.sh ${GOGENERATE} ./...
 
 install:
 	@${GOINSTALL} ./...
@@ -98,7 +98,7 @@ test-race:
 	@${GOTEST} -race ./... -cover
 
 vet:
-	@${GOVET} ./...
+	@./scripts/for-each-module.sh ${GOVET} ./...
 
 # Get dependency manager tool
 get-dep:
