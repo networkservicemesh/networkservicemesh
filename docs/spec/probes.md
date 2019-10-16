@@ -19,7 +19,7 @@ Implementation details
 * Each component sets specific flags stating if its dependencies initialized okay or not
 * Updated the `kube-testing` description files to take into account these changes
 * Updated the Kubernetes configuration files to enable liveness/readiness probing
-* Added measuring of the boot time for NSMgr and VPP agent data-plane for debugging
+* Added measuring of the boot time for NSMgr and VPP agent forwarder for debugging
 * The timings used for the liveness/readiness probes are more or less the default ones
 adjusted to match our Vagrant setup and keep the deployment stable.
 * For instance, the default `timeoutSeconds` value of 1 was not suitable for our use case causing
