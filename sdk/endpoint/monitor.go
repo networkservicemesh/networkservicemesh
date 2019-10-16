@@ -17,10 +17,13 @@ package endpoint
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/pkg/errors"
 
+	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
+
+	unified "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
@@ -35,7 +38,7 @@ type MonitorEndpoint struct {
 // Init will be called upon NSM Endpoint instantiation with the proper context
 func (mce *MonitorEndpoint) Init(context *InitContext) error {
 	grpcServer := context.GrpcServer
-	connection.RegisterMonitorConnectionServer(grpcServer, mce.monitorConnectionServer)
+	unified.RegisterMonitorConnectionServer(grpcServer, compat.NewMonitorConnectionServerAdapter(nil, mce.monitorConnectionServer))
 	return nil
 }
 
@@ -60,7 +63,7 @@ func (mce *MonitorEndpoint) Request(ctx context.Context, request *networkservice
 
 		return incomingConnection, nil
 	}
-	return nil, fmt.Errorf("MonitorEndpoint.Request - cannot create requested connection")
+	return nil, errors.New("MonitorEndpoint.Request - cannot create requested connection")
 }
 
 // Close implements the close handler
@@ -79,7 +82,7 @@ func (mce *MonitorEndpoint) Close(ctx context.Context, connection *connection.Co
 		mce.monitorConnectionServer.Delete(ctx, connection)
 		return rv, err
 	}
-	return nil, fmt.Errorf("monitor DeleteConnection cannot close connection")
+	return nil, errors.New("monitor DeleteConnection cannot close connection")
 }
 
 // Name returns the composite name

@@ -15,6 +15,13 @@ spec:
         - name: crossconnect-monitor
           image: {{ .Values.registry }}/{{ .Values.org }}/crossconnect-monitor:{{ .Values.tag }}
           imagePullPolicy: {{ .Values.pullPolicy }}
+          env:
+            - name: INSECURE
+{{- if .Values.insecure }}
+              value: "true"
+{{- else }}
+              value: "false"
+{{- end }}
 metadata:
   name: crossconnect-monitor
   namespace: {{ .Release.Namespace }}

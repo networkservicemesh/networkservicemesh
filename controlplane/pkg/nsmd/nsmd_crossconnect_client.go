@@ -20,8 +20,15 @@ import (
 	"sync"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
+
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
@@ -48,39 +55,39 @@ const (
 	peerLogWithParamFormat = "NSM-PeerMonitor(%v): %v: %v"
 
 	endpointConnectionTimeout = 10 * time.Second
+	eventConnectionTimeout    = 30 * time.Second
+
+	peerName     = "peerName"
+	endpointName = "endpointName"
 )
 
 type NsmMonitorCrossConnectClient struct {
 	model.ListenerImpl
 
-	monitorManager MonitorManager
+	monitorManager nsm.MonitorManager
 	xconManager    *services.ClientConnectionManager
 	endpoints      sync.Map
 	dataplanes     sync.Map
 	remotePeers    map[string]*remotePeerDescriptor
 
 	endpointManager EndpointManager
+	model           model.Model
+
+	remotePeerLock sync.Mutex
 }
 
 type remotePeerDescriptor struct {
-	xconCounter int
+	connections map[string]*model.ClientConnection
 	cancel      context.CancelFunc
-}
-
-// MonitorManager is an interface to provide access to different monitors
-type MonitorManager interface {
-	CrossConnectMonitor() monitor_crossconnect.MonitorServer
-	RemoteConnectionMonitor() monitor.Server
-	LocalConnectionMonitor(workspace string) monitor.Server
 }
 
 // EndpointManager is an interface to delete endpoints with broken connection
 type EndpointManager interface {
-	DeleteEndpointWithBrokenConnection(endpoint *model.Endpoint) error
+	DeleteEndpointWithBrokenConnection(ctx context.Context, endpoint *model.Endpoint) error
 }
 
 // NewMonitorCrossConnectClient creates a new NsmMonitorCrossConnectClient
-func NewMonitorCrossConnectClient(monitorManager MonitorManager, xconManager *services.ClientConnectionManager,
+func NewMonitorCrossConnectClient(model model.Model, monitorManager nsm.MonitorManager, xconManager *services.ClientConnectionManager,
 	endpointManager EndpointManager) *NsmMonitorCrossConnectClient {
 	rv := &NsmMonitorCrossConnectClient{
 		monitorManager:  monitorManager,
@@ -89,13 +96,16 @@ func NewMonitorCrossConnectClient(monitorManager MonitorManager, xconManager *se
 		endpoints:       sync.Map{},
 		dataplanes:      sync.Map{},
 		remotePeers:     map[string]*remotePeerDescriptor{},
+		model:           model,
 	}
 	return rv
 }
 
 // EndpointAdded implements method from Listener
-func (client *NsmMonitorCrossConnectClient) EndpointAdded(_ context.Context, endpoint *model.Endpoint) {
-	ctx, cancel := context.WithCancel(context.Background())
+func (client *NsmMonitorCrossConnectClient) EndpointAdded(ctx context.Context, endpoint *model.Endpoint) {
+	span := spanhelper.CopySpan(context.Background(), spanhelper.GetSpanHelper(ctx), "EndpointAdded")
+	defer span.Finish()
+	ctx, cancel := context.WithCancel(span.Context())
 	client.endpoints.Store(endpoint.EndpointName(), cancel)
 	go client.endpointConnectionMonitor(ctx, endpoint)
 }
@@ -110,93 +120,118 @@ func (client *NsmMonitorCrossConnectClient) EndpointDeleted(_ context.Context, e
 
 // DataplaneAdded implements method from Listener
 func (client *NsmMonitorCrossConnectClient) DataplaneAdded(_ context.Context, dp *model.Dataplane) {
-	ctx, cancel := context.WithCancel(context.Background())
+	span := spanhelper.FromContext(context.Background(), "DataplaneAdded")
+	defer span.Finish()
+	ctx, cancel := context.WithCancel(span.Context())
 	client.dataplanes.Store(dp.RegisteredName, cancel)
-	logrus.Infof("Starting Dataplane crossconnect monitoring client...")
+
 	go client.dataplaneCrossConnectMonitor(ctx, dp)
 }
 
 // DataplaneDeleted implements method from Listener
 func (client *NsmMonitorCrossConnectClient) DataplaneDeleted(_ context.Context, dp *model.Dataplane) {
-	client.xconManager.DataplaneDown(dp)
+	span := spanhelper.FromContext(context.Background(), "DataplaneDeleted")
+	defer span.Finish()
+	client.xconManager.DataplaneDown(span.Context(), dp)
 	if cancel, ok := client.dataplanes.Load(dp.RegisteredName); ok {
 		cancel.(context.CancelFunc)()
 		client.dataplanes.Delete(dp.RegisteredName)
 	}
 }
 
-//ClientConnectionAdded - handle adding of connections
-func (client *NsmMonitorCrossConnectClient) ClientConnectionAdded(_ context.Context, clientConnection *model.ClientConnection) {
+func (client *NsmMonitorCrossConnectClient) startPeerMonitor(clientConnection *model.ClientConnection) {
+	client.remotePeerLock.Lock()
+	defer client.remotePeerLock.Unlock()
 	if clientConnection.RemoteNsm == nil {
 		return
 	}
-
 	if remotePeer, exist := client.remotePeers[clientConnection.RemoteNsm.Name]; exist {
-		remotePeer.xconCounter++
+		remotePeer.connections[clientConnection.ConnectionID] = clientConnection
 		return
 	}
 	ctx, cancel := context.WithCancel(context.Background())
-	client.remotePeers[clientConnection.RemoteNsm.Name] = &remotePeerDescriptor{cancel: cancel, xconCounter: 1}
+	client.remotePeers[clientConnection.RemoteNsm.Name] = &remotePeerDescriptor{
+		cancel: cancel,
+		connections: map[string]*model.ClientConnection{
+			clientConnection.ConnectionID: clientConnection,
+		},
+	}
 	go client.remotePeerConnectionMonitor(ctx, clientConnection.RemoteNsm)
 }
 
-// ClientConnectionUpdated implements method from Listener
+// ClientConnectionAdded - handle connection added
+func (client *NsmMonitorCrossConnectClient) ClientConnectionAdded(ctx context.Context, clientConnection *model.ClientConnection) {
+	client.startPeerMonitor(clientConnection)
+
+	span := common.SpanHelperFromConnection(ctx, clientConnection, "ClientConnectionAdded")
+	defer span.Finish()
+	span.LogObject("clientConnection", clientConnection)
+
+	client.xconManager.MarkConnectionAdded(clientConnection)
+}
+
+// ClientConnectionUpdated -  implements method from Listener
 func (client *NsmMonitorCrossConnectClient) ClientConnectionUpdated(ctx context.Context, old, new *model.ClientConnection) {
-	logrus.Infof("ClientConnectionUpdated: old - %v; new - %v", old, new)
+	client.startPeerMonitor(new)
+
+	span := common.SpanHelperFromConnection(ctx, new, "ClientConnectionUpdated")
+	defer span.Finish()
+	span.LogObject("new", new)
+	span.LogObject("old", old)
+
+	client.xconManager.MarkConnectionUpdated(new)
 
 	conn := new.Xcon.GetSourceConnection()
 	if conn.Equals(old.Xcon.GetSourceConnection()) {
 		return
 	}
-
-	var monitorServer monitor.Server
-	if conn.IsRemote() {
-		monitorServer = client.monitorManager.RemoteConnectionMonitor()
-	} else if workspace, ok := conn.GetConnectionMechanism().GetParameters()[local.Workspace]; ok {
-		monitorServer = client.monitorManager.LocalConnectionMonitor(workspace)
-	}
-
-	if monitorServer != nil {
-		monitorServer.Update(ctx, conn)
+	if new.Monitor != nil {
+		new.Monitor.Update(ctx, conn)
 	}
 }
 
-// ClientConnectionDeleted - handle deletion of connections.
+// ClientConnectionDeleted - handle client connection deleted
 func (client *NsmMonitorCrossConnectClient) ClientConnectionDeleted(ctx context.Context, clientConnection *model.ClientConnection) {
-	logrus.Infof("ClientConnectionDeleted: %v", clientConnection)
+	client.remotePeerLock.Lock()
+	defer client.remotePeerLock.Unlock()
 
-	client.monitorManager.CrossConnectMonitor().Delete(ctx, clientConnection.Xcon)
-	if conn := clientConnection.GetConnectionSource(); conn.IsRemote() {
-		client.monitorManager.RemoteConnectionMonitor().Delete(ctx, conn)
-	}
+	span := common.SpanHelperFromConnection(ctx, clientConnection, "ClientConnectionDeleted")
+	defer span.Finish()
+	span.LogObject("clientConnection", clientConnection)
+
+	span.Logger().Infof("ClientConnectionDeleted: %v", clientConnection)
+
+	client.xconManager.MarkConnectionDeleted(clientConnection)
 
 	if clientConnection.RemoteNsm == nil {
+		span.Logger().Infof("Not a remote connection")
 		return
 	}
 	remotePeer := client.remotePeers[clientConnection.RemoteNsm.Name]
 	if remotePeer != nil {
-		remotePeer.xconCounter--
-		if remotePeer.xconCounter == 0 {
+		delete(remotePeer.connections, clientConnection.ConnectionID)
+		if len(remotePeer.connections) == 0 {
 			remotePeer.cancel()
 			delete(client.remotePeers, clientConnection.RemoteNsm.Name)
+			span.Logger().Infof("stopping remote monitor")
 		}
+		span.Logger().Infof("connection removed from monitor")
 	} else {
-		logrus.Errorf("Remote peer for NSM is already closed: %v", clientConnection)
+		span.LogError(errors.Errorf("remote peer for NSM is already closed: %v", clientConnection))
 	}
 }
 
 type grpcConnectionSupplier func() (*grpc.ClientConn, error)
 type monitorClientSupplier func(conn *grpc.ClientConn) (monitor.Client, error)
 
-type entityHandler func(entity monitor.Entity, eventType monitor.EventType) error
-type eventHandler func(event monitor.Event) error
+type entityHandler func(entity monitor.Entity, eventType monitor.EventType, parameters map[string]string) error
+type eventHandler func(event monitor.Event, parameters map[string]string) error
 
 func (client *NsmMonitorCrossConnectClient) monitor(
 	ctx context.Context,
 	logFormat, logWithParamFormat, name string,
 	grpcConnectionSupplier grpcConnectionSupplier, monitorClientSupplier monitorClientSupplier,
-	entityHandler entityHandler, eventHandler eventHandler,
-) error {
+	entityHandler entityHandler, eventHandler eventHandler, parameters map[string]string) error {
 	logrus.Infof(logFormat, name, "Added")
 
 	conn, err := grpcConnectionSupplier()
@@ -227,13 +262,13 @@ func (client *NsmMonitorCrossConnectClient) monitor(
 			if event != nil {
 				logrus.Infof(logWithParamFormat, name, "Received event", event)
 				for _, entity := range event.Entities() {
-					if err = entityHandler(entity, event.EventType()); err != nil {
+					if err = entityHandler(entity, event.EventType(), parameters); err != nil {
 						logrus.Errorf(logWithParamFormat, name, "Error handling entity", err)
 					}
 				}
 
 				if eventHandler != nil {
-					if err = eventHandler(event); err != nil {
+					if err = eventHandler(event, parameters); err != nil {
 						logrus.Errorf(logWithParamFormat, name, "Error handling event", err)
 					}
 				}
@@ -252,10 +287,10 @@ func (client *NsmMonitorCrossConnectClient) endpointConnectionMonitor(ctx contex
 		ctx,
 		endpointLogFormat, endpointLogWithParamFormat, endpoint.EndpointName(),
 		grpcConnectionSupplier, monitor_local.NewMonitorClient,
-		client.handleLocalConnection, nil)
+		client.handleLocalConnection, nil, map[string]string{endpointName: endpoint.EndpointName()})
 
 	if err != nil {
-		if err = client.endpointManager.DeleteEndpointWithBrokenConnection(endpoint); err != nil {
+		if err = client.endpointManager.DeleteEndpointWithBrokenConnection(ctx, endpoint); err != nil {
 			logrus.Errorf(endpointLogWithParamFormat, endpoint.EndpointName(), "Failed to delete endpoint", err)
 		}
 	}
@@ -274,20 +309,28 @@ func (client *NsmMonitorCrossConnectClient) connectToEndpoint(endpoint *model.En
 	return conn, err
 }
 
-func (client *NsmMonitorCrossConnectClient) handleLocalConnection(entity monitor.Entity, eventType monitor.EventType) error {
+func (client *NsmMonitorCrossConnectClient) handleLocalConnection(entity monitor.Entity, eventType monitor.EventType, parameters map[string]string) error {
 	localConnection, ok := entity.(*local.Connection)
 	if !ok {
-		return fmt.Errorf("unable to cast %v to local.Connection", entity)
+		return errors.Errorf("unable to cast %v to local.Connection", entity)
 	}
 
+	// We could do so because for local NSE connections ID is assigned by NSMgr itself.
 	if cc := client.xconManager.GetClientConnectionByLocalDst(localConnection.GetId()); cc != nil {
+		span := common.SpanHelperFromConnection(context.Background(), cc, "handleLocalConnection")
+		defer span.Finish()
+		ctx := span.Context()
+		span.LogObject("clientConnection", cc)
+		span.LogValue("event", entity)
+		span.LogObject("eventType", eventType)
+
 		switch eventType {
 		case monitor.EventTypeUpdate:
 			// DST connection is updated, we most probable need to re-programm our data plane.
-			client.xconManager.LocalDestinationUpdated(context.Background(), cc, localConnection)
+			client.xconManager.LocalDestinationUpdated(ctx, cc, localConnection)
 		case monitor.EventTypeDelete:
 			// DST is down, we need to choose new NSE in any case.
-			client.xconManager.DestinationDown(cc, false)
+			client.xconManager.DestinationDown(ctx, cc, false)
 		}
 	}
 
@@ -299,49 +342,67 @@ func (client *NsmMonitorCrossConnectClient) handleLocalConnection(entity monitor
 // If it detects a failure of the connection, it will indicate that dataplane is no longer operational. In this case
 // monitor will remove all dataplane connections and will terminate itself.
 func (client *NsmMonitorCrossConnectClient) dataplaneCrossConnectMonitor(ctx context.Context, dataplane *model.Dataplane) {
+	span := spanhelper.FromContext(ctx, fmt.Sprintf("Dataplane-%v-monitor", dataplane.RegisteredName))
+	defer span.Finish()
+
+	span.Logger().Infof("Starting Dataplane crossconnect monitoring client...")
 	grpcConnectionSupplier := func() (*grpc.ClientConn, error) {
 		logrus.Infof(dataplaneLogWithParamFormat, dataplane.RegisteredName, "Connecting to", dataplane.SocketLocation)
-		return tools.DialUnix(dataplane.SocketLocation)
+		return tools.DialContextUnix(span.Context(), dataplane.SocketLocation)
 	}
 
-	eventHandler := func(event monitor.Event) error {
-		return client.handleXconEvent(event, dataplane)
+	eventHandler := func(event monitor.Event, parameters map[string]string) error {
+		return client.handleXconEvent(event, dataplane, parameters)
 	}
 
 	_ = client.monitor(
-		ctx,
+		span.Context(),
 		dataplaneLogFormat, dataplaneLogWithParamFormat, dataplane.RegisteredName,
 		grpcConnectionSupplier, monitor_crossconnect.NewMonitorClient,
-		client.handleXcon, eventHandler)
+		client.handleXcon, eventHandler, nil)
 }
 
-func (client *NsmMonitorCrossConnectClient) handleXcon(entity monitor.Entity, eventType monitor.EventType) error {
+func (client *NsmMonitorCrossConnectClient) handleXcon(entity monitor.Entity, eventType monitor.EventType, parameters map[string]string) error {
 	xcon, ok := entity.(*crossconnect.CrossConnect)
 	if !ok {
-		return fmt.Errorf("unable to cast %v to CrossConnect", entity)
+		return errors.Errorf("unable to cast %v to CrossConnect", entity)
 	}
 
-	if cc := client.xconManager.GetClientConnectionByXcon(xcon); cc != nil {
+	// Let's add this into Span.
+	clientConnection := client.xconManager.GetClientConnectionByXcon(xcon)
+
+	client.xconManager.CleanupDeletedConnections()
+
+	span := common.SpanHelperFromConnection(context.Background(), clientConnection, "CrossConnectUpdate")
+	defer span.Finish()
+	span.LogObject("clientConnection", clientConnection)
+	span.LogValue("event", entity)
+	span.LogObject("eventType", eventType)
+
+	if clientConnection != nil {
 		switch eventType {
 		case monitor.EventTypeInitialStateTransfer:
-			client.monitorManager.CrossConnectMonitor().Update(context.Background(), xcon)
+			span.Logger().Infof("Send initial transfer cross connect event: %v", xcon)
+			client.monitorManager.CrossConnectMonitor().Update(span.Context(), xcon)
 		case monitor.EventTypeUpdate:
-			client.monitorManager.CrossConnectMonitor().Update(context.Background(), xcon)
-			client.xconManager.UpdateXcon(context.Background(), cc, xcon)
+			span.Logger().Infof("Send cross connect event: %v", xcon)
+			client.monitorManager.CrossConnectMonitor().Update(span.Context(), xcon)
+			client.xconManager.UpdateXcon(span.Context(), clientConnection, xcon)
 		case monitor.EventTypeDelete:
-			if cc.ConnectionState == model.ClientConnectionClosing {
-				client.monitorManager.CrossConnectMonitor().Delete(context.Background(), xcon)
-			}
+			span.Logger().Infof("Send cross connect delete event: %v", xcon)
+			client.monitorManager.CrossConnectMonitor().Delete(span.Context(), xcon)
 		}
+	} else {
+		span.LogError(errors.Errorf("failed to Send cross connect event: %v. No Client connection is found", xcon))
 	}
 
 	return nil
 }
 
-func (client *NsmMonitorCrossConnectClient) handleXconEvent(event monitor.Event, dataplane *model.Dataplane) error {
+func (client *NsmMonitorCrossConnectClient) handleXconEvent(event monitor.Event, dataplane *model.Dataplane, _ map[string]string) error {
 	xconEvent, ok := event.(*monitor_crossconnect.Event)
 	if !ok {
-		return fmt.Errorf("unable to cast %v to crossconnect.Event", event)
+		return errors.Errorf("unable to cast %v to crossconnect.Event", event)
 	}
 
 	if len(xconEvent.Statistics) > 0 {
@@ -354,16 +415,18 @@ func (client *NsmMonitorCrossConnectClient) handleXconEvent(event monitor.Event,
 			xcons = append(xcons, entity.(*crossconnect.CrossConnect))
 		}
 
-		client.xconManager.UpdateFromInitialState(xcons, dataplane)
+		client.xconManager.UpdateFromInitialState(xcons, dataplane, client.monitorManager)
 	}
 
 	return nil
 }
 
 func (client *NsmMonitorCrossConnectClient) remotePeerConnectionMonitor(ctx context.Context, remotePeer *registry.NetworkServiceManager) {
+	span := spanhelper.FromContext(ctx, fmt.Sprintf("remotePeerMonitor-%v", remotePeer.Name))
+	defer span.Finish()
 	grpcConnectionSupplier := func() (*grpc.ClientConn, error) {
-		logrus.Infof(peerLogWithParamFormat, remotePeer.Name, "Connecting to", remotePeer.Url)
-		return tools.DialTCP(remotePeer.GetUrl())
+		span.Logger().Infof(peerLogWithParamFormat, remotePeer.Name, "Connecting to", remotePeer.Url)
+		return tools.DialContextTCP(span.Context(), remotePeer.GetUrl())
 	}
 	monitorClientSupplier := func(conn *grpc.ClientConn) (monitor.Client, error) {
 		return monitor_remote.NewMonitorClient(conn, &remote.MonitorScopeSelector{
@@ -376,44 +439,96 @@ func (client *NsmMonitorCrossConnectClient) remotePeerConnectionMonitor(ctx cont
 		ctx,
 		peerLogFormat, peerLogWithParamFormat, remotePeer.Name,
 		grpcConnectionSupplier, monitorClientSupplier,
-		client.handleRemoteConnection, nil)
+		client.handleRemoteConnection, nil, map[string]string{peerName: remotePeer.Name})
 
 	if err != nil {
+		span.LogError(err)
 		// Same as DST down case, we need to wait for same NSE and updated NSMD.
 		connections := client.xconManager.GetClientConnectionByRemote(remotePeer)
 		for _, cc := range connections {
-			client.xconManager.DestinationDown(cc, true)
+			ccSpan := common.SpanHelperFromConnection(ctx, cc, "remotePeerConnectionMonitor.update")
+			defer ccSpan.Finish()
+			ccSpan.LogObject("clientConnection", cc)
+			client.xconManager.DestinationDown(ccSpan.Context(), cc, true)
 		}
 	}
 }
 
-func (client *NsmMonitorCrossConnectClient) handleRemoteConnection(entity monitor.Entity, eventType monitor.EventType) error {
+func (client *NsmMonitorCrossConnectClient) handleRemoteConnection(entity monitor.Entity, eventType monitor.EventType, parameters map[string]string) error {
 	remoteConnection, ok := entity.(*remote.Connection)
 	if !ok {
-		return fmt.Errorf("unable to cast %v to remote.Connection", entity)
+		return errors.Errorf("unable to cast %v to remote.Connection", entity)
+	}
+	peerName := parameters[peerName]
+	if cc := client.xconManager.GetClientConnectionByRemoteDst(remoteConnection.GetId(), peerName); cc != nil {
+		span := common.SpanHelperFromConnection(context.Background(), cc, "handleRemoteConnection")
+		defer span.Finish()
+		ctx := span.Context()
+		span.LogObject("clientConnection", cc)
+		span.LogObject("RemoteConnect", remoteConnection)
+		span.LogValue("peerName", peerName)
+		span.LogValue("eventType", eventType)
+		span.LogObject("entity", entity)
+
+		client.handleRemoteConnectionEvent(ctx, eventType, cc, remoteConnection)
+	} else {
+		// We need to check if there is connections in requesting status right, now and wait until they status will be finalized
+		// Or they will be removed.
+		logrus.Errorf("No remote destination found %v. Will wait for pending connections to match", cc)
+		go func() {
+			ctx, cancel := context.WithTimeout(context.Background(), eventConnectionTimeout)
+			defer cancel()
+
+			currentTime := time.Now()
+			if cc, err := client.xconManager.WaitPendingConnections(ctx, remoteConnection.GetId(), parameters[peerName]); cc != nil && err == nil {
+				span := common.SpanHelperFromConnection(ctx, cc, "handleRemoteConnection")
+				defer span.Finish()
+				span.LogObject("clientConnection", cc)
+				span.LogObject("RemoteConnect", remoteConnection)
+				span.LogValue("peerName", peerName)
+				span.LogValue("eventType", eventType)
+				span.LogObject("entity", entity)
+
+				span.LogValue("waitTime", fmt.Sprintf("%v", time.Since(currentTime)))
+
+				client.handleRemoteConnectionEvent(span.Context(), eventType, cc, remoteConnection)
+			}
+		}()
 	}
 
-	if cc := client.xconManager.GetClientConnectionByRemoteDst(remoteConnection.GetId()); cc != nil {
-		switch eventType {
-		case monitor.EventTypeUpdate:
-			// DST connection is updated, we most probable need to re-programm our data plane.
-			client.xconManager.RemoteDestinationUpdated(context.Background(), cc, remoteConnection)
-		case monitor.EventTypeDelete:
-			// DST is down, we need to choose new NSE in any case.
-			downConnection := remoteConnection.Clone()
-			downConnection.SetConnectionState(connection.StateDown)
+	return nil
+}
 
+func (client *NsmMonitorCrossConnectClient) handleRemoteConnectionEvent(ctx context.Context, eventType monitor.EventType, cc *model.ClientConnection, remoteConnection *remote.Connection) {
+	switch eventType {
+	case monitor.EventTypeInitialStateTransfer, monitor.EventTypeUpdate:
+		// DST connection is updated, we most probable need to re-program our data plane.
+		client.xconManager.RemoteDestinationUpdated(ctx, cc, remoteConnection)
+	case monitor.EventTypeDelete:
+		span := spanhelper.FromContext(ctx, "handleRemoteConnectionEvent")
+		defer span.Finish()
+		ctx = span.Context()
+
+		// DST is down, we need to choose new NSE in any case.
+		downConnection := remoteConnection.Clone()
+		downConnection.SetConnectionState(connection.StateDown)
+
+		span.LogObject("current-remote", cc.GetConnectionDestination())
+		span.LogObject("new-remote", downConnection)
+		if !downConnection.Equals(cc.Xcon.GetDestinationConnection()) {
 			xconToSend := crossconnect.NewCrossConnect(
 				cc.Xcon.GetId(),
 				cc.Xcon.GetPayload(),
 				cc.Xcon.GetSourceConnection(),
 				downConnection,
 			)
+			span.LogObject("xcon-event", xconToSend)
 
-			client.monitorManager.CrossConnectMonitor().Update(context.Background(), xconToSend)
-			client.xconManager.DestinationDown(cc, false)
+			client.monitorManager.CrossConnectMonitor().Update(ctx, xconToSend)
+		} else {
+			span.LogObject("no-xcon-event", "same destinations")
 		}
-	}
 
-	return nil
+		client.xconManager.DestinationDown(ctx, cc, false)
+	}
 }

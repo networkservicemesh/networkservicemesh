@@ -9,7 +9,7 @@ FROM ${VPP_AGENT} as vpp_agent
 
 ENV POSTMORTEM_DATA_LOCATION=/var/tmp/nsm-postmortem/vpp-dataplane
 
-COPY dataplane/vppagent/conf/supervisord/supervisord-dev.conf /etc/supervisord/supervisord.conf
+COPY dataplane/vppagent/conf/supervisord/supervisord-dev.conf  /opt/vpp-agent/dev/supervisor.conf
 COPY dataplane/vppagent/scripts/prepare_postmortem.sh /usr/bin/prepare_postmortem.sh
 COPY dataplane/vppagent/scripts/vpp_listener.py /usr/bin/vpp_listener.py
 
@@ -27,7 +27,7 @@ RUN apt-get update && apt-get install -y zip python python-cffi python-enum34 py
 
 RUN rm /opt/vpp-agent/dev/etcd.conf; echo 'Endpoint: "localhost:9111"' > /opt/vpp-agent/dev/grpc.conf;echo "disabled: true" > /opt/vpp-agent/dev/telemetry.conf
 COPY dataplane/vppagent/conf/vpp/startup.conf /etc/vpp/vpp.conf
-COPY dataplane/vppagent/conf/supervisord/supervisord.conf /etc/supervisord/supervisord.conf
+COPY dataplane/vppagent/conf/supervisord/supervisord.conf /opt/vpp-agent/dev/supervisor.conf
 
 FROM golang:${GO_VERSION}-alpine as build_vpp
 ARG VERSION=unspecified
@@ -47,5 +47,3 @@ RUN CGO_ENABLED=0 GOOS=linux go build ${VENDORING} -ldflags "-extldflags '-stati
 
 FROM vpp_agent
 COPY --from=build_vpp /go/bin/vppagent-dataplane /bin/vppagent-dataplane
-CMD [ "/bin/sh", "-c", "rm -f /dev/shm/db /dev/shm/global_vm /dev/shm/vpe-api &&     /usr/bin/supervisord -c /etc/supervisord/supervisord.conf"]
-

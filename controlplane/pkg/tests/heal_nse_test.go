@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
 
 	. "github.com/onsi/gomega"
 	"golang.org/x/net/context"
@@ -96,13 +96,13 @@ func TestHealRemoteNSE(t *testing.T) {
 	// Simlate delete
 	clientConnection2.Xcon.GetLocalDestination().State = connection.State_DOWN
 	srv.manager.GetHealProperties().HealDSTNSEWaitTimeout = time.Second * 1
-	srv2.manager.Heal(clientConnection2, nsm.HealStateDstDown)
+	srv2.manager.Heal(context.Background(), clientConnection2, nsm.HealStateDstDown)
 
 	// First update, is delete
 	// Second update is update
-	l1.WaitUpdate(7, timeout, t)
+	l1.WaitUpdate(4, timeout, t)
 
 	clientConnection1_1 := srv.TestModel.GetClientConnection(nsmResponse.GetId())
 	g.Expect(clientConnection1_1.GetID()).To(Equal("1"))
-	g.Expect(clientConnection1_1.Xcon.GetRemoteDestination().GetId()).To(Equal("3"))
+	g.Expect(clientConnection1_1.Xcon.GetRemoteDestination().GetId()).To(Equal("4"))
 }

@@ -2,14 +2,16 @@ package nsmd
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"os"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
+	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
 
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -75,7 +77,7 @@ func (impl *nsmdServiceRegistry) RemoteNetworkServiceClient(ctx context.Context,
 		logrus.Errorf("Failed to dial Remote Network Service Manager %s at %s: %s", nsm.GetName(), nsm.Url, err)
 		return nil, nil, err
 	}
-	client := remote_networkservice.NewNetworkServiceClient(conn)
+	client := compat.NewRemoteNetworkServiceClient(conn)
 	logrus.Infof("Connection with Remote Network Service %s at %s is established", nsm.GetName(), nsm.GetUrl())
 	return client, conn, nil
 }
@@ -86,7 +88,7 @@ func (impl *nsmdServiceRegistry) EndpointConnection(ctx context.Context, endpoin
 		logrus.Errorf("unable to connect to nse %v", endpoint)
 		return nil, nil, err
 	}
-	client := networkservice.NewNetworkServiceClient(nseConn)
+	client := compat.NewLocalNetworkServiceClient(nseConn)
 
 	return client, nseConn, nil
 }
@@ -100,13 +102,13 @@ func (impl *nsmdServiceRegistry) DataplaneConnection(ctx context.Context, datapl
 	return dpClient, dataplaneConn, nil
 }
 
-func (impl *nsmdServiceRegistry) NSMDApiClient() (nsmdapi.NSMDClient, *grpc.ClientConn, error) {
+func (impl *nsmdServiceRegistry) NSMDApiClient(ctx context.Context) (nsmdapi.NSMDClient, *grpc.ClientConn, error) {
 	logrus.Infof("Connecting to nsmd on socket: %s...", ServerSock)
 	if _, err := os.Stat(ServerSock); err != nil {
 		return nil, nil, err
 	}
 
-	conn, err := tools.DialUnix(ServerSock)
+	conn, err := tools.DialContextUnix(ctx, ServerSock)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -125,7 +127,7 @@ func (impl *nsmdServiceRegistry) NseRegistryClient(ctx context.Context) (registr
 	if impl.registryClientConnection != nil {
 		return registry.NewNetworkServiceRegistryClient(impl.registryClientConnection), nil
 	}
-	return nil, fmt.Errorf("Connection to Network Registry Server is not available")
+	return nil, errors.New("Connection to Network Registry Server is not available")
 }
 
 func (impl *nsmdServiceRegistry) NsmRegistryClient(ctx context.Context) (registry.NsmRegistryClient, error) {
@@ -137,7 +139,7 @@ func (impl *nsmdServiceRegistry) NsmRegistryClient(ctx context.Context) (registr
 	if impl.registryClientConnection != nil {
 		return registry.NewNsmRegistryClient(impl.registryClientConnection), nil
 	}
-	return nil, fmt.Errorf("Connection to Network Registry Server is not available")
+	return nil, errors.New("Connection to Network Registry Server is not available")
 }
 
 func (impl *nsmdServiceRegistry) GetPublicAPI() string {
@@ -154,7 +156,7 @@ func (impl *nsmdServiceRegistry) DiscoveryClient(ctx context.Context) (registry.
 	if impl.registryClientConnection != nil {
 		return registry.NewNetworkServiceDiscoveryClient(impl.registryClientConnection), nil
 	}
-	return nil, fmt.Errorf("Connection to Network Registry Server is not available")
+	return nil, errors.New("Connection to Network Registry Server is not available")
 }
 
 func (impl *nsmdServiceRegistry) initRegistryClient(ctx context.Context) {
@@ -170,7 +172,7 @@ func (impl *nsmdServiceRegistry) initRegistryClient(ctx context.Context) {
 	for impl.stopRedial {
 		err := tools.WaitForPortAvailable(span.Context(), "tcp", impl.registryAddress, 100*time.Millisecond)
 		if err != nil {
-			err = fmt.Errorf("failed to dial Network Service Registry at %s: %s", impl.registryAddress, err)
+			err = errors.Wrapf(err, "failed to dial Network Service Registry at %s", impl.registryAddress)
 			span.LogError(err)
 			continue
 		}
@@ -233,7 +235,7 @@ func (impl *nsmdServiceRegistry) WaitForDataplaneAvailable(ctx context.Context, 
 			return nil
 		}
 		if time.Since(st) > timeout {
-			err := fmt.Errorf("error waiting for dataplane... timeout happened")
+			err := errors.New("error waiting for dataplane... timeout happened")
 			span.LogError(err)
 		}
 	}

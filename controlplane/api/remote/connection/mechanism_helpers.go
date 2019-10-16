@@ -16,11 +16,11 @@
 package connection
 
 import (
-	"fmt"
 	"net"
 	"strconv"
 
 	"github.com/gogo/protobuf/proto"
+	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
 )
@@ -67,24 +67,24 @@ func (m *Mechanism) SetParameters(parameters map[string]string) {
 // IsValid checks if mechanism is valid
 func (m *Mechanism) IsValid() error {
 	if m == nil {
-		return fmt.Errorf("mechanism cannot be nil")
+		return errors.New("mechanism cannot be nil")
 	}
 	if m.GetParameters() == nil {
-		return fmt.Errorf("mechanism.Parameters cannot be nil: %v", m)
+		return errors.Errorf("mechanism.Parameters cannot be nil: %v", m)
 	}
 
 	switch m.GetType() {
 	case MechanismType_VXLAN:
 		if _, err := m.SrcIP(); err != nil {
-			return fmt.Errorf("mechanism.Type %s requires mechanism.Parameters[%s] for VXLAN tunnel, caused by: %+v", m.GetType(), VXLANSrcIP, err)
+			return errors.Wrapf(err, "mechanism.Type %s requires mechanism.Parameters[%s] for VXLAN tunnel", m.GetType(), VXLANSrcIP)
 		}
 
 		if _, err := m.DstIP(); err != nil {
-			return fmt.Errorf("mechanism.Type %s requires mechanism.Parameters[%s] for VXLAN tunnel, caused by: %+v", m.GetType(), VXLANDstIP, err)
+			return errors.Wrapf(err, "mechanism.Type %s requires mechanism.Parameters[%s] for VXLAN tunnel", m.GetType(), VXLANDstIP)
 		}
 
 		if _, err := m.VNI(); err != nil {
-			return fmt.Errorf("mechanism.Type %s requires mechanism.Parameters[%s] for VXLAN tunnel, caused by: %+v", m.GetType(), VXLANVNI, err)
+			return errors.Wrapf(err, "mechanism.Type %s requires mechanism.Parameters[%s] for VXLAN tunnel", m.GetType(), VXLANVNI)
 		}
 	}
 
@@ -103,21 +103,21 @@ func (m *Mechanism) DstIP() (string, error) {
 
 func (m *Mechanism) getIPParameter(name string) (string, error) {
 	if m == nil {
-		return "", fmt.Errorf("mechanism cannot be nil")
+		return "", errors.New("mechanism cannot be nil")
 	}
 
 	if m.GetParameters() == nil {
-		return "", fmt.Errorf("mechanism.Parameters cannot be nil: %v", m)
+		return "", errors.Errorf("mechanism.Parameters cannot be nil: %v", m)
 	}
 
 	ip, ok := m.Parameters[name]
 	if !ok {
-		return "", fmt.Errorf("mechanism.Type %s requires mechanism.Parameters[%s] for the VXLAN tunnel", m.GetType(), name)
+		return "", errors.Errorf("mechanism.Type %s requires mechanism.Parameters[%s] for the VXLAN tunnel", m.GetType(), name)
 	}
 
 	parsedIP := net.ParseIP(ip)
 	if parsedIP == nil {
-		return "", fmt.Errorf("mechanism.Parameters[%s] must be a valid IPv4 or IPv6 address, instead was: %s: %v", name, ip, m)
+		return "", errors.Errorf("mechanism.Parameters[%s] must be a valid IPv4 or IPv6 address, instead was: %s: %v", name, ip, m)
 	}
 
 	return ip, nil
@@ -126,22 +126,22 @@ func (m *Mechanism) getIPParameter(name string) (string, error) {
 // VNI returns the VNI parameter of the Mechanism
 func (m *Mechanism) VNI() (uint32, error) {
 	if m == nil {
-		return 0, fmt.Errorf("mechanism cannot be nil")
+		return 0, errors.New("mechanism cannot be nil")
 	}
 
 	if m.GetParameters() == nil {
-		return 0, fmt.Errorf("mechanism.Parameters cannot be nil: %v", m)
+		return 0, errors.Errorf("mechanism.Parameters cannot be nil: %v", m)
 	}
 
 	vxlanvni, ok := m.Parameters[VXLANVNI]
 	if !ok {
-		return 0, fmt.Errorf("mechanism.Type %s requires mechanism.Parameters[%s]", m.GetType(), VXLANVNI)
+		return 0, errors.Errorf("mechanism.Type %s requires mechanism.Parameters[%s]", m.GetType(), VXLANVNI)
 	}
 
 	vni, err := strconv.ParseUint(vxlanvni, 10, 24)
 
 	if err != nil {
-		return 0, fmt.Errorf("mechanism.Parameters[%s] must be a valid 24-bit unsigned integer, instead was: %s: %v", VXLANVNI, vxlanvni, m)
+		return 0, errors.Wrapf(err, "mechanism.Parameters[%s] must be a valid 24-bit unsigned integer, instead was: %s: %v", VXLANVNI, vxlanvni, m)
 	}
 
 	return uint32(vni), nil

@@ -1,7 +1,7 @@
 package registryserver
 
 import (
-	"fmt"
+	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/registryserver/resourcecache"
 
@@ -122,7 +122,7 @@ func (rc *registryCacheImpl) AddNetworkService(ns *v1.NetworkService) (*v1.Netwo
 
 func (rc *registryCacheImpl) GetNetworkService(name string) (*v1.NetworkService, error) {
 	if ns := rc.networkServiceCache.Get(name); ns == nil {
-		return nil, fmt.Errorf("no NetworkService with name: %v", name)
+		return nil, errors.Errorf("no NetworkService with name: %v", name)
 	} else {
 		return ns, nil
 	}
@@ -187,7 +187,7 @@ func (rc *registryCacheImpl) CreateOrUpdateNetworkServiceManager(nsm *v1.Network
 		attempt++
 	}
 
-	return nil, fmt.Errorf("exceeded the amount of attempts %d", maxAllowedAttempts)
+	return nil, errors.Errorf("exceeded the amount of attempts %d", maxAllowedAttempts)
 }
 
 func (rc *registryCacheImpl) addNetworkServiceManager(nsm *v1.NetworkServiceManager) (*v1.NetworkServiceManager, error) {

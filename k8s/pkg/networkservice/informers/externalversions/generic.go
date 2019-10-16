@@ -19,10 +19,10 @@
 package externalversions
 
 import (
-	"fmt"
-
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
+
+	"github.com/pkg/errors"
 
 	v1alpha1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1alpha1"
 )
@@ -63,5 +63,5 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 
 	}
 
-	return nil, fmt.Errorf("no informer found for %v", resource)
+	return nil, errors.Errorf("no informer found for %v", resource)
 }

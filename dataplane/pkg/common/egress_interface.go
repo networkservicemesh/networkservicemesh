@@ -16,12 +16,13 @@ package common
 
 import (
 	"bufio"
-	"fmt"
 	"io"
 	"net"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/pkg/errors"
 
 	"github.com/sirupsen/logrus"
 )
@@ -88,7 +89,7 @@ func parseProcFile(reader *bufio.Reader) (string, net.IP, error) {
 		}
 	}
 
-	return "", nil, fmt.Errorf("Failed to locate default route...")
+	return "", nil, errors.New("Failed to locate default route...")
 }
 
 func parseGatewayIP(defaultGateway string) net.IP {
@@ -178,11 +179,11 @@ func NewEgressInterface(srcIP net.IP) (EgressInterfaceType, error) {
 					}, nil
 				}
 			default:
-				return nil, fmt.Errorf("Type of addr not net.IPNET")
+				return nil, errors.New("Type of addr not net.IPNET")
 			}
 		}
 	}
-	return nil, fmt.Errorf("unable to find interface with IP: %s", srcIP)
+	return nil, errors.Errorf("unable to find interface with IP: %s", srcIP)
 }
 
 func (e *egressInterface) SrcIPNet() *net.IPNet {

@@ -1,10 +1,10 @@
 package nsm
 
 import (
-	"fmt"
-
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
+
+	"github.com/pkg/errors"
 
 	local_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	local_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
@@ -20,7 +20,7 @@ type endpointClient struct {
 
 func (c *endpointClient) Request(ctx context.Context, request networkservice.Request) (connection.Connection, error) {
 	if c == nil || c.client == nil {
-		return nil, fmt.Errorf("NSE Connection is not initialized...")
+		return nil, errors.New("NSE Connection is not initialized...")
 	}
 
 	response, err := c.client.Request(ctx, request.(*local_networkservice.NetworkServiceRequest))
@@ -32,7 +32,7 @@ func (c *endpointClient) Request(ctx context.Context, request networkservice.Req
 }
 func (c *endpointClient) Cleanup() error {
 	if c == nil || c.client == nil {
-		return fmt.Errorf("NSE Connection is not initialized...")
+		return errors.New("NSE Connection is not initialized...")
 	}
 	var err error
 	if c.connection != nil { // Required for testing
@@ -45,7 +45,7 @@ func (c *endpointClient) Cleanup() error {
 
 func (c *endpointClient) Close(ctx context.Context, conn connection.Connection) error {
 	if c.client == nil {
-		return fmt.Errorf("Remote NSM Connection is already cleaned...")
+		return errors.New("Remote NSM Connection is already cleaned...")
 	}
 	_, err := c.client.Close(ctx, conn.(*local_connection.Connection))
 	_ = c.Cleanup()

@@ -1,7 +1,6 @@
 package converter
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/ligato/vpp-agent/api/configurator"
@@ -11,6 +10,7 @@ import (
 	linux_namespace "github.com/ligato/vpp-agent/api/models/linux/namespace"
 	"github.com/ligato/vpp-agent/api/models/vpp"
 	vpp_interfaces "github.com/ligato/vpp-agent/api/models/vpp/interfaces"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
@@ -33,13 +33,13 @@ func NewKernelConnectionConverter(c *connection.Connection, conversionParameters
 
 func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, connect bool) (*configurator.Config, error) {
 	if c == nil {
-		return rv, fmt.Errorf("LocalConnectionConverter cannot be nil")
+		return rv, errors.New("LocalConnectionConverter cannot be nil")
 	}
 	if err := c.IsComplete(); err != nil {
 		return rv, err
 	}
 	if c.GetMechanism().GetType() != connection.MechanismType_KERNEL_INTERFACE {
-		return rv, fmt.Errorf("KernelConnectionConverter cannot be used on Connection.Mechanism.Type %s", c.GetMechanism().GetType())
+		return rv, errors.Errorf("KernelConnectionConverter cannot be used on Connection.Mechanism.Type %s", c.GetMechanism().GetType())
 	}
 	if rv == nil {
 		rv = &configurator.Config{
@@ -155,13 +155,17 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 		routes = c.Connection.GetContext().GetIpContext().GetSrcRoutes()
 	}
 
+	duplicatedPrefixes := make(map[string]bool)
 	for _, route := range routes {
-		rv.LinuxConfig.Routes = append(rv.LinuxConfig.Routes, &linux.Route{
-			DstNetwork:        route.Prefix,
-			OutgoingInterface: c.conversionParameters.Name,
-			Scope:             linux_l3.Route_GLOBAL,
-			GwAddr:            extractCleanIPAddress(c.Connection.GetContext().GetIpContext().GetDstIpAddr()),
-		})
+		if _, ok := duplicatedPrefixes[route.Prefix]; !ok {
+			duplicatedPrefixes[route.Prefix] = true
+			rv.LinuxConfig.Routes = append(rv.LinuxConfig.Routes, &linux.Route{
+				DstNetwork:        route.Prefix,
+				OutgoingInterface: c.conversionParameters.Name,
+				Scope:             linux_l3.Route_GLOBAL,
+				GwAddr:            extractCleanIPAddress(c.Connection.GetContext().GetIpContext().GetDstIpAddr()),
+			})
+		}
 	}
 
 	// Process IP Neighbor entries

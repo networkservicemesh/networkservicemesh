@@ -398,6 +398,7 @@ func TestLostUpdate(t *testing.T) {
 	defer closeFunc2()
 
 	discovery2, err := sr2.DiscoveryClient(context.Background())
+
 	g.Expect(err).To(BeNil())
 
 	nseRegistryClient2, err := sr2.NseRegistryClient(context.Background())

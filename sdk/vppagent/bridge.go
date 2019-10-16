@@ -17,11 +17,11 @@ package vppagent
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/ligato/vpp-agent/api/models/vpp"
 	l2 "github.com/ligato/vpp-agent/api/models/vpp/l2"
+	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
@@ -77,7 +77,7 @@ func (vbc *bridgeConnect) insertInterfaceIntoBridge(ctx context.Context, conn *c
 	cfg := Config(ctx)
 	conMap := ConnectionMap(ctx)
 	if conMap[conn.GetId()] == nil {
-		return fmt.Errorf("BridgeConnect - context missing ConnectionMap entry for %v", conn)
+		return errors.Errorf("BridgeConnect - context missing ConnectionMap entry for %v", conn)
 	}
 
 	if cfg.VppConfig == nil {

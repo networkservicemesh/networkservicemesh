@@ -29,6 +29,7 @@ func main() {
 	log.Println("Starting nsm-coredns")
 	log.Printf("Version: %v\n", version)
 	defaultConfig := defaultBasicDNSConfig()
+	log.Printf("Default dns config: %v", defaultConfig)
 	updateResolvConfFile()
 	path := parseCorefilePath()
 	if env.UseUpdateAPIEnv.GetBooleanOrDefault(false) {

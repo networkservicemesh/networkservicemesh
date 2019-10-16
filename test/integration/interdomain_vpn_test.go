@@ -25,7 +25,6 @@ const (
 	InterdomainPtNum = 5 // Number of Passthrough Endpoints to deploy
 )
 
-/* Disable Firewall Remote test while vxlan has vni conflict
 func TestInterdomainVPNFirewallRemote(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
@@ -39,7 +38,6 @@ func TestInterdomainVPNFirewallRemote(t *testing.T) {
 		"vpn-gateway-nsc-1":        0,
 	}, false)
 }
-*/
 
 func TestInterdomainVPNNSERemote(t *testing.T) {
 	if testing.Short() {

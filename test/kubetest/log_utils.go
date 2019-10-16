@@ -133,7 +133,7 @@ func showPodLogs(k8s *K8s, t *testing.T, pod *v1.Pod) {
 
 func savePodContainerLog(k8s *K8s, pod *v1.Pod, c *v1.Container, t *testing.T) {
 	name := strings.Join([]string{pod.Name, c.Name}, "-")
-	logs, err := k8s.GetLogs(pod, c.Name)
+	logs, err := k8s.GetFullLogs(pod, c.Name, false)
 	writeLogFunc := logTransaction
 
 	if shouldStoreLogsInFiles() && t != nil {
@@ -143,7 +143,7 @@ func savePodContainerLog(k8s *K8s, pod *v1.Pod, c *v1.Container, t *testing.T) {
 				logrus.Errorf("Can't log in file, reason %v", logErr)
 				logTransaction(name, content)
 			} else {
-				logrus.Infof("Saved log for %v. Check arcive %v.zip in path %v", name, t.Name(), logsDir())
+				logrus.Infof("Saved log for %v. Check archive %v.zip in path %v", name, t.Name(), logsDir())
 			}
 		}
 	}
@@ -151,10 +151,7 @@ func savePodContainerLog(k8s *K8s, pod *v1.Pod, c *v1.Container, t *testing.T) {
 	if err == nil {
 		writeLogFunc(name, logs)
 	}
-	logs, err = k8s.GetLogsWithOptions(pod, &v1.PodLogOptions{
-		Container: c.Name,
-		Previous:  true,
-	})
+	logs, err = k8s.GetFullLogs(pod, c.Name, true)
 	if err == nil {
 		writeLogFunc(name+"-previous", logs)
 	}

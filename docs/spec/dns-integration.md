@@ -9,21 +9,20 @@ Network Service Mesh needs to be able to provide a workload with DNS service fro
 Implementation details (optional)
 ---------------------------------
 
-#### nsm-coredns
+### nsm-coredns
 `nsm-corends` is a docker image based on [coredns](https://github.com/coredns/coredns.io/blob/master/content/manual/what.md). The difference with the original `coredns` in the set of plug-ins. 
 The image uses only next `coredns` plugins:
 * `bind`
 * `hosts`
 * `log`
-* `reload`
 
 Also, it includes special custom plugin `fanout` (see below).	
-#### Fanout plugin
+### Fanout plugin
 `fanout` is custom [plugin for coredns](https://coredns.io/manual/plugins/).
 The fanout plugin re-uses already opened sockets to the upstreams. It supports TCP and DNS-over-TLS and uses in-band health checking. 
 For each incoming DNS query that hits the CoreDNS fanout plugin, it will be replicated in parallel to each listed IP. The first non-negative response from any of the queried DNS Servers will be forwarded as a response to the request.
 
-#### How to use nsm-coredns as the default name server for the pod?
+### Using nsm-coredns as the default name server for the pod
 1) Deploy configmap with corefile content.
 ```
 apiVersion: v1
@@ -71,21 +70,22 @@ spec:
           - ndots: 5
 ...
 ```
-#### nsm-dns-monitor
+### nsm-dns-monitor
 For add to `Network Service Client` possible to dynamically update `DNSConfigs` from connections, you could use nsm-dns-monitor. For example:
 ```
 func main() {
         ...
-	app := nsm_sidecars.NewNSMMonitorApp()
-	app.SetHandler(nsm_sidecars.NewNsmDNSMonitorHandler(
-			nsm_sidecars.DefaultPathToCorefile),
-			nsm_sidecars.DefaultReloadCorefileTime))
-        app.Run()	
+    app := nsmmonitor.NewNSMMonitorApp(common.FromEnv())
+    app.SetHandler(nsmmonitor.NewNsmDNSMonitorHandler())
+    app.Run()
         ...
 }
 ``` 
-Make sure that your pod colocated with `nsm-coredns`. 
+Make sure that your pod colocated with `nsm-coredns` and `nsm-coredns` has [environment variable](https://github.com/networkservicemesh/networkservicemesh/blob/master/docs/env.md) `USE_UPDATE_API=true`.
 See at example of usage `nsm-dns-monitor` in `test/applications/cmd/monitoring-dns-nsc`
+
+### Using nsm-coredns and nsm-dns-monitor without changes client's deployment configuration
+For injection `nsm-coredns` and `nsm-dns-monitor` containers into client's POD on deploy step, you can simply deploy the [admission webhook](https://github.com/networkservicemesh/networkservicemesh/blob/master/docs/spec/admission.md). In this case, you do not need to make any additional changes to the configuration of your deployments. `Admission webhook` will automatically append DNS specific containers to your `Network Service Client`.
 
 Example usage (optional)
 ------------------------

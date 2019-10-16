@@ -5,7 +5,6 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
-	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -13,6 +12,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/security"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
@@ -156,7 +157,7 @@ func SetupNodesConfig(k8s *K8s, nodesCount int, timeout time.Duration, conf []*p
 func deployNSMgrAndDataplane(k8s *K8s, corePods []*v1.Pod, timeout time.Duration) (nsmd, dataplane *v1.Pod, err error) {
 	for _, pod := range corePods {
 		if !k8s.IsPodReady(pod) {
-			return nil, nil, fmt.Errorf("Pod %v is not ready...", pod.Name)
+			return nil, nil, errors.Errorf("Pod %v is not ready...", pod.Name)
 		}
 	}
 	nsmd = corePods[0]
@@ -165,9 +166,21 @@ func deployNSMgrAndDataplane(k8s *K8s, corePods []*v1.Pod, timeout time.Duration
 	k8s.g.Expect(nsmd.Name).To(Equal(corePods[0].Name))
 	k8s.g.Expect(dataplane.Name).To(Equal(corePods[1].Name))
 
-	_ = k8s.WaitLogsContainsRegex(nsmd, "nsmd", "NSM gRPC API Server: .* is operational", timeout)
-	k8s.WaitLogsContains(nsmd, "nsmdp", "nsmdp: successfully started", timeout)
-	k8s.WaitLogsContains(nsmd, "nsmd-k8s", "nsmd-k8s initialized and waiting for connection", timeout)
+	var wg sync.WaitGroup
+	wg.Add(3)
+	go func() {
+		defer wg.Done()
+		_ = k8s.WaitLogsContainsRegex(nsmd, "nsmd", "NSM gRPC API Server: .* is operational", timeout)
+	}()
+	go func() {
+		defer wg.Done()
+		k8s.WaitLogsContains(nsmd, "nsmdp", "nsmdp: successfully started", timeout)
+	}()
+	go func() {
+		defer wg.Done()
+		k8s.WaitLogsContains(nsmd, "nsmd-k8s", "nsmd-k8s initialized and waiting for connection", timeout)
+	}()
+	wg.Wait()
 
 	err = nil
 	return
@@ -619,7 +632,7 @@ func GetNodeInternalIP(node *v1.Node) (string, error) {
 			return node.Status.Addresses[i].Address, nil
 		}
 	}
-	return "", fmt.Errorf("node %s does not have Internal IP address", node.ObjectMeta.Name)
+	return "", errors.Errorf("node %s does not have Internal IP address", node.ObjectMeta.Name)
 }
 
 // GetNodeExternalIP - Pop InternalIP from node addresses
@@ -629,7 +642,7 @@ func GetNodeExternalIP(node *v1.Node) (string, error) {
 			return node.Status.Addresses[i].Address, nil
 		}
 	}
-	return "", fmt.Errorf("node %s does not have Internal IP address", node.ObjectMeta.Name)
+	return "", errors.Errorf("node %s does not have Internal IP address", node.ObjectMeta.Name)
 }
 
 // PrintLogs - Print Client print information
@@ -786,7 +799,7 @@ func getNSEAddr(k8s *K8s, nsc *v1.Pod, parseIP ipParser, showIPCommand ...string
 	response, _, _ := k8s.Exec(nsc, nsc.Spec.Containers[0].Name, showIPCommand...)
 	response = strings.TrimSpace(response)
 	if response == "" {
-		return nil, fmt.Errorf("exec [%v] returned empty response", showIPCommand)
+		return nil, errors.Errorf("exec [%v] returned empty response", showIPCommand)
 	}
 	addr, err := parseIP(response)
 	if err != nil {

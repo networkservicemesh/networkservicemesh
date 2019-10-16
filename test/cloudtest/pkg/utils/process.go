@@ -3,11 +3,12 @@ package utils
 import (
 	"bufio"
 	"context"
-	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"strings"
+
+	"github.com/pkg/errors"
 
 	"github.com/sirupsen/logrus"
 )
@@ -55,7 +56,7 @@ func ExecRead(ctx context.Context, dir string, args []string) ([]string, error) 
 // ExecProc - execute shell command and return ProcWrapper
 func ExecProc(ctx context.Context, dir string, args, env []string) (*ProcWrapper, error) {
 	if len(args) == 0 {
-		return &ProcWrapper{}, fmt.Errorf("missing command to run")
+		return &ProcWrapper{}, errors.New("missing command to run")
 	}
 
 	ctx, cancel := context.WithCancel(ctx)

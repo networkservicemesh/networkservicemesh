@@ -20,6 +20,8 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
 
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
+
 	"github.com/gogo/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/ligato/vpp-agent/api/configurator"
@@ -70,14 +72,16 @@ func (v *VPPAgent) CreateDataplaneServer(config *common.DataplaneConfig) datapla
 
 // MonitorMechanisms sends mechanism updates
 func (v *VPPAgent) MonitorMechanisms(empty *empty.Empty, updateSrv dataplane.MechanismsMonitor_MonitorMechanismsServer) error {
-	logrus.Infof("MonitorMechanisms was called")
+	span := spanhelper.FromContext(context.Background(), "MonitorMecnahisms")
+	defer span.Finish()
+	span.Logger().Infof("MonitorMechanisms was called")
 	initialUpdate := &dataplane.MechanismUpdate{
 		RemoteMechanisms: v.common.Mechanisms.RemoteMechanisms,
 		LocalMechanisms:  v.common.Mechanisms.LocalMechanisms,
 	}
-	logrus.Infof("Sending MonitorMechanisms update: %v", initialUpdate)
+	span.Logger().Infof("Sending MonitorMechanisms update: %v", initialUpdate)
 	if err := updateSrv.Send(initialUpdate); err != nil {
-		logrus.Errorf("vpp-agent dataplane server: Detected error %s, grpc code: %+v on grpc channel", err.Error(), status.Convert(err).Code())
+		span.Logger().Errorf("vpp-agent dataplane server: Detected error %s, grpc code: %+v on grpc channel", err.Error(), status.Convert(err).Code())
 		return nil
 	}
 	for {
@@ -86,12 +90,12 @@ func (v *VPPAgent) MonitorMechanisms(empty *empty.Empty, updateSrv dataplane.Mec
 		// them back to NSM.
 		case update := <-v.common.MechanismsUpdateChannel:
 			v.common.Mechanisms = update
-			logrus.Infof("Sending MonitorMechanisms update: %v", update)
+			span.Logger().Infof("Sending MonitorMechanisms update: %v", update)
 			if err := updateSrv.Send(&dataplane.MechanismUpdate{
 				RemoteMechanisms: update.RemoteMechanisms,
 				LocalMechanisms:  update.LocalMechanisms,
 			}); err != nil {
-				logrus.Errorf("vpp dataplane server: Detected error %s, grpc code: %+v on grpc channel", err.Error(), status.Convert(err).Code())
+				span.Logger().Errorf("vpp dataplane server: Detected error %s, grpc code: %+v on grpc channel", err.Error(), status.Convert(err).Code())
 				return nil
 			}
 		}
@@ -145,7 +149,12 @@ func (v *VPPAgent) programMgmtInterface() error {
 	client := configurator.NewConfiguratorClient(conn)
 
 	vppArpEntries := []*vpp.ARPEntry{}
+	vppArpEntriesMap := make(map[string]bool)
 	for _, arpEntry := range v.common.EgressInterface.ArpEntries() {
+		if _, ok := vppArpEntriesMap[arpEntry.IPAddress]; ok {
+			continue
+		}
+		vppArpEntriesMap[arpEntry.IPAddress] = true
 		vppArpEntries = append(vppArpEntries, &vpp.ARPEntry{
 			Interface:   ManagementInterface,
 			IpAddress:   arpEntry.IPAddress,

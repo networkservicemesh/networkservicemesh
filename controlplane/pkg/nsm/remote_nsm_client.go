@@ -1,10 +1,10 @@
 package nsm
 
 import (
-	"fmt"
-
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
+
+	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/networkservice"
@@ -20,7 +20,7 @@ type nsmClient struct {
 
 func (c *nsmClient) Request(ctx context.Context, request networkservice.Request) (connection.Connection, error) {
 	if c == nil || c.client == nil {
-		return nil, fmt.Errorf("Remote NSM Connection is not initialized...")
+		return nil, errors.New("Remote NSM Connection is not initialized...")
 	}
 
 	response, err := c.client.Request(ctx, request.(*remote_networkservice.NetworkServiceRequest))
@@ -33,7 +33,7 @@ func (c *nsmClient) Request(ctx context.Context, request networkservice.Request)
 
 func (c *nsmClient) Close(ctx context.Context, conn connection.Connection) error {
 	if c == nil || c.client == nil {
-		return fmt.Errorf("Remote NSM Connection is not initialized...")
+		return errors.New("Remote NSM Connection is not initialized...")
 	}
 	_, err := c.client.Close(ctx, conn.(*remote_connection.Connection))
 	_ = c.Cleanup()
@@ -42,7 +42,7 @@ func (c *nsmClient) Close(ctx context.Context, conn connection.Connection) error
 
 func (c *nsmClient) Cleanup() error {
 	if c.client == nil {
-		return fmt.Errorf("Remote NSM Connection is already cleaned...")
+		return errors.Errorf("Remote NSM Connection is already cleaned...")
 	}
 	var err error
 	if c.connection != nil { // Required for testing

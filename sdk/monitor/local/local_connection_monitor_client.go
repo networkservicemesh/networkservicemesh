@@ -6,6 +6,8 @@ import (
 	"github.com/golang/protobuf/ptypes/empty"
 	"google.golang.org/grpc"
 
+	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
 )
@@ -19,7 +21,7 @@ func (s *eventStream) Recv() (interface{}, error) {
 }
 
 func newEventStream(ctx context.Context, cc *grpc.ClientConn) (monitor.EventStream, error) {
-	stream, err := connection.NewMonitorConnectionClient(cc).MonitorConnections(ctx, &empty.Empty{})
+	stream, err := compat.NewLocalMonitorAdapter(cc).MonitorConnections(ctx, &empty.Empty{})
 
 	return &eventStream{
 		MonitorConnection_MonitorConnectionsClient: stream,

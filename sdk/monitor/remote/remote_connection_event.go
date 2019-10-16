@@ -2,7 +2,8 @@ package remote
 
 import (
 	context "context"
-	"fmt"
+
+	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
@@ -45,7 +46,7 @@ func (m *eventFactory) NewEvent(ctx context.Context, eventType monitor.EventType
 func (m *eventFactory) EventFromMessage(ctx context.Context, message interface{}) (monitor.Event, error) {
 	connectionEvent, ok := message.(*connection.ConnectionEvent)
 	if !ok {
-		return nil, fmt.Errorf("unable to cast %v to local.ConnectionEvent", message)
+		return nil, errors.Errorf("unable to cast %v to local.ConnectionEvent", message)
 	}
 
 	eventType, err := connectionEventTypeToEventType(connectionEvent.GetType())
@@ -69,7 +70,7 @@ func eventTypeToConnectionEventType(eventType monitor.EventType) (connection.Con
 	case monitor.EventTypeDelete:
 		return connection.ConnectionEventType_DELETE, nil
 	default:
-		return 0, fmt.Errorf("unable to cast %v to remote.ConnectionEventType", eventType)
+		return 0, errors.Errorf("unable to cast %v to remote.ConnectionEventType", eventType)
 	}
 }
 
@@ -82,7 +83,7 @@ func connectionEventTypeToEventType(connectionEventType connection.ConnectionEve
 	case connection.ConnectionEventType_DELETE:
 		return monitor.EventTypeDelete, nil
 	default:
-		return "", fmt.Errorf("unable to cast %v to monitor.EventType", connectionEventType)
+		return "", errors.Errorf("unable to cast %v to monitor.EventType", connectionEventType)
 	}
 }
 
@@ -93,7 +94,7 @@ func connectionsFromEntities(entities map[string]monitor.Entity) (map[string]*co
 		if conn, ok := v.(*connection.Connection); ok {
 			connections[k] = conn
 		} else {
-			return nil, fmt.Errorf("unable to cast Entity to remote.Connection")
+			return nil, errors.New("unable to cast Entity to remote.Connection")
 		}
 	}
 

@@ -18,13 +18,14 @@ package kernelforwarder
 import (
 	"runtime"
 
+	"github.com/pkg/errors"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	remote "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/utils/fs"
 
-	"fmt"
 	"net"
 
 	"github.com/sirupsen/logrus"
@@ -47,8 +48,9 @@ func handleRemoteConnection(egress common.EgressInterfaceType, crossConnect *cro
 		logrus.Info("remote: connection type - local source/remote destination - outgoing")
 		return handleConnection(egress, crossConnect, connect, cOUTGOING)
 	}
-	logrus.Errorf("remote: invalid connection type")
-	return nil, fmt.Errorf("remote: invalid connection type")
+	err := errors.Errorf("remote: invalid connection type")
+	logrus.Errorf("%+v", err)
+	return nil, err
 }
 
 // handleConnection process the request to either creating or deleting a connection
@@ -58,7 +60,7 @@ func handleConnection(egress common.EgressInterfaceType, crossConnect *crossconn
 	/* 1. Get the connection configuration */
 	cfg, err := newConnectionConfig(crossConnect, direction)
 	if err != nil {
-		logrus.Errorf("remote: failed to get connection configuration - %v", err)
+		logrus.Errorf("remote: failed to get connection configuration - %+v", err)
 		return nil, err
 	}
 

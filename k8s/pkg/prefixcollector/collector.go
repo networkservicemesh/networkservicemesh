@@ -1,10 +1,10 @@
 package prefixcollector
 
 import (
-	"fmt"
 	"os"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/yaml"
@@ -66,10 +66,10 @@ func getExcludedPrefixesFromConfigMap(clientset *kubernetes.Clientset) ([]string
 	serviceSubnet := clusterConfiguration.Networking.ServiceSubnet
 
 	if podSubnet == "" {
-		return nil, fmt.Errorf("ClusterConfiguration.Networking.PodSubnet is empty")
+		return nil, errors.New("ClusterConfiguration.Networking.PodSubnet is empty")
 	}
 	if serviceSubnet == "" {
-		return nil, fmt.Errorf("ClusterConfiguration.Networking.ServiceSubnet is empty")
+		return nil, errors.New("ClusterConfiguration.Networking.ServiceSubnet is empty")
 	}
 
 	return []string{

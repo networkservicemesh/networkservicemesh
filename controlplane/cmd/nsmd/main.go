@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
@@ -66,13 +68,13 @@ func main() {
 
 	model := model.NewModel() // This is TCP gRPC server uri to access this NSMD via network.
 	defer serviceRegistry.Stop()
-	manager := nsm.NewNetworkServiceManager(model, serviceRegistry, pluginRegistry)
+	manager := nsm.NewNetworkServiceManager(span.Context(), model, serviceRegistry, pluginRegistry)
 
 	var server nsmd.NSMServer
 	var srvErr error
 	// Start NSMD server first, load local NSE/client registry and only then start dataplane/wait for it and recover active connections.
 
-	if server, srvErr = nsmd.StartNSMServer(span.Context(), model, manager, serviceRegistry, apiRegistry); srvErr != nil {
+	if server, srvErr = nsmd.StartNSMServer(span.Context(), model, manager, apiRegistry); srvErr != nil {
 		logrus.Errorf("error starting nsmd service: %+v", srvErr)
 		return
 	}
@@ -86,19 +88,19 @@ func main() {
 	nsmdGoals.SetNsmServerReady()
 
 	// Register CrossConnect monitorCrossConnectServer client as ModelListener
-	monitorCrossConnectClient := nsmd.NewMonitorCrossConnectClient(server, server.XconManager(), server)
+	monitorCrossConnectClient := nsmd.NewMonitorCrossConnectClient(model, server, server.XconManager(), server)
 	model.AddListener(monitorCrossConnectClient)
 
 	// Starting dataplane
 	logrus.Info("Starting Dataplane registration server...")
-	if err := server.StartDataplaneRegistratorServer(); err != nil {
-		span.LogError(fmt.Errorf("error starting dataplane service: %+v", err))
+	if err := server.StartDataplaneRegistratorServer(span.Context()); err != nil {
+		span.LogError(errors.Wrap(err, "error starting dataplane service"))
 		return
 	}
 
 	// Wait for dataplane to be connecting to us
 	if err := manager.WaitForDataplane(span.Context(), nsmd.DataplaneTimeout); err != nil {
-		span.LogError(fmt.Errorf("error waiting for dataplane: %+v", err))
+		span.LogError(errors.Wrap(err, "error waiting for dataplane"))
 		return
 	}
 
@@ -110,7 +112,7 @@ func main() {
 	span.LogObject("api-address", nsmdAPIAddress)
 	sock, err := apiRegistry.NewPublicListener(nsmdAPIAddress)
 	if err != nil {
-		span.LogError(fmt.Errorf("failed to start Public API server: %+v", err))
+		span.LogError(errors.Wrap(err, "failed to start Public API server: %+v"))
 		return
 	}
 	span.Logger().Info("Public listener is ready")

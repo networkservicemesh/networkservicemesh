@@ -225,7 +225,7 @@ func PerformTesting(config *config.CloudTestConfig, factory k8s.ValidationFactor
 func parseConfig(cloudTestConfig *config.CloudTestConfig, configFileContent []byte) error {
 	err := yaml.Unmarshal(configFileContent, cloudTestConfig)
 	if err != nil {
-		err = fmt.Errorf("failed to parse configuration file: %v", err)
+		err = errors.Wrap(err, "failed to parse configuration file")
 		logrus.Errorf(err.Error())
 		return err
 	}
@@ -268,6 +268,9 @@ func (ctx *executionContext) performExecution() error {
 	defer cancelFunc()
 
 	termChannel := tools.NewOSSignalChannel()
+	timectx, cancelfunc := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancelfunc()
+
 	for len(ctx.tasks) > 0 || len(ctx.running) > 0 {
 		// WE take 1 test task from list and do execution.
 		ctx.assignTasks()
@@ -283,13 +286,15 @@ func (ctx *executionContext) performExecution() error {
 				// Remove from running onces.
 				ctx.processTaskUpdate(event)
 			}
-		case <-time.After(30 * time.Second):
+		case <-timectx.Done():
 			ctx.printStatistics()
+			timectx, cancelfunc = context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancelfunc()
 		case <-termChannel:
-			return fmt.Errorf("termination request is received")
+			return errors.New("termination request is received")
 		case <-timeoutCtx.Done():
 			ctx.printStatistics()
-			return fmt.Errorf("global timeout elapsed: %v seconds", ctx.cloudTestConfig.Timeout)
+			return errors.Errorf("global timeout elapsed: %v seconds", ctx.cloudTestConfig.Timeout)
 		}
 	}
 	logrus.Infof("Completed tasks %v Tasks left: %v", len(ctx.completed), len(ctx.tasks))
@@ -468,6 +473,8 @@ func (ctx *executionContext) printStatistics() {
 	skippedTests := 0
 	timeoutTests := 0
 
+	failedNames := ""
+
 	for _, t := range ctx.completed {
 		switch t.test.Status {
 		case model.StatusSuccess:
@@ -478,6 +485,7 @@ func (ctx *executionContext) printStatistics() {
 			skippedTests++
 		case model.StatusFailed:
 			failedTests++
+			failedNames += "\n\t\t" + t.test.Name
 		case model.StatusSkippedSinceNoClusters:
 			skippedTests++
 		}
@@ -490,9 +498,9 @@ func (ctx *executionContext) printStatistics() {
 		fmt.Sprintf("\n\t		Remaining: %v (%d).\n", remaining, len(ctx.running)+len(ctx.tasks)) +
 		fmt.Sprintf("%s%s", running, clustersMsg) +
 		fmt.Sprintf("\n\tStatus  Passed: %d"+
-			"\n\tStatus  Failed: %d"+
+			"\n\tStatus  Failed: %d%v"+
 			"\n\tStatus  Timeout: %d"+
-			"\n\tStatus  Skipped: %d", successTests, failedTests, timeoutTests, skippedTests))
+			"\n\tStatus  Skipped: %d", successTests, failedTests, failedNames, timeoutTests, skippedTests))
 }
 
 func fromClusterState(state clusterState) string {
@@ -628,7 +636,7 @@ func (ctx *executionContext) startTask(task *testTask, instances []*clusterInsta
 	case model.TestEntryKindGoTest:
 		runner = runners.NewGoTestRunner(ids, task.test, timeout)
 	default:
-		return fmt.Errorf("invalid task runner")
+		return errors.New("invalid task runner")
 	}
 
 	ctx.executeTask(task, clusterConfigs, file, ids, runner, timeout, instances, err, fileName)
@@ -958,7 +966,7 @@ func (ctx *executionContext) createClusters() error {
 			if !ok {
 				msg := fmt.Sprintf("Cluster provider %s are not found...", cl.Kind)
 				logrus.Errorf(msg)
-				return fmt.Errorf(msg)
+				return errors.New(msg)
 			}
 			instances := []*clusterInstance{}
 			group := &clustersGroup{
@@ -972,7 +980,7 @@ func (ctx *executionContext) createClusters() error {
 				if err != nil {
 					msg := fmt.Sprintf("Failed to create cluster instance. Error %v", err)
 					logrus.Errorf(msg)
-					return fmt.Errorf(msg)
+					return errors.New(msg)
 				}
 				instances = append(instances, &clusterInstance{
 					instance:  cluster,
@@ -986,7 +994,7 @@ func (ctx *executionContext) createClusters() error {
 			if len(instances) == 0 {
 				msg := fmt.Sprintf("No instances are specified for %s.", cl.Name)
 				logrus.Errorf(msg)
-				return fmt.Errorf(msg)
+				return errors.New(msg)
 			}
 			ctx.clusters = append(ctx.clusters, group)
 		}
@@ -994,7 +1002,7 @@ func (ctx *executionContext) createClusters() error {
 	if len(ctx.clusters) == 0 {
 		msg := "there is no clusters defined. Exiting"
 		logrus.Errorf(msg)
-		return fmt.Errorf(msg)
+		return errors.New(msg)
 	}
 	return nil
 }
@@ -1003,7 +1011,7 @@ func (ctx *executionContext) findTests() error {
 	logrus.Infof("Finding tests")
 	for _, exec := range ctx.cloudTestConfig.Executions {
 		if exec.Name == "" {
-			return fmt.Errorf("execution name should be specified")
+			return errors.New("execution name should be specified")
 		}
 		if exec.Kind == "" || exec.Kind == "gotest" {
 			tests, err := ctx.findGoTest(exec)
@@ -1019,13 +1027,13 @@ func (ctx *executionContext) findTests() error {
 				ctx.tests = append(ctx.tests, tests...)
 			}
 		} else {
-			return fmt.Errorf("unknown executon kind %v", exec.Kind)
+			return errors.Errorf("unknown executon kind %v", exec.Kind)
 		}
 	}
 	// If we have execution without tags, we need to remove all tests from it from tagged executions.
 	logrus.Infof("Total tests found: %v", len(ctx.tests))
 	if len(ctx.tests) == 0 {
-		return fmt.Errorf("there is no tests defined")
+		return errors.New("there is no tests defined")
 	}
 	return nil
 }
@@ -1056,7 +1064,17 @@ func (ctx *executionContext) findGoTest(executionConfig *config.ExecutionConfig)
 	for _, t := range execTests {
 		t.Kind = model.TestEntryKindGoTest
 		t.ExecutionConfig = executionConfig
-		result = append(result, t)
+		match := true
+		for _, v := range executionConfig.OnlyRun {
+			match = false
+			if v == t.Name {
+				match = true
+				break
+			}
+		}
+		if match {
+			result = append(result, t)
+		}
 	}
 	return result, nil
 }
@@ -1119,7 +1137,7 @@ func (ctx *executionContext) generateJUnitReportFile() (*reporting.JUnitFile, er
 		ctx.manager.AddFile(ctx.cloudTestConfig.Reporting.JUnitReportFile, output)
 	}
 	if totalFailures > 0 {
-		return ctx.report, fmt.Errorf("there is failed tests %v", totalFailures)
+		return ctx.report, errors.Errorf("there is failed tests %v", totalFailures)
 	}
 	return ctx.report, nil
 }
@@ -1232,7 +1250,7 @@ func createClusterProviders(manager execmanager.ExecutionManager) (map[string]pr
 		if _, ok := clusterProviders[key]; ok {
 			msg := fmt.Sprintf("Re-definition of cluster provider... Exiting")
 			logrus.Errorf(msg)
-			return nil, fmt.Errorf(msg)
+			return nil, errors.New(msg)
 		}
 		root, err := manager.GetRoot(key)
 		if err != nil {

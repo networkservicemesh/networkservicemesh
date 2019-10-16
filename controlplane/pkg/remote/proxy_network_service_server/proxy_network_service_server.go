@@ -2,10 +2,11 @@ package proxynetworkserviceserver
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/utils/interdomain"
 
@@ -50,7 +51,7 @@ func (srv *proxyNetworkServiceServer) Request(ctx context.Context, request *remo
 	destNsmName := request.Connection.DestinationNetworkServiceManagerName
 	dNsmName, dNsmAddress, err := interdomain.ParseNsmURL(destNsmName)
 	if err != nil {
-		return nil, fmt.Errorf("ProxyNSMD: Failed to extract destination nsm address")
+		return nil, errors.New("ProxyNSMD: Failed to extract destination nsm address")
 	}
 
 	request.Connection.DestinationNetworkServiceManagerName = dNsmName
@@ -116,12 +117,14 @@ func (srv *proxyNetworkServiceServer) Request(ctx context.Context, request *remo
 		}
 	}()
 
-	localSrcIP := request.MechanismPreferences[0].Parameters["src_ip"]
+	localSrcIP := request.MechanismPreferences[0].Parameters[remote_connection.VXLANSrcIP]
+	request.MechanismPreferences[0].Parameters[remote_connection.VXLANDstExternalIP] = dNsmAddress[:strings.Index(dNsmAddress, ":")]
 
 	localNodeIPConfiguration, err := localClusterInfoClient.GetNodeIPConfiguration(ctx, &clusterinfo.NodeIPConfiguration{InternalIP: localSrcIP})
 	if err == nil {
 		if len(localNodeIPConfiguration.ExternalIP) > 0 {
-			request.MechanismPreferences[0].Parameters["src_ip"] = localNodeIPConfiguration.ExternalIP
+			request.MechanismPreferences[0].Parameters[remote_connection.VXLANSrcIP] = localNodeIPConfiguration.ExternalIP
+			request.MechanismPreferences[0].Parameters[remote_connection.VXLANSrcOriginalIP] = localSrcIP
 		}
 	}
 
@@ -144,11 +147,11 @@ func (srv *proxyNetworkServiceServer) Request(ctx context.Context, request *remo
 	remoteNodeIPConfiguration, err := remoteClusterInfoClient.GetNodeIPConfiguration(ctx, &clusterinfo.NodeIPConfiguration{InternalIP: response.Mechanism.Parameters["dst_ip"]})
 	if err == nil {
 		if len(remoteNodeIPConfiguration.ExternalIP) > 0 {
-			response.Mechanism.Parameters["dst_ip"] = remoteNodeIPConfiguration.ExternalIP
+			response.Mechanism.Parameters[remote_connection.VXLANDstIP] = remoteNodeIPConfiguration.ExternalIP
 		}
 	}
 
-	response.Mechanism.Parameters["src_ip"] = localSrcIP
+	response.Mechanism.Parameters[remote_connection.VXLANSrcIP] = localSrcIP
 	response.DestinationNetworkServiceManagerName = destNsmName
 	response.NetworkService = originalNetworkService
 
@@ -163,7 +166,7 @@ func (srv *proxyNetworkServiceServer) Close(ctx context.Context, connection *rem
 	destNsmName := connection.DestinationNetworkServiceManagerName
 	dNsmName, dNsmAddress, err := interdomain.ParseNsmURL(destNsmName)
 	if err != nil {
-		return nil, fmt.Errorf("ProxyNSMD: Failed to extract destination nsm address")
+		return nil, errors.Errorf("ProxyNSMD: Failed to extract destination nsm address")
 	}
 
 	dNsm := &registry.NetworkServiceManager{

@@ -25,7 +25,9 @@ func (c *connect) Request(ctx context.Context, crossConnect *crossconnect.CrossC
 	}
 	defer func() {
 		err := close()
-		Logger(ctx).Errorf("An error during closing configuration client: %v", err)
+		if err != nil {
+			Logger(ctx).Errorf("An error during closing configuration client: %v", err)
+		}
 	}()
 	if next := Next(ctx); next != nil {
 		return next.Request(nextCtx, crossConnect)
@@ -40,10 +42,16 @@ func (c *connect) Close(ctx context.Context, crossConnect *crossconnect.CrossCon
 	}
 	defer func() {
 		err := close()
-		Logger(ctx).Errorf("An error during closing configuration client: %v", err)
+		if err != nil {
+			Logger(ctx).Errorf("An error during closing configuration client: %v", err)
+		}
 	}()
 	if next := Next(ctx); next != nil {
-		return next.Close(nextCtx, crossConnect)
+		_, err = next.Close(nextCtx, crossConnect)
+		if err != nil {
+			Logger(ctx).Errorf("An error during closing connection: %v", err)
+		}
+		return new(empty.Empty), nil
 	}
 	return new(empty.Empty), nil
 }

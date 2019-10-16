@@ -4,6 +4,9 @@ import (
 	"context"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/opentracing/opentracing-go"
+
+	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
@@ -18,17 +21,20 @@ const (
 	// ClientConnectionReady means connection is in state 'ready'
 	ClientConnectionReady ClientConnectionState = 0
 
-	// ClientConnectionRequesting means connection waits answer from NSE or Dp
+	// ClientConnectionRequesting means connection - is trying to be established for first time.
 	ClientConnectionRequesting ClientConnectionState = 1
 
 	// ClientConnectionBroken means connection failed requesting
 	ClientConnectionBroken ClientConnectionState = 2
 
-	// ClientConnectionHealing means connection is in 'healing' state
-	ClientConnectionHealing ClientConnectionState = 3
+	// ClientConnectionHealingBegin means connection - is trying to be updated or to be healed.
+	ClientConnectionHealingBegin ClientConnectionState = 3
+
+	// ClientConnectionHealing means connection - is in progress of being updated or to be healed.
+	ClientConnectionHealing ClientConnectionState = 4
 
 	// ClientConnectionClosing means connection is started closing process
-	ClientConnectionClosing ClientConnectionState = 4
+	ClientConnectionClosing ClientConnectionState = 5
 )
 
 // ClientConnection struct in model that describes cross connect between NetworkServiceClient and NetworkServiceEndpoint
@@ -41,6 +47,8 @@ type ClientConnection struct {
 	DataplaneRegisteredName string
 	ConnectionState         ClientConnectionState
 	DataplaneState          DataplaneState
+	Span                    opentracing.Span
+	Monitor                 monitor.Server
 }
 
 // GetID returns id of clientConnection
@@ -61,6 +69,9 @@ func (cc *ClientConnection) GetNetworkService() string {
 
 // GetConnectionSource returns source part of connection
 func (cc *ClientConnection) GetConnectionSource() connection.Connection {
+	if cc.Xcon == nil {
+		return nil
+	}
 	return cc.Xcon.GetSourceConnection()
 }
 
@@ -104,6 +115,8 @@ func (cc *ClientConnection) clone() cloneable {
 		Request:                 request,
 		ConnectionState:         cc.ConnectionState,
 		DataplaneState:          cc.DataplaneState,
+		Span:                    cc.Span,
+		Monitor:                 cc.Monitor,
 	}
 }
 
@@ -138,8 +151,8 @@ func (d *clientConnectionDomain) GetAllClientConnections() []*ClientConnection {
 	return rv
 }
 
-func (d *clientConnectionDomain) DeleteClientConnection(ctx context.Context, id string) {
-	d.delete(ctx, id)
+func (d *clientConnectionDomain) DeleteClientConnection(ctx context.Context, connectionID string) {
+	d.delete(ctx, connectionID)
 }
 
 func (d *clientConnectionDomain) UpdateClientConnection(ctx context.Context, cc *ClientConnection) {

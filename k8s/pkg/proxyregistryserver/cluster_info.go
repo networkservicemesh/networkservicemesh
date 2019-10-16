@@ -1,13 +1,13 @@
 package proxyregistryserver
 
 import (
-	"fmt"
-
 	"golang.org/x/net/context"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+
+	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/clusterinfo"
 )
@@ -61,5 +61,5 @@ func (k *k8sClusterInfo) GetNodeIPConfiguration(ctx context.Context, nodeIPConfi
 		}
 	}
 
-	return nil, fmt.Errorf("node was not found: %v", nodeIPConfiguration)
+	return nil, errors.Errorf("node was not found: %v", nodeIPConfiguration)
 }

@@ -128,12 +128,12 @@ func TestUpdatingExistingNetworkServiceManager(t *testing.T) {
 	nsm := FakeNsm("fake")
 	_, err = cache.CreateOrUpdateNetworkServiceManager(nsm)
 	g.Expect(err).Should(BeNil())
-	nsm.Status.URL = "update"
+	nsm.Spec.URL = "update"
 	_, err = cache.CreateOrUpdateNetworkServiceManager(nsm)
 	g.Expect(err).Should(BeNil())
 	val, ok := serverData.Load("fake")
 	g.Expect(ok).Should(Equal(true))
-	g.Expect(val.(v1.NetworkServiceManager).Status.URL).Should(Equal("update"))
+	g.Expect(val.(v1.NetworkServiceManager).Spec.URL).Should(Equal("update"))
 
 }
 func TestUpdatingNotExistingNetworkServiceManager(t *testing.T) {
@@ -148,10 +148,10 @@ func TestUpdatingNotExistingNetworkServiceManager(t *testing.T) {
 	nsm.ResourceVersion = "1"
 	serverData.Store(nsm.Name, nsm.DeepCopy())
 	g.Expect(err).Should(BeNil())
-	nsm.Status.URL = "update"
+	nsm.Spec.URL = "update"
 	_, err = cache.CreateOrUpdateNetworkServiceManager(nsm)
 	g.Expect(err).Should(BeNil())
 	val, ok := serverData.Load("fake")
 	g.Expect(ok).Should(Equal(true))
-	g.Expect(val.(v1.NetworkServiceManager).Status.URL).Should(Equal("update"))
+	g.Expect(val.(v1.NetworkServiceManager).Spec.URL).Should(Equal("update"))
 }
