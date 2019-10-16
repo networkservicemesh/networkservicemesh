@@ -97,6 +97,7 @@ linters:
     - varcheck  # deprecated
     - unused  # deprecated
     - goimports
+    - dupl
   enable-all: true
 issues:
   exclude-use-default: false

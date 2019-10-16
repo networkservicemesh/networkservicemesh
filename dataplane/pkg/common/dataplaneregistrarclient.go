@@ -137,7 +137,7 @@ func (dr *DataplaneRegistration) livenessMonitor(ctx context.Context) {
 					dr.onDisconnect()
 					dr.wasRegistered = false
 				}
-				go dr.register(ctx)
+				go dr.register(ctx) // Use base ctx, to not go into deep
 				return
 			}
 		}

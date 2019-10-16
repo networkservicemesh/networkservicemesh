@@ -13,6 +13,8 @@ import (
 
 	"github.com/pkg/errors"
 
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
+
 	"github.com/networkservicemesh/networkservicemesh/pkg/probes"
 	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
 
@@ -24,12 +26,12 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	local_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	local_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
-	nsm2 "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsmdapi"
 	pluginsapi "github.com/networkservicemesh/networkservicemesh/controlplane/api/plugins"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
+	nsm2 "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
@@ -70,10 +72,12 @@ type nsmdTestServiceDiscovery struct {
 }
 
 func (impl *nsmdTestServiceDiscovery) RegisterNSE(ctx context.Context, in *registry.NSERegistration, opts ...grpc.CallOption) (*registry.NSERegistration, error) {
-	logrus.Infof("Register NSE: %v", in)
+	logrus.Infof("Test Register NSE: %v", in)
 
 	if in.GetNetworkService() != nil {
+		impl.storage.Lock()
 		impl.storage.services[in.GetNetworkService().GetName()] = in.GetNetworkService()
+		impl.storage.Unlock()
 	}
 	if in.GetNetworkServiceManager() != nil {
 		in.NetworkServiceManager.Name = impl.nsmgrName
@@ -230,15 +234,18 @@ func (impl *nsmdTestServiceRegistry) WorkspaceName(endpoint *registry.NSERegistr
 }
 
 func (impl *nsmdTestServiceRegistry) RemoteNetworkServiceClient(ctx context.Context, nsm *registry.NetworkServiceManager) (remote_networkservice.NetworkServiceClient, *grpc.ClientConn, error) {
-	err := tools.WaitForPortAvailable(context.Background(), "tcp", nsm.Url, 100*time.Millisecond)
+	span := spanhelper.FromContext(ctx, "RemoteNetworkServiceClient")
+	defer span.Finish()
+	err := tools.WaitForPortAvailable(span.Context(), "tcp", nsm.Url, 100*time.Millisecond)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	logrus.Println("Remote Network Service is available, attempting to connect...")
-	conn, err := tools.DialTCP(nsm.GetUrl())
+	span.Logger().Info("Remote Network Service is available, attempting to connect...")
+	conn, err := tools.DialContextTCP(span.Context(), nsm.GetUrl())
+	span.LogError(err)
 	if err != nil {
-		logrus.Errorf("Failed to dial Network Service Registry at %s: %s", nsm.Url, err)
+		span.Logger().Errorf("Failed to dial Network Service Registry at %s: %s", nsm.Url, err)
 		return nil, nil, err
 	}
 	client := compat.NewRemoteNetworkServiceClient(conn)
@@ -332,22 +339,26 @@ func (impl *nsmdTestServiceRegistry) DataplaneConnection(ctx context.Context, da
 	return impl.testDataplaneConnection, nil, nil
 }
 
-func (impl *nsmdTestServiceRegistry) NSMDApiClient() (nsmdapi.NSMDClient, *grpc.ClientConn, error) {
+func (impl *nsmdTestServiceRegistry) NSMDApiClient(ctx context.Context) (nsmdapi.NSMDClient, *grpc.ClientConn, error) {
+	span := spanhelper.FromContext(ctx, "NSMDApiClient")
+	defer span.Finish()
 	addr := fmt.Sprintf("%s:%d", "127.0.0.1", impl.apiRegistry.nsmdPort)
-	logrus.Infof("Connecting to nsmd on socket: %s...", addr)
+	span.Logger().Infof("Connecting to nsmd on socket: %s...", addr)
 
 	// Wait to be sure it is already initialized
-	err := tools.WaitForPortAvailable(context.Background(), "tcp", addr, 100*time.Millisecond)
+	err := tools.WaitForPortAvailable(span.Context(), "tcp", addr, 100*time.Millisecond)
+	span.LogError(err)
 	if err != nil {
 		return nil, nil, err
 	}
-	conn, err := tools.DialTCP(addr)
+	conn, err := tools.DialContextTCP(span.Context(), addr)
 	if err != nil {
-		logrus.Errorf("Failed to dial Network Service Registry at %s: %s", addr, err)
+		err = errors.Errorf("failed to dial Network Service Registry at %s: %s", addr, err)
+		span.LogError(err)
 		return nil, nil, err
 	}
 
-	logrus.Info("Requesting nsmd for client connection...")
+	span.Logger().Info("Requesting nsmd for client connection...")
 	return nsmdapi.NewNSMDClient(conn), conn, nil
 }
 
@@ -355,15 +366,15 @@ func (impl *nsmdTestServiceRegistry) GetPublicAPI() string {
 	return fmt.Sprintf("%s:%d", "127.0.0.1", impl.apiRegistry.nsmdPublicPort)
 }
 
-func (impl *nsmdTestServiceRegistry) DiscoveryClient(ctx context.Context) (registry.NetworkServiceDiscoveryClient, error) {
+func (impl *nsmdTestServiceRegistry) DiscoveryClient(context.Context) (registry.NetworkServiceDiscoveryClient, error) {
 	return impl.nseRegistry, nil
 }
 
-func (impl *nsmdTestServiceRegistry) NseRegistryClient(ctx context.Context) (registry.NetworkServiceRegistryClient, error) {
+func (impl *nsmdTestServiceRegistry) NseRegistryClient(context.Context) (registry.NetworkServiceRegistryClient, error) {
 	return impl.nseRegistry, nil
 }
 
-func (impl *nsmdTestServiceRegistry) NsmRegistryClient(ctx context.Context) (registry.NsmRegistryClient, error) {
+func (impl *nsmdTestServiceRegistry) NsmRegistryClient(context.Context) (registry.NsmRegistryClient, error) {
 	return impl.nseRegistry, nil
 }
 
@@ -506,7 +517,7 @@ func (srv *nsmdFullServerImpl) CreateNSClient(response *nsmdapi.ClientConnection
 }
 
 func (srv *nsmdFullServerImpl) RequestNSM(clientName string) *nsmdapi.ClientConnectionReply {
-	client, con, err := srv.serviceRegistry.NSMDApiClient()
+	client, con, err := srv.serviceRegistry.NSMDApiClient(context.Background())
 	if err != nil {
 		panic(err)
 	}
@@ -560,7 +571,7 @@ func newNSMDFullServerAt(ctx context.Context, nsmgrName string, storage *sharedS
 	}
 
 	srv.TestModel = model.NewModel()
-	srv.manager = nsm.NewNetworkServiceManager(srv.TestModel, srv.serviceRegistry, srv.pluginRegistry)
+	srv.manager = nsm.NewNetworkServiceManager(ctx, srv.TestModel, srv.serviceRegistry, srv.pluginRegistry)
 
 	// Choose a public API listener
 	sock, err := srv.apiRegistry.NewPublicListener("127.0.0.1:0")
@@ -570,13 +581,13 @@ func newNSMDFullServerAt(ctx context.Context, nsmgrName string, storage *sharedS
 	}
 
 	// Lets start NSMD NSE registry service
-	nsmServer, err := nsmd.StartNSMServer(ctx, srv.TestModel, srv.manager, srv.serviceRegistry, srv.apiRegistry)
+	nsmServer, err := nsmd.StartNSMServer(ctx, srv.TestModel, srv.manager, srv.apiRegistry)
 	srv.nsmServer = nsmServer
 	if err != nil {
 		panic(err)
 	}
 
-	monitorCrossConnectClient := nsmd.NewMonitorCrossConnectClient(nsmServer, nsmServer.XconManager(), srv.nsmServer)
+	monitorCrossConnectClient := nsmd.NewMonitorCrossConnectClient(srv.TestModel, nsmServer, nsmServer.XconManager(), srv.nsmServer)
 	srv.TestModel.AddListener(monitorCrossConnectClient)
 	probes := probes.New("Test probes", nil)
 

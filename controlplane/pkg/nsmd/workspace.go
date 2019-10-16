@@ -122,7 +122,7 @@ func registerWorkspaceServices(span spanhelper.SpanHelper, w *Workspace, nsm *ns
 	w.monitorConnectionServer = local.NewMonitorServer()
 
 	span.Logger().Infof("Creating new NetworkServiceServer")
-	w.networkServiceServer = NewNetworkServiceServer(nsm.model, w, nsm.manager, nsm.serviceRegistry)
+	w.networkServiceServer = NewNetworkServiceServer(nsm.model, w, nsm.manager)
 
 	span.Logger().Infof("Creating new GRPC MonitorServer")
 	w.grpcServer = tools.NewServer(span.Context())

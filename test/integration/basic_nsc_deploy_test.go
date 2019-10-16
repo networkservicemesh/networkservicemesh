@@ -4,6 +4,7 @@ package nsmd_integration_tests
 
 import (
 	"testing"
+	"time"
 
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
@@ -35,7 +36,7 @@ func TestDeployPodIntoInvalidEnv(t *testing.T) {
 		return
 	}
 
-	nsmdPodNode1, err := k8s.CreatePodsRaw(fastTimeout, false, pods.NSCPod("nsc-1", &nodes[0], map[string]string{}))
+	nsmdPodNode1, err := k8s.CreatePodsRaw(3*time.Second, false, pods.NSCPod("nsc-1", &nodes[0], map[string]string{}))
 	g.Expect(len(nsmdPodNode1)).To(Equal(1))
 
 	k8s.DeletePods(nsmdPodNode1...)
