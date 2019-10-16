@@ -13,7 +13,7 @@ func TestParseGatewayZero(t *testing.T) {
 	g := NewWithT(t)
 
 	gw, err := parseGatewayIP("0")
-	g.Expect(err.Error()).To(Equal("Failed to locate default route..."))
+	g.Expect(err.Error()).To(Equal("Failed to parse IP from string"))
 	g.Expect(gw.IsUnspecified()).To(BeTrue())
 }
 func TestParseDefaultGateway(t *testing.T) {
