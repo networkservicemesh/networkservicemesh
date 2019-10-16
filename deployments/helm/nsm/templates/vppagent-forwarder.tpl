@@ -27,7 +27,7 @@ spec:
 {{- else }}
               value: "false"
 {{- end }}
-            - name: NSM_DATAPLANE_SRC_IP
+            - name: NSM_FORWARDER_SRC_IP
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP

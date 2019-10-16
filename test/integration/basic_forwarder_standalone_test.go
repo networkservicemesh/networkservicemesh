@@ -348,8 +348,8 @@ func forwarderPodTemplate(plane string, node *v1.Node) *v1.Pod {
 	forwarderName := fmt.Sprintf("nsmd-forwarder-%s", node.Name)
 	forwarder := pods.ForwardingPlane(forwarderName, node, plane)
 	setupEnvVariables(forwarder, map[string]string{
-		"DATAPLANE_SOCKET_TYPE": forwarderSocketType,
-		"DATAPLANE_SOCKET":      fmt.Sprintf("0.0.0.0:%d", forwarderPort),
+		"FORWARDER_SOCKET_TYPE": forwarderSocketType,
+		"FORWARDER_SOCKET":      fmt.Sprintf("0.0.0.0:%d", forwarderPort),
 	})
 	exposePorts(forwarder,
 		v1.ContainerPort{

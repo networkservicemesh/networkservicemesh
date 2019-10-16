@@ -45,21 +45,21 @@ type NSMDataplane interface {
 const (
 	NSMBaseDirKey                        = "NSM_BASEDIR"
 	NSMBaseDirDefault                    = "/var/lib/networkservicemesh/"
-	DataplaneRegistrarSocketKey          = "DATAPLANE_REGISTRAR_SOCKET"
+	DataplaneRegistrarSocketKey          = "FORWARDER_REGISTRAR_SOCKET"
 	DataplaneRegistrarSocketDefault      = "/var/lib/networkservicemesh/nsm.forwarder-registrar.io.sock"
-	DataplaneRegistrarSocketTypeKey      = "DATAPLANE_REGISTRAR_SOCKET_TYPE"
+	DataplaneRegistrarSocketTypeKey      = "FORWARDER_REGISTRAR_SOCKET_TYPE"
 	DataplaneRegistrarSocketTypeDefault  = "unix"
 	DataplaneMetricsEnabledKey           = "METRICS_COLLECTOR_ENABLED"
 	DataplaneMetricsEnabledDefault       = false
 	DataplaneMetricsRequestPeriodKey     = "METRICS_COLLECTOR_REQUEST_PERIOD"
 	DataplaneMetricsRequestPeriodDefault = time.Second * 2
-	DataplaneNameKey                     = "DATAPLANE_NAME"
+	DataplaneNameKey                     = "FORWARDER_NAME"
 	DataplaneNameDefault                 = "vppagent"
-	DataplaneSocketKey                   = "DATAPLANE_SOCKET"
+	DataplaneSocketKey                   = "FORWARDER_SOCKET"
 	DataplaneSocketDefault               = "/var/lib/networkservicemesh/nsm-vppagent.forwarder.sock"
-	DataplaneSocketTypeKey               = "DATAPLANE_SOCKET_TYPE"
+	DataplaneSocketTypeKey               = "FORWARDER_SOCKET_TYPE"
 	DataplaneSocketTypeDefault           = "unix"
-	DataplaneSrcIPKey                    = "NSM_DATAPLANE_SRC_IP"
+	DataplaneSrcIPKey                    = "NSM_FORWARDER_SRC_IP"
 )
 
 // DataplaneConfig keeps the common configuration for a forwarding plane

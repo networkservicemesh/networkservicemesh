@@ -17,7 +17,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 )
 
-const DataplaneAllowVHost = "DATAPLANE_ALLOW_VHOST" // To disallow VHOST please pass "false" into this env variable.
+const DataplaneAllowVHost = "FORWARDER_ALLOW_VHOST" // To disallow VHOST please pass "false" into this env variable.
 
 type KernelConnectionConverter struct {
 	*connection.Connection

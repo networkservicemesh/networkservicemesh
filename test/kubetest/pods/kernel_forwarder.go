@@ -62,7 +62,7 @@ func createKernelDataplanePod(name string, node *v1.Node, liveness, readiness *v
 					},
 					Env: []v1.EnvVar{
 						{
-							Name: "NSM_DATAPLANE_SRC_IP",
+							Name: "NSM_FORWARDER_SRC_IP",
 							ValueFrom: &v1.EnvVarSource{
 								FieldRef: &v1.ObjectFieldSelector{
 									FieldPath: "status.podIP",
