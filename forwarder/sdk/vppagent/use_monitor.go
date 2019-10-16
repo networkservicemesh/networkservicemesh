@@ -11,7 +11,7 @@ import (
 )
 
 //UseMonitor creates forwarder server handler with updating crossconnect monitor server
-func UseMonitor(monitor monitor_crossconnect.MonitorServer) forwarder.DataplaneServer {
+func UseMonitor(monitor monitor_crossconnect.MonitorServer) forwarder.ForwarderServer {
 	return &useMonitor{
 		monitor: monitor,
 	}

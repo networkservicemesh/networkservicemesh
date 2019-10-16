@@ -83,7 +83,7 @@ func TestNSMDRequestClientConnectionRequest(t *testing.T) {
 	storage := NewSharedStorage()
 	srv := NewNSMDFullServer(Master, storage)
 	defer srv.Stop()
-	srv.AddFakeDataplane("test_data_plane", "tcp:some_addr")
+	srv.AddFakeForwarder("test_data_plane", "tcp:some_addr")
 
 	srv.TestModel.AddEndpoint(context.Background(), srv.RegisterFakeEndpoint("golden_network", "test", Master))
 
@@ -110,7 +110,7 @@ func TestNSENoSrc(t *testing.T) {
 		//srcIp: "169083138/30",
 		dstIp: "10.20.1.2/30",
 	}
-	srv.AddFakeDataplane("test_data_plane", "tcp:some_addr")
+	srv.AddFakeForwarder("test_data_plane", "tcp:some_addr")
 
 	srv.TestModel.AddEndpoint(context.Background(), srv.RegisterFakeEndpoint("golden_network", "test", Master))
 
@@ -138,7 +138,7 @@ func TestNSEIPNeghtbours(t *testing.T) {
 		need_ip_neighbors: true,
 	}
 
-	srv.AddFakeDataplane("test_data_plane", "tcp:some_addr")
+	srv.AddFakeForwarder("test_data_plane", "tcp:some_addr")
 	srv.TestModel.AddEndpoint(context.Background(), srv.RegisterFakeEndpoint("golden_network", "test", Master))
 
 	nsmClient, conn := srv.requestNSMConnection("nsm")
@@ -171,7 +171,7 @@ func TestSlowNSE(t *testing.T) {
 		srcIp: "169083138/30",
 		dstIp: "169083137/30",
 	}
-	srv.AddFakeDataplane("test_data_plane", "tcp:some_addr")
+	srv.AddFakeForwarder("test_data_plane", "tcp:some_addr")
 
 	srv.TestModel.AddEndpoint(context.Background(), srv.RegisterFakeEndpoint("golden_network", "test", Master))
 
@@ -203,7 +203,7 @@ func TestSlowDP(t *testing.T) {
 		srcIp: "10.20.1.1/30",
 		dstIp: "10.20.1.2/30",
 	}
-	srv.AddFakeDataplane("test_data_plane", "tcp:some_addr")
+	srv.AddFakeForwarder("test_data_plane", "tcp:some_addr")
 
 	srv.TestModel.AddEndpoint(context.Background(), srv.RegisterFakeEndpoint("golden_network", "test", Master))
 

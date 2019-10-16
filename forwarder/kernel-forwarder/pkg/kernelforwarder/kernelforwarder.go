@@ -33,7 +33,7 @@ import (
 
 // KernelForwarder instance
 type KernelForwarder struct {
-	common     *common.DataplaneConfig
+	common     *common.ForwarderConfig
 	monitoring *monitoring.Metrics
 }
 
@@ -43,7 +43,7 @@ func CreateKernelForwarder() *KernelForwarder {
 }
 
 // Init initializes the Kernel forwarding plane
-func (k *KernelForwarder) Init(common *common.DataplaneConfig) error {
+func (k *KernelForwarder) Init(common *common.ForwarderConfig) error {
 	k.common = common
 	k.common.Name = "kernel-forwarder"
 
@@ -54,8 +54,8 @@ func (k *KernelForwarder) Init(common *common.DataplaneConfig) error {
 	return nil
 }
 
-// CreateDataplaneServer creates an instance of DataplaneServer
-func (k *KernelForwarder) CreateDataplaneServer(config *common.DataplaneConfig) forwarder.DataplaneServer {
+// CreateForwarderServer creates an instance of ForwarderServer
+func (k *KernelForwarder) CreateForwarderServer(config *common.ForwarderConfig) forwarder.ForwarderServer {
 	return k
 }
 

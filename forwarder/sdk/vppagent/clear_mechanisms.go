@@ -20,7 +20,7 @@ type clearMechanisms struct {
 }
 
 //ClearMechanisms sends clear datachange request if crossconnect monitor has entity with request cross conenect id.
-func ClearMechanisms(baseDir string) forwarder.DataplaneServer {
+func ClearMechanisms(baseDir string) forwarder.ForwarderServer {
 	return &clearMechanisms{
 		baseDir: baseDir,
 	}

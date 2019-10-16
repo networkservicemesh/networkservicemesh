@@ -6,19 +6,19 @@ import (
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func VPPDataplanePod(name string, node *v1.Node) *v1.Pod {
-	return createVPPDataplanePod(name, node, nil, nil, nil)
+func VPPForwarderPod(name string, node *v1.Node) *v1.Pod {
+	return createVPPForwarderPod(name, node, nil, nil, nil)
 }
 
-func VPPDataplanePodConfig(name string, node *v1.Node, variables map[string]string) *v1.Pod {
-	return createVPPDataplanePod(name, node, nil, nil, variables)
+func VPPForwarderPodConfig(name string, node *v1.Node, variables map[string]string) *v1.Pod {
+	return createVPPForwarderPod(name, node, nil, nil, variables)
 }
 
-func VPPDataplanePodLiveCheck(name string, node *v1.Node) *v1.Pod {
-	return createVPPDataplanePod(name, node, createProbe("/liveness"), createProbe("/readiness"), nil)
+func VPPForwarderPodLiveCheck(name string, node *v1.Node) *v1.Pod {
+	return createVPPForwarderPod(name, node, createProbe("/liveness"), createProbe("/readiness"), nil)
 }
 
-func createVPPDataplanePod(name string, node *v1.Node, liveness, readiness *v1.Probe, variables map[string]string) *v1.Pod {
+func createVPPForwarderPod(name string, node *v1.Node, liveness, readiness *v1.Probe, variables map[string]string) *v1.Pod {
 	ht := new(v1.HostPathType)
 	*ht = v1.HostPathDirectoryOrCreate
 
@@ -94,7 +94,7 @@ func createVPPDataplanePod(name string, node *v1.Node, liveness, readiness *v1.P
 					},
 					LivenessProbe:  liveness,
 					ReadinessProbe: readiness,
-					Resources:      createDefaultDataplaneResources(),
+					Resources:      createDefaultForwarderResources(),
 				}),
 			},
 			TerminationGracePeriodSeconds: &ZeroGraceTimeout,

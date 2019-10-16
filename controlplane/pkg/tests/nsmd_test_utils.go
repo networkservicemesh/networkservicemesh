@@ -211,7 +211,7 @@ func (cpm *testConnectionPluginManager) ValidateConnection(ctx context.Context, 
 type nsmdTestServiceRegistry struct {
 	nseRegistry             *nsmdTestServiceDiscovery
 	apiRegistry             *testApiRegistry
-	testDataplaneConnection *testDataplaneConnection
+	testForwarderConnection *testForwarderConnection
 	localTestNSE            local_networkservice.NetworkServiceClient
 	vniAllocator            vni.VniAllocator
 	rootDir                 string
@@ -225,8 +225,8 @@ func (impl *nsmdTestServiceRegistry) NewWorkspaceProvider() serviceregistry.Work
 	return nsmd.NewWorkspaceProvider(impl.rootDir)
 }
 
-func (impl *nsmdTestServiceRegistry) WaitForDataplaneAvailable(ctx context.Context, model model.Model, timeout time.Duration) error {
-	return nsmd.NewServiceRegistry().WaitForDataplaneAvailable(ctx, model, timeout)
+func (impl *nsmdTestServiceRegistry) WaitForForwarderAvailable(ctx context.Context, model model.Model, timeout time.Duration) error {
+	return nsmd.NewServiceRegistry().WaitForForwarderAvailable(ctx, model, timeout)
 }
 
 func (impl *nsmdTestServiceRegistry) WorkspaceName(endpoint *registry.NSERegistration) string {
@@ -306,11 +306,11 @@ func (impl *nsmdTestServiceRegistry) EndpointConnection(ctx context.Context, end
 	return impl.localTestNSE, nil, nil
 }
 
-type testDataplaneConnection struct {
+type testForwarderConnection struct {
 	connections []*crossconnect.CrossConnect
 }
 
-func (impl *testDataplaneConnection) Request(ctx context.Context, in *crossconnect.CrossConnect, opts ...grpc.CallOption) (*crossconnect.CrossConnect, error) {
+func (impl *testForwarderConnection) Request(ctx context.Context, in *crossconnect.CrossConnect, opts ...grpc.CallOption) (*crossconnect.CrossConnect, error) {
 	impl.connections = append(impl.connections, in)
 
 	if source := in.GetLocalSource(); source != nil && source.Labels != nil {
@@ -318,7 +318,7 @@ func (impl *testDataplaneConnection) Request(ctx context.Context, in *crossconne
 			if val, ok := source.Labels["forwarder_sleep"]; ok {
 				delay, err := strconv.Atoi(val)
 				if err == nil {
-					logrus.Infof("Delaying Dataplane Request: %v", delay)
+					logrus.Infof("Delaying Forwarder Request: %v", delay)
 					<-time.After(time.Duration(delay) * time.Second)
 				}
 			}
@@ -327,16 +327,16 @@ func (impl *testDataplaneConnection) Request(ctx context.Context, in *crossconne
 	return in, nil
 }
 
-func (impl *testDataplaneConnection) Close(ctx context.Context, in *crossconnect.CrossConnect, opts ...grpc.CallOption) (*empty.Empty, error) {
+func (impl *testForwarderConnection) Close(ctx context.Context, in *crossconnect.CrossConnect, opts ...grpc.CallOption) (*empty.Empty, error) {
 	return nil, nil
 }
 
-func (impl *testDataplaneConnection) MonitorMechanisms(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (forwarder.MechanismsMonitor_MonitorMechanismsClient, error) {
+func (impl *testForwarderConnection) MonitorMechanisms(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (forwarder.MechanismsMonitor_MonitorMechanismsClient, error) {
 	return nil, nil
 }
 
-func (impl *nsmdTestServiceRegistry) DataplaneConnection(ctx context.Context, forwarder *model.Dataplane) (forwarder.DataplaneClient, *grpc.ClientConn, error) {
-	return impl.testDataplaneConnection, nil, nil
+func (impl *nsmdTestServiceRegistry) ForwarderConnection(ctx context.Context, forwarder *model.Forwarder) (forwarder.ForwarderClient, *grpc.ClientConn, error) {
+	return impl.testForwarderConnection, nil, nil
 }
 
 func (impl *nsmdTestServiceRegistry) NSMDApiClient(ctx context.Context) (nsmdapi.NSMDClient, *grpc.ClientConn, error) {
@@ -457,8 +457,8 @@ func (srv *nsmdFullServerImpl) StopNoClean() {
 	}
 }
 
-func (impl *nsmdFullServerImpl) AddFakeDataplane(dp_name string, dp_addr string) {
-	impl.TestModel.AddDataplane(context.Background(), &model.Dataplane{
+func (impl *nsmdFullServerImpl) AddFakeForwarder(dp_name string, dp_addr string) {
+	impl.TestModel.AddForwarder(context.Background(), &model.Forwarder{
 		RegisteredName: dp_name,
 		SocketLocation: dp_addr,
 		LocalMechanisms: []connection.Mechanism{
@@ -562,7 +562,7 @@ func newNSMDFullServerAt(ctx context.Context, nsmgrName string, storage *sharedS
 	srv.serviceRegistry = &nsmdTestServiceRegistry{
 		nseRegistry:             srv.nseRegistry,
 		apiRegistry:             srv.apiRegistry,
-		testDataplaneConnection: &testDataplaneConnection{},
+		testForwarderConnection: &testForwarderConnection{},
 		localTestNSE: &localTestNSENetworkServiceClient{
 			prefixPool: prefixPool,
 		},

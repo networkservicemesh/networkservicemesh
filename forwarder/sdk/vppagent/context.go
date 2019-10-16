@@ -21,13 +21,13 @@ const (
 	monitorKey    contextKeyType = "monitorKey"
 )
 
-func withNext(ctx context.Context, handler forwarder.DataplaneServer) context.Context {
+func withNext(ctx context.Context, handler forwarder.ForwarderServer) context.Context {
 	return context.WithValue(ctx, nextKey, handler)
 }
 
 // Next returns next forwarder server of current chain state. Returns nil if context has not chain.
-func Next(ctx context.Context) forwarder.DataplaneServer {
-	if v, ok := ctx.Value(nextKey).(forwarder.DataplaneServer); ok {
+func Next(ctx context.Context) forwarder.ForwarderServer {
+	if v, ok := ctx.Value(nextKey).(forwarder.ForwarderServer); ok {
 		return v
 	}
 	return nil

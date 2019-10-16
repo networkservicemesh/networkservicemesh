@@ -17,7 +17,7 @@ import (
 	connection2 "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
 )
 
-func TestHealLocalDataplane(t *testing.T) {
+func TestHealLocalForwarder(t *testing.T) {
 	_ = os.Setenv(tools.InsecureEnv, "true")
 	g := NewWithT(t)
 
@@ -27,8 +27,8 @@ func TestHealLocalDataplane(t *testing.T) {
 	defer srv.Stop()
 	defer srv2.Stop()
 
-	srv.TestModel.AddDataplane(context.Background(), testDataplane1)
-	srv2.TestModel.AddDataplane(context.Background(), testDataplane2)
+	srv.TestModel.AddForwarder(context.Background(), testForwarder1)
+	srv2.TestModel.AddForwarder(context.Background(), testForwarder2)
 
 	// Register in both
 	nseReg := srv2.registerFakeEndpointWithName("golden_network", "test", Worker, "ep1")
@@ -93,8 +93,8 @@ func TestHealLocalDataplane(t *testing.T) {
 	}
 
 	// Simulate forwarder dead
-	srv.TestModel.AddDataplane(context.Background(), testDataplane1_1)
-	srv.TestModel.DeleteDataplane(context.Background(), testDataplane1.RegisteredName)
+	srv.TestModel.AddForwarder(context.Background(), testForwarder1_1)
+	srv.TestModel.DeleteForwarder(context.Background(), testForwarder1.RegisteredName)
 
 	// We need to inform cross connection monitor about this connection, since forwarder is fake one.
 	// First update is with down state

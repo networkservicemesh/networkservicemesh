@@ -41,7 +41,7 @@ import (
 
 type NodeConf struct {
 	Nsmd      *v1.Pod
-	Dataplane *v1.Pod
+	Forwarder *v1.Pod
 	Node      *v1.Node
 }
 
@@ -63,7 +63,7 @@ type NsePinger = func(k8s *K8s, from *v1.Pod) bool
 type NscChecker = func(*K8s, *v1.Pod) *NSCCheckInfo
 type ipParser = func(string) (string, error)
 
-// SetupNodes - Setup NSMgr and Dataplane for particular number of nodes in cluster
+// SetupNodes - Setup NSMgr and Forwarder for particular number of nodes in cluster
 func SetupNodes(k8s *K8s, nodesCount int, timeout time.Duration) ([]*NodeConf, error) {
 	return SetupNodesConfig(k8s, nodesCount, timeout, []*pods.NSMgrPodConfig{}, k8s.GetK8sNamespace())
 }
@@ -87,7 +87,7 @@ func DeployCorefile(k8s *K8s, name, content string) error {
 	return err
 }
 
-// SetupNodesConfig - Setup NSMgr and Dataplane for particular number of nodes in cluster
+// SetupNodesConfig - Setup NSMgr and Forwarder for particular number of nodes in cluster
 func SetupNodesConfig(k8s *K8s, nodesCount int, timeout time.Duration, conf []*pods.NSMgrPodConfig, namespace string) ([]*NodeConf, error) {
 	nodes := k8s.GetNodesWait(nodesCount, timeout)
 	k8s.g.Expect(len(nodes) >= nodesCount).To(Equal(true),
@@ -110,18 +110,18 @@ func SetupNodesConfig(k8s *K8s, nodesCount int, timeout time.Duration, conf []*p
 			debug := false
 			if i >= len(conf) {
 				corePod = pods.NSMgrPod(nsmdName, node, k8s.GetK8sNamespace())
-				forwarderPod = pods.ForwardingPlaneWithConfig(forwarderName, node, DefaultDataplaneVariables(k8s.GetForwardingPlane()), k8s.GetForwardingPlane())
+				forwarderPod = pods.ForwardingPlaneWithConfig(forwarderName, node, DefaultForwarderVariables(k8s.GetForwardingPlane()), k8s.GetForwardingPlane())
 			} else {
 				conf[i].Namespace = namespace
 				if conf[i].Nsmd == pods.NSMgrContainerDebug || conf[i].NsmdK8s == pods.NSMgrContainerDebug || conf[i].NsmdP == pods.NSMgrContainerDebug {
 					debug = true
 				}
 				corePod = pods.NSMgrPodWithConfig(nsmdName, node, conf[i])
-				forwarderPod = pods.ForwardingPlaneWithConfig(forwarderName, node, conf[i].DataplaneVariables, k8s.GetForwardingPlane())
+				forwarderPod = pods.ForwardingPlaneWithConfig(forwarderName, node, conf[i].ForwarderVariables, k8s.GetForwardingPlane())
 			}
 			corePods, err := k8s.CreatePodsRaw(PodStartTimeout, true, corePod, forwarderPod)
 			if err != nil {
-				logrus.Errorf("Failed to Started NSMgr/Dataplane: %v on node %s %v", time.Since(startTime), node.Name, err)
+				logrus.Errorf("Failed to Started NSMgr/Forwarder: %v on node %s %v", time.Since(startTime), node.Name, err)
 				resultError = err
 				return
 			}
@@ -136,16 +136,16 @@ func SetupNodesConfig(k8s *K8s, nodesCount int, timeout time.Duration, conf []*p
 				k8s.WaitLogsContains(corePod, podContainer, "API server listening at: [::]:40000", timeout)
 				logrus.Infof("Debug devenv container is running. Please do\n make k8s-forward pod=%v port1=40000 port2=40000. And attach via debugger...", corePod.Name)
 			}
-			nsmd, forwarder, err := deployNSMgrAndDataplane(k8s, corePods, timeout)
+			nsmd, forwarder, err := deployNSMgrAndForwarder(k8s, corePods, timeout)
 			if err != nil {
-				logrus.Errorf("Failed to Started NSMgr/Dataplane: %v on node %s %v", time.Since(startTime), node.Name, err)
+				logrus.Errorf("Failed to Started NSMgr/Forwarder: %v on node %s %v", time.Since(startTime), node.Name, err)
 				resultError = err
 				return
 			}
-			logrus.Printf("Started NSMgr/Dataplane: %v on node %s", time.Since(startTime), node.Name)
+			logrus.Printf("Started NSMgr/Forwarder: %v on node %s", time.Since(startTime), node.Name)
 			confs[i] = &NodeConf{
 				Nsmd:      nsmd,
-				Dataplane: forwarder,
+				Forwarder: forwarder,
 				Node:      &nodes[i],
 			}
 		}()
@@ -154,7 +154,7 @@ func SetupNodesConfig(k8s *K8s, nodesCount int, timeout time.Duration, conf []*p
 	return confs, resultError
 }
 
-func deployNSMgrAndDataplane(k8s *K8s, corePods []*v1.Pod, timeout time.Duration) (nsmd, forwarder *v1.Pod, err error) {
+func deployNSMgrAndForwarder(k8s *K8s, corePods []*v1.Pod, timeout time.Duration) (nsmd, forwarder *v1.Pod, err error) {
 	for _, pod := range corePods {
 		if !k8s.IsPodReady(pod) {
 			return nil, nil, errors.Errorf("Pod %v is not ready...", pod.Name)
@@ -396,7 +396,7 @@ func noHealNSMgrPodConfig(k8s *K8s) *pods.NSMgrPodConfig {
 			nsm.NsmdHealEnabled:           "false",
 		},
 		Namespace:          k8s.GetK8sNamespace(),
-		DataplaneVariables: DefaultDataplaneVariables(k8s.GetForwardingPlane()),
+		ForwarderVariables: DefaultForwarderVariables(k8s.GetForwardingPlane()),
 	}
 }
 

@@ -10,7 +10,7 @@ import (
 )
 
 //Connect creates forwarder server handler with connection to vpp-agent confgirator server
-func Connect(endpoint string) forwarder.DataplaneServer {
+func Connect(endpoint string) forwarder.ForwarderServer {
 	return &connect{endpoint: endpoint}
 }
 

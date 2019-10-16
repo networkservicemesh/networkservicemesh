@@ -2,9 +2,9 @@ package common
 
 import "testing"
 
-func TestDataplaneProbeGoals(t *testing.T) {
+func TestForwarderProbeGoals(t *testing.T) {
 
-	g := DataplaneProbeGoals{}
+	g := ForwarderProbeGoals{}
 	if g.IsComplete() {
 		t.FailNow()
 	}

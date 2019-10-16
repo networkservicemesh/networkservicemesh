@@ -9,8 +9,8 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/forwarder/api/forwarder"
 )
 
-//ConnectionValidator returns Dataplane Server with validation for Request and Close
-func ConnectionValidator() forwarder.DataplaneServer {
+//ConnectionValidator returns Forwarder Server with validation for Request and Close
+func ConnectionValidator() forwarder.ForwarderServer {
 	return &validator{}
 }
 

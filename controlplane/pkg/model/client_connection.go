@@ -44,9 +44,9 @@ type ClientConnection struct {
 	Xcon                    *crossconnect.CrossConnect
 	RemoteNsm               *registry.NetworkServiceManager
 	Endpoint                *registry.NSERegistration
-	DataplaneRegisteredName string
+	ForwarderRegisteredName string
 	ConnectionState         ClientConnectionState
-	DataplaneState          DataplaneState
+	ForwarderState          ForwarderState
 	Span                    opentracing.Span
 	Monitor                 monitor.Server
 }
@@ -111,10 +111,10 @@ func (cc *ClientConnection) clone() cloneable {
 		Xcon:                    xcon,
 		RemoteNsm:               remoteNsm,
 		Endpoint:                endpoint,
-		DataplaneRegisteredName: cc.DataplaneRegisteredName,
+		ForwarderRegisteredName: cc.ForwarderRegisteredName,
 		Request:                 request,
 		ConnectionState:         cc.ConnectionState,
-		DataplaneState:          cc.DataplaneState,
+		ForwarderState:          cc.ForwarderState,
 		Span:                    cc.Span,
 		Monitor:                 cc.Monitor,
 	}

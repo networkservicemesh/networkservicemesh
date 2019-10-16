@@ -16,25 +16,25 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 )
 
-func TestInterdomainNSCAndICMPDataplaneHealLocal(t *testing.T) {
+func TestInterdomainNSCAndICMPForwarderHealLocal(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
 	}
 
-	testInterdomainDataplaneHeal(t, 2, 2, 0)
+	testInterdomainForwarderHeal(t, 2, 2, 0)
 }
 
-func TestInterdomainNSCAndICMPDataplaneHealRemote(t *testing.T) {
+func TestInterdomainNSCAndICMPForwarderHealRemote(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
 	}
 
-	testInterdomainDataplaneHeal(t, 2, 2, 1)
+	testInterdomainForwarderHeal(t, 2, 2, 1)
 }
 
-func testInterdomainDataplaneHeal(t *testing.T, clustersCount int, nodesCount int, killIndex int) {
+func testInterdomainForwarderHeal(t *testing.T, clustersCount int, nodesCount int, killIndex int) {
 	g := NewWithT(t)
 
 	k8ss := []*kubetest.ExtK8s{}
@@ -54,7 +54,7 @@ func testInterdomainDataplaneHeal(t *testing.T, clustersCount int, nodesCount in
 			Variables: pods.DefaultNSMD(),
 		}
 		cfg.Namespace = k8s.GetK8sNamespace()
-		cfg.DataplaneVariables = kubetest.DefaultDataplaneVariables(k8s.GetForwardingPlane())
+		cfg.ForwarderVariables = kubetest.DefaultForwarderVariables(k8s.GetForwardingPlane())
 
 		config = append(config, cfg)
 
@@ -97,17 +97,17 @@ func testInterdomainDataplaneHeal(t *testing.T, clustersCount int, nodesCount in
 	}
 
 	logrus.Infof("Delete Selected forwarder")
-	k8ss[killIndex].K8s.DeletePods(k8ss[killIndex].NodesSetup[nodeKillIndex].Dataplane)
+	k8ss[killIndex].K8s.DeletePods(k8ss[killIndex].NodesSetup[nodeKillIndex].Forwarder)
 
 	logrus.Infof("Wait NSMD is waiting for forwarder recovery")
-	k8ss[killIndex].K8s.WaitLogsContains(k8ss[killIndex].NodesSetup[nodeKillIndex].Nsmd, "nsmd", "Waiting for Dataplane to recovery...", defaultTimeout)
+	k8ss[killIndex].K8s.WaitLogsContains(k8ss[killIndex].NodesSetup[nodeKillIndex].Nsmd, "nsmd", "Waiting for Forwarder to recovery...", defaultTimeout)
 	// Now are are in forwarder dead state, and in Heal procedure waiting for forwarder.
 	dpName := fmt.Sprintf("nsmd-forwarder-recovered-%d", killIndex)
 
 	logrus.Infof("Starting recovered forwarder...")
 	startTime := time.Now()
-	k8ss[killIndex].NodesSetup[0].Dataplane = k8ss[killIndex].K8s.CreatePod(pods.ForwardingPlane(dpName, k8ss[killIndex].NodesSetup[nodeKillIndex].Node, k8ss[killIndex].K8s.GetForwardingPlane()))
-	logrus.Printf("Started new Dataplane: %v on node %s", time.Since(startTime), k8ss[killIndex].NodesSetup[nodeKillIndex].Node.Name)
+	k8ss[killIndex].NodesSetup[0].Forwarder = k8ss[killIndex].K8s.CreatePod(pods.ForwardingPlane(dpName, k8ss[killIndex].NodesSetup[nodeKillIndex].Node, k8ss[killIndex].K8s.GetForwardingPlane()))
+	logrus.Printf("Started new Forwarder: %v on node %s", time.Since(startTime), k8ss[killIndex].NodesSetup[nodeKillIndex].Node.Name)
 
 	// Check NSMd goint into HEAL state.
 

@@ -25,7 +25,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
 )
 
-// SupportedMechanisms by Dataplane (add new mechanisms next way "connection.MechanismType_VXLAN | connection.MechanismType_SRV6 | ...")
+// SupportedMechanisms by Forwarder (add new mechanisms next way "connection.MechanismType_VXLAN | connection.MechanismType_SRV6 | ...")
 const SupportedMechanisms = connection.MechanismType_VXLAN
 
 // RemoteConnectionConverter described the remote connection

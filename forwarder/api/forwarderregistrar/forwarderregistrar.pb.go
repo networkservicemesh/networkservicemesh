@@ -25,10 +25,10 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
-// DataplaneRegistrationRequest is sent by the forwarder to NSM
+// ForwarderRegistrationRequest is sent by the forwarder to NSM
 // to advertise itself and inform NSM about the location of the forwarder socket
 // and its initially supported parameters.
-type DataplaneRegistrationRequest struct {
+type ForwarderRegistrationRequest struct {
 	ForwarderName        string   `protobuf:"bytes,1,opt,name=forwarder_name,json=forwarderName,proto3" json:"forwarder_name,omitempty"`
 	ForwarderSocket      string   `protobuf:"bytes,2,opt,name=forwarder_socket,json=forwarderSocket,proto3" json:"forwarder_socket,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
@@ -36,158 +36,158 @@ type DataplaneRegistrationRequest struct {
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *DataplaneRegistrationRequest) Reset()         { *m = DataplaneRegistrationRequest{} }
-func (m *DataplaneRegistrationRequest) String() string { return proto.CompactTextString(m) }
-func (*DataplaneRegistrationRequest) ProtoMessage()    {}
-func (*DataplaneRegistrationRequest) Descriptor() ([]byte, []int) {
+func (m *ForwarderRegistrationRequest) Reset()         { *m = ForwarderRegistrationRequest{} }
+func (m *ForwarderRegistrationRequest) String() string { return proto.CompactTextString(m) }
+func (*ForwarderRegistrationRequest) ProtoMessage()    {}
+func (*ForwarderRegistrationRequest) Descriptor() ([]byte, []int) {
 	return fileDescriptor_bf2c0f4975ef21fe, []int{0}
 }
 
-func (m *DataplaneRegistrationRequest) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_DataplaneRegistrationRequest.Unmarshal(m, b)
+func (m *ForwarderRegistrationRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ForwarderRegistrationRequest.Unmarshal(m, b)
 }
-func (m *DataplaneRegistrationRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_DataplaneRegistrationRequest.Marshal(b, m, deterministic)
+func (m *ForwarderRegistrationRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ForwarderRegistrationRequest.Marshal(b, m, deterministic)
 }
-func (m *DataplaneRegistrationRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_DataplaneRegistrationRequest.Merge(m, src)
+func (m *ForwarderRegistrationRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ForwarderRegistrationRequest.Merge(m, src)
 }
-func (m *DataplaneRegistrationRequest) XXX_Size() int {
-	return xxx_messageInfo_DataplaneRegistrationRequest.Size(m)
+func (m *ForwarderRegistrationRequest) XXX_Size() int {
+	return xxx_messageInfo_ForwarderRegistrationRequest.Size(m)
 }
-func (m *DataplaneRegistrationRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_DataplaneRegistrationRequest.DiscardUnknown(m)
+func (m *ForwarderRegistrationRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_ForwarderRegistrationRequest.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_DataplaneRegistrationRequest proto.InternalMessageInfo
+var xxx_messageInfo_ForwarderRegistrationRequest proto.InternalMessageInfo
 
-func (m *DataplaneRegistrationRequest) GetForwarderName() string {
+func (m *ForwarderRegistrationRequest) GetForwarderName() string {
 	if m != nil {
 		return m.ForwarderName
 	}
 	return ""
 }
 
-func (m *DataplaneRegistrationRequest) GetForwarderSocket() string {
+func (m *ForwarderRegistrationRequest) GetForwarderSocket() string {
 	if m != nil {
 		return m.ForwarderSocket
 	}
 	return ""
 }
 
-type DataplaneRegistrationReply struct {
+type ForwarderRegistrationReply struct {
 	Registered           bool     `protobuf:"varint,1,opt,name=registered,proto3" json:"registered,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *DataplaneRegistrationReply) Reset()         { *m = DataplaneRegistrationReply{} }
-func (m *DataplaneRegistrationReply) String() string { return proto.CompactTextString(m) }
-func (*DataplaneRegistrationReply) ProtoMessage()    {}
-func (*DataplaneRegistrationReply) Descriptor() ([]byte, []int) {
+func (m *ForwarderRegistrationReply) Reset()         { *m = ForwarderRegistrationReply{} }
+func (m *ForwarderRegistrationReply) String() string { return proto.CompactTextString(m) }
+func (*ForwarderRegistrationReply) ProtoMessage()    {}
+func (*ForwarderRegistrationReply) Descriptor() ([]byte, []int) {
 	return fileDescriptor_bf2c0f4975ef21fe, []int{1}
 }
 
-func (m *DataplaneRegistrationReply) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_DataplaneRegistrationReply.Unmarshal(m, b)
+func (m *ForwarderRegistrationReply) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ForwarderRegistrationReply.Unmarshal(m, b)
 }
-func (m *DataplaneRegistrationReply) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_DataplaneRegistrationReply.Marshal(b, m, deterministic)
+func (m *ForwarderRegistrationReply) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ForwarderRegistrationReply.Marshal(b, m, deterministic)
 }
-func (m *DataplaneRegistrationReply) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_DataplaneRegistrationReply.Merge(m, src)
+func (m *ForwarderRegistrationReply) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ForwarderRegistrationReply.Merge(m, src)
 }
-func (m *DataplaneRegistrationReply) XXX_Size() int {
-	return xxx_messageInfo_DataplaneRegistrationReply.Size(m)
+func (m *ForwarderRegistrationReply) XXX_Size() int {
+	return xxx_messageInfo_ForwarderRegistrationReply.Size(m)
 }
-func (m *DataplaneRegistrationReply) XXX_DiscardUnknown() {
-	xxx_messageInfo_DataplaneRegistrationReply.DiscardUnknown(m)
+func (m *ForwarderRegistrationReply) XXX_DiscardUnknown() {
+	xxx_messageInfo_ForwarderRegistrationReply.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_DataplaneRegistrationReply proto.InternalMessageInfo
+var xxx_messageInfo_ForwarderRegistrationReply proto.InternalMessageInfo
 
-func (m *DataplaneRegistrationReply) GetRegistered() bool {
+func (m *ForwarderRegistrationReply) GetRegistered() bool {
 	if m != nil {
 		return m.Registered
 	}
 	return false
 }
 
-// DataplaneUnRegistrationRequest is sent by the forwarder to NSM
+// ForwarderUnRegistrationRequest is sent by the forwarder to NSM
 // to remove itself from the list of available forwarders.
-type DataplaneUnRegistrationRequest struct {
+type ForwarderUnRegistrationRequest struct {
 	ForwarderName        string   `protobuf:"bytes,1,opt,name=forwarder_name,json=forwarderName,proto3" json:"forwarder_name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *DataplaneUnRegistrationRequest) Reset()         { *m = DataplaneUnRegistrationRequest{} }
-func (m *DataplaneUnRegistrationRequest) String() string { return proto.CompactTextString(m) }
-func (*DataplaneUnRegistrationRequest) ProtoMessage()    {}
-func (*DataplaneUnRegistrationRequest) Descriptor() ([]byte, []int) {
+func (m *ForwarderUnRegistrationRequest) Reset()         { *m = ForwarderUnRegistrationRequest{} }
+func (m *ForwarderUnRegistrationRequest) String() string { return proto.CompactTextString(m) }
+func (*ForwarderUnRegistrationRequest) ProtoMessage()    {}
+func (*ForwarderUnRegistrationRequest) Descriptor() ([]byte, []int) {
 	return fileDescriptor_bf2c0f4975ef21fe, []int{2}
 }
 
-func (m *DataplaneUnRegistrationRequest) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_DataplaneUnRegistrationRequest.Unmarshal(m, b)
+func (m *ForwarderUnRegistrationRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ForwarderUnRegistrationRequest.Unmarshal(m, b)
 }
-func (m *DataplaneUnRegistrationRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_DataplaneUnRegistrationRequest.Marshal(b, m, deterministic)
+func (m *ForwarderUnRegistrationRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ForwarderUnRegistrationRequest.Marshal(b, m, deterministic)
 }
-func (m *DataplaneUnRegistrationRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_DataplaneUnRegistrationRequest.Merge(m, src)
+func (m *ForwarderUnRegistrationRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ForwarderUnRegistrationRequest.Merge(m, src)
 }
-func (m *DataplaneUnRegistrationRequest) XXX_Size() int {
-	return xxx_messageInfo_DataplaneUnRegistrationRequest.Size(m)
+func (m *ForwarderUnRegistrationRequest) XXX_Size() int {
+	return xxx_messageInfo_ForwarderUnRegistrationRequest.Size(m)
 }
-func (m *DataplaneUnRegistrationRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_DataplaneUnRegistrationRequest.DiscardUnknown(m)
+func (m *ForwarderUnRegistrationRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_ForwarderUnRegistrationRequest.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_DataplaneUnRegistrationRequest proto.InternalMessageInfo
+var xxx_messageInfo_ForwarderUnRegistrationRequest proto.InternalMessageInfo
 
-func (m *DataplaneUnRegistrationRequest) GetForwarderName() string {
+func (m *ForwarderUnRegistrationRequest) GetForwarderName() string {
 	if m != nil {
 		return m.ForwarderName
 	}
 	return ""
 }
 
-type DataplaneUnRegistrationReply struct {
+type ForwarderUnRegistrationReply struct {
 	UnRegistered         bool     `protobuf:"varint,1,opt,name=un_registered,json=unRegistered,proto3" json:"un_registered,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *DataplaneUnRegistrationReply) Reset()         { *m = DataplaneUnRegistrationReply{} }
-func (m *DataplaneUnRegistrationReply) String() string { return proto.CompactTextString(m) }
-func (*DataplaneUnRegistrationReply) ProtoMessage()    {}
-func (*DataplaneUnRegistrationReply) Descriptor() ([]byte, []int) {
+func (m *ForwarderUnRegistrationReply) Reset()         { *m = ForwarderUnRegistrationReply{} }
+func (m *ForwarderUnRegistrationReply) String() string { return proto.CompactTextString(m) }
+func (*ForwarderUnRegistrationReply) ProtoMessage()    {}
+func (*ForwarderUnRegistrationReply) Descriptor() ([]byte, []int) {
 	return fileDescriptor_bf2c0f4975ef21fe, []int{3}
 }
 
-func (m *DataplaneUnRegistrationReply) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_DataplaneUnRegistrationReply.Unmarshal(m, b)
+func (m *ForwarderUnRegistrationReply) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ForwarderUnRegistrationReply.Unmarshal(m, b)
 }
-func (m *DataplaneUnRegistrationReply) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_DataplaneUnRegistrationReply.Marshal(b, m, deterministic)
+func (m *ForwarderUnRegistrationReply) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ForwarderUnRegistrationReply.Marshal(b, m, deterministic)
 }
-func (m *DataplaneUnRegistrationReply) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_DataplaneUnRegistrationReply.Merge(m, src)
+func (m *ForwarderUnRegistrationReply) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ForwarderUnRegistrationReply.Merge(m, src)
 }
-func (m *DataplaneUnRegistrationReply) XXX_Size() int {
-	return xxx_messageInfo_DataplaneUnRegistrationReply.Size(m)
+func (m *ForwarderUnRegistrationReply) XXX_Size() int {
+	return xxx_messageInfo_ForwarderUnRegistrationReply.Size(m)
 }
-func (m *DataplaneUnRegistrationReply) XXX_DiscardUnknown() {
-	xxx_messageInfo_DataplaneUnRegistrationReply.DiscardUnknown(m)
+func (m *ForwarderUnRegistrationReply) XXX_DiscardUnknown() {
+	xxx_messageInfo_ForwarderUnRegistrationReply.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_DataplaneUnRegistrationReply proto.InternalMessageInfo
+var xxx_messageInfo_ForwarderUnRegistrationReply proto.InternalMessageInfo
 
-func (m *DataplaneUnRegistrationReply) GetUnRegistered() bool {
+func (m *ForwarderUnRegistrationReply) GetUnRegistered() bool {
 	if m != nil {
 		return m.UnRegistered
 	}
@@ -195,10 +195,10 @@ func (m *DataplaneUnRegistrationReply) GetUnRegistered() bool {
 }
 
 func init() {
-	proto.RegisterType((*DataplaneRegistrationRequest)(nil), "forwarderregistrar.DataplaneRegistrationRequest")
-	proto.RegisterType((*DataplaneRegistrationReply)(nil), "forwarderregistrar.DataplaneRegistrationReply")
-	proto.RegisterType((*DataplaneUnRegistrationRequest)(nil), "forwarderregistrar.DataplaneUnRegistrationRequest")
-	proto.RegisterType((*DataplaneUnRegistrationReply)(nil), "forwarderregistrar.DataplaneUnRegistrationReply")
+	proto.RegisterType((*ForwarderRegistrationRequest)(nil), "forwarderregistrar.ForwarderRegistrationRequest")
+	proto.RegisterType((*ForwarderRegistrationReply)(nil), "forwarderregistrar.ForwarderRegistrationReply")
+	proto.RegisterType((*ForwarderUnRegistrationRequest)(nil), "forwarderregistrar.ForwarderUnRegistrationRequest")
+	proto.RegisterType((*ForwarderUnRegistrationReply)(nil), "forwarderregistrar.ForwarderUnRegistrationReply")
 }
 
 func init() { proto.RegisterFile("forwarderregistrar.proto", fileDescriptor_bf2c0f4975ef21fe) }
@@ -235,36 +235,36 @@ var _ grpc.ClientConn
 // is compatible with the grpc package it is being compiled against.
 const _ = grpc.SupportPackageIsVersion4
 
-// DataplaneRegistrationClient is the client API for DataplaneRegistration service.
+// ForwarderRegistrationClient is the client API for ForwarderRegistration service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
-type DataplaneRegistrationClient interface {
-	RequestDataplaneRegistration(ctx context.Context, in *DataplaneRegistrationRequest, opts ...grpc.CallOption) (*DataplaneRegistrationReply, error)
+type ForwarderRegistrationClient interface {
+	RequestForwarderRegistration(ctx context.Context, in *ForwarderRegistrationRequest, opts ...grpc.CallOption) (*ForwarderRegistrationReply, error)
 	// RequestLiveness is a stream initiated by NSM to inform the forwarder that NSM is still alive and
 	// no re-registration is required. Detection a failure on this "channel" will mean
 	// that NSM is gone and the forwarder needs to start re-registration logic.
-	RequestLiveness(ctx context.Context, opts ...grpc.CallOption) (DataplaneRegistration_RequestLivenessClient, error)
+	RequestLiveness(ctx context.Context, opts ...grpc.CallOption) (ForwarderRegistration_RequestLivenessClient, error)
 }
 
 type dataplaneRegistrationClient struct {
 	cc *grpc.ClientConn
 }
 
-func NewDataplaneRegistrationClient(cc *grpc.ClientConn) DataplaneRegistrationClient {
+func NewForwarderRegistrationClient(cc *grpc.ClientConn) ForwarderRegistrationClient {
 	return &dataplaneRegistrationClient{cc}
 }
 
-func (c *dataplaneRegistrationClient) RequestDataplaneRegistration(ctx context.Context, in *DataplaneRegistrationRequest, opts ...grpc.CallOption) (*DataplaneRegistrationReply, error) {
-	out := new(DataplaneRegistrationReply)
-	err := c.cc.Invoke(ctx, "/forwarderregistrar.DataplaneRegistration/RequestDataplaneRegistration", in, out, opts...)
+func (c *dataplaneRegistrationClient) RequestForwarderRegistration(ctx context.Context, in *ForwarderRegistrationRequest, opts ...grpc.CallOption) (*ForwarderRegistrationReply, error) {
+	out := new(ForwarderRegistrationReply)
+	err := c.cc.Invoke(ctx, "/forwarderregistrar.ForwarderRegistration/RequestForwarderRegistration", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *dataplaneRegistrationClient) RequestLiveness(ctx context.Context, opts ...grpc.CallOption) (DataplaneRegistration_RequestLivenessClient, error) {
-	stream, err := c.cc.NewStream(ctx, &_DataplaneRegistration_serviceDesc.Streams[0], "/forwarderregistrar.DataplaneRegistration/RequestLiveness", opts...)
+func (c *dataplaneRegistrationClient) RequestLiveness(ctx context.Context, opts ...grpc.CallOption) (ForwarderRegistration_RequestLivenessClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_ForwarderRegistration_serviceDesc.Streams[0], "/forwarderregistrar.ForwarderRegistration/RequestLiveness", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -272,7 +272,7 @@ func (c *dataplaneRegistrationClient) RequestLiveness(ctx context.Context, opts 
 	return x, nil
 }
 
-type DataplaneRegistration_RequestLivenessClient interface {
+type ForwarderRegistration_RequestLivenessClient interface {
 	Send(*empty.Empty) error
 	Recv() (*empty.Empty, error)
 	grpc.ClientStream
@@ -294,53 +294,53 @@ func (x *dataplaneRegistrationRequestLivenessClient) Recv() (*empty.Empty, error
 	return m, nil
 }
 
-// DataplaneRegistrationServer is the server API for DataplaneRegistration service.
-type DataplaneRegistrationServer interface {
-	RequestDataplaneRegistration(context.Context, *DataplaneRegistrationRequest) (*DataplaneRegistrationReply, error)
+// ForwarderRegistrationServer is the server API for ForwarderRegistration service.
+type ForwarderRegistrationServer interface {
+	RequestForwarderRegistration(context.Context, *ForwarderRegistrationRequest) (*ForwarderRegistrationReply, error)
 	// RequestLiveness is a stream initiated by NSM to inform the forwarder that NSM is still alive and
 	// no re-registration is required. Detection a failure on this "channel" will mean
 	// that NSM is gone and the forwarder needs to start re-registration logic.
-	RequestLiveness(DataplaneRegistration_RequestLivenessServer) error
+	RequestLiveness(ForwarderRegistration_RequestLivenessServer) error
 }
 
-// UnimplementedDataplaneRegistrationServer can be embedded to have forward compatible implementations.
-type UnimplementedDataplaneRegistrationServer struct {
+// UnimplementedForwarderRegistrationServer can be embedded to have forward compatible implementations.
+type UnimplementedForwarderRegistrationServer struct {
 }
 
-func (*UnimplementedDataplaneRegistrationServer) RequestDataplaneRegistration(ctx context.Context, req *DataplaneRegistrationRequest) (*DataplaneRegistrationReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method RequestDataplaneRegistration not implemented")
+func (*UnimplementedForwarderRegistrationServer) RequestForwarderRegistration(ctx context.Context, req *ForwarderRegistrationRequest) (*ForwarderRegistrationReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RequestForwarderRegistration not implemented")
 }
-func (*UnimplementedDataplaneRegistrationServer) RequestLiveness(srv DataplaneRegistration_RequestLivenessServer) error {
+func (*UnimplementedForwarderRegistrationServer) RequestLiveness(srv ForwarderRegistration_RequestLivenessServer) error {
 	return status.Errorf(codes.Unimplemented, "method RequestLiveness not implemented")
 }
 
-func RegisterDataplaneRegistrationServer(s *grpc.Server, srv DataplaneRegistrationServer) {
-	s.RegisterService(&_DataplaneRegistration_serviceDesc, srv)
+func RegisterForwarderRegistrationServer(s *grpc.Server, srv ForwarderRegistrationServer) {
+	s.RegisterService(&_ForwarderRegistration_serviceDesc, srv)
 }
 
-func _DataplaneRegistration_RequestDataplaneRegistration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DataplaneRegistrationRequest)
+func _ForwarderRegistration_RequestForwarderRegistration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ForwarderRegistrationRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DataplaneRegistrationServer).RequestDataplaneRegistration(ctx, in)
+		return srv.(ForwarderRegistrationServer).RequestForwarderRegistration(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/forwarderregistrar.DataplaneRegistration/RequestDataplaneRegistration",
+		FullMethod: "/forwarderregistrar.ForwarderRegistration/RequestForwarderRegistration",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DataplaneRegistrationServer).RequestDataplaneRegistration(ctx, req.(*DataplaneRegistrationRequest))
+		return srv.(ForwarderRegistrationServer).RequestForwarderRegistration(ctx, req.(*ForwarderRegistrationRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _DataplaneRegistration_RequestLiveness_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(DataplaneRegistrationServer).RequestLiveness(&dataplaneRegistrationRequestLivenessServer{stream})
+func _ForwarderRegistration_RequestLiveness_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(ForwarderRegistrationServer).RequestLiveness(&dataplaneRegistrationRequestLivenessServer{stream})
 }
 
-type DataplaneRegistration_RequestLivenessServer interface {
+type ForwarderRegistration_RequestLivenessServer interface {
 	Send(*empty.Empty) error
 	Recv() (*empty.Empty, error)
 	grpc.ServerStream
@@ -362,19 +362,19 @@ func (x *dataplaneRegistrationRequestLivenessServer) Recv() (*empty.Empty, error
 	return m, nil
 }
 
-var _DataplaneRegistration_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "forwarderregistrar.DataplaneRegistration",
-	HandlerType: (*DataplaneRegistrationServer)(nil),
+var _ForwarderRegistration_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "forwarderregistrar.ForwarderRegistration",
+	HandlerType: (*ForwarderRegistrationServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "RequestDataplaneRegistration",
-			Handler:    _DataplaneRegistration_RequestDataplaneRegistration_Handler,
+			MethodName: "RequestForwarderRegistration",
+			Handler:    _ForwarderRegistration_RequestForwarderRegistration_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "RequestLiveness",
-			Handler:       _DataplaneRegistration_RequestLiveness_Handler,
+			Handler:       _ForwarderRegistration_RequestLiveness_Handler,
 			ServerStreams: true,
 			ClientStreams: true,
 		},
@@ -382,72 +382,72 @@ var _DataplaneRegistration_serviceDesc = grpc.ServiceDesc{
 	Metadata: "forwarderregistrar.proto",
 }
 
-// DataplaneUnRegistrationClient is the client API for DataplaneUnRegistration service.
+// ForwarderUnRegistrationClient is the client API for ForwarderUnRegistration service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
-type DataplaneUnRegistrationClient interface {
-	RequestDataplaneUnRegistration(ctx context.Context, in *DataplaneUnRegistrationRequest, opts ...grpc.CallOption) (*DataplaneUnRegistrationReply, error)
+type ForwarderUnRegistrationClient interface {
+	RequestForwarderUnRegistration(ctx context.Context, in *ForwarderUnRegistrationRequest, opts ...grpc.CallOption) (*ForwarderUnRegistrationReply, error)
 }
 
 type dataplaneUnRegistrationClient struct {
 	cc *grpc.ClientConn
 }
 
-func NewDataplaneUnRegistrationClient(cc *grpc.ClientConn) DataplaneUnRegistrationClient {
+func NewForwarderUnRegistrationClient(cc *grpc.ClientConn) ForwarderUnRegistrationClient {
 	return &dataplaneUnRegistrationClient{cc}
 }
 
-func (c *dataplaneUnRegistrationClient) RequestDataplaneUnRegistration(ctx context.Context, in *DataplaneUnRegistrationRequest, opts ...grpc.CallOption) (*DataplaneUnRegistrationReply, error) {
-	out := new(DataplaneUnRegistrationReply)
-	err := c.cc.Invoke(ctx, "/forwarderregistrar.DataplaneUnRegistration/RequestDataplaneUnRegistration", in, out, opts...)
+func (c *dataplaneUnRegistrationClient) RequestForwarderUnRegistration(ctx context.Context, in *ForwarderUnRegistrationRequest, opts ...grpc.CallOption) (*ForwarderUnRegistrationReply, error) {
+	out := new(ForwarderUnRegistrationReply)
+	err := c.cc.Invoke(ctx, "/forwarderregistrar.ForwarderUnRegistration/RequestForwarderUnRegistration", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// DataplaneUnRegistrationServer is the server API for DataplaneUnRegistration service.
-type DataplaneUnRegistrationServer interface {
-	RequestDataplaneUnRegistration(context.Context, *DataplaneUnRegistrationRequest) (*DataplaneUnRegistrationReply, error)
+// ForwarderUnRegistrationServer is the server API for ForwarderUnRegistration service.
+type ForwarderUnRegistrationServer interface {
+	RequestForwarderUnRegistration(context.Context, *ForwarderUnRegistrationRequest) (*ForwarderUnRegistrationReply, error)
 }
 
-// UnimplementedDataplaneUnRegistrationServer can be embedded to have forward compatible implementations.
-type UnimplementedDataplaneUnRegistrationServer struct {
+// UnimplementedForwarderUnRegistrationServer can be embedded to have forward compatible implementations.
+type UnimplementedForwarderUnRegistrationServer struct {
 }
 
-func (*UnimplementedDataplaneUnRegistrationServer) RequestDataplaneUnRegistration(ctx context.Context, req *DataplaneUnRegistrationRequest) (*DataplaneUnRegistrationReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method RequestDataplaneUnRegistration not implemented")
+func (*UnimplementedForwarderUnRegistrationServer) RequestForwarderUnRegistration(ctx context.Context, req *ForwarderUnRegistrationRequest) (*ForwarderUnRegistrationReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RequestForwarderUnRegistration not implemented")
 }
 
-func RegisterDataplaneUnRegistrationServer(s *grpc.Server, srv DataplaneUnRegistrationServer) {
-	s.RegisterService(&_DataplaneUnRegistration_serviceDesc, srv)
+func RegisterForwarderUnRegistrationServer(s *grpc.Server, srv ForwarderUnRegistrationServer) {
+	s.RegisterService(&_ForwarderUnRegistration_serviceDesc, srv)
 }
 
-func _DataplaneUnRegistration_RequestDataplaneUnRegistration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DataplaneUnRegistrationRequest)
+func _ForwarderUnRegistration_RequestForwarderUnRegistration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ForwarderUnRegistrationRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DataplaneUnRegistrationServer).RequestDataplaneUnRegistration(ctx, in)
+		return srv.(ForwarderUnRegistrationServer).RequestForwarderUnRegistration(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/forwarderregistrar.DataplaneUnRegistration/RequestDataplaneUnRegistration",
+		FullMethod: "/forwarderregistrar.ForwarderUnRegistration/RequestForwarderUnRegistration",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DataplaneUnRegistrationServer).RequestDataplaneUnRegistration(ctx, req.(*DataplaneUnRegistrationRequest))
+		return srv.(ForwarderUnRegistrationServer).RequestForwarderUnRegistration(ctx, req.(*ForwarderUnRegistrationRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-var _DataplaneUnRegistration_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "forwarderregistrar.DataplaneUnRegistration",
-	HandlerType: (*DataplaneUnRegistrationServer)(nil),
+var _ForwarderUnRegistration_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "forwarderregistrar.ForwarderUnRegistration",
+	HandlerType: (*ForwarderUnRegistrationServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "RequestDataplaneUnRegistration",
-			Handler:    _DataplaneUnRegistration_RequestDataplaneUnRegistration_Handler,
+			MethodName: "RequestForwarderUnRegistration",
+			Handler:    _ForwarderUnRegistration_RequestForwarderUnRegistration_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

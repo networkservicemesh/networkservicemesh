@@ -10,11 +10,11 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 )
 
-type testChainDataplaneServer struct {
+type testChainForwarderServer struct {
 	requestCount, closeCount int
 }
 
-func (c *testChainDataplaneServer) Request(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error) {
+func (c *testChainForwarderServer) Request(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error) {
 	c.requestCount++
 	next := Next(ctx)
 	if next == nil {
@@ -23,7 +23,7 @@ func (c *testChainDataplaneServer) Request(ctx context.Context, crossConnect *cr
 	return next.Request(ctx, crossConnect)
 }
 
-func (c *testChainDataplaneServer) Close(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*empty.Empty, error) {
+func (c *testChainForwarderServer) Close(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*empty.Empty, error) {
 	c.closeCount++
 	next := Next(ctx)
 	if next == nil {
@@ -32,11 +32,11 @@ func (c *testChainDataplaneServer) Close(ctx context.Context, crossConnect *cros
 	return next.Close(ctx, crossConnect)
 }
 
-type branchChainDataplaneRequst struct {
+type branchChainForwarderRequst struct {
 	requestCount, closeCount, monitorCount int
 }
 
-func (c *branchChainDataplaneRequst) Request(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error) {
+func (c *branchChainForwarderRequst) Request(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error) {
 	c.requestCount++
 	if c.requestCount > 1 {
 		return &crossconnect.CrossConnect{}, nil
@@ -48,7 +48,7 @@ func (c *branchChainDataplaneRequst) Request(ctx context.Context, crossConnect *
 	return next.Request(ctx, crossConnect)
 }
 
-func (c *branchChainDataplaneRequst) Close(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*empty.Empty, error) {
+func (c *branchChainForwarderRequst) Close(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*empty.Empty, error) {
 	c.closeCount++
 	if c.closeCount > 1 {
 		return new(empty.Empty), nil
@@ -60,11 +60,11 @@ func (c *branchChainDataplaneRequst) Close(ctx context.Context, crossConnect *cr
 	return next.Close(ctx, crossConnect)
 }
 
-func TestBasicDataplaneChain(t *testing.T) {
+func TestBasicForwarderChain(t *testing.T) {
 	gomega.RegisterTestingT(t)
 	assert := gomega.NewWithT(t)
-	first := &testChainDataplaneServer{}
-	second := &testChainDataplaneServer{}
+	first := &testChainForwarderServer{}
+	second := &testChainForwarderServer{}
 
 	chain := ChainOf(first, second)
 	_, _ = chain.Request(context.Background(), nil)
@@ -79,12 +79,12 @@ func TestBasicDataplaneChain(t *testing.T) {
 	assert.Expect(second.closeCount).Should(gomega.Equal(1))
 }
 
-func TestBranchDataplaneChain(t *testing.T) {
+func TestBranchForwarderChain(t *testing.T) {
 	gomega.RegisterTestingT(t)
 	assert := gomega.NewWithT(t)
-	first := &testChainDataplaneServer{}
-	second := &branchChainDataplaneRequst{}
-	third := &testChainDataplaneServer{}
+	first := &testChainForwarderServer{}
+	second := &branchChainForwarderRequst{}
+	third := &testChainForwarderServer{}
 	chain := ChainOf(first, second, third)
 	resp, err := chain.Request(context.Background(), nil)
 	assert.Expect(resp).Should(gomega.BeNil())

@@ -36,16 +36,16 @@ import (
 )
 
 const (
-	// DataplaneRegistrarSocketBaseDir defines the location of NSM forwarder registrar listen socket
-	DataplaneRegistrarSocketBaseDir = "/var/lib/networkservicemesh"
-	// DataplaneRegistrarSocket defines the name of NSM forwarder registrar socket
-	DataplaneRegistrarSocket = "nsm.forwarder-registrar.io.sock"
+	// ForwarderRegistrarSocketBaseDir defines the location of NSM forwarder registrar listen socket
+	ForwarderRegistrarSocketBaseDir = "/var/lib/networkservicemesh"
+	// ForwarderRegistrarSocket defines the name of NSM forwarder registrar socket
+	ForwarderRegistrarSocket = "nsm.forwarder-registrar.io.sock"
 	socketMask               = 0077
 	livenessInterval         = 5
 )
 
-// DataplaneRegistrarServer - NSMgr registration service
-type DataplaneRegistrarServer struct {
+// ForwarderRegistrarServer - NSMgr registration service
+type ForwarderRegistrarServer struct {
 	model                        model.Model
 	grpcServer                   *grpc.Server
 	forwarderRegistrarSocketPath string
@@ -59,15 +59,15 @@ type DataplaneRegistrarServer struct {
 // forwarderMonitor will remove forwarder object from the object store and will terminate itself.
 func forwarderMonitor(model model.Model, forwarderName string) {
 	var err error
-	forwarder := model.GetDataplane(forwarderName)
+	forwarder := model.GetForwarder(forwarderName)
 	if forwarder == nil {
-		logrus.Errorf("Dataplane object store does not have registered plugin %s", forwarderName)
+		logrus.Errorf("Forwarder object store does not have registered plugin %s", forwarderName)
 		return
 	}
 	conn, err := tools.DialUnix(forwarder.SocketLocation)
 	if err != nil {
 		logrus.Errorf("failure to communicate with the socket %s with error: %+v", forwarder.SocketLocation, err)
-		model.DeleteDataplane(context.Background(), forwarderName)
+		model.DeleteForwarder(context.Background(), forwarderName)
 		return
 	}
 	defer conn.Close()
@@ -76,30 +76,30 @@ func forwarderMonitor(model model.Model, forwarderName string) {
 	// Looping indefinitely or until grpc returns an error indicating the other end closed connection.
 	stream, err := forwarderClient.MonitorMechanisms(context.Background(), &empty.Empty{})
 	if err != nil {
-		logrus.Errorf("fail to create update grpc channel for Dataplane %s with error: %+v, removing forwarder from Objectstore.", forwarder.RegisteredName, err)
-		model.DeleteDataplane(context.Background(), forwarderName)
+		logrus.Errorf("fail to create update grpc channel for Forwarder %s with error: %+v, removing forwarder from Objectstore.", forwarder.RegisteredName, err)
+		model.DeleteForwarder(context.Background(), forwarderName)
 		return
 	}
 	for {
 		updates, err := stream.Recv()
 		if err != nil {
-			logrus.Errorf("fail to receive on update grpc channel for Dataplane %s with error: %+v, removing forwarder from Objectstore.", forwarder.RegisteredName, err)
-			model.DeleteDataplane(context.Background(), forwarderName)
+			logrus.Errorf("fail to receive on update grpc channel for Forwarder %s with error: %+v, removing forwarder from Objectstore.", forwarder.RegisteredName, err)
+			model.DeleteForwarder(context.Background(), forwarderName)
 			return
 		}
-		logrus.Infof("Dataplane %s informed of its parameters changes, applying new parameters %+v", forwarderName, updates.RemoteMechanisms)
+		logrus.Infof("Forwarder %s informed of its parameters changes, applying new parameters %+v", forwarderName, updates.RemoteMechanisms)
 		// TODO: this is not good -- direct model changes
 		forwarder.SetRemoteMechanisms(updates.RemoteMechanisms)
 		forwarder.SetLocalMechanisms(updates.LocalMechanisms)
 		forwarder.MechanismsConfigured = true
-		model.UpdateDataplane(context.Background(), forwarder)
+		model.UpdateForwarder(context.Background(), forwarder)
 	}
 }
 
 // RequestLiveness is a stream initiated by NSM to inform the forwarder that NSM is still alive and
 // no re-registration is required. Detection a failure on this "channel" will mean
 // that NSM is gone and the forwarder needs to start re-registration logic.
-func (r *DataplaneRegistrarServer) RequestLiveness(liveness forwarderregistrarapi.DataplaneRegistration_RequestLivenessServer) error {
+func (r *ForwarderRegistrarServer) RequestLiveness(liveness forwarderregistrarapi.ForwarderRegistration_RequestLivenessServer) error {
 	logrus.Infof("Liveness Request received")
 	for {
 		if err := liveness.SendMsg(&empty.Empty{}); err != nil {
@@ -110,45 +110,45 @@ func (r *DataplaneRegistrarServer) RequestLiveness(liveness forwarderregistrarap
 	}
 }
 
-// RequestDataplaneRegistration - request forwarder to be registered.
-func (r *DataplaneRegistrarServer) RequestDataplaneRegistration(ctx context.Context, req *forwarderregistrarapi.DataplaneRegistrationRequest) (*forwarderregistrarapi.DataplaneRegistrationReply, error) {
-	logrus.Infof("Received new forwarder registration requests from %s", req.DataplaneName)
+// RequestForwarderRegistration - request forwarder to be registered.
+func (r *ForwarderRegistrarServer) RequestForwarderRegistration(ctx context.Context, req *forwarderregistrarapi.ForwarderRegistrationRequest) (*forwarderregistrarapi.ForwarderRegistrationReply, error) {
+	logrus.Infof("Received new forwarder registration requests from %s", req.ForwarderName)
 	// Need to check if name of forwarder already exists in the object store
-	if r.model.GetDataplane(req.DataplaneName) != nil {
-		logrus.Errorf("forwarder with name %s already exist", req.DataplaneName)
+	if r.model.GetForwarder(req.ForwarderName) != nil {
+		logrus.Errorf("forwarder with name %s already exist", req.ForwarderName)
 		// TODO (sbezverk) Need to decide the right action, fail or not, failing for now
-		return &forwarderregistrarapi.DataplaneRegistrationReply{Registered: false}, errors.Errorf("forwarder with name %s already registered", req.DataplaneName)
+		return &forwarderregistrarapi.ForwarderRegistrationReply{Registered: false}, errors.Errorf("forwarder with name %s already registered", req.ForwarderName)
 	}
 	// Instantiating forwarder object with parameters from the request and creating a new object in the Object store
-	forwarder := &model.Dataplane{
-		RegisteredName: req.DataplaneName,
-		SocketLocation: req.DataplaneSocket,
+	forwarder := &model.Forwarder{
+		RegisteredName: req.ForwarderName,
+		SocketLocation: req.ForwarderSocket,
 	}
 
-	r.model.AddDataplane(ctx, forwarder)
+	r.model.AddForwarder(ctx, forwarder)
 
 	// Starting per forwarder go routine which will open grpc client connection on forwarder advertised socket
 	// and will listen for operational parameters/constraints changes and reflecting these changes in the forwarder
 	// object.
-	go forwarderMonitor(r.model, req.DataplaneName)
+	go forwarderMonitor(r.model, req.ForwarderName)
 
-	return &forwarderregistrarapi.DataplaneRegistrationReply{Registered: true}, nil
+	return &forwarderregistrarapi.ForwarderRegistrationReply{Registered: true}, nil
 }
 
-// RequestDataplaneUnRegistration - request forwarder to be unregistered
-func (r *DataplaneRegistrarServer) RequestDataplaneUnRegistration(ctx context.Context, req *forwarderregistrarapi.DataplaneUnRegistrationRequest) (*forwarderregistrarapi.DataplaneUnRegistrationReply, error) {
-	logrus.Infof("Received forwarder un-registration requests from %s", req.DataplaneName)
+// RequestForwarderUnRegistration - request forwarder to be unregistered
+func (r *ForwarderRegistrarServer) RequestForwarderUnRegistration(ctx context.Context, req *forwarderregistrarapi.ForwarderUnRegistrationRequest) (*forwarderregistrarapi.ForwarderUnRegistrationReply, error) {
+	logrus.Infof("Received forwarder un-registration requests from %s", req.ForwarderName)
 
 	// Removing forwarder from the store, if it does not exists, it does not matter as long as it is no longer there.
-	r.model.DeleteDataplane(ctx, req.DataplaneName)
+	r.model.DeleteForwarder(ctx, req.ForwarderName)
 
-	return &forwarderregistrarapi.DataplaneUnRegistrationReply{UnRegistered: true}, nil
+	return &forwarderregistrarapi.ForwarderUnRegistrationReply{UnRegistered: true}, nil
 }
 
-// startDataplaneServer starts for a server listening for local NSEs advertise/remove
+// startForwarderServer starts for a server listening for local NSEs advertise/remove
 // forwarder registrar calls
-func (r *DataplaneRegistrarServer) startDataplaneRegistrarServer(ctx context.Context) error {
-	span := spanhelper.FromContext(ctx, "StartDataplaneRegistrarServer")
+func (r *ForwarderRegistrarServer) startForwarderRegistrarServer(ctx context.Context) error {
+	span := spanhelper.FromContext(ctx, "StartForwarderRegistrarServer")
 	defer span.Finish()
 
 	forwarderRegistrar := r.forwarderRegistrarSocketPath
@@ -166,11 +166,11 @@ func (r *DataplaneRegistrarServer) startDataplaneRegistrarServer(ctx context.Con
 	}
 
 	// Plugging forwarder registrar operations methods
-	forwarderregistrarapi.RegisterDataplaneRegistrationServer(r.grpcServer, r)
+	forwarderregistrarapi.RegisterForwarderRegistrationServer(r.grpcServer, r)
 	// Plugging forwarder registrar operations methods
-	forwarderregistrarapi.RegisterDataplaneUnRegistrationServer(r.grpcServer, r)
+	forwarderregistrarapi.RegisterForwarderUnRegistrationServer(r.grpcServer, r)
 
-	span.Logger().Infof("Starting Dataplane Registrar gRPC server listening on socket: %s", forwarderRegistrar)
+	span.Logger().Infof("Starting Forwarder Registrar gRPC server listening on socket: %s", forwarderRegistrar)
 	go func() {
 		if serverErr := r.grpcServer.Serve(r.sock); serverErr != nil {
 			serverErr = errors.Errorf("unable to start forwarder registrar grpc server: %v %v", forwarderRegistrar, serverErr)
@@ -191,27 +191,27 @@ func (r *DataplaneRegistrarServer) startDataplaneRegistrarServer(ctx context.Con
 }
 
 // Stop - stop forwarder registration socket.
-func (r *DataplaneRegistrarServer) Stop() {
+func (r *ForwarderRegistrarServer) Stop() {
 	r.grpcServer.Stop() // We do not need to do it gracefully, to speedup forwarder termination.
 	_ = r.sock.Close()
 }
 
-// StartDataplaneRegistrarServer -  registers and starts gRPC server which is listening for
-// Network Service Dataplane Registrar requests.
-func StartDataplaneRegistrarServer(ctx context.Context, model model.Model) (*DataplaneRegistrarServer, error) {
-	span := spanhelper.FromContext(ctx, "DataplaneRegistrarServer")
+// StartForwarderRegistrarServer -  registers and starts gRPC server which is listening for
+// Network Service Forwarder Registrar requests.
+func StartForwarderRegistrarServer(ctx context.Context, model model.Model) (*ForwarderRegistrarServer, error) {
+	span := spanhelper.FromContext(ctx, "ForwarderRegistrarServer")
 	defer span.Finish()
 	server := tools.NewServer(span.Context())
 
-	forwarderRegistrarServer := &DataplaneRegistrarServer{
+	forwarderRegistrarServer := &ForwarderRegistrarServer{
 		grpcServer:                   server,
-		forwarderRegistrarSocketPath: path.Join(DataplaneRegistrarSocketBaseDir, DataplaneRegistrarSocket),
+		forwarderRegistrarSocketPath: path.Join(ForwarderRegistrarSocketBaseDir, ForwarderRegistrarSocket),
 		model:                        model,
 	}
 
 	var err error
 	// Starting forwarder registrar server, if it fails to start, inform Plugin by returning error
-	err = forwarderRegistrarServer.startDataplaneRegistrarServer(span.Context())
+	err = forwarderRegistrarServer.startForwarderRegistrarServer(span.Context())
 	span.LogError(err)
 	return forwarderRegistrarServer, err
 }

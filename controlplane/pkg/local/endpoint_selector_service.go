@@ -62,7 +62,7 @@ func (cce *endpointSelectorService) updateConnection(ctx context.Context, conn *
 func (cce *endpointSelectorService) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 	logger := common.Log(ctx)
 	clientConnection := common.ModelConnection(ctx)
-	dp := common.Dataplane(ctx)
+	dp := common.Forwarder(ctx)
 
 	if clientConnection == nil {
 		return nil, errors.Errorf("client connection need to be passed")
@@ -148,7 +148,7 @@ func (cce *endpointSelectorService) selectEndpoint(ctx context.Context, clientCo
 	return endpoint, nil
 }
 
-func (cce *endpointSelectorService) checkNSEUpdateIsRequired(ctx context.Context, clientConnection *model.ClientConnection, request *networkservice.NetworkServiceRequest, logger logrus.FieldLogger, dp *model.Dataplane) bool {
+func (cce *endpointSelectorService) checkNSEUpdateIsRequired(ctx context.Context, clientConnection *model.ClientConnection, request *networkservice.NetworkServiceRequest, logger logrus.FieldLogger, dp *model.Forwarder) bool {
 	requestNSEOnUpdate := false
 	if clientConnection.ConnectionState == model.ClientConnectionHealing {
 		if request.Connection.GetNetworkService() != clientConnection.GetNetworkService() {
@@ -202,7 +202,7 @@ func (cce *endpointSelectorService) updateConnectionContext(ctx context.Context,
 /**
 check if we need to do a NSE/Remote NSM request in case of our connection Upgrade/Healing procedure.
 */
-func (cce *endpointSelectorService) checkNeedNSERequest(logger logrus.FieldLogger, nsmConn *connection.Connection, existingCC *model.ClientConnection, dp *model.Dataplane) bool {
+func (cce *endpointSelectorService) checkNeedNSERequest(logger logrus.FieldLogger, nsmConn *connection.Connection, existingCC *model.ClientConnection, dp *model.Forwarder) bool {
 	// 4.2.x
 	// 4.2.1 Check if context is changed, if changed we need to
 	if !proto.Equal(nsmConn.GetContext(), existingCC.GetConnectionSource().GetContext()) {

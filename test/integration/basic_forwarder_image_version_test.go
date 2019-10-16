@@ -10,7 +10,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 )
 
-func TestDataplaneVersion(t *testing.T) {
+func TestForwarderVersion(t *testing.T) {
 	g := NewWithT(t)
 
 	if testing.Short() {
@@ -27,7 +27,7 @@ func TestDataplaneVersion(t *testing.T) {
 	defer kubetest.MakeLogsSnapshot(k8s, t)
 
 	g.Expect(len(nodes) > 0).Should(BeTrue())
-	forwarder := nodes[0].Dataplane
+	forwarder := nodes[0].Forwarder
 	k8s.PrintImageVersion(forwarder)
 
 }

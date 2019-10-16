@@ -14,7 +14,7 @@ import (
 )
 
 type next struct {
-	handlers []forwarder.DataplaneServer
+	handlers []forwarder.ForwarderServer
 	index    int
 }
 

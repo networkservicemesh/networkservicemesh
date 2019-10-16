@@ -24,8 +24,8 @@ func TestHealRemoteNSE(t *testing.T) {
 	defer srv.Stop()
 	defer srv2.Stop()
 
-	srv.TestModel.AddDataplane(context.Background(), testDataplane1)
-	srv2.TestModel.AddDataplane(context.Background(), testDataplane2)
+	srv.TestModel.AddForwarder(context.Background(), testForwarder1)
+	srv2.TestModel.AddForwarder(context.Background(), testForwarder2)
 
 	// Register in both
 	nseReg := srv2.registerFakeEndpointWithName("golden_network", "test", Worker, "ep1")

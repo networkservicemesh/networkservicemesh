@@ -11,7 +11,7 @@ import (
 )
 
 //KernelInterfaces creates dataplnae server handler with creation dataChange config for kernel and not direct memif connections
-func KernelInterfaces(baseDir string) forwarder.DataplaneServer {
+func KernelInterfaces(baseDir string) forwarder.ForwarderServer {
 	return &kernelInterfaces{baseDir: baseDir}
 }
 

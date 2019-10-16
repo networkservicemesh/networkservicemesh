@@ -39,20 +39,20 @@ func main() {
 	closer := jaeger.InitJaeger("vppagent-forwarder")
 	defer func() { _ = closer.Close() }()
 
-	span := spanhelper.FromContext(context.Background(), "Start.VPPAgent.Dataplane")
+	span := spanhelper.FromContext(context.Background(), "Start.VPPAgent.Forwarder")
 	defer span.Finish()
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
-	forwarderGoals := &common.DataplaneProbeGoals{}
+	forwarderGoals := &common.ForwarderProbeGoals{}
 	forwarderProbes := probes.New("Vppagent forwarder liveness/readiness healthcheck", forwarderGoals)
 	forwarderProbes.BeginHealthCheck()
 
 	agent := vppagent.CreateVPPAgent()
 
-	registration := common.CreateDataplane(agent, forwarderGoals)
+	registration := common.CreateForwarder(agent, forwarderGoals)
 
 	for range c {
-		logrus.Info("Closing Dataplane Registration")
+		logrus.Info("Closing Forwarder Registration")
 		registration.Close()
 	}
 }

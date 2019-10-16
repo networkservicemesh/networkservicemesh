@@ -34,12 +34,12 @@ type ServiceRegistry interface {
 
 	Stop()
 	NSMDApiClient(ctx context.Context) (nsmdapi.NSMDClient, *grpc.ClientConn, error)
-	DataplaneConnection(ctx context.Context, forwarder *model.Dataplane) (forwarderapi.DataplaneClient, *grpc.ClientConn, error)
+	ForwarderConnection(ctx context.Context, forwarder *model.Forwarder) (forwarderapi.ForwarderClient, *grpc.ClientConn, error)
 
 	EndpointConnection(ctx context.Context, endpoint *model.Endpoint) (networkservice.NetworkServiceClient, *grpc.ClientConn, error)
 	RemoteNetworkServiceClient(ctx context.Context, nsm *registry.NetworkServiceManager) (remote_networkservice.NetworkServiceClient, *grpc.ClientConn, error)
 
-	WaitForDataplaneAvailable(ctx context.Context, model model.Model, timeout time.Duration) error
+	WaitForForwarderAvailable(ctx context.Context, model model.Model, timeout time.Duration) error
 
 	VniAllocator() vni.VniAllocator
 

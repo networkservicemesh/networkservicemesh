@@ -86,6 +86,6 @@ func IsVppAgentNsePinged(k8s *K8s, from *v1.Pod) (result bool) {
 // DefaultPlaneVariablesVPP - Default variables for VPP deployment
 func DefaultPlaneVariablesVPP() map[string]string {
 	return map[string]string{
-		common.DataplaneMetricsEnabledKey: "false",
+		common.ForwarderMetricsEnabledKey: "false",
 	}
 }

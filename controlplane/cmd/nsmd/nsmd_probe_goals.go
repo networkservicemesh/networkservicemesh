@@ -17,7 +17,7 @@ type nsmdProbeGoals struct {
 }
 
 func (g *nsmdProbeGoals) Status() string {
-	return fmt.Sprintf("NSM Server is ready: %v, Dataplane server is ready: %v, Public listener is ready: %v, Server API is ready: %v",
+	return fmt.Sprintf("NSM Server is ready: %v, Forwarder server is ready: %v, Public listener is ready: %v, Server API is ready: %v",
 		g.state&nsmServerReady > 0,
 		g.state&forwarderServerReady > 0,
 		g.state&publicListenerReady > 0,
@@ -28,7 +28,7 @@ func (g *nsmdProbeGoals) Status() string {
 func (g *nsmdProbeGoals) SetNsmServerReady() {
 	g.state |= nsmServerReady
 }
-func (g *nsmdProbeGoals) SetDataplaneServerReady() {
+func (g *nsmdProbeGoals) SetForwarderServerReady() {
 	g.state |= forwarderServerReady
 }
 func (g *nsmdProbeGoals) SetPublicListenerReady() {

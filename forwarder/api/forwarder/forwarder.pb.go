@@ -115,10 +115,10 @@ var _ grpc.ClientConn
 // is compatible with the grpc package it is being compiled against.
 const _ = grpc.SupportPackageIsVersion4
 
-// DataplaneClient is the client API for Dataplane service.
+// ForwarderClient is the client API for Forwarder service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
-type DataplaneClient interface {
+type ForwarderClient interface {
 	Request(ctx context.Context, in *crossconnect.CrossConnect, opts ...grpc.CallOption) (*crossconnect.CrossConnect, error)
 	Close(ctx context.Context, in *crossconnect.CrossConnect, opts ...grpc.CallOption) (*empty.Empty, error)
 }
@@ -127,13 +127,13 @@ type dataplaneClient struct {
 	cc *grpc.ClientConn
 }
 
-func NewDataplaneClient(cc *grpc.ClientConn) DataplaneClient {
+func NewForwarderClient(cc *grpc.ClientConn) ForwarderClient {
 	return &dataplaneClient{cc}
 }
 
 func (c *dataplaneClient) Request(ctx context.Context, in *crossconnect.CrossConnect, opts ...grpc.CallOption) (*crossconnect.CrossConnect, error) {
 	out := new(crossconnect.CrossConnect)
-	err := c.cc.Invoke(ctx, "/forwarder.Dataplane/Request", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/forwarder.Forwarder/Request", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -142,81 +142,81 @@ func (c *dataplaneClient) Request(ctx context.Context, in *crossconnect.CrossCon
 
 func (c *dataplaneClient) Close(ctx context.Context, in *crossconnect.CrossConnect, opts ...grpc.CallOption) (*empty.Empty, error) {
 	out := new(empty.Empty)
-	err := c.cc.Invoke(ctx, "/forwarder.Dataplane/Close", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/forwarder.Forwarder/Close", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// DataplaneServer is the server API for Dataplane service.
-type DataplaneServer interface {
+// ForwarderServer is the server API for Forwarder service.
+type ForwarderServer interface {
 	Request(context.Context, *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error)
 	Close(context.Context, *crossconnect.CrossConnect) (*empty.Empty, error)
 }
 
-// UnimplementedDataplaneServer can be embedded to have forward compatible implementations.
-type UnimplementedDataplaneServer struct {
+// UnimplementedForwarderServer can be embedded to have forward compatible implementations.
+type UnimplementedForwarderServer struct {
 }
 
-func (*UnimplementedDataplaneServer) Request(ctx context.Context, req *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error) {
+func (*UnimplementedForwarderServer) Request(ctx context.Context, req *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Request not implemented")
 }
-func (*UnimplementedDataplaneServer) Close(ctx context.Context, req *crossconnect.CrossConnect) (*empty.Empty, error) {
+func (*UnimplementedForwarderServer) Close(ctx context.Context, req *crossconnect.CrossConnect) (*empty.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Close not implemented")
 }
 
-func RegisterDataplaneServer(s *grpc.Server, srv DataplaneServer) {
-	s.RegisterService(&_Dataplane_serviceDesc, srv)
+func RegisterForwarderServer(s *grpc.Server, srv ForwarderServer) {
+	s.RegisterService(&_Forwarder_serviceDesc, srv)
 }
 
-func _Dataplane_Request_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Forwarder_Request_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(crossconnect.CrossConnect)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DataplaneServer).Request(ctx, in)
+		return srv.(ForwarderServer).Request(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/forwarder.Dataplane/Request",
+		FullMethod: "/forwarder.Forwarder/Request",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DataplaneServer).Request(ctx, req.(*crossconnect.CrossConnect))
+		return srv.(ForwarderServer).Request(ctx, req.(*crossconnect.CrossConnect))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Dataplane_Close_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Forwarder_Close_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(crossconnect.CrossConnect)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DataplaneServer).Close(ctx, in)
+		return srv.(ForwarderServer).Close(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/forwarder.Dataplane/Close",
+		FullMethod: "/forwarder.Forwarder/Close",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DataplaneServer).Close(ctx, req.(*crossconnect.CrossConnect))
+		return srv.(ForwarderServer).Close(ctx, req.(*crossconnect.CrossConnect))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-var _Dataplane_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "forwarder.Dataplane",
-	HandlerType: (*DataplaneServer)(nil),
+var _Forwarder_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "forwarder.Forwarder",
+	HandlerType: (*ForwarderServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "Request",
-			Handler:    _Dataplane_Request_Handler,
+			Handler:    _Forwarder_Request_Handler,
 		},
 		{
 			MethodName: "Close",
-			Handler:    _Dataplane_Close_Handler,
+			Handler:    _Forwarder_Close_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

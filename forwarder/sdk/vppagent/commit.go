@@ -72,6 +72,6 @@ func printVppAgentConfiguration(ctx context.Context, client configurator.Configu
 }
 
 // Commit commits changes
-func Commit() forwarder.DataplaneServer {
+func Commit() forwarder.ForwarderServer {
 	return &commit{}
 }

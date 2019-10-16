@@ -92,20 +92,20 @@ func main() {
 	model.AddListener(monitorCrossConnectClient)
 
 	// Starting forwarder
-	logrus.Info("Starting Dataplane registration server...")
-	if err := server.StartDataplaneRegistratorServer(span.Context()); err != nil {
+	logrus.Info("Starting Forwarder registration server...")
+	if err := server.StartForwarderRegistratorServer(span.Context()); err != nil {
 		span.LogError(errors.Wrap(err, "error starting forwarder service"))
 		return
 	}
 
 	// Wait for forwarder to be connecting to us
-	if err := manager.WaitForDataplane(span.Context(), nsmd.DataplaneTimeout); err != nil {
+	if err := manager.WaitForForwarder(span.Context(), nsmd.ForwarderTimeout); err != nil {
 		span.LogError(errors.Wrap(err, "error waiting for forwarder"))
 		return
 	}
 
-	span.Logger().Info("Dataplane server is ready")
-	nsmdGoals.SetDataplaneServerReady()
+	span.Logger().Info("Forwarder server is ready")
+	nsmdGoals.SetForwarderServerReady()
 	// Choose a public API listener
 
 	nsmdAPIAddress := getNsmdAPIAddress()

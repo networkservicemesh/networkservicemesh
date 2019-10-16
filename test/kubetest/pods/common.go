@@ -27,9 +27,9 @@ const (
 // ForwardingPlane - Wrapper for getting a forwarding plane pod
 func ForwardingPlane(name string, node *v1.Node, plane string) *v1.Pod {
 	if plane == EnvForwardingPlaneDefault {
-		return VPPDataplanePod(name, node)
+		return VPPForwarderPod(name, node)
 	} else if plane == EnvForwardingPlaneKernel {
-		return KernelDataplanePod(name, node)
+		return KernelForwarderPod(name, node)
 	}
 	logrus.Error("Forwarding plane error: Unknown forwarder")
 	return nil
@@ -38,9 +38,9 @@ func ForwardingPlane(name string, node *v1.Node, plane string) *v1.Pod {
 // ForwardingPlaneWithConfig - Wrapper for getting a forwarding plane pod
 func ForwardingPlaneWithConfig(name string, node *v1.Node, variables map[string]string, plane string) *v1.Pod {
 	if plane == EnvForwardingPlaneDefault {
-		return VPPDataplanePodConfig(name, node, variables)
+		return VPPForwarderPodConfig(name, node, variables)
 	} else if plane == EnvForwardingPlaneKernel {
-		return KernelDataplanePodConfig(name, node, variables)
+		return KernelForwarderPodConfig(name, node, variables)
 	}
 	logrus.Error("Forwarding plane error: Unknown forwarder")
 	return nil
@@ -49,9 +49,9 @@ func ForwardingPlaneWithConfig(name string, node *v1.Node, variables map[string]
 // ForwardingPlaneWithLiveCheck - Wrapper for getting a forwarding plane pod with liveness/readiness probes
 func ForwardingPlaneWithLiveCheck(name string, node *v1.Node, plane string) *v1.Pod {
 	if plane == EnvForwardingPlaneDefault {
-		return VPPDataplanePodLiveCheck(name, node)
+		return VPPForwarderPodLiveCheck(name, node)
 	} else if plane == EnvForwardingPlaneKernel {
-		return KernelDataplanePodLiveCheck(name, node)
+		return KernelForwarderPodLiveCheck(name, node)
 	}
 	logrus.Error("Forwarding plane error: Unknown forwarder")
 	return nil

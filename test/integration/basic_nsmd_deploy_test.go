@@ -16,15 +16,15 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func TestNSMgrDataplaneDeploy(t *testing.T) {
-	testNSMgrDataplaneDeploy(t, pods.NSMgrPod, pods.ForwardingPlane)
+func TestNSMgrForwarderDeploy(t *testing.T) {
+	testNSMgrForwarderDeploy(t, pods.NSMgrPod, pods.ForwardingPlane)
 }
 
-func TestNSMgrDataplaneDeployLiveCheck(t *testing.T) {
-	testNSMgrDataplaneDeploy(t, pods.NSMgrPodLiveCheck, pods.ForwardingPlaneWithLiveCheck)
+func TestNSMgrForwarderDeployLiveCheck(t *testing.T) {
+	testNSMgrForwarderDeploy(t, pods.NSMgrPodLiveCheck, pods.ForwardingPlaneWithLiveCheck)
 }
 
-func testNSMgrDataplaneDeploy(t *testing.T, nsmdPodFactory func(string, *v1.Node, string) *v1.Pod, forwarderPodFactory func(string, *v1.Node, string) *v1.Pod) {
+func testNSMgrForwarderDeploy(t *testing.T, nsmdPodFactory func(string, *v1.Node, string) *v1.Pod, forwarderPodFactory func(string, *v1.Node, string) *v1.Pod) {
 	g := NewWithT(t)
 
 	if testing.Short() {

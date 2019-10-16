@@ -123,7 +123,7 @@ func newHealTestData() *healTestData {
 	data.model.SetNsm(&registry.NetworkServiceManager{
 		Name: localNSMName,
 	})
-	data.model.AddDataplane(context.Background(), &model.Dataplane{
+	data.model.AddForwarder(context.Background(), &model.Forwarder{
 		RegisteredName:       forwarder1Name,
 		MechanismsConfigured: true,
 	})
@@ -151,7 +151,7 @@ func TestHealDstDown_RemoteClientLocalEndpoint(t *testing.T) {
 	test_utils.NewModelVerifier(data.model).
 		EndpointExists(nse1Name, localNSMName).
 		ClientConnectionExists("id", "src", "dst", remoteNSMName, nse1Name, forwarder1Name).
-		DataplaneExists(forwarder1Name).
+		ForwarderExists(forwarder1Name).
 		Verify(t)
 }
 
@@ -181,7 +181,7 @@ func TestHealDstDown_LocalClientLocalEndpoint(t *testing.T) {
 		EndpointNotExists(nse1Name).
 		EndpointExists(nse2Name, localNSMName).
 		ClientConnectionExists("id", "src", "dst", localNSMName, nse2Name, forwarder1Name).
-		DataplaneExists(forwarder1Name).
+		ForwarderExists(forwarder1Name).
 		Verify(t)
 }
 
@@ -205,7 +205,7 @@ func TestHealDstDown_LocalClientLocalEndpoint_NoNSEFound(t *testing.T) {
 	test_utils.NewModelVerifier(data.model).
 		EndpointExists(nse1Name, localNSMName).
 		ClientConnectionNotExists("id").
-		DataplaneExists(forwarder1Name).
+		ForwarderExists(forwarder1Name).
 		Verify(t)
 }
 
@@ -230,7 +230,7 @@ func TestHealDstDown_LocalClientLocalEndpoint_RequestFailed(t *testing.T) {
 
 	test_utils.NewModelVerifier(data.model).
 		EndpointExists(nse1Name, localNSMName).
-		DataplaneExists(forwarder1Name).
+		ForwarderExists(forwarder1Name).
 		Verify(t)
 }
 
@@ -261,7 +261,7 @@ func TestHealDstDown_LocalClientRemoteEndpoint(t *testing.T) {
 		EndpointNotExists(nse1Name).
 		EndpointNotExists(nse2Name).
 		ClientConnectionExists("id", "src", "dst", remoteNSMName, nse2Name, forwarder1Name).
-		DataplaneExists(forwarder1Name).
+		ForwarderExists(forwarder1Name).
 		Verify(t)
 }
 
@@ -284,7 +284,7 @@ func TestHealDstDown_LocalClientRemoteEndpoint_NoNSEFound(t *testing.T) {
 	test_utils.NewModelVerifier(data.model).
 		EndpointNotExists(nse1Name).
 		ClientConnectionNotExists("id").
-		DataplaneExists(forwarder1Name).
+		ForwarderExists(forwarder1Name).
 		Verify(t)
 }
 
@@ -311,8 +311,8 @@ func (stub *serviceRegistryStub) DiscoveryClient(ctx context.Context) (registry.
 	return stub.discoveryClient, stub.error
 }
 
-func (stub *serviceRegistryStub) WaitForDataplaneAvailable(ctx context.Context, model model.Model, timeout time.Duration) error {
-	return nsmd.NewServiceRegistry().WaitForDataplaneAvailable(ctx, model, timeout)
+func (stub *serviceRegistryStub) WaitForForwarderAvailable(ctx context.Context, model model.Model, timeout time.Duration) error {
+	return nsmd.NewServiceRegistry().WaitForForwarderAvailable(ctx, model, timeout)
 }
 
 type connectionManagerStub struct {
@@ -364,7 +364,7 @@ func (stub *connectionManagerStub) request(ctx context.Context, request networks
 	}
 
 	existingConnection.ConnectionState = model.ClientConnectionReady
-	existingConnection.DataplaneState = model.DataplaneStateReady
+	existingConnection.ForwarderState = model.ForwarderStateReady
 	stub.model.UpdateClientConnection(context.Background(), existingConnection)
 
 	return nsmConnection, nil
@@ -382,7 +382,7 @@ func (stub *connectionManagerStub) Close(ctx context.Context, clientConnection n
 	})
 
 	stub.model.DeleteEndpoint(context.Background(), cc.Endpoint.GetNetworkServiceEndpoint().GetName())
-	stub.model.DeleteDataplane(context.Background(), cc.DataplaneRegisteredName)
+	stub.model.DeleteForwarder(context.Background(), cc.ForwarderRegisteredName)
 	stub.model.DeleteClientConnection(context.Background(), cc.GetID())
 
 	return nil
@@ -498,9 +498,9 @@ func (data *healTestData) createClientConnection(id string, xcon *crossconnect.C
 			Name: nsm,
 		},
 		Endpoint:                nse,
-		DataplaneRegisteredName: forwarder,
+		ForwarderRegisteredName: forwarder,
 		Request:                 request,
-		DataplaneState:          model.DataplaneStateReady,
+		ForwarderState:          model.ForwarderStateReady,
 	}
 }
 
@@ -509,7 +509,7 @@ func (data *healTestData) cloneClientConnection(connection *model.ClientConnecti
 	xcon := proto.Clone(connection.Xcon).(*crossconnect.CrossConnect)
 	nse := data.createEndpoint(connection.Endpoint.GetNetworkServiceEndpoint().GetName(), connection.Endpoint.GetNetworkServiceManager().GetName())
 	nsm := connection.RemoteNsm.GetName()
-	forwarder := connection.DataplaneRegisteredName
+	forwarder := connection.ForwarderRegisteredName
 	request := data.createRequest(connection.Request.IsRemote())
 
 	if request.IsRemote() {

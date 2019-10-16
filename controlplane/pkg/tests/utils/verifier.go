@@ -78,7 +78,7 @@ func (v *ModelVerifier) ClientConnectionNotExists(connectionID string) *ModelVer
 //   Xcon.Destination.Id = dst.ID
 //   RemoteNsm.Name = remoteNSM
 //   Endpoint.NetworkServiceEndpoint.Name = nse
-//   Dataplane.RegisteredName = forwarder
+//   Forwarder.RegisteredName = forwarder
 // exists in v.model
 func (v *ModelVerifier) ClientConnectionExists(connectionID, srcID, dstID, remoteNSM, nse, forwarder string) *ModelVerifier {
 	v.verifiers = append(v.verifiers, &clientConnectionVerifier{
@@ -96,10 +96,10 @@ func (v *ModelVerifier) ClientConnectionExists(connectionID, srcID, dstID, remot
 	return v
 }
 
-// DataplaneNotExists is a builder method to add check if model.Dataplane with
+// ForwarderNotExists is a builder method to add check if model.Forwarder with
 //   RegisteredName = name
 // doesn't exist in v.model
-func (v *ModelVerifier) DataplaneNotExists(name string) *ModelVerifier {
+func (v *ModelVerifier) ForwarderNotExists(name string) *ModelVerifier {
 	v.verifiers = append(v.verifiers, &forwarderVerifier{
 		exists: false,
 		name:   name,
@@ -110,10 +110,10 @@ func (v *ModelVerifier) DataplaneNotExists(name string) *ModelVerifier {
 	return v
 }
 
-// DataplaneExists is a builder method to add check if model.Dataplane with
+// ForwarderExists is a builder method to add check if model.Forwarder with
 //   RegisteredName = name
 // exists in v.model
-func (v *ModelVerifier) DataplaneExists(name string) *ModelVerifier {
+func (v *ModelVerifier) ForwarderExists(name string) *ModelVerifier {
 	v.verifiers = append(v.verifiers, &forwarderVerifier{
 		exists: true,
 		name:   name,
@@ -179,7 +179,7 @@ func (v *clientConnectionVerifier) Verify(t *testing.T) {
 	v.verifyXcon(connection.Xcon, t)
 	g.Expect(connection.RemoteNsm.GetName()).To(Equal(v.remoteNSM))
 	g.Expect(connection.Endpoint.GetNetworkServiceEndpoint().GetName()).To(Equal(v.nse))
-	g.Expect(connection.DataplaneRegisteredName).To(Equal(v.forwarder))
+	g.Expect(connection.ForwarderRegisteredName).To(Equal(v.forwarder))
 }
 
 func (v *clientConnectionVerifier) verifyXcon(xcon *crossconnect.CrossConnect, t *testing.T) {
@@ -212,7 +212,7 @@ type forwarderVerifier struct {
 func (v *forwarderVerifier) Verify(t *testing.T) {
 	g := NewWithT(t)
 
-	forwarder := v.model.GetDataplane(v.name)
+	forwarder := v.model.GetForwarder(v.name)
 	if !v.exists {
 		g.Expect(forwarder).To(BeNil())
 		return

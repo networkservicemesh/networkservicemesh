@@ -19,11 +19,11 @@ type Model interface {
 	UpdateEndpoint(ctx context.Context, endpoint *Endpoint)
 	DeleteEndpoint(ctx context.Context, name string)
 
-	GetDataplane(name string) *Dataplane
-	AddDataplane(ctx context.Context, forwarder *Dataplane)
-	UpdateDataplane(ctx context.Context, forwarder *Dataplane)
-	DeleteDataplane(ctx context.Context, name string)
-	SelectDataplane(forwarderSelector func(dp *Dataplane) bool) (*Dataplane, error)
+	GetForwarder(name string) *Forwarder
+	AddForwarder(ctx context.Context, forwarder *Forwarder)
+	UpdateForwarder(ctx context.Context, forwarder *Forwarder)
+	DeleteForwarder(ctx context.Context, name string)
+	SelectForwarder(forwarderSelector func(dp *Forwarder) bool) (*Forwarder, error)
 
 	AddClientConnection(ctx context.Context, clientConnection *ClientConnection)
 	GetClientConnection(connectionID string) *ClientConnection
@@ -70,12 +70,12 @@ func (m *model) AddListener(listener Listener) {
 		},
 	})
 
-	dpListenerDelete := m.SetDataplaneModificationHandler(&ModificationHandler{
+	dpListenerDelete := m.SetForwarderModificationHandler(&ModificationHandler{
 		AddFunc: func(ctx context.Context, new interface{}) {
-			listener.DataplaneAdded(ctx, new.(*Dataplane))
+			listener.ForwarderAdded(ctx, new.(*Forwarder))
 		},
 		DeleteFunc: func(ctx context.Context, del interface{}) {
-			listener.DataplaneDeleted(ctx, del.(*Dataplane))
+			listener.ForwarderDeleted(ctx, del.(*Forwarder))
 		},
 	})
 
@@ -116,7 +116,7 @@ func NewModel() Model {
 	return &model{
 		clientConnectionDomain: newClientConnectionDomain(),
 		endpointDomain:         newEndpointDomain(),
-		forwarderDomain:        newDataplaneDomain(),
+		forwarderDomain:        newForwarderDomain(),
 		selector:               selector.NewMatchSelector(),
 		listeners:              make(map[Listener]func()),
 	}

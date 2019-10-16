@@ -40,7 +40,7 @@ const (
 
 var wt *WithT
 
-func TestDataplaneCrossConnectBasic(t *testing.T) {
+func TestForwarderCrossConnectBasic(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
@@ -55,7 +55,7 @@ func TestDataplaneCrossConnectBasic(t *testing.T) {
 	fixture.verifyKernelConnection(conn)
 }
 
-func TestDataplaneCrossConnectMultiple(t *testing.T) {
+func TestForwarderCrossConnectMultiple(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
@@ -72,7 +72,7 @@ func TestDataplaneCrossConnectMultiple(t *testing.T) {
 	fixture.verifyKernelConnection(second)
 }
 
-func TestDataplaneCrossConnectUpdate(t *testing.T) {
+func TestForwarderCrossConnectUpdate(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
@@ -93,7 +93,7 @@ func TestDataplaneCrossConnectUpdate(t *testing.T) {
 	fixture.verifyKernelConnectionClosed(orig)
 }
 
-func TestDataplaneCrossConnectReconnect(t *testing.T) {
+func TestForwarderCrossConnectReconnect(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
@@ -114,10 +114,10 @@ func TestDataplaneCrossConnectReconnect(t *testing.T) {
 	fixture.verifyKernelConnection(conn)
 }
 
-// A standaloneDataplaneFixture represents minimalist test configuration
+// A standaloneForwarderFixture represents minimalist test configuration
 // with just a forwarder pod and two peer pods (source and destination)
 // deployed on a single node.
-type standaloneDataplaneFixture struct {
+type standaloneForwarderFixture struct {
 	timeout         time.Duration
 	k8s             *kubetest.K8s
 	node            *v1.Node
@@ -125,19 +125,19 @@ type standaloneDataplaneFixture struct {
 	sourcePod       *v1.Pod
 	destPod         *v1.Pod
 	forwarding      *kubetest.PortForward
-	forwarderClient forwarderapi.DataplaneClient
+	forwarderClient forwarderapi.ForwarderClient
 	test            *testing.T
 }
 
-func (fixture *standaloneDataplaneFixture) cleanup() {
+func (fixture *standaloneForwarderFixture) cleanup() {
 	fixture.forwarding.Stop()
 	// Let's delete source/destPod without gracetimeout
 	fixture.k8s.DeletePodsForce(fixture.sourcePod, fixture.destPod)
 	fixture.k8s.Cleanup()
 }
 
-func createFixture(test *testing.T, timeout time.Duration) *standaloneDataplaneFixture {
-	fixture := &standaloneDataplaneFixture{
+func createFixture(test *testing.T, timeout time.Duration) *standaloneForwarderFixture {
+	fixture := &standaloneForwarderFixture{
 		timeout: timeout,
 		test:    test,
 	}
@@ -159,15 +159,15 @@ func createFixture(test *testing.T, timeout time.Duration) *standaloneDataplaneF
 	fixture.destPod = k8s.CreatePod(pods.AlpinePod(fmt.Sprintf("dest-pod-%s", fixture.node.Name), fixture.node))
 
 	// forward forwarder port
-	fixture.forwardDataplanePort(forwarderPort)
+	fixture.forwardForwarderPort(forwarderPort)
 
 	// connect to forwarder
-	fixture.connectDataplane()
+	fixture.connectForwarder()
 
 	return fixture
 }
 
-func (fixture *standaloneDataplaneFixture) forwardDataplanePort(port int) {
+func (fixture *standaloneForwarderFixture) forwardForwarderPort(port int) {
 	fwd, err := fixture.k8s.NewPortForwarder(fixture.forwarderPod, port)
 	wt.Expect(err).To(BeNil())
 
@@ -177,28 +177,28 @@ func (fixture *standaloneDataplaneFixture) forwardDataplanePort(port int) {
 	fixture.forwarding = fwd
 }
 
-func (fixture *standaloneDataplaneFixture) connectDataplane() {
+func (fixture *standaloneForwarderFixture) connectForwarder() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	forwarderConn, err := tools.DialContext(ctx, localPort(forwarderSocketType, fixture.forwarding.ListenPort))
 	wt.Expect(err).To(BeNil())
-	fixture.forwarderClient = forwarderapi.NewDataplaneClient(forwarderConn)
+	fixture.forwarderClient = forwarderapi.NewForwarderClient(forwarderConn)
 }
 
-func (fixture *standaloneDataplaneFixture) requestCrossConnect(id, srcMech, dstMech, iface, srcIp, dstIp string) *crossconnect.CrossConnect {
+func (fixture *standaloneForwarderFixture) requestCrossConnect(id, srcMech, dstMech, iface, srcIp, dstIp string) *crossconnect.CrossConnect {
 	req := fixture.createCrossConnectRequest(id, srcMech, dstMech, iface, srcIp, dstIp)
 	return fixture.request(req)
 }
 
-func (fixture *standaloneDataplaneFixture) request(req *crossconnect.CrossConnect) *crossconnect.CrossConnect {
+func (fixture *standaloneForwarderFixture) request(req *crossconnect.CrossConnect) *crossconnect.CrossConnect {
 	ctx, _ := context.WithTimeout(context.Background(), fixture.timeout)
 	conn, err := fixture.forwarderClient.Request(ctx, req)
 	wt.Expect(err).To(BeNil())
 	return conn
 }
 
-func (fixture *standaloneDataplaneFixture) createCrossConnectRequest(id, srcMech, dstMech, iface, srcIp, dstIp string) *crossconnect.CrossConnect {
+func (fixture *standaloneForwarderFixture) createCrossConnectRequest(id, srcMech, dstMech, iface, srcIp, dstIp string) *crossconnect.CrossConnect {
 	conn := &crossconnect.CrossConnect{
 		Id:      id,
 		Payload: "IP",
@@ -215,7 +215,7 @@ func (fixture *standaloneDataplaneFixture) createCrossConnectRequest(id, srcMech
 	return conn
 }
 
-func (fixture *standaloneDataplaneFixture) createConnection(id, mech, iface, srcIp, dstIp string, pod *v1.Pod) *connection.Connection {
+func (fixture *standaloneForwarderFixture) createConnection(id, mech, iface, srcIp, dstIp string, pod *v1.Pod) *connection.Connection {
 	mechanism := &connection.Mechanism{
 		Type: common.MechanismFromString(mech),
 		Parameters: map[string]string{
@@ -241,7 +241,7 @@ func (fixture *standaloneDataplaneFixture) createConnection(id, mech, iface, src
 	}
 }
 
-func (fixture *standaloneDataplaneFixture) getNetNS(pod *v1.Pod) string {
+func (fixture *standaloneForwarderFixture) getNetNS(pod *v1.Pod) string {
 	container := pod.Spec.Containers[0].Name
 	link, _, err := fixture.k8s.Exec(pod, container, "readlink", "/proc/self/ns/net")
 	wt.Expect(err).To(BeNil())
@@ -253,15 +253,15 @@ func (fixture *standaloneDataplaneFixture) getNetNS(pod *v1.Pod) string {
 	return matches[1]
 }
 
-func (fixture *standaloneDataplaneFixture) requestKernelConnection(id, iface, srcIp, dstIp string) *crossconnect.CrossConnect {
+func (fixture *standaloneForwarderFixture) requestKernelConnection(id, iface, srcIp, dstIp string) *crossconnect.CrossConnect {
 	return fixture.requestCrossConnect(id, "kernel", "kernel", iface, srcIp, dstIp)
 }
 
-func (fixture *standaloneDataplaneFixture) requestDefaultKernelConnection() *crossconnect.CrossConnect {
+func (fixture *standaloneForwarderFixture) requestDefaultKernelConnection() *crossconnect.CrossConnect {
 	return fixture.requestKernelConnection("0", "iface", srcIpMasked, dstIpMasked)
 }
 
-func (fixture *standaloneDataplaneFixture) verifyKernelConnection(xcon *crossconnect.CrossConnect) {
+func (fixture *standaloneForwarderFixture) verifyKernelConnection(xcon *crossconnect.CrossConnect) {
 	srcIface := getIface(xcon.GetLocalSource())
 	dstIface := getIface(xcon.GetLocalDestination())
 	srcIp := unmaskIp(xcon.GetLocalSource().Context.IpContext.SrcIpAddr)
@@ -284,7 +284,7 @@ func (fixture *standaloneDataplaneFixture) verifyKernelConnection(xcon *crosscon
 	wt.Expect(strings.Contains(out, "0% packet loss")).To(BeTrue())
 }
 
-func (fixture *standaloneDataplaneFixture) handleFailures(failures []string) {
+func (fixture *standaloneForwarderFixture) handleFailures(failures []string) {
 	if len(failures) > 0 {
 		for _, failure := range failures {
 			logrus.Errorf("test failure: %s\n", failure)
@@ -297,12 +297,12 @@ func (fixture *standaloneDataplaneFixture) handleFailures(failures []string) {
 	}
 }
 
-func (fixture *standaloneDataplaneFixture) printLogs(pod *v1.Pod) {
+func (fixture *standaloneForwarderFixture) printLogs(pod *v1.Pod) {
 	logs, _ := fixture.k8s.GetLogs(pod, firstContainer(pod))
 	logrus.Errorf("=================================\nLogs of '%s' pod:\n%s\n", pod.Name, logs)
 }
 
-func (fixture *standaloneDataplaneFixture) verifyKernelConnectionClosed(xcon *crossconnect.CrossConnect) {
+func (fixture *standaloneForwarderFixture) verifyKernelConnectionClosed(xcon *crossconnect.CrossConnect) {
 	srcIface := getIface(xcon.GetLocalSource())
 	dstIface := getIface(xcon.GetLocalDestination())
 
@@ -319,7 +319,7 @@ func (fixture *standaloneDataplaneFixture) verifyKernelConnectionClosed(xcon *cr
 	logrus.Infof("Destination interfaces:\n%s", out)
 }
 
-func (fixture *standaloneDataplaneFixture) closeConnection(conn *crossconnect.CrossConnect) {
+func (fixture *standaloneForwarderFixture) closeConnection(conn *crossconnect.CrossConnect) {
 	ctx, _ := context.WithTimeout(context.Background(), fixture.timeout)
 	_, err := fixture.forwarderClient.Close(ctx, conn)
 	wt.Expect(err).To(BeNil())

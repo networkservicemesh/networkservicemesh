@@ -1,4 +1,4 @@
-# Network Service Mesh Dataplane
+# Network Service Mesh Forwarder
 
 ## Overview
 
@@ -17,34 +17,34 @@ It should be considered as a baseline that can be further extended when needed.
 * This structure keeps the main forwarder configuration -
 
 ```go
-type DataplaneConfig struct {
+type ForwarderConfig struct {
     Name                string
     NSMBaseDir          string
     RegistrarSocket     string
     RegistrarSocketType string
-    DataplaneSocket     string
-    DataplaneSocketType string
+    ForwarderSocket     string
+    ForwarderSocketType string
 }
 ```
 
-* The forwarder instance should implement the `NSMDataplane` interface expected by `CreateDataplane` having the following methods - `Init()`, `Close()`, `Request()` and `MonitorMechanisms()`.
+* The forwarder instance should implement the `NSMForwarder` interface expected by `CreateForwarder` having the following methods - `Init()`, `Close()`, `Request()` and `MonitorMechanisms()`.
 
-* The forwarder is responsible for populating the following base configuration fields - `Name`, `DataplaneSocket` and `DataplaneSocketType` in its `Init()` handler. They are mandatory in order to proceed with the forwarder setup.
+* The forwarder is responsible for populating the following base configuration fields - `Name`, `ForwarderSocket` and `ForwarderSocketType` in its `Init()` handler. They are mandatory in order to proceed with the forwarder setup.
 
-## Dataplane example
+## Forwarder example
 
 The following is an example using VPP as a forwarder.
 
 * The configuration will look like -
 
 ```go
-&DataplaneConfig{
+&ForwarderConfig{
     Name:                "vppagent"
     NSMBaseDir:          "/var/lib/networkservicemesh/"
     RegistrarSocket:     "/var/lib/networkservicemesh/nsm.forwarder-registrar.io.sock"
     RegistrarSocketType: "unix"
-    DataplaneSocket:     "/var/lib/networkservicemesh/nsm-vppagent.forwarder.sock"
-    DataplaneSocketType: "unix"
+    ForwarderSocket:     "/var/lib/networkservicemesh/nsm-vppagent.forwarder.sock"
+    ForwarderSocketType: "unix"
 }
 ```
 
@@ -64,11 +64,11 @@ func main() {
 
     vppagent := vppagent.CreateVPPAgent()
 
-    registration := common.CreateDataplane(vppagent)
+    registration := common.CreateForwarder(vppagent)
 
     select {
     case <-c:
-        logrus.Info("Closing Dataplane Registration")
+        logrus.Info("Closing Forwarder Registration")
         registration.Close()
     }
 }

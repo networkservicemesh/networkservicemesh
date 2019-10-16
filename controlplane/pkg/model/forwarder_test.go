@@ -15,7 +15,7 @@ import (
 func TestAddAndGetDp(t *testing.T) {
 	g := NewWithT(t)
 
-	dp := &Dataplane{
+	dp := &Forwarder{
 		RegisteredName: "dp1",
 		SocketLocation: "/socket",
 		LocalMechanisms: []connection.Mechanism{
@@ -37,9 +37,9 @@ func TestAddAndGetDp(t *testing.T) {
 		MechanismsConfigured: true,
 	}
 
-	dd := newDataplaneDomain()
-	dd.AddDataplane(context.Background(), dp)
-	getDp := dd.GetDataplane("dp1")
+	dd := newForwarderDomain()
+	dd.AddForwarder(context.Background(), dp)
+	getDp := dd.GetForwarder("dp1")
 
 	g.Expect(getDp.RegisteredName).To(Equal(dp.RegisteredName))
 	g.Expect(getDp.SocketLocation).To(Equal(dp.SocketLocation))
@@ -54,8 +54,8 @@ func TestAddAndGetDp(t *testing.T) {
 func TestDeleteDp(t *testing.T) {
 	g := NewWithT(t)
 
-	dd := newDataplaneDomain()
-	dd.AddDataplane(context.Background(), &Dataplane{
+	dd := newForwarderDomain()
+	dd.AddForwarder(context.Background(), &Forwarder{
 		RegisteredName: "dp1",
 		SocketLocation: "/socket",
 		LocalMechanisms: []connection.Mechanism{
@@ -77,24 +77,24 @@ func TestDeleteDp(t *testing.T) {
 		MechanismsConfigured: true,
 	})
 
-	cc := dd.GetDataplane("dp1")
+	cc := dd.GetForwarder("dp1")
 	g.Expect(cc).ToNot(BeNil())
 
-	dd.DeleteDataplane(context.Background(), "dp1")
+	dd.DeleteForwarder(context.Background(), "dp1")
 
-	dpDel := dd.GetDataplane("dp1")
+	dpDel := dd.GetForwarder("dp1")
 	g.Expect(dpDel).To(BeNil())
 
-	dd.DeleteDataplane(context.Background(), "NotExistingId")
+	dd.DeleteForwarder(context.Background(), "NotExistingId")
 }
 
 func TestSelectDp(t *testing.T) {
 	g := NewWithT(t)
 
 	amount := 5
-	dd := newDataplaneDomain()
+	dd := newForwarderDomain()
 	for i := 0; i < amount; i++ {
-		dd.AddDataplane(context.Background(), &Dataplane{
+		dd.AddForwarder(context.Background(), &Forwarder{
 			RegisteredName: fmt.Sprintf("dp%d", i),
 			SocketLocation: fmt.Sprintf("/socket-%d", i),
 			LocalMechanisms: []connection.Mechanism{
@@ -117,22 +117,22 @@ func TestSelectDp(t *testing.T) {
 		})
 	}
 
-	selector := func(dp *Dataplane) bool {
+	selector := func(dp *Forwarder) bool {
 		return dp.SocketLocation == "/socket-4"
 	}
 
-	selectedDp, err := dd.SelectDataplane(selector)
+	selectedDp, err := dd.SelectForwarder(selector)
 	g.Expect(err).To(BeNil())
 	g.Expect(selectedDp.RegisteredName).To(Equal("dp4"))
 
-	emptySelector := func(dp *Dataplane) bool {
+	emptySelector := func(dp *Forwarder) bool {
 		return false
 	}
-	selectedDp, err = dd.SelectDataplane(emptySelector)
+	selectedDp, err = dd.SelectForwarder(emptySelector)
 	g.Expect(err.Error()).To(ContainSubstring("no appropriate forwarders found"))
 	g.Expect(selectedDp).To(BeNil())
 
-	first, err := dd.SelectDataplane(nil)
+	first, err := dd.SelectForwarder(nil)
 	g.Expect(err).To(BeNil())
 	g.Expect(first.RegisteredName).ToNot(BeNil())
 }

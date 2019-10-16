@@ -51,15 +51,15 @@ const (
 
 type VPPAgent struct {
 	metricsCollector *MetricsCollector
-	common           *common.DataplaneConfig
+	common           *common.ForwarderConfig
 }
 
 func CreateVPPAgent() *VPPAgent {
 	return &VPPAgent{}
 }
 
-//CreateDataplaneServer creates DataplaneServer handler
-func (v *VPPAgent) CreateDataplaneServer(config *common.DataplaneConfig) forwarder.DataplaneServer {
+//CreateForwarderServer creates ForwarderServer handler
+func (v *VPPAgent) CreateForwarderServer(config *common.ForwarderConfig) forwarder.ForwarderServer {
 	return sdk.ChainOf(
 		sdk.ConnectionValidator(),
 		sdk.UseMonitor(config.Monitor),
@@ -242,7 +242,7 @@ func (v *VPPAgent) programMgmtInterface() error {
 }
 
 // Init makes setup for the VPPAgent
-func (v *VPPAgent) Init(common *common.DataplaneConfig) error {
+func (v *VPPAgent) Init(common *common.ForwarderConfig) error {
 	v.common = common
 
 	closer := jaeger.InitJaeger(v.common.Name)

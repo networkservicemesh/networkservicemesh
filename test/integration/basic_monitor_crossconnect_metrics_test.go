@@ -38,14 +38,14 @@ func TestSimpleMetrics(t *testing.T) {
 
 	nodes, err := kubetest.SetupNodesConfig(k8s, nodesCount, defaultTimeout, []*pods.NSMgrPodConfig{
 		{
-			DataplaneVariables: map[string]string{
-				common.DataplaneMetricsEnabledKey:       "true",
-				common.DataplaneMetricsRequestPeriodKey: requestPeriod.String(),
+			ForwarderVariables: map[string]string{
+				common.ForwarderMetricsEnabledKey:       "true",
+				common.ForwarderMetricsRequestPeriodKey: requestPeriod.String(),
 			},
 			Variables: pods.DefaultNSMD(),
 		},
 	}, k8s.GetK8sNamespace())
-	k8s.WaitLogsContains(nodes[0].Dataplane, nodes[0].Dataplane.Spec.Containers[0].Name, "Metrics collector: creating notificaiton client", time.Minute)
+	k8s.WaitLogsContains(nodes[0].Forwarder, nodes[0].Forwarder.Spec.Containers[0].Name, "Metrics collector: creating notificaiton client", time.Minute)
 	g.Expect(err).To(BeNil())
 	kubetest.DeployICMP(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
 	defer kubetest.MakeLogsSnapshot(k8s, t)

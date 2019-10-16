@@ -12,7 +12,7 @@ import (
 )
 
 //DirectMemifInterfaces creates forwarder server handler with direct memif connection/ disconnection
-func DirectMemifInterfaces(baseDir string) forwarder.DataplaneServer {
+func DirectMemifInterfaces(baseDir string) forwarder.ForwarderServer {
 	return &directMemifInterface{
 		directMemifConnector: memif.NewDirectMemifConnector(baseDir),
 	}

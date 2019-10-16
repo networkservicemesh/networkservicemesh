@@ -14,8 +14,8 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 )
 
-func createTestDataplane(name string, localMechanisms, remoteMechanisms []connection.Mechanism) *model.Dataplane {
-	return &model.Dataplane{
+func createTestForwarder(name string, localMechanisms, remoteMechanisms []connection.Mechanism) *model.Forwarder {
+	return &model.Forwarder{
 		RegisteredName:       name,
 		SocketLocation:       "tcp:some_addr",
 		LocalMechanisms:      localMechanisms,
@@ -24,10 +24,10 @@ func createTestDataplane(name string, localMechanisms, remoteMechanisms []connec
 	}
 }
 
-func TestSelectDataplane(t *testing.T) {
+func TestSelectForwarder(t *testing.T) {
 	g := NewWithT(t)
 
-	testDataplane1_1 := createTestDataplane("test_data_plane_2",
+	testForwarder1_1 := createTestForwarder("test_data_plane_2",
 		[]connection.Mechanism{
 			&local.Mechanism{
 				Type: local.MechanismType_VHOST_INTERFACE,
@@ -56,9 +56,9 @@ func TestSelectDataplane(t *testing.T) {
 	srv2 := NewNSMDFullServer(Worker, storage)
 	defer srv.Stop()
 	defer srv2.Stop()
-	srv.TestModel.AddDataplane(context.Background(), testDataplane1)
-	srv2.TestModel.AddDataplane(context.Background(), testDataplane2)
-	srv.TestModel.AddDataplane(context.Background(), testDataplane1_1)
+	srv.TestModel.AddForwarder(context.Background(), testForwarder1)
+	srv2.TestModel.AddForwarder(context.Background(), testForwarder2)
+	srv.TestModel.AddForwarder(context.Background(), testForwarder1_1)
 
 	// Register in both
 	nseReg := srv2.RegisterFakeEndpoint("golden_network", "test", Worker)

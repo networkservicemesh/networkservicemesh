@@ -93,12 +93,12 @@ func (impl *nsmdServiceRegistry) EndpointConnection(ctx context.Context, endpoin
 	return client, nseConn, nil
 }
 
-func (impl *nsmdServiceRegistry) DataplaneConnection(ctx context.Context, forwarder *model.Dataplane) (forwarderapi.DataplaneClient, *grpc.ClientConn, error) {
+func (impl *nsmdServiceRegistry) ForwarderConnection(ctx context.Context, forwarder *model.Forwarder) (forwarderapi.ForwarderClient, *grpc.ClientConn, error) {
 	forwarderConn, err := tools.DialContextUnix(ctx, forwarder.SocketLocation)
 	if err != nil {
 		return nil, nil, err
 	}
-	dpClient := forwarderapi.NewDataplaneClient(forwarderConn)
+	dpClient := forwarderapi.NewForwarderClient(forwarderConn)
 	return dpClient, forwarderConn, nil
 }
 
@@ -220,17 +220,17 @@ func NewServiceRegistryAt(nsmAddress string) serviceregistry.ServiceRegistry {
 	}
 }
 
-func (impl *nsmdServiceRegistry) WaitForDataplaneAvailable(ctx context.Context, mdl model.Model, timeout time.Duration) error {
+func (impl *nsmdServiceRegistry) WaitForForwarderAvailable(ctx context.Context, mdl model.Model, timeout time.Duration) error {
 	span := spanhelper.FromContext(ctx, "wait-forwarder")
 	defer span.Finish()
 	span.Logger().Info("Waiting for forwarder available...")
 
 	st := time.Now()
-	checkConfigured := func(dp *model.Dataplane) bool {
+	checkConfigured := func(dp *model.Forwarder) bool {
 		return dp.MechanismsConfigured
 	}
 	for ; true; <-time.After(100 * time.Millisecond) {
-		if dp, _ := mdl.SelectDataplane(checkConfigured); dp != nil {
+		if dp, _ := mdl.SelectForwarder(checkConfigured); dp != nil {
 			// We have configured monitor
 			return nil
 		}

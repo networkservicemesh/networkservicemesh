@@ -10,19 +10,19 @@ import (
 	remote "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
 )
 
-// DataplaneState describes state of forwarder
-type DataplaneState int8
+// ForwarderState describes state of forwarder
+type ForwarderState int8
 
 const (
-	// DataplaneStateNone means there is no active connection in forwarder
-	DataplaneStateNone DataplaneState = 0 // In case forwarder is not yet configured for connection
+	// ForwarderStateNone means there is no active connection in forwarder
+	ForwarderStateNone ForwarderState = 0 // In case forwarder is not yet configured for connection
 
-	// DataplaneStateReady means there is an active connection in forwarder
-	DataplaneStateReady DataplaneState = 1 // In case forwarder is configured for connection.
+	// ForwarderStateReady means there is an active connection in forwarder
+	ForwarderStateReady ForwarderState = 1 // In case forwarder is configured for connection.
 )
 
-// Dataplane structure in Model that describes forwarder
-type Dataplane struct {
+// Forwarder structure in Model that describes forwarder
+type Forwarder struct {
 	RegisteredName       string
 	SocketLocation       string
 	LocalMechanisms      []connection.Mechanism
@@ -30,8 +30,8 @@ type Dataplane struct {
 	MechanismsConfigured bool
 }
 
-// Clone returns pointer to copy of Dataplane
-func (d *Dataplane) clone() cloneable {
+// Clone returns pointer to copy of Forwarder
+func (d *Forwarder) clone() cloneable {
 	if d == nil {
 		return nil
 	}
@@ -46,7 +46,7 @@ func (d *Dataplane) clone() cloneable {
 		rm = append(rm, m.Clone())
 	}
 
-	return &Dataplane{
+	return &Forwarder{
 		RegisteredName:       d.RegisteredName,
 		SocketLocation:       d.SocketLocation,
 		LocalMechanisms:      lm,
@@ -56,7 +56,7 @@ func (d *Dataplane) clone() cloneable {
 }
 
 // SetLocalMechanisms sets forwarder local mechanisms
-func (d *Dataplane) SetLocalMechanisms(mechanisms []*local.Mechanism) {
+func (d *Forwarder) SetLocalMechanisms(mechanisms []*local.Mechanism) {
 	lm := make([]connection.Mechanism, 0, len(mechanisms))
 	for _, m := range mechanisms {
 		lm = append(lm, m)
@@ -66,7 +66,7 @@ func (d *Dataplane) SetLocalMechanisms(mechanisms []*local.Mechanism) {
 }
 
 // SetRemoteMechanisms sets forwarder remote mechanisms
-func (d *Dataplane) SetRemoteMechanisms(mechanisms []*remote.Mechanism) {
+func (d *Forwarder) SetRemoteMechanisms(mechanisms []*remote.Mechanism) {
 	rm := make([]connection.Mechanism, 0, len(mechanisms))
 	for _, m := range mechanisms {
 		rm = append(rm, m)
@@ -79,36 +79,36 @@ type forwarderDomain struct {
 	baseDomain
 }
 
-func newDataplaneDomain() forwarderDomain {
+func newForwarderDomain() forwarderDomain {
 	return forwarderDomain{
 		baseDomain: newBase(),
 	}
 }
 
-func (d *forwarderDomain) AddDataplane(ctx context.Context, dp *Dataplane) {
+func (d *forwarderDomain) AddForwarder(ctx context.Context, dp *Forwarder) {
 	d.store(ctx, dp.RegisteredName, dp)
 }
 
-func (d *forwarderDomain) GetDataplane(name string) *Dataplane {
+func (d *forwarderDomain) GetForwarder(name string) *Forwarder {
 	v, _ := d.load(name)
 	if v != nil {
-		return v.(*Dataplane)
+		return v.(*Forwarder)
 	}
 	return nil
 }
 
-func (d *forwarderDomain) DeleteDataplane(ctx context.Context, name string) {
+func (d *forwarderDomain) DeleteForwarder(ctx context.Context, name string) {
 	d.delete(ctx, name)
 }
 
-func (d *forwarderDomain) UpdateDataplane(ctx context.Context, dp *Dataplane) {
+func (d *forwarderDomain) UpdateForwarder(ctx context.Context, dp *Forwarder) {
 	d.store(ctx, dp.RegisteredName, dp)
 }
 
-func (d *forwarderDomain) SelectDataplane(forwarderSelector func(dp *Dataplane) bool) (*Dataplane, error) {
-	var rv *Dataplane
+func (d *forwarderDomain) SelectForwarder(forwarderSelector func(dp *Forwarder) bool) (*Forwarder, error) {
+	var rv *Forwarder
 	d.kvRange(func(key string, value interface{}) bool {
-		dp := value.(*Dataplane)
+		dp := value.(*Forwarder)
 
 		if forwarderSelector == nil {
 			rv = dp
@@ -130,6 +130,6 @@ func (d *forwarderDomain) SelectDataplane(forwarderSelector func(dp *Dataplane) 
 	return rv, nil
 }
 
-func (d *forwarderDomain) SetDataplaneModificationHandler(h *ModificationHandler) func() {
+func (d *forwarderDomain) SetForwarderModificationHandler(h *ModificationHandler) func() {
 	return d.addHandler(h)
 }

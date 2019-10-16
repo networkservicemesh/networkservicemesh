@@ -11,13 +11,13 @@ const (
 	done = newEgressIPReady | srcIPReady | socketCleanReady | validIPReady | socketListenReady
 )
 
-//DataplaneProbeGoals represents probes goals for Dataplane
-type DataplaneProbeGoals struct {
+//ForwarderProbeGoals represents probes goals for Forwarder
+type ForwarderProbeGoals struct {
 	state int8
 }
 
 //Status returns current goals status
-func (g *DataplaneProbeGoals) Status() string {
+func (g *ForwarderProbeGoals) Status() string {
 	return fmt.Sprintf("NewEgressIPReady:%v, SetSrcIPReady: %v, SetSocketCleanReady: %v, SetValidIPReady: %v, SetSocketListenrReady: %v",
 		g.state&newEgressIPReady > 0,
 		g.state&srcIPReady > 0,
@@ -27,31 +27,31 @@ func (g *DataplaneProbeGoals) Status() string {
 }
 
 //SetNewEgressIFReady sets true for NewEgressIFReady
-func (g *DataplaneProbeGoals) SetNewEgressIFReady() {
+func (g *ForwarderProbeGoals) SetNewEgressIFReady() {
 	g.state |= newEgressIPReady
 }
 
 //IsComplete if all goals have done
-func (g *DataplaneProbeGoals) IsComplete() bool {
+func (g *ForwarderProbeGoals) IsComplete() bool {
 	return g.state == done
 }
 
 //SetSrcIPReady sets true for SrcIPReady
-func (g *DataplaneProbeGoals) SetSrcIPReady() {
+func (g *ForwarderProbeGoals) SetSrcIPReady() {
 	g.state |= srcIPReady
 }
 
 //SetSocketCleanReady sets true for SocketCleanReady
-func (g *DataplaneProbeGoals) SetSocketCleanReady() {
+func (g *ForwarderProbeGoals) SetSocketCleanReady() {
 	g.state |= socketCleanReady
 }
 
 //SetValidIPReady sets true for ValidIPReady
-func (g *DataplaneProbeGoals) SetValidIPReady() {
+func (g *ForwarderProbeGoals) SetValidIPReady() {
 	g.state |= validIPReady
 }
 
 //SetSocketListenReady sets true for SocketListenReady
-func (g *DataplaneProbeGoals) SetSocketListenReady() {
+func (g *ForwarderProbeGoals) SetSocketListenReady() {
 	g.state |= socketListenReady
 }

@@ -38,19 +38,19 @@ func main() {
 	closer := jaeger.InitJaeger("kernel-forwarder")
 	defer func() { _ = closer.Close() }()
 
-	span := spanhelper.FromContext(context.Background(), "Start.KernelForwarder.Dataplane")
+	span := spanhelper.FromContext(context.Background(), "Start.KernelForwarder.Forwarder")
 	defer span.Finish()
 	c := tools.NewOSSignalChannel()
-	forwarderGoals := &common.DataplaneProbeGoals{}
+	forwarderGoals := &common.ForwarderProbeGoals{}
 	forwarderProbes := probes.New("Kernel-based forwarding plane liveness/readiness healthcheck", forwarderGoals)
 	forwarderProbes.BeginHealthCheck()
 
 	plane := kernelforwarder.CreateKernelForwarder()
 
-	registration := common.CreateDataplane(plane, forwarderGoals)
+	registration := common.CreateForwarder(plane, forwarderGoals)
 
 	for range c {
-		logrus.Info("Closing Dataplane Registration")
+		logrus.Info("Closing Forwarder Registration")
 		registration.Close()
 	}
 }

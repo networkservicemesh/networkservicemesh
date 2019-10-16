@@ -118,8 +118,8 @@ func testNSEHeal(t *testing.T, nodesCount int, affinity map[string]int, fixture 
 	if len(nodesSetup) > 1 {
 		l2, err := k8s.GetLogs(nodesSetup[1].Nsmd, "nsmd")
 		g.Expect(err).To(BeNil())
-		if strings.Contains(l2, "Dataplane request failed:") {
-			logrus.Infof("Dataplane first attempt was failed: %v", l2)
+		if strings.Contains(l2, "Forwarder request failed:") {
+			logrus.Infof("Forwarder first attempt was failed: %v", l2)
 		}
 	}
 

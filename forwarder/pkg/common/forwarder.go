@@ -35,41 +35,41 @@ import (
 	monitor_crossconnect "github.com/networkservicemesh/networkservicemesh/sdk/monitor/crossconnect"
 )
 
-type NSMDataplane interface {
+type NSMForwarder interface {
 	forwarder.MechanismsMonitorServer
-	Init(*DataplaneConfig) error
-	CreateDataplaneServer(*DataplaneConfig) forwarder.DataplaneServer
+	Init(*ForwarderConfig) error
+	CreateForwarderServer(*ForwarderConfig) forwarder.ForwarderServer
 }
 
 // TODO Convert all the defaults to properly use NsmBaseDir
 const (
 	NSMBaseDirKey                        = "NSM_BASEDIR"
 	NSMBaseDirDefault                    = "/var/lib/networkservicemesh/"
-	DataplaneRegistrarSocketKey          = "FORWARDER_REGISTRAR_SOCKET"
-	DataplaneRegistrarSocketDefault      = "/var/lib/networkservicemesh/nsm.forwarder-registrar.io.sock"
-	DataplaneRegistrarSocketTypeKey      = "FORWARDER_REGISTRAR_SOCKET_TYPE"
-	DataplaneRegistrarSocketTypeDefault  = "unix"
-	DataplaneMetricsEnabledKey           = "METRICS_COLLECTOR_ENABLED"
-	DataplaneMetricsEnabledDefault       = false
-	DataplaneMetricsRequestPeriodKey     = "METRICS_COLLECTOR_REQUEST_PERIOD"
-	DataplaneMetricsRequestPeriodDefault = time.Second * 2
-	DataplaneNameKey                     = "FORWARDER_NAME"
-	DataplaneNameDefault                 = "vppagent"
-	DataplaneSocketKey                   = "FORWARDER_SOCKET"
-	DataplaneSocketDefault               = "/var/lib/networkservicemesh/nsm-vppagent.forwarder.sock"
-	DataplaneSocketTypeKey               = "FORWARDER_SOCKET_TYPE"
-	DataplaneSocketTypeDefault           = "unix"
-	DataplaneSrcIPKey                    = "NSM_FORWARDER_SRC_IP"
+	ForwarderRegistrarSocketKey          = "FORWARDER_REGISTRAR_SOCKET"
+	ForwarderRegistrarSocketDefault      = "/var/lib/networkservicemesh/nsm.forwarder-registrar.io.sock"
+	ForwarderRegistrarSocketTypeKey      = "FORWARDER_REGISTRAR_SOCKET_TYPE"
+	ForwarderRegistrarSocketTypeDefault  = "unix"
+	ForwarderMetricsEnabledKey           = "METRICS_COLLECTOR_ENABLED"
+	ForwarderMetricsEnabledDefault       = false
+	ForwarderMetricsRequestPeriodKey     = "METRICS_COLLECTOR_REQUEST_PERIOD"
+	ForwarderMetricsRequestPeriodDefault = time.Second * 2
+	ForwarderNameKey                     = "FORWARDER_NAME"
+	ForwarderNameDefault                 = "vppagent"
+	ForwarderSocketKey                   = "FORWARDER_SOCKET"
+	ForwarderSocketDefault               = "/var/lib/networkservicemesh/nsm-vppagent.forwarder.sock"
+	ForwarderSocketTypeKey               = "FORWARDER_SOCKET_TYPE"
+	ForwarderSocketTypeDefault           = "unix"
+	ForwarderSrcIPKey                    = "NSM_FORWARDER_SRC_IP"
 )
 
-// DataplaneConfig keeps the common configuration for a forwarding plane
-type DataplaneConfig struct {
+// ForwarderConfig keeps the common configuration for a forwarding plane
+type ForwarderConfig struct {
 	Name                    string
 	NSMBaseDir              string
 	RegistrarSocket         string
 	RegistrarSocketType     string
-	DataplaneSocket         string
-	DataplaneSocketType     string
+	ForwarderSocket         string
+	ForwarderSocketType     string
 	MechanismsUpdateChannel chan *Mechanisms
 	Mechanisms              *Mechanisms
 	MetricsEnabled          bool
@@ -87,36 +87,36 @@ type Mechanisms struct {
 	LocalMechanisms  []*local.Mechanism
 }
 
-func createDataplaneConfig(forwarderGoals *DataplaneProbeGoals) *DataplaneConfig {
-	cfg := &DataplaneConfig{}
+func createForwarderConfig(forwarderGoals *ForwarderProbeGoals) *ForwarderConfig {
+	cfg := &ForwarderConfig{}
 	var ok bool
 
-	cfg.Name, ok = os.LookupEnv(DataplaneNameKey)
+	cfg.Name, ok = os.LookupEnv(ForwarderNameKey)
 	if !ok {
-		logrus.Debugf("%s not set, using default %s", DataplaneNameKey, DataplaneNameDefault)
-		cfg.Name = DataplaneNameDefault
+		logrus.Debugf("%s not set, using default %s", ForwarderNameKey, ForwarderNameDefault)
+		cfg.Name = ForwarderNameDefault
 	}
 
-	cfg.DataplaneSocket, ok = os.LookupEnv(DataplaneSocketKey)
+	cfg.ForwarderSocket, ok = os.LookupEnv(ForwarderSocketKey)
 	if !ok {
-		logrus.Infof("%s not set, using default %s", DataplaneSocketKey, DataplaneSocketDefault)
-		cfg.DataplaneSocket = DataplaneSocketDefault
+		logrus.Infof("%s not set, using default %s", ForwarderSocketKey, ForwarderSocketDefault)
+		cfg.ForwarderSocket = ForwarderSocketDefault
 	}
-	logrus.Infof("DataplaneSocket: %s", cfg.DataplaneSocket)
+	logrus.Infof("ForwarderSocket: %s", cfg.ForwarderSocket)
 
-	err := tools.SocketCleanup(cfg.DataplaneSocket)
+	err := tools.SocketCleanup(cfg.ForwarderSocket)
 	if err != nil {
-		logrus.Fatalf("Error cleaning up socket %s: %s", cfg.DataplaneSocket, err)
+		logrus.Fatalf("Error cleaning up socket %s: %s", cfg.ForwarderSocket, err)
 	} else {
 		forwarderGoals.SetSocketCleanReady()
 	}
 
-	cfg.DataplaneSocketType, ok = os.LookupEnv(DataplaneSocketTypeKey)
+	cfg.ForwarderSocketType, ok = os.LookupEnv(ForwarderSocketTypeKey)
 	if !ok {
-		logrus.Infof("%s not set, using default %s", DataplaneSocketTypeKey, DataplaneSocketTypeDefault)
-		cfg.DataplaneSocketType = DataplaneSocketTypeDefault
+		logrus.Infof("%s not set, using default %s", ForwarderSocketTypeKey, ForwarderSocketTypeDefault)
+		cfg.ForwarderSocketType = ForwarderSocketTypeDefault
 	}
-	logrus.Infof("DataplaneSocketType: %s", cfg.DataplaneSocketType)
+	logrus.Infof("ForwarderSocketType: %s", cfg.ForwarderSocketType)
 
 	cfg.NSMBaseDir, ok = os.LookupEnv(NSMBaseDirKey)
 	if !ok {
@@ -125,17 +125,17 @@ func createDataplaneConfig(forwarderGoals *DataplaneProbeGoals) *DataplaneConfig
 	}
 	logrus.Infof("NSMBaseDir: %s", cfg.NSMBaseDir)
 
-	cfg.RegistrarSocket, ok = os.LookupEnv(DataplaneRegistrarSocketKey)
+	cfg.RegistrarSocket, ok = os.LookupEnv(ForwarderRegistrarSocketKey)
 	if !ok {
-		logrus.Infof("%s not set, using default %s", DataplaneRegistrarSocketKey, DataplaneRegistrarSocketDefault)
-		cfg.RegistrarSocket = DataplaneRegistrarSocketDefault
+		logrus.Infof("%s not set, using default %s", ForwarderRegistrarSocketKey, ForwarderRegistrarSocketDefault)
+		cfg.RegistrarSocket = ForwarderRegistrarSocketDefault
 	}
 	logrus.Infof("RegistrarSocket: %s", cfg.RegistrarSocket)
 
-	cfg.RegistrarSocketType, ok = os.LookupEnv(DataplaneRegistrarSocketTypeKey)
+	cfg.RegistrarSocketType, ok = os.LookupEnv(ForwarderRegistrarSocketTypeKey)
 	if !ok {
-		logrus.Infof("%s not set, using default %s", DataplaneRegistrarSocketTypeKey, DataplaneRegistrarSocketTypeDefault)
-		cfg.RegistrarSocketType = DataplaneRegistrarSocketTypeDefault
+		logrus.Infof("%s not set, using default %s", ForwarderRegistrarSocketTypeKey, ForwarderRegistrarSocketTypeDefault)
+		cfg.RegistrarSocketType = ForwarderRegistrarSocketTypeDefault
 	}
 	logrus.Infof("RegistrarSocketType: %s", cfg.RegistrarSocketType)
 
@@ -144,8 +144,8 @@ func createDataplaneConfig(forwarderGoals *DataplaneProbeGoals) *DataplaneConfig
 	cfg.Monitor = monitor_crossconnect.NewMonitorServer()
 	crossconnect.RegisterMonitorCrossConnectServer(cfg.GRPCserver, cfg.Monitor)
 
-	cfg.MetricsEnabled = DataplaneMetricsEnabledDefault
-	val, ok := os.LookupEnv(DataplaneMetricsEnabledKey)
+	cfg.MetricsEnabled = ForwarderMetricsEnabledDefault
+	val, ok := os.LookupEnv(ForwarderMetricsEnabledKey)
 	if ok {
 		res, err := strconv.ParseBool(val)
 		if err == nil {
@@ -155,8 +155,8 @@ func createDataplaneConfig(forwarderGoals *DataplaneProbeGoals) *DataplaneConfig
 	logrus.Infof("MetricsEnabled: %v", cfg.MetricsEnabled)
 
 	if cfg.MetricsEnabled {
-		cfg.MetricsPeriod = DataplaneMetricsRequestPeriodDefault
-		if val, ok = os.LookupEnv(DataplaneMetricsRequestPeriodKey); ok {
+		cfg.MetricsPeriod = ForwarderMetricsRequestPeriodDefault
+		if val, ok = os.LookupEnv(ForwarderMetricsRequestPeriodKey); ok {
 			parsedPeriod, err := time.ParseDuration(val)
 			if err == nil {
 				cfg.MetricsPeriod = parsedPeriod
@@ -165,15 +165,15 @@ func createDataplaneConfig(forwarderGoals *DataplaneProbeGoals) *DataplaneConfig
 		logrus.Infof("MetricsPeriod: %v ", cfg.MetricsPeriod)
 	}
 
-	srcIPStr, ok := os.LookupEnv(DataplaneSrcIPKey)
+	srcIPStr, ok := os.LookupEnv(ForwarderSrcIPKey)
 	if !ok {
-		logrus.Fatalf("Env variable %s must be set to valid srcIP for use for tunnels from this Pod.  Consider using downward API to do so.", DataplaneSrcIPKey)
+		logrus.Fatalf("Env variable %s must be set to valid srcIP for use for tunnels from this Pod.  Consider using downward API to do so.", ForwarderSrcIPKey)
 	} else {
 		forwarderGoals.SetSrcIPReady()
 	}
 	cfg.SrcIP = net.ParseIP(srcIPStr)
 	if cfg.SrcIP == nil {
-		logrus.Fatalf("Env variable %s must be set to a valid IP address, was set to %s", DataplaneSrcIPKey, srcIPStr)
+		logrus.Fatalf("Env variable %s must be set to a valid IP address, was set to %s", ForwarderSrcIPKey, srcIPStr)
 	} else {
 		forwarderGoals.SetValidIPReady()
 	}
@@ -188,32 +188,32 @@ func createDataplaneConfig(forwarderGoals *DataplaneProbeGoals) *DataplaneConfig
 	return cfg
 }
 
-// CreateDataplane creates new Dataplane Registrar client
-func CreateDataplane(dp NSMDataplane, forwarderGoals *DataplaneProbeGoals) *DataplaneRegistration {
+// CreateForwarder creates new Forwarder Registrar client
+func CreateForwarder(dp NSMForwarder, forwarderGoals *ForwarderProbeGoals) *ForwarderRegistration {
 	start := time.Now()
 	// Populate common configuration
-	config := createDataplaneConfig(forwarderGoals)
+	config := createForwarderConfig(forwarderGoals)
 
 	// Initialize the forwarder
 	err := dp.Init(config)
 	if err != nil {
-		logrus.Fatalf("Dataplane initialization failed: %s ", err)
+		logrus.Fatalf("Forwarder initialization failed: %s ", err)
 	}
 
 	// Verify the configuration is populated
 	if !sanityCheckConfig(config) {
-		logrus.Fatalf("Dataplane configuration sanity check failed: %s ", err)
+		logrus.Fatalf("Forwarder configuration sanity check failed: %s ", err)
 	}
 
 	// Prepare the gRPC server
-	config.Listener, err = net.Listen(config.DataplaneSocketType, config.DataplaneSocket)
+	config.Listener, err = net.Listen(config.ForwarderSocketType, config.ForwarderSocket)
 	if err != nil {
-		logrus.Fatalf("Error listening on socket %s: %s ", config.DataplaneSocket, err)
+		logrus.Fatalf("Error listening on socket %s: %s ", config.ForwarderSocket, err)
 	} else {
 		forwarderGoals.SetSocketListenReady()
 	}
 
-	forwarder.RegisterDataplaneServer(config.GRPCserver, dp.CreateDataplaneServer(config))
+	forwarder.RegisterForwarderServer(config.GRPCserver, dp.CreateForwarderServer(config))
 	forwarder.RegisterMechanismsMonitorServer(config.GRPCserver, dp)
 
 	// Start the server
@@ -225,21 +225,21 @@ func CreateDataplane(dp NSMDataplane, forwarderGoals *DataplaneProbeGoals) *Data
 
 	logrus.Debugf("Starting the %s forwarder server took: %s", config.Name, time.Since(start))
 
-	logrus.Info("Creating Dataplane Registrar Client...")
-	registrar := NewDataplaneRegistrarClient(config.RegistrarSocketType, config.RegistrarSocket)
-	registration := registrar.Register(context.Background(), config.Name, config.DataplaneSocket, nil, nil)
-	logrus.Info("Registered Dataplane Registrar Client")
+	logrus.Info("Creating Forwarder Registrar Client...")
+	registrar := NewForwarderRegistrarClient(config.RegistrarSocketType, config.RegistrarSocket)
+	registration := registrar.Register(context.Background(), config.Name, config.ForwarderSocket, nil, nil)
+	logrus.Info("Registered Forwarder Registrar Client")
 
 	return registration
 }
 
-func sanityCheckConfig(forwarderConfig *DataplaneConfig) bool {
+func sanityCheckConfig(forwarderConfig *ForwarderConfig) bool {
 	return len(forwarderConfig.Name) > 0 &&
 		len(forwarderConfig.NSMBaseDir) > 0 &&
 		len(forwarderConfig.RegistrarSocket) > 0 &&
 		len(forwarderConfig.RegistrarSocketType) > 0 &&
-		len(forwarderConfig.DataplaneSocket) > 0 &&
-		len(forwarderConfig.DataplaneSocketType) > 0
+		len(forwarderConfig.ForwarderSocket) > 0 &&
+		len(forwarderConfig.ForwarderSocketType) > 0
 }
 
 // SanityCheckConnectionType checks whether the forwarding plane supports the connection type in the request

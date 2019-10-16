@@ -7,7 +7,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 )
 
-var testDataplane1 = &model.Dataplane{
+var testForwarder1 = &model.Forwarder{
 	RegisteredName: "test_data_plane",
 	SocketLocation: "tcp:some_addr",
 	LocalMechanisms: []connection.Mechanism{
@@ -25,7 +25,7 @@ var testDataplane1 = &model.Dataplane{
 	},
 	MechanismsConfigured: true,
 }
-var testDataplane1_1 = &model.Dataplane{
+var testForwarder1_1 = &model.Forwarder{
 	RegisteredName: "test_data_plane_11",
 	SocketLocation: "tcp:some_addr",
 	LocalMechanisms: []connection.Mechanism{
@@ -44,7 +44,7 @@ var testDataplane1_1 = &model.Dataplane{
 	MechanismsConfigured: true,
 }
 
-var testDataplane2 = &model.Dataplane{
+var testForwarder2 = &model.Forwarder{
 	RegisteredName: "test_data_plane2",
 	SocketLocation: "tcp:some_addr",
 	LocalMechanisms: []connection.Mechanism{

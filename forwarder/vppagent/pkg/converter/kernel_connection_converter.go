@@ -17,7 +17,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 )
 
-const DataplaneAllowVHost = "FORWARDER_ALLOW_VHOST" // To disallow VHOST please pass "false" into this env variable.
+const ForwarderAllowVHost = "FORWARDER_ALLOW_VHOST" // To disallow VHOST please pass "false" into this env variable.
 
 type KernelConnectionConverter struct {
 	*connection.Connection
@@ -183,7 +183,7 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 }
 
 func useVHostNet() bool {
-	vhostAllowed := os.Getenv(DataplaneAllowVHost)
+	vhostAllowed := os.Getenv(ForwarderAllowVHost)
 	if vhostAllowed == "false" {
 		return false
 	}

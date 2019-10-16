@@ -54,13 +54,13 @@ type NetworkServiceClient interface {
 type HealState int32
 
 const (
-	// HealStateDstDown is a case when destination is down: we need to restore it and re-program local Dataplane.
+	// HealStateDstDown is a case when destination is down: we need to restore it and re-program local Forwarder.
 	HealStateDstDown HealState = 1
 	// HealStateSrcDown is a case when source is down: most probable will not happen yet.
 	HealStateSrcDown HealState = 2
-	// HealStateDataplaneDown is a case when local Dataplane is down: we need to heal NSE/Remote NSM and local Dataplane.
-	HealStateDataplaneDown HealState = 3
-	// HealStateDstUpdate is a case when destination is updated: we need to re-program local Dataplane.
+	// HealStateForwarderDown is a case when local Forwarder is down: we need to heal NSE/Remote NSM and local Forwarder.
+	HealStateForwarderDown HealState = 3
+	// HealStateDstUpdate is a case when destination is updated: we need to re-program local Forwarder.
 	HealStateDstUpdate HealState = 4
 	// HealStateDstNmgrDown is a case when destination and/or Remote NSM is down: we need to heal NSE/Remote NSM.
 	HealStateDstNmgrDown HealState = 5
@@ -87,7 +87,7 @@ type MonitorManager interface {
 //NetworkServiceManager - hold useful nsm structures
 type NetworkServiceManager interface {
 	GetHealProperties() *nsm.Properties
-	WaitForDataplane(ctx context.Context, duration time.Duration) error
+	WaitForForwarder(ctx context.Context, duration time.Duration) error
 	RemoteConnectionLost(ctx context.Context, clientConnection ClientConnection)
 	NotifyRenamedEndpoint(nseOldName, nseNewName string)
 	// Getters
