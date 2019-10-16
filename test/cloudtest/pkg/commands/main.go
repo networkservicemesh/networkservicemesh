@@ -268,7 +268,8 @@ func (ctx *executionContext) performExecution() error {
 	defer cancelFunc()
 
 	termChannel := tools.NewOSSignalChannel()
-	timectx, _ := context.WithTimeout(context.Background(), 30*time.Second)
+	timectx, cancelfunc := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancelfunc()
 
 	for len(ctx.tasks) > 0 || len(ctx.running) > 0 {
 		// WE take 1 test task from list and do execution.
@@ -287,7 +288,8 @@ func (ctx *executionContext) performExecution() error {
 			}
 		case <-timectx.Done():
 			ctx.printStatistics()
-			timectx, _ = context.WithTimeout(context.Background(), 30*time.Second)
+			timectx, cancelfunc = context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancelfunc()
 		case <-termChannel:
 			return errors.New("termination request is received")
 		case <-timeoutCtx.Done():
