@@ -1,10 +1,9 @@
 ---
 run:
-  concurrency: 4
+  concurrency: 6
   deadline: 15m
   issues-exit-code: 1
   tests: true
-
   skip-dirs:
     - build
     - conf
@@ -15,15 +14,12 @@ run:
     - deployments
     - docks
     - scripts
-
 linters-settings:
   errcheck:
     check-type-assertions: false
     check-blank: false
-
   govet:
     check-shadowing: true
-
     settings:
       printf:
         funcs:
@@ -88,7 +84,6 @@ linters-settings:
         paramsOnly: true
       rangeValCopy:
         sizeThreshold: 100
-
 linters:
   disable:
     - depguard
@@ -141,7 +136,6 @@ issues:
     - path: kubetest/log_utils.go
       linters:
         - gosec
-
   exclude:
     - should not use dot imports
     - \`version\` is a global variable
