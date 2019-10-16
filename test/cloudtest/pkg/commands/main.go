@@ -1056,7 +1056,17 @@ func (ctx *executionContext) findGoTest(executionConfig *config.ExecutionConfig)
 	for _, t := range execTests {
 		t.Kind = model.TestEntryKindGoTest
 		t.ExecutionConfig = executionConfig
-		result = append(result, t)
+		match := true
+		for _, v := range executionConfig.OnlyRun {
+			match = false
+			if v == t.Name {
+				match = true
+				break
+			}
+		}
+		if match {
+			result = append(result, t)
+		}
 	}
 	return result, nil
 }
