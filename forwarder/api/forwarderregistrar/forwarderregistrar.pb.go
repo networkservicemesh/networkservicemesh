@@ -29,8 +29,8 @@ const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 // to advertise itself and inform NSM about the location of the forwarder socket
 // and its initially supported parameters.
 type DataplaneRegistrationRequest struct {
-	DataplaneName        string   `protobuf:"bytes,1,opt,name=forwarder_name,json=forwarderName,proto3" json:"forwarder_name,omitempty"`
-	DataplaneSocket      string   `protobuf:"bytes,2,opt,name=forwarder_socket,json=forwarderSocket,proto3" json:"forwarder_socket,omitempty"`
+	ForwarderName        string   `protobuf:"bytes,1,opt,name=forwarder_name,json=forwarderName,proto3" json:"forwarder_name,omitempty"`
+	ForwarderSocket      string   `protobuf:"bytes,2,opt,name=forwarder_socket,json=forwarderSocket,proto3" json:"forwarder_socket,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -40,7 +40,7 @@ func (m *DataplaneRegistrationRequest) Reset()         { *m = DataplaneRegistrat
 func (m *DataplaneRegistrationRequest) String() string { return proto.CompactTextString(m) }
 func (*DataplaneRegistrationRequest) ProtoMessage()    {}
 func (*DataplaneRegistrationRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_7f4c86488a7f7eab, []int{0}
+	return fileDescriptor_bf2c0f4975ef21fe, []int{0}
 }
 
 func (m *DataplaneRegistrationRequest) XXX_Unmarshal(b []byte) error {
@@ -61,16 +61,16 @@ func (m *DataplaneRegistrationRequest) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_DataplaneRegistrationRequest proto.InternalMessageInfo
 
-func (m *DataplaneRegistrationRequest) GetDataplaneName() string {
+func (m *DataplaneRegistrationRequest) GetForwarderName() string {
 	if m != nil {
-		return m.DataplaneName
+		return m.ForwarderName
 	}
 	return ""
 }
 
-func (m *DataplaneRegistrationRequest) GetDataplaneSocket() string {
+func (m *DataplaneRegistrationRequest) GetForwarderSocket() string {
 	if m != nil {
-		return m.DataplaneSocket
+		return m.ForwarderSocket
 	}
 	return ""
 }
@@ -86,7 +86,7 @@ func (m *DataplaneRegistrationReply) Reset()         { *m = DataplaneRegistratio
 func (m *DataplaneRegistrationReply) String() string { return proto.CompactTextString(m) }
 func (*DataplaneRegistrationReply) ProtoMessage()    {}
 func (*DataplaneRegistrationReply) Descriptor() ([]byte, []int) {
-	return fileDescriptor_7f4c86488a7f7eab, []int{1}
+	return fileDescriptor_bf2c0f4975ef21fe, []int{1}
 }
 
 func (m *DataplaneRegistrationReply) XXX_Unmarshal(b []byte) error {
@@ -117,7 +117,7 @@ func (m *DataplaneRegistrationReply) GetRegistered() bool {
 // DataplaneUnRegistrationRequest is sent by the forwarder to NSM
 // to remove itself from the list of available forwarders.
 type DataplaneUnRegistrationRequest struct {
-	DataplaneName        string   `protobuf:"bytes,1,opt,name=forwarder_name,json=forwarderName,proto3" json:"forwarder_name,omitempty"`
+	ForwarderName        string   `protobuf:"bytes,1,opt,name=forwarder_name,json=forwarderName,proto3" json:"forwarder_name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -127,7 +127,7 @@ func (m *DataplaneUnRegistrationRequest) Reset()         { *m = DataplaneUnRegis
 func (m *DataplaneUnRegistrationRequest) String() string { return proto.CompactTextString(m) }
 func (*DataplaneUnRegistrationRequest) ProtoMessage()    {}
 func (*DataplaneUnRegistrationRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_7f4c86488a7f7eab, []int{2}
+	return fileDescriptor_bf2c0f4975ef21fe, []int{2}
 }
 
 func (m *DataplaneUnRegistrationRequest) XXX_Unmarshal(b []byte) error {
@@ -148,9 +148,9 @@ func (m *DataplaneUnRegistrationRequest) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_DataplaneUnRegistrationRequest proto.InternalMessageInfo
 
-func (m *DataplaneUnRegistrationRequest) GetDataplaneName() string {
+func (m *DataplaneUnRegistrationRequest) GetForwarderName() string {
 	if m != nil {
-		return m.DataplaneName
+		return m.ForwarderName
 	}
 	return ""
 }
@@ -166,7 +166,7 @@ func (m *DataplaneUnRegistrationReply) Reset()         { *m = DataplaneUnRegistr
 func (m *DataplaneUnRegistrationReply) String() string { return proto.CompactTextString(m) }
 func (*DataplaneUnRegistrationReply) ProtoMessage()    {}
 func (*DataplaneUnRegistrationReply) Descriptor() ([]byte, []int) {
-	return fileDescriptor_7f4c86488a7f7eab, []int{3}
+	return fileDescriptor_bf2c0f4975ef21fe, []int{3}
 }
 
 func (m *DataplaneUnRegistrationReply) XXX_Unmarshal(b []byte) error {
@@ -201,29 +201,30 @@ func init() {
 	proto.RegisterType((*DataplaneUnRegistrationReply)(nil), "forwarderregistrar.DataplaneUnRegistrationReply")
 }
 
-func init() { proto.RegisterFile("forwarderregistrar.proto", fileDescriptor_7f4c86488a7f7eab) }
+func init() { proto.RegisterFile("forwarderregistrar.proto", fileDescriptor_bf2c0f4975ef21fe) }
 
-var fileDescriptor_7f4c86488a7f7eab = []byte{
-	// 304 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x92, 0x4f, 0x4b, 0xf3, 0x40,
-	0x18, 0xc4, 0xd9, 0xf7, 0xf0, 0xa2, 0x0f, 0xd6, 0xca, 0x82, 0x1a, 0x42, 0x09, 0x12, 0x11, 0xea,
-	0x65, 0x0d, 0xf1, 0xea, 0x4d, 0x8b, 0x17, 0xf1, 0x10, 0xf1, 0x5c, 0xb6, 0xf6, 0x31, 0x04, 0x93,
-	0xdd, 0x75, 0x77, 0x23, 0xe4, 0xe6, 0xc9, 0x0f, 0xe2, 0x37, 0xf3, 0x9b, 0x48, 0xfe, 0x18, 0x4b,
-	0x9a, 0x14, 0xea, 0x25, 0x87, 0xc9, 0x6f, 0x76, 0x67, 0x32, 0x01, 0x67, 0xc9, 0x2d, 0x57, 0x29,
-	0x17, 0xa8, 0x31, 0x4e, 0x8c, 0xd5, 0x5c, 0x33, 0xa5, 0xa5, 0x95, 0x94, 0xae, 0xbf, 0x71, 0x1d,
-	0x65, 0x0b, 0x85, 0xe6, 0x02, 0x33, 0x65, 0x8b, 0xfa, 0x59, 0xd3, 0xbe, 0x82, 0xc9, 0xcd, 0x0f,
-	0x1f, 0x35, 0xbc, 0x4d, 0xa4, 0x88, 0xf0, 0x35, 0x47, 0x63, 0xe9, 0x19, 0xec, 0xb7, 0xe7, 0xcd,
-	0x05, 0xcf, 0xd0, 0x21, 0x27, 0x64, 0xba, 0x1b, 0x8d, 0x5a, 0xf5, 0x9e, 0x67, 0x48, 0xcf, 0xe1,
-	0xe0, 0x17, 0x33, 0xf2, 0xe9, 0x05, 0xad, 0xf3, 0xaf, 0x02, 0xc7, 0xad, 0xfe, 0x50, 0xc9, 0xfe,
-	0x15, 0xb8, 0x03, 0x37, 0xaa, 0xb4, 0xa0, 0x1e, 0x40, 0x1d, 0x1b, 0x35, 0x2e, 0xab, 0xbb, 0x76,
-	0xa2, 0x15, 0xc5, 0xbf, 0x05, 0xaf, 0x75, 0x3f, 0x8a, 0xbf, 0x27, 0xf6, 0xaf, 0x57, 0x8a, 0x77,
-	0x0f, 0x2a, 0x83, 0x9c, 0xc2, 0x28, 0x17, 0xf3, 0xb5, 0x2c, 0x7b, 0x79, 0xc3, 0x96, 0x5a, 0xf8,
-	0x45, 0xe0, 0xb0, 0xb7, 0x0c, 0x7d, 0x27, 0x30, 0x69, 0x12, 0xf5, 0x03, 0x01, 0xeb, 0x59, 0x70,
-	0xd3, 0x14, 0x2e, 0xdb, 0xc2, 0x51, 0x36, 0x98, 0xc1, 0xb8, 0xb1, 0xde, 0x25, 0x6f, 0x28, 0xd0,
-	0x18, 0x7a, 0xc4, 0x62, 0x29, 0xe3, 0x14, 0xeb, 0xf1, 0x17, 0xf9, 0x33, 0x9b, 0x95, 0xff, 0x82,
-	0x3b, 0xa0, 0x4f, 0x49, 0x40, 0xc2, 0x4f, 0x02, 0xc7, 0x03, 0x5f, 0x8a, 0x7e, 0x10, 0xf0, 0xba,
-	0x2d, 0x3b, 0x48, 0xb8, 0x31, 0x75, 0xef, 0x84, 0x6e, 0xb0, 0x95, 0x47, 0xa5, 0xc5, 0xe2, 0x7f,
-	0x15, 0xfc, 0xf2, 0x3b, 0x00, 0x00, 0xff, 0xff, 0x1c, 0xca, 0x68, 0xa3, 0x17, 0x03, 0x00, 0x00,
+var fileDescriptor_bf2c0f4975ef21fe = []byte{
+	// 306 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x52, 0xcf, 0x4b, 0xc3, 0x30,
+	0x18, 0x25, 0x1e, 0x44, 0x3f, 0x9c, 0x93, 0x80, 0x5a, 0xca, 0x18, 0x52, 0x11, 0xe6, 0x25, 0x96,
+	0x7a, 0xf5, 0xa6, 0xc3, 0x8b, 0x78, 0xa8, 0x78, 0x1e, 0x99, 0xfb, 0x56, 0x8a, 0x6d, 0x12, 0x93,
+	0x54, 0xe9, 0xcd, 0x93, 0x7f, 0x88, 0xff, 0x99, 0xff, 0x89, 0xf4, 0x07, 0x75, 0x74, 0xed, 0x60,
+	0x5e, 0x72, 0x78, 0x79, 0xef, 0xfb, 0xde, 0xcb, 0x0b, 0x38, 0x4b, 0xa9, 0x3f, 0xb8, 0x5e, 0xa0,
+	0xd6, 0x18, 0xc5, 0xc6, 0x6a, 0xae, 0x99, 0xd2, 0xd2, 0x4a, 0x4a, 0xd7, 0x6f, 0x5c, 0x47, 0xd9,
+	0x5c, 0xa1, 0xb9, 0xc2, 0x54, 0xd9, 0xbc, 0x3a, 0x2b, 0xb6, 0xa7, 0x60, 0x74, 0xc7, 0x2d, 0x57,
+	0x09, 0x17, 0x18, 0xd6, 0x7c, 0x1b, 0x4b, 0x11, 0xe2, 0x5b, 0x86, 0xc6, 0xd2, 0x0b, 0x38, 0x6c,
+	0xe6, 0xcd, 0x04, 0x4f, 0xd1, 0x21, 0x67, 0x64, 0xb2, 0x1f, 0x0e, 0x1a, 0xf4, 0x91, 0xa7, 0x48,
+	0x2f, 0xe1, 0xe8, 0x8f, 0x66, 0xe4, 0xcb, 0x2b, 0x5a, 0x67, 0xa7, 0x24, 0x0e, 0x1b, 0xfc, 0xa9,
+	0x84, 0xbd, 0x1b, 0x70, 0x7b, 0x36, 0xaa, 0x24, 0xa7, 0x63, 0x80, 0xca, 0x36, 0x6a, 0x5c, 0x94,
+	0xbb, 0xf6, 0xc2, 0x15, 0xc4, 0xbb, 0x87, 0x71, 0xa3, 0x7e, 0x16, 0xff, 0x77, 0xec, 0xdd, 0xae,
+	0x04, 0x6f, 0x0f, 0x2a, 0x8c, 0x9c, 0xc3, 0x20, 0x13, 0xb3, 0x35, 0x2f, 0x07, 0x59, 0xcd, 0x2d,
+	0xb0, 0xe0, 0x87, 0xc0, 0x71, 0x67, 0x18, 0xfa, 0x49, 0x60, 0x54, 0x3b, 0xea, 0x26, 0xf8, 0xac,
+	0xa3, 0xc1, 0x4d, 0x55, 0xb8, 0x6c, 0x0b, 0x45, 0x91, 0x60, 0x0a, 0xc3, 0x5a, 0xfa, 0x10, 0xbf,
+	0xa3, 0x40, 0x63, 0xe8, 0x09, 0x8b, 0xa4, 0x8c, 0x12, 0xac, 0xca, 0x9f, 0x67, 0x4b, 0x36, 0x2d,
+	0xfe, 0x82, 0xdb, 0x83, 0x4f, 0x88, 0x4f, 0x82, 0x6f, 0x02, 0xa7, 0x3d, 0x2f, 0x45, 0xbf, 0x08,
+	0x8c, 0xdb, 0x29, 0x5b, 0x94, 0x60, 0xa3, 0xeb, 0xce, 0x0a, 0x5d, 0x7f, 0x2b, 0x8d, 0x4a, 0xf2,
+	0xf9, 0x6e, 0x69, 0xfc, 0xfa, 0x37, 0x00, 0x00, 0xff, 0xff, 0x12, 0x54, 0x94, 0x1d, 0x17, 0x03,
+	0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -245,15 +246,15 @@ type DataplaneRegistrationClient interface {
 	RequestLiveness(ctx context.Context, opts ...grpc.CallOption) (DataplaneRegistration_RequestLivenessClient, error)
 }
 
-type forwarderRegistrationClient struct {
+type dataplaneRegistrationClient struct {
 	cc *grpc.ClientConn
 }
 
 func NewDataplaneRegistrationClient(cc *grpc.ClientConn) DataplaneRegistrationClient {
-	return &forwarderRegistrationClient{cc}
+	return &dataplaneRegistrationClient{cc}
 }
 
-func (c *forwarderRegistrationClient) RequestDataplaneRegistration(ctx context.Context, in *DataplaneRegistrationRequest, opts ...grpc.CallOption) (*DataplaneRegistrationReply, error) {
+func (c *dataplaneRegistrationClient) RequestDataplaneRegistration(ctx context.Context, in *DataplaneRegistrationRequest, opts ...grpc.CallOption) (*DataplaneRegistrationReply, error) {
 	out := new(DataplaneRegistrationReply)
 	err := c.cc.Invoke(ctx, "/forwarderregistrar.DataplaneRegistration/RequestDataplaneRegistration", in, out, opts...)
 	if err != nil {
@@ -262,12 +263,12 @@ func (c *forwarderRegistrationClient) RequestDataplaneRegistration(ctx context.C
 	return out, nil
 }
 
-func (c *forwarderRegistrationClient) RequestLiveness(ctx context.Context, opts ...grpc.CallOption) (DataplaneRegistration_RequestLivenessClient, error) {
+func (c *dataplaneRegistrationClient) RequestLiveness(ctx context.Context, opts ...grpc.CallOption) (DataplaneRegistration_RequestLivenessClient, error) {
 	stream, err := c.cc.NewStream(ctx, &_DataplaneRegistration_serviceDesc.Streams[0], "/forwarderregistrar.DataplaneRegistration/RequestLiveness", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &forwarderRegistrationRequestLivenessClient{stream}
+	x := &dataplaneRegistrationRequestLivenessClient{stream}
 	return x, nil
 }
 
@@ -277,15 +278,15 @@ type DataplaneRegistration_RequestLivenessClient interface {
 	grpc.ClientStream
 }
 
-type forwarderRegistrationRequestLivenessClient struct {
+type dataplaneRegistrationRequestLivenessClient struct {
 	grpc.ClientStream
 }
 
-func (x *forwarderRegistrationRequestLivenessClient) Send(m *empty.Empty) error {
+func (x *dataplaneRegistrationRequestLivenessClient) Send(m *empty.Empty) error {
 	return x.ClientStream.SendMsg(m)
 }
 
-func (x *forwarderRegistrationRequestLivenessClient) Recv() (*empty.Empty, error) {
+func (x *dataplaneRegistrationRequestLivenessClient) Recv() (*empty.Empty, error) {
 	m := new(empty.Empty)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -336,7 +337,7 @@ func _DataplaneRegistration_RequestDataplaneRegistration_Handler(srv interface{}
 }
 
 func _DataplaneRegistration_RequestLiveness_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(DataplaneRegistrationServer).RequestLiveness(&forwarderRegistrationRequestLivenessServer{stream})
+	return srv.(DataplaneRegistrationServer).RequestLiveness(&dataplaneRegistrationRequestLivenessServer{stream})
 }
 
 type DataplaneRegistration_RequestLivenessServer interface {
@@ -345,15 +346,15 @@ type DataplaneRegistration_RequestLivenessServer interface {
 	grpc.ServerStream
 }
 
-type forwarderRegistrationRequestLivenessServer struct {
+type dataplaneRegistrationRequestLivenessServer struct {
 	grpc.ServerStream
 }
 
-func (x *forwarderRegistrationRequestLivenessServer) Send(m *empty.Empty) error {
+func (x *dataplaneRegistrationRequestLivenessServer) Send(m *empty.Empty) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *forwarderRegistrationRequestLivenessServer) Recv() (*empty.Empty, error) {
+func (x *dataplaneRegistrationRequestLivenessServer) Recv() (*empty.Empty, error) {
 	m := new(empty.Empty)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -388,15 +389,15 @@ type DataplaneUnRegistrationClient interface {
 	RequestDataplaneUnRegistration(ctx context.Context, in *DataplaneUnRegistrationRequest, opts ...grpc.CallOption) (*DataplaneUnRegistrationReply, error)
 }
 
-type forwarderUnRegistrationClient struct {
+type dataplaneUnRegistrationClient struct {
 	cc *grpc.ClientConn
 }
 
 func NewDataplaneUnRegistrationClient(cc *grpc.ClientConn) DataplaneUnRegistrationClient {
-	return &forwarderUnRegistrationClient{cc}
+	return &dataplaneUnRegistrationClient{cc}
 }
 
-func (c *forwarderUnRegistrationClient) RequestDataplaneUnRegistration(ctx context.Context, in *DataplaneUnRegistrationRequest, opts ...grpc.CallOption) (*DataplaneUnRegistrationReply, error) {
+func (c *dataplaneUnRegistrationClient) RequestDataplaneUnRegistration(ctx context.Context, in *DataplaneUnRegistrationRequest, opts ...grpc.CallOption) (*DataplaneUnRegistrationReply, error) {
 	out := new(DataplaneUnRegistrationReply)
 	err := c.cc.Invoke(ctx, "/forwarderregistrar.DataplaneUnRegistration/RequestDataplaneUnRegistration", in, out, opts...)
 	if err != nil {
