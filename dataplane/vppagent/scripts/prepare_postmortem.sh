@@ -3,7 +3,7 @@
 # this script prepares environment to collect post-mortem data
 
 # setup postmortem data location
-readonly DEFAULT_POSTMORTEM_DATA_LOCATION=/var/tmp/nsm-postmortem/vpp-dataplane
+readonly DEFAULT_POSTMORTEM_DATA_LOCATION=/var/tmp/nsm-postmortem/vpp-forwarder
 readonly POSTMORTEM_DATA_LOCATION=${POSTMORTEM_DATA_LOCATION:-"$DEFAULT_POSTMORTEM_DATA_LOCATION"}
 
 mkdir -p "$POSTMORTEM_DATA_LOCATION"

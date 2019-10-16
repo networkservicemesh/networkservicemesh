@@ -12,36 +12,36 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# TODO: files in dataplane doesn't follow the regular structure: ./module/cmd/app,
-# after fixing 'kernel-forwarder' and 'vppagent-dataplane' targets could be eliminated
+# TODO: files in forwarder doesn't follow the regular structure: ./module/cmd/app,
+# after fixing 'kernel-forwarder' and 'vppagent-forwarder' targets could be eliminated
 .PHONY: go-kernel-forwarder-build
 go-kernel-forwarder-build: go-%-build:
-	$(info ----------------------  Building dataplane::$* via Cross compile ----------------------)
-	@pushd ./dataplane && \
+	$(info ----------------------  Building forwarder::$* via Cross compile ----------------------)
+	@pushd ./forwarder && \
 	CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) go build \
     	-ldflags "-extldflags '-static' -X  main.version=$(VERSION)" -o $(BIN_DIR)/$*/$* ./kernel-forwarder/cmd/ && \
 	popd
 
-.PHONY: go-vppagent-dataplane-build
-go-vppagent-dataplane-build: go-%-build:
-	$(info ----------------------  Building dataplane::$* via Cross compile ----------------------)
-	@pushd ./dataplane && \
+.PHONY: go-vppagent-forwarder-build
+go-vppagent-forwarder-build: go-%-build:
+	$(info ----------------------  Building forwarder::$* via Cross compile ----------------------)
+	@pushd ./forwarder && \
 	CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) go build \
     	-ldflags "-extldflags '-static' -X  main.version=$(VERSION)" -o $(BIN_DIR)/$*/$* ./vppagent/cmd/ && \
 	popd
 
-docker-vppagent-dataplane-prepare: docker-%-prepare: go-%-build
+docker-vppagent-forwarder-prepare: docker-%-prepare: go-%-build
 	$(info Preparing files for docker...)
 	$(call docker_prepare, $(BIN_DIR)/$*, \
-		dataplane/vppagent/conf/vpp/startup.conf \
-		dataplane/vppagent/conf/supervisord/supervisord.conf)
+		forwarder/vppagent/conf/vpp/startup.conf \
+		forwarder/vppagent/conf/supervisord/supervisord.conf)
 
-.PHONY: docker-dataplane-build
-docker-dataplane-build: docker-vppagent-dataplane-build docker-kernel-forwarder-build
+.PHONY: docker-forwarder-build
+docker-forwarder-build: docker-vppagent-forwarder-build docker-kernel-forwarder-build
 
-.PHONY: docker-dataplane-save
-docker-dataplane-save: docker-vppagent-dataplane-save docker-kernel-forwarder-save
+.PHONY: docker-forwarder-save
+docker-forwarder-save: docker-vppagent-forwarder-save docker-kernel-forwarder-save
 
-.PHONY: docker-dataplane-push
-docker-dataplane-push: docker-vppagent-dataplane-push docker-kernel-forwarder-push
+.PHONY: docker-forwarder-push
+docker-forwarder-push: docker-vppagent-forwarder-push docker-kernel-forwarder-push
 

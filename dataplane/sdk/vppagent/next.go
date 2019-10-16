@@ -9,12 +9,12 @@ import (
 	"github.com/golang/protobuf/ptypes/empty"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
-	"github.com/networkservicemesh/networkservicemesh/dataplane/api/dataplane"
+	"github.com/networkservicemesh/networkservicemesh/forwarder/api/forwarder"
 	"github.com/networkservicemesh/networkservicemesh/utils/typeutils"
 )
 
 type next struct {
-	handlers []dataplane.DataplaneServer
+	handlers []forwarder.DataplaneServer
 	index    int
 }
 

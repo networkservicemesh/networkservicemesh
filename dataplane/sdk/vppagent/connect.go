@@ -6,11 +6,11 @@ import (
 	"github.com/golang/protobuf/ptypes/empty"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
-	"github.com/networkservicemesh/networkservicemesh/dataplane/api/dataplane"
+	"github.com/networkservicemesh/networkservicemesh/forwarder/api/forwarder"
 )
 
-//Connect creates dataplane server handler with connection to vpp-agent confgirator server
-func Connect(endpoint string) dataplane.DataplaneServer {
+//Connect creates forwarder server handler with connection to vpp-agent confgirator server
+func Connect(endpoint string) forwarder.DataplaneServer {
 	return &connect{endpoint: endpoint}
 }
 

@@ -20,10 +20,10 @@ type Model interface {
 	DeleteEndpoint(ctx context.Context, name string)
 
 	GetDataplane(name string) *Dataplane
-	AddDataplane(ctx context.Context, dataplane *Dataplane)
-	UpdateDataplane(ctx context.Context, dataplane *Dataplane)
+	AddDataplane(ctx context.Context, forwarder *Dataplane)
+	UpdateDataplane(ctx context.Context, forwarder *Dataplane)
 	DeleteDataplane(ctx context.Context, name string)
-	SelectDataplane(dataplaneSelector func(dp *Dataplane) bool) (*Dataplane, error)
+	SelectDataplane(forwarderSelector func(dp *Dataplane) bool) (*Dataplane, error)
 
 	AddClientConnection(ctx context.Context, clientConnection *ClientConnection)
 	GetClientConnection(connectionID string) *ClientConnection
@@ -47,7 +47,7 @@ type Model interface {
 
 type model struct {
 	endpointDomain
-	dataplaneDomain
+	forwarderDomain
 	clientConnectionDomain
 
 	lastConnectionID uint64
@@ -116,7 +116,7 @@ func NewModel() Model {
 	return &model{
 		clientConnectionDomain: newClientConnectionDomain(),
 		endpointDomain:         newEndpointDomain(),
-		dataplaneDomain:        newDataplaneDomain(),
+		forwarderDomain:        newDataplaneDomain(),
 		selector:               selector.NewMatchSelector(),
 		listeners:              make(map[Listener]func()),
 	}

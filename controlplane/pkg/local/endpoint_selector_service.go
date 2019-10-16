@@ -213,7 +213,7 @@ func (cce *endpointSelectorService) checkNeedNSERequest(logger logrus.FieldLogge
 	if dst := existingCC.GetConnectionDestination(); dst.IsRemote() {
 		dstM := dst.GetConnectionMechanism()
 
-		// 4.2.2 Let's check if remote destination is matchs our dataplane destination.
+		// 4.2.2 Let's check if remote destination is matchs our forwarder destination.
 		if dpM := cce.findMechanism(dp.RemoteMechanisms, dstM.GetMechanismType()); dpM != nil {
 			// 4.2.3 We need to check if source mechanism type and source parameters are different
 			for k, v := range dpM.GetParameters() {
@@ -228,7 +228,7 @@ func (cce *endpointSelectorService) checkNeedNSERequest(logger logrus.FieldLogge
 				return true
 			}
 		} else {
-			logger.Infof("NSM:(4.2.5) Remote mechanism previously selected was not found: %v  in dataplane %v", dstM, dp.RemoteMechanisms)
+			logger.Infof("NSM:(4.2.5) Remote mechanism previously selected was not found: %v  in forwarder %v", dstM, dp.RemoteMechanisms)
 			return true
 		}
 	}

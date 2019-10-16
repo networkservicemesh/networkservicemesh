@@ -120,7 +120,7 @@ func testInterdomainHealLocalNSMD(k8ss []*kubetest.ExtK8s, clustersCount int) {
 	logrus.Infof("Waiting for NSE with network service")
 	k8ss[clustersCount-1].K8s.WaitLogsContains(k8ss[clustersCount-1].NodesSetup[0].Nsmd, "nsmd", "NSM: Remote opened connection is not monitored and put into Healing state", defaultTimeout)
 
-	// Now we are in dataplane dead state, and in Heal procedure waiting for dataplane.
+	// Now we are in forwarder dead state, and in Heal procedure waiting for forwarder.
 	nsmdName := fmt.Sprintf("%s-recovered", k8ss[0].NodesSetup[0].Nsmd.Name)
 
 	logrus.Infof("Starting recovered NSMD...")
@@ -146,7 +146,7 @@ func testInterdomainHealRemoteNSMD(k8ss []*kubetest.ExtK8s, clustersCount int, i
 
 	logrus.Infof("Waiting for NSE with network service")
 	k8ss[0].K8s.WaitLogsContains(k8ss[0].NodesSetup[0].Nsmd, "nsmd", "Waiting for NSE with network service icmp-responder", defaultTimeout)
-	// Now are are in dataplane dead state, and in Heal procedure waiting for dataplane.
+	// Now are are in forwarder dead state, and in Heal procedure waiting for forwarder.
 	nsmdName := fmt.Sprintf("nsmd-worker-recovered-%d", 1)
 
 	logrus.Infof("Starting recovered NSMD...")

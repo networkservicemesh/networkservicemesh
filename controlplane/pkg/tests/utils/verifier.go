@@ -78,9 +78,9 @@ func (v *ModelVerifier) ClientConnectionNotExists(connectionID string) *ModelVer
 //   Xcon.Destination.Id = dst.ID
 //   RemoteNsm.Name = remoteNSM
 //   Endpoint.NetworkServiceEndpoint.Name = nse
-//   Dataplane.RegisteredName = dataplane
+//   Dataplane.RegisteredName = forwarder
 // exists in v.model
-func (v *ModelVerifier) ClientConnectionExists(connectionID, srcID, dstID, remoteNSM, nse, dataplane string) *ModelVerifier {
+func (v *ModelVerifier) ClientConnectionExists(connectionID, srcID, dstID, remoteNSM, nse, forwarder string) *ModelVerifier {
 	v.verifiers = append(v.verifiers, &clientConnectionVerifier{
 		exists:       true,
 		connectionID: connectionID,
@@ -88,7 +88,7 @@ func (v *ModelVerifier) ClientConnectionExists(connectionID, srcID, dstID, remot
 		dstID:        dstID,
 		remoteNSM:    remoteNSM,
 		nse:          nse,
-		dataplane:    dataplane,
+		forwarder:    forwarder,
 
 		model: v.model,
 	})
@@ -100,7 +100,7 @@ func (v *ModelVerifier) ClientConnectionExists(connectionID, srcID, dstID, remot
 //   RegisteredName = name
 // doesn't exist in v.model
 func (v *ModelVerifier) DataplaneNotExists(name string) *ModelVerifier {
-	v.verifiers = append(v.verifiers, &dataplaneVerifier{
+	v.verifiers = append(v.verifiers, &forwarderVerifier{
 		exists: false,
 		name:   name,
 
@@ -114,7 +114,7 @@ func (v *ModelVerifier) DataplaneNotExists(name string) *ModelVerifier {
 //   RegisteredName = name
 // exists in v.model
 func (v *ModelVerifier) DataplaneExists(name string) *ModelVerifier {
-	v.verifiers = append(v.verifiers, &dataplaneVerifier{
+	v.verifiers = append(v.verifiers, &forwarderVerifier{
 		exists: true,
 		name:   name,
 
@@ -160,7 +160,7 @@ type clientConnectionVerifier struct {
 	dstID        string
 	remoteNSM    string
 	nse          string
-	dataplane    string
+	forwarder    string
 
 	model model.Model
 }
@@ -179,7 +179,7 @@ func (v *clientConnectionVerifier) Verify(t *testing.T) {
 	v.verifyXcon(connection.Xcon, t)
 	g.Expect(connection.RemoteNsm.GetName()).To(Equal(v.remoteNSM))
 	g.Expect(connection.Endpoint.GetNetworkServiceEndpoint().GetName()).To(Equal(v.nse))
-	g.Expect(connection.DataplaneRegisteredName).To(Equal(v.dataplane))
+	g.Expect(connection.DataplaneRegisteredName).To(Equal(v.forwarder))
 }
 
 func (v *clientConnectionVerifier) verifyXcon(xcon *crossconnect.CrossConnect, t *testing.T) {
@@ -202,21 +202,21 @@ func (v *clientConnectionVerifier) verifyXcon(xcon *crossconnect.CrossConnect, t
 	}
 }
 
-type dataplaneVerifier struct {
+type forwarderVerifier struct {
 	exists bool
 	name   string
 
 	model model.Model
 }
 
-func (v *dataplaneVerifier) Verify(t *testing.T) {
+func (v *forwarderVerifier) Verify(t *testing.T) {
 	g := NewWithT(t)
 
-	dataplane := v.model.GetDataplane(v.name)
+	forwarder := v.model.GetDataplane(v.name)
 	if !v.exists {
-		g.Expect(dataplane).To(BeNil())
+		g.Expect(forwarder).To(BeNil())
 		return
 	}
 
-	g.Expect(dataplane).NotTo(BeNil())
+	g.Expect(forwarder).NotTo(BeNil())
 }

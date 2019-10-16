@@ -48,7 +48,7 @@ func TestNSMHealLocalDieNSMD(t *testing.T) {
 
 	logrus.Infof("Waiting for NSE with network service")
 	k8s.WaitLogsContains(nodes_setup[1].Nsmd, "nsmd", "NSM: Remote opened connection is not monitored and put into Healing state", defaultTimeout)
-	// Now are are in dataplane dead state, and in Heal procedure waiting for dataplane.
+	// Now are are in forwarder dead state, and in Heal procedure waiting for forwarder.
 	nsmdName := fmt.Sprintf("%s-recovered", nodes_setup[0].Nsmd.Name)
 
 	logrus.Infof("Starting recovered NSMD...")

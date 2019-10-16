@@ -83,7 +83,7 @@ func TestHealLocalDataplane(t *testing.T) {
 	timeout := time.Second * 10
 
 	l1.WaitAdd(1, timeout, t)
-	// We need to inform cross connection monitor about this connection, since dataplane is fake one.
+	// We need to inform cross connection monitor about this connection, since forwarder is fake one.
 	epName := clientConnection1.Endpoint.GetNetworkServiceEndpoint().GetName()
 	_, err = srv.nseRegistry.RemoveNSE(context.Background(), &registry.RemoveNSERequest{
 		NetworkServiceEndpointName: epName,
@@ -92,15 +92,15 @@ func TestHealLocalDataplane(t *testing.T) {
 		t.Fatal("Err must be nil")
 	}
 
-	// Simulate dataplane dead
+	// Simulate forwarder dead
 	srv.TestModel.AddDataplane(context.Background(), testDataplane1_1)
 	srv.TestModel.DeleteDataplane(context.Background(), testDataplane1.RegisteredName)
 
-	// We need to inform cross connection monitor about this connection, since dataplane is fake one.
+	// We need to inform cross connection monitor about this connection, since forwarder is fake one.
 	// First update is with down state
 	// But we want to wait for Up state
 	l1.WaitUpdate(5, timeout, t)
-	// We need to inform cross connection monitor about this connection, since dataplane is fake one.
+	// We need to inform cross connection monitor about this connection, since forwarder is fake one.
 
 	clientConnection1_1 := srv.TestModel.GetClientConnection(nsmResponse.GetId())
 	g.Expect(clientConnection1_1 != nil).To(Equal(true))

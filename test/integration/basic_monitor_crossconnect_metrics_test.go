@@ -11,7 +11,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
+	"github.com/networkservicemesh/networkservicemesh/forwarder/pkg/common"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 )

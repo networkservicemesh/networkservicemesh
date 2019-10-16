@@ -104,15 +104,15 @@ func (m *ClientConnectionManager) DestinationDown(ctx context.Context, cc nsm.Cl
 }
 
 // DataplaneDown handles case of local dp down
-func (m *ClientConnectionManager) DataplaneDown(ctx context.Context, dataplane *model.Dataplane) {
+func (m *ClientConnectionManager) DataplaneDown(ctx context.Context, forwarder *model.Dataplane) {
 	span := spanhelper.GetSpanHelper(ctx)
 	ccs := m.model.GetAllClientConnections()
 	for _, cc := range ccs {
 		span.LogObject(fmt.Sprintf("DataplaneDeleted-%v", cc.GetID()), cc)
-		if cc.DataplaneRegisteredName == dataplane.RegisteredName {
+		if cc.DataplaneRegisteredName == forwarder.RegisteredName {
 			span := common.SpanHelperFromConnection(ctx, cc, "DataplaneDown")
 			defer span.Finish()
-			span.LogObject("dataplane", dataplane)
+			span.LogObject("forwarder", forwarder)
 
 			m.manager.Heal(span.Context(), cc, nsm.HealStateDataplaneDown)
 		}
@@ -362,9 +362,9 @@ func (m *ClientConnectionManager) UpdateRemoteMonitorDone(networkServiceManagerN
 	}
 }
 
-// UpdateFromInitialState - restore from dataplane init state request
-func (m *ClientConnectionManager) UpdateFromInitialState(xcons []*crossconnect.CrossConnect, dataplane *model.Dataplane, manager nsm.MonitorManager) {
-	m.manager.RestoreConnections(xcons, dataplane.RegisteredName, manager)
+// UpdateFromInitialState - restore from forwarder init state request
+func (m *ClientConnectionManager) UpdateFromInitialState(xcons []*crossconnect.CrossConnect, forwarder *model.Dataplane, manager nsm.MonitorManager) {
+	m.manager.RestoreConnections(xcons, forwarder.RegisteredName, manager)
 }
 
 // MarkConnectionDeleted - put connection into map of deleted connections.

@@ -52,7 +52,7 @@ func NewNSMConnection(ctx context.Context, configuration *NSConfiguration) (*Nsm
 		Context:       ctx,
 		Configuration: configuration,
 	}
-	// For NSE to program container's dataplane, container's linux namespace must be sent to NSM
+	// For NSE to program container's forwarder, container's linux namespace must be sent to NSM
 	// linuxNS, err := tools.GetCurrentNS()
 	// if err != nil {
 	// 	logrus.Fatalf("nse: failed to get a linux namespace with error: %v, exiting...", err)

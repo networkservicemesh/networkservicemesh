@@ -99,7 +99,7 @@ type NetworkServiceManager interface {
 	NetworkServiceHealProcessor
 	ServiceRegistry() serviceregistry.ServiceRegistry
 	PluginRegistry() plugins.PluginRegistry
-	RestoreConnections(xcons []*crossconnect.CrossConnect, dataplane string, manager MonitorManager)
+	RestoreConnections(xcons []*crossconnect.CrossConnect, forwarder string, manager MonitorManager)
 }
 
 //NetworkServiceEndpointManager - manages endpoints, TODO: Will be removed in next PRs.

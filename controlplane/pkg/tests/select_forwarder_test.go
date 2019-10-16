@@ -151,5 +151,5 @@ func TestSelectDataplane(t *testing.T) {
 
 	nsmResponse, err = nsmClient.Request(context.Background(), request)
 	g.Expect(err).NotTo(BeNil())
-	g.Expect(err.Error()).To(ContainSubstring("no appropriate dataplanes found"))
+	g.Expect(err.Error()).To(ContainSubstring("no appropriate forwarders found"))
 }

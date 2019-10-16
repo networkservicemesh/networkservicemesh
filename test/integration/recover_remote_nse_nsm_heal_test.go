@@ -62,7 +62,7 @@ func TestNSMHealRemoteDieNSMD_NSE(t *testing.T) {
 	//k8s.DeletePods(nodes_setup[1].Nsmd, icmpPod)
 	logrus.Infof("Waiting for NSE with network service")
 	k8s.WaitLogsContains(nodes_setup[0].Nsmd, "nsmd", "Waiting for NSE with network service icmp-responder", time.Minute)
-	// Now are are in dataplane dead state, and in Heal procedure waiting for dataplane.
+	// Now are are in forwarder dead state, and in Heal procedure waiting for forwarder.
 	nsmdName := fmt.Sprintf("nsmd-worker-recovered-%d", 1)
 
 	logrus.Infof("Starting recovered NSMD...")
@@ -111,7 +111,7 @@ func TestNSMHealRemoteDieNSMD(t *testing.T) {
 
 	logrus.Infof("Waiting for NSE with network service")
 	k8s.WaitLogsContains(nodes_setup[0].Nsmd, "nsmd", "Waiting for NSE with network service icmp-responder", defaultTimeout)
-	// Now are are in dataplane dead state, and in Heal procedure waiting for dataplane.
+	// Now are are in forwarder dead state, and in Heal procedure waiting for forwarder.
 	nsmdName := fmt.Sprintf("nsmd-worker-recovered-%d", 1)
 
 	logrus.Infof("Starting recovered NSMD...")
@@ -165,7 +165,7 @@ func TestNSMHealRemoteDieNSMDFakeEndpoint(t *testing.T) {
 
 	logrus.Infof("Waiting for NSE with network service")
 	k8s.WaitLogsContains(nodesSetup[0].Nsmd, "nsmd", "Waiting for NSE with network service icmp-responder", defaultTimeout)
-	// Now are are in dataplane dead state, and in Heal procedure waiting for dataplane.
+	// Now are are in forwarder dead state, and in Heal procedure waiting for forwarder.
 	nsmdName := fmt.Sprintf("nsmd-worker-recovered-%d", 1)
 
 	logrus.Infof("Cleanup Endpoints CRDs...")

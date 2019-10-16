@@ -38,7 +38,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/plugins"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/vni"
-	"github.com/networkservicemesh/networkservicemesh/dataplane/api/dataplane"
+	"github.com/networkservicemesh/networkservicemesh/forwarder/api/forwarder"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/prefix_pool"
 )
@@ -315,7 +315,7 @@ func (impl *testDataplaneConnection) Request(ctx context.Context, in *crossconne
 
 	if source := in.GetLocalSource(); source != nil && source.Labels != nil {
 		if source.Labels != nil {
-			if val, ok := source.Labels["dataplane_sleep"]; ok {
+			if val, ok := source.Labels["forwarder_sleep"]; ok {
 				delay, err := strconv.Atoi(val)
 				if err == nil {
 					logrus.Infof("Delaying Dataplane Request: %v", delay)
@@ -331,11 +331,11 @@ func (impl *testDataplaneConnection) Close(ctx context.Context, in *crossconnect
 	return nil, nil
 }
 
-func (impl *testDataplaneConnection) MonitorMechanisms(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (dataplane.MechanismsMonitor_MonitorMechanismsClient, error) {
+func (impl *testDataplaneConnection) MonitorMechanisms(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (forwarder.MechanismsMonitor_MonitorMechanismsClient, error) {
 	return nil, nil
 }
 
-func (impl *nsmdTestServiceRegistry) DataplaneConnection(ctx context.Context, dataplane *model.Dataplane) (dataplane.DataplaneClient, *grpc.ClientConn, error) {
+func (impl *nsmdTestServiceRegistry) DataplaneConnection(ctx context.Context, forwarder *model.Dataplane) (forwarder.DataplaneClient, *grpc.ClientConn, error) {
 	return impl.testDataplaneConnection, nil, nil
 }
 

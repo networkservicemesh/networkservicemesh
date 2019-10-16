@@ -27,7 +27,7 @@ func TestDataplaneVersion(t *testing.T) {
 	defer kubetest.MakeLogsSnapshot(k8s, t)
 
 	g.Expect(len(nodes) > 0).Should(BeTrue())
-	dataplane := nodes[0].Dataplane
-	k8s.PrintImageVersion(dataplane)
+	forwarder := nodes[0].Dataplane
+	k8s.PrintImageVersion(forwarder)
 
 }

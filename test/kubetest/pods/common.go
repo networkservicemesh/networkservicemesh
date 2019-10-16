@@ -31,7 +31,7 @@ func ForwardingPlane(name string, node *v1.Node, plane string) *v1.Pod {
 	} else if plane == EnvForwardingPlaneKernel {
 		return KernelDataplanePod(name, node)
 	}
-	logrus.Error("Forwarding plane error: Unknown dataplane")
+	logrus.Error("Forwarding plane error: Unknown forwarder")
 	return nil
 }
 
@@ -42,7 +42,7 @@ func ForwardingPlaneWithConfig(name string, node *v1.Node, variables map[string]
 	} else if plane == EnvForwardingPlaneKernel {
 		return KernelDataplanePodConfig(name, node, variables)
 	}
-	logrus.Error("Forwarding plane error: Unknown dataplane")
+	logrus.Error("Forwarding plane error: Unknown forwarder")
 	return nil
 }
 
@@ -53,6 +53,6 @@ func ForwardingPlaneWithLiveCheck(name string, node *v1.Node, plane string) *v1.
 	} else if plane == EnvForwardingPlaneKernel {
 		return KernelDataplanePodLiveCheck(name, node)
 	}
-	logrus.Error("Forwarding plane error: Unknown dataplane")
+	logrus.Error("Forwarding plane error: Unknown forwarder")
 	return nil
 }

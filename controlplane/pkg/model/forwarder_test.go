@@ -129,7 +129,7 @@ func TestSelectDp(t *testing.T) {
 		return false
 	}
 	selectedDp, err = dd.SelectDataplane(emptySelector)
-	g.Expect(err.Error()).To(ContainSubstring("no appropriate dataplanes found"))
+	g.Expect(err.Error()).To(ContainSubstring("no appropriate forwarders found"))
 	g.Expect(selectedDp).To(BeNil())
 
 	first, err := dd.SelectDataplane(nil)

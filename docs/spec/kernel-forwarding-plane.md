@@ -13,7 +13,7 @@ Note that it is still under development. For example, part of the integration te
 Implementation details (optional)
 ---------------------------------
 
-More details about the implementation can be found here - [link to docs](../../dataplane/kernel-forwarder/README.md)
+More details about the implementation can be found here - [link to docs](../../forwarder/kernel-forwarder/README.md)
 
 Example usage (optional)
 ------------------------

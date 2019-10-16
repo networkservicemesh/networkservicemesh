@@ -6,12 +6,12 @@ import (
 	"github.com/golang/protobuf/ptypes/empty"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
-	"github.com/networkservicemesh/networkservicemesh/dataplane/api/dataplane"
+	"github.com/networkservicemesh/networkservicemesh/forwarder/api/forwarder"
 	monitor_crossconnect "github.com/networkservicemesh/networkservicemesh/sdk/monitor/crossconnect"
 )
 
-//UseMonitor creates dataplane server handler with updating crossconnect monitor server
-func UseMonitor(monitor monitor_crossconnect.MonitorServer) dataplane.DataplaneServer {
+//UseMonitor creates forwarder server handler with updating crossconnect monitor server
+func UseMonitor(monitor monitor_crossconnect.MonitorServer) forwarder.DataplaneServer {
 	return &useMonitor{
 		monitor: monitor,
 	}

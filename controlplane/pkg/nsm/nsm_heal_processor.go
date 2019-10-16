@@ -232,8 +232,8 @@ func (p *healProcessor) healDataplaneDown(ctx context.Context, cc *model.ClientC
 	defer span.Finish()
 
 	logger := span.Logger()
-	// Dataplane is down, we only need to re-programm dataplane.
-	// 1. Wait for dataplane to appear.
+	// Dataplane is down, we only need to re-programm forwarder.
+	// 1. Wait for forwarder to appear.
 	logger.Infof("NSM_Heal(3.1) Waiting for Dataplane to recovery...")
 	if err := p.serviceRegistry.WaitForDataplaneAvailable(span.Context(), p.model, p.properties.HealDataplaneTimeout); err != nil {
 		err = errors.Errorf("NSM_Heal(3.1) Dataplane is not available on recovery for timeout %v: %v", p.properties.HealDataplaneTimeout, err)

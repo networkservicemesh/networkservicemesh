@@ -8,8 +8,8 @@ type Listener interface {
 	EndpointUpdated(ctx context.Context, endpoint *Endpoint)
 	EndpointDeleted(ctx context.Context, endpoint *Endpoint)
 
-	DataplaneAdded(ctx context.Context, dataplane *Dataplane)
-	DataplaneDeleted(ctx context.Context, dataplane *Dataplane)
+	DataplaneAdded(ctx context.Context, forwarder *Dataplane)
+	DataplaneDeleted(ctx context.Context, forwarder *Dataplane)
 
 	ClientConnectionAdded(ctx context.Context, clientConnection *ClientConnection)
 	ClientConnectionDeleted(ctx context.Context, clientConnection *ClientConnection)
@@ -29,10 +29,10 @@ func (ListenerImpl) EndpointUpdated(ctx context.Context, endpoint *Endpoint) {}
 func (ListenerImpl) EndpointDeleted(ctx context.Context, endpoint *Endpoint) {}
 
 // DataplaneAdded will be called when Dataplane is added to model, accept pointer to copy
-func (ListenerImpl) DataplaneAdded(ctx context.Context, dataplane *Dataplane) {}
+func (ListenerImpl) DataplaneAdded(ctx context.Context, forwarder *Dataplane) {}
 
 // DataplaneDeleted will be called when Dataplane in model is deleted
-func (ListenerImpl) DataplaneDeleted(ctx context.Context, dataplane *Dataplane) {}
+func (ListenerImpl) DataplaneDeleted(ctx context.Context, forwarder *Dataplane) {}
 
 // ClientConnectionAdded will be called when ClientConnection is added to model, accept pointer to copy
 func (ListenerImpl) ClientConnectionAdded(ctx context.Context, clientConnection *ClientConnection) {}

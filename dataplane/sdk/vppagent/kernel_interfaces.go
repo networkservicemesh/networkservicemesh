@@ -6,12 +6,12 @@ import (
 	"github.com/golang/protobuf/ptypes/empty"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
-	"github.com/networkservicemesh/networkservicemesh/dataplane/api/dataplane"
-	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/converter"
+	"github.com/networkservicemesh/networkservicemesh/forwarder/api/forwarder"
+	"github.com/networkservicemesh/networkservicemesh/forwarder/vppagent/pkg/converter"
 )
 
 //KernelInterfaces creates dataplnae server handler with creation dataChange config for kernel and not direct memif connections
-func KernelInterfaces(baseDir string) dataplane.DataplaneServer {
+func KernelInterfaces(baseDir string) forwarder.DataplaneServer {
 	return &kernelInterfaces{baseDir: baseDir}
 }
 

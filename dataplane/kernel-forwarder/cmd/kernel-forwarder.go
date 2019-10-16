@@ -26,8 +26,8 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/probes"
 
-	"github.com/networkservicemesh/networkservicemesh/dataplane/kernel-forwarder/pkg/kernelforwarder"
-	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
+	"github.com/networkservicemesh/networkservicemesh/forwarder/kernel-forwarder/pkg/kernelforwarder"
+	"github.com/networkservicemesh/networkservicemesh/forwarder/pkg/common"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
@@ -41,13 +41,13 @@ func main() {
 	span := spanhelper.FromContext(context.Background(), "Start.KernelForwarder.Dataplane")
 	defer span.Finish()
 	c := tools.NewOSSignalChannel()
-	dataplaneGoals := &common.DataplaneProbeGoals{}
-	dataplaneProbes := probes.New("Kernel-based forwarding plane liveness/readiness healthcheck", dataplaneGoals)
-	dataplaneProbes.BeginHealthCheck()
+	forwarderGoals := &common.DataplaneProbeGoals{}
+	forwarderProbes := probes.New("Kernel-based forwarding plane liveness/readiness healthcheck", forwarderGoals)
+	forwarderProbes.BeginHealthCheck()
 
 	plane := kernelforwarder.CreateKernelForwarder()
 
-	registration := common.CreateDataplane(plane, dataplaneGoals)
+	registration := common.CreateDataplane(plane, forwarderGoals)
 
 	for range c {
 		logrus.Info("Closing Dataplane Registration")

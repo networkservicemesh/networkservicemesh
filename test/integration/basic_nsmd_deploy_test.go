@@ -24,7 +24,7 @@ func TestNSMgrDataplaneDeployLiveCheck(t *testing.T) {
 	testNSMgrDataplaneDeploy(t, pods.NSMgrPodLiveCheck, pods.ForwardingPlaneWithLiveCheck)
 }
 
-func testNSMgrDataplaneDeploy(t *testing.T, nsmdPodFactory func(string, *v1.Node, string) *v1.Pod, dataplanePodFactory func(string, *v1.Node, string) *v1.Pod) {
+func testNSMgrDataplaneDeploy(t *testing.T, nsmdPodFactory func(string, *v1.Node, string) *v1.Pod, forwarderPodFactory func(string, *v1.Node, string) *v1.Pod) {
 	g := NewWithT(t)
 
 	if testing.Short() {
@@ -43,10 +43,10 @@ func testNSMgrDataplaneDeploy(t *testing.T, nsmdPodFactory func(string, *v1.Node
 	nodes := k8s.GetNodesWait(1, defaultTimeout)
 
 	nsmdName := fmt.Sprintf("nsmgr-%s", nodes[0].Name)
-	dataplaneName := fmt.Sprintf("nsmd-dataplane-%s", nodes[0].Name)
+	forwarderName := fmt.Sprintf("nsmd-forwarder-%s", nodes[0].Name)
 	corePod := nsmdPodFactory(nsmdName, &nodes[0], k8s.GetK8sNamespace())
-	dataplanePod := dataplanePodFactory(dataplaneName, &nodes[0], k8s.GetForwardingPlane())
-	corePods, err := k8s.CreatePodsRaw(defaultTimeout, true, corePod, dataplanePod)
+	forwarderPod := forwarderPodFactory(forwarderName, &nodes[0], k8s.GetForwardingPlane())
+	corePods, err := k8s.CreatePodsRaw(defaultTimeout, true, corePod, forwarderPod)
 	g.Expect(err).To(BeNil())
 
 	k8s.WaitLogsContains(corePods[1], "", "Sending MonitorMechanisms update", defaultTimeout)

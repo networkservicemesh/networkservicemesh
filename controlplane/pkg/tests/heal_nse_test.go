@@ -80,7 +80,7 @@ func TestHealRemoteNSE(t *testing.T) {
 	clientConnection2 := srv2.TestModel.GetClientConnection(clientConnection1.Xcon.GetRemoteDestination().GetId())
 	g.Expect(clientConnection2.GetID()).To(Equal("1"))
 
-	// We need to inform cross connection monitor about this connection, since dataplane is fake one.
+	// We need to inform cross connection monitor about this connection, since forwarder is fake one.
 	l1.WaitAdd(1, timeout, t)
 
 	epName := clientConnection1.Endpoint.GetNetworkServiceEndpoint().GetName()

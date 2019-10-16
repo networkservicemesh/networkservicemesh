@@ -34,10 +34,10 @@ import (
 
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	remote "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
-	"github.com/networkservicemesh/networkservicemesh/dataplane/api/dataplane"
-	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
-	sdk "github.com/networkservicemesh/networkservicemesh/dataplane/sdk/vppagent"
-	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/vppagent/nsmonitor"
+	"github.com/networkservicemesh/networkservicemesh/forwarder/api/forwarder"
+	"github.com/networkservicemesh/networkservicemesh/forwarder/pkg/common"
+	sdk "github.com/networkservicemesh/networkservicemesh/forwarder/sdk/vppagent"
+	"github.com/networkservicemesh/networkservicemesh/forwarder/vppagent/pkg/vppagent/nsmonitor"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/utils"
 )
@@ -59,7 +59,7 @@ func CreateVPPAgent() *VPPAgent {
 }
 
 //CreateDataplaneServer creates DataplaneServer handler
-func (v *VPPAgent) CreateDataplaneServer(config *common.DataplaneConfig) dataplane.DataplaneServer {
+func (v *VPPAgent) CreateDataplaneServer(config *common.DataplaneConfig) forwarder.DataplaneServer {
 	return sdk.ChainOf(
 		sdk.ConnectionValidator(),
 		sdk.UseMonitor(config.Monitor),
@@ -71,31 +71,31 @@ func (v *VPPAgent) CreateDataplaneServer(config *common.DataplaneConfig) datapla
 }
 
 // MonitorMechanisms sends mechanism updates
-func (v *VPPAgent) MonitorMechanisms(empty *empty.Empty, updateSrv dataplane.MechanismsMonitor_MonitorMechanismsServer) error {
+func (v *VPPAgent) MonitorMechanisms(empty *empty.Empty, updateSrv forwarder.MechanismsMonitor_MonitorMechanismsServer) error {
 	span := spanhelper.FromContext(context.Background(), "MonitorMecnahisms")
 	defer span.Finish()
 	span.Logger().Infof("MonitorMechanisms was called")
-	initialUpdate := &dataplane.MechanismUpdate{
+	initialUpdate := &forwarder.MechanismUpdate{
 		RemoteMechanisms: v.common.Mechanisms.RemoteMechanisms,
 		LocalMechanisms:  v.common.Mechanisms.LocalMechanisms,
 	}
 	span.Logger().Infof("Sending MonitorMechanisms update: %v", initialUpdate)
 	if err := updateSrv.Send(initialUpdate); err != nil {
-		span.Logger().Errorf("vpp-agent dataplane server: Detected error %s, grpc code: %+v on grpc channel", err.Error(), status.Convert(err).Code())
+		span.Logger().Errorf("vpp-agent forwarder server: Detected error %s, grpc code: %+v on grpc channel", err.Error(), status.Convert(err).Code())
 		return nil
 	}
 	for {
 		select {
-		// Waiting for any updates which might occur during a life of dataplane module and communicating
+		// Waiting for any updates which might occur during a life of forwarder module and communicating
 		// them back to NSM.
 		case update := <-v.common.MechanismsUpdateChannel:
 			v.common.Mechanisms = update
 			span.Logger().Infof("Sending MonitorMechanisms update: %v", update)
-			if err := updateSrv.Send(&dataplane.MechanismUpdate{
+			if err := updateSrv.Send(&forwarder.MechanismUpdate{
 				RemoteMechanisms: update.RemoteMechanisms,
 				LocalMechanisms:  update.LocalMechanisms,
 			}); err != nil {
-				span.Logger().Errorf("vpp dataplane server: Detected error %s, grpc code: %+v on grpc channel", err.Error(), status.Convert(err).Code())
+				span.Logger().Errorf("vpp forwarder server: Detected error %s, grpc code: %+v on grpc channel", err.Error(), status.Convert(err).Code())
 				return nil
 			}
 		}

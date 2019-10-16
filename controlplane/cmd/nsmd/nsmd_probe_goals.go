@@ -6,10 +6,10 @@ import (
 
 const (
 	nsmServerReady = 1 << iota
-	dataplaneServerReady
+	forwarderServerReady
 	publicListenerReady
 	serverAPIReady
-	done = nsmServerReady | dataplaneServerReady | publicListenerReady | serverAPIReady
+	done = nsmServerReady | forwarderServerReady | publicListenerReady | serverAPIReady
 )
 
 type nsmdProbeGoals struct {
@@ -19,7 +19,7 @@ type nsmdProbeGoals struct {
 func (g *nsmdProbeGoals) Status() string {
 	return fmt.Sprintf("NSM Server is ready: %v, Dataplane server is ready: %v, Public listener is ready: %v, Server API is ready: %v",
 		g.state&nsmServerReady > 0,
-		g.state&dataplaneServerReady > 0,
+		g.state&forwarderServerReady > 0,
 		g.state&publicListenerReady > 0,
 		g.state&serverAPIReady > 0,
 	)
@@ -29,7 +29,7 @@ func (g *nsmdProbeGoals) SetNsmServerReady() {
 	g.state |= nsmServerReady
 }
 func (g *nsmdProbeGoals) SetDataplaneServerReady() {
-	g.state |= dataplaneServerReady
+	g.state |= forwarderServerReady
 }
 func (g *nsmdProbeGoals) SetPublicListenerReady() {
 	g.state |= publicListenerReady

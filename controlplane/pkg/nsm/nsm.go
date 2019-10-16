@@ -158,7 +158,7 @@ func (srv *networkServiceManager) getNetworkServiceManagerName() string {
 }
 
 func (srv *networkServiceManager) WaitForDataplane(ctx context.Context, timeout time.Duration) error {
-	// Wait for at least one dataplane to be available
+	// Wait for at least one forwarder to be available
 	if err := srv.serviceRegistry.WaitForDataplaneAvailable(ctx, srv.model, timeout); err != nil {
 		return err
 	}
@@ -171,24 +171,24 @@ func (srv *networkServiceManager) WaitForDataplane(ctx context.Context, timeout 
 	}
 }
 
-func (srv *networkServiceManager) RestoreConnections(xcons []*crossconnect.CrossConnect, dataplane string, manager nsm.MonitorManager) {
+func (srv *networkServiceManager) RestoreConnections(xcons []*crossconnect.CrossConnect, forwarder string, manager nsm.MonitorManager) {
 	span := spanhelper.FromContext(srv.Context(), "Nsmgr.RestoreConnections")
 	defer span.Finish()
 	logger := span.Logger()
 	for _, xcon := range xcons {
-		srv.restoreXconnection(span.Context(), xcon, logger, dataplane, manager)
+		srv.restoreXconnection(span.Context(), xcon, logger, forwarder, manager)
 	}
 	logger.Infof("All connections are recovered...")
 	// Notify state is restored
 	srv.stateRestored <- true
 }
 
-func (srv *networkServiceManager) restoreXconnection(ctx context.Context, xcon *crossconnect.CrossConnect, logger logrus.FieldLogger, dataplane string, manager nsm.MonitorManager) {
-	// Model should increase its id counter to max of xcons restored from dataplane
+func (srv *networkServiceManager) restoreXconnection(ctx context.Context, xcon *crossconnect.CrossConnect, logger logrus.FieldLogger, forwarder string, manager nsm.MonitorManager) {
+	// Model should increase its id counter to max of xcons restored from forwarder
 	srv.model.CorrectIDGenerator(xcon.GetId())
 	span := spanhelper.FromContext(ctx, "restoreXConnection")
 	defer span.Finish()
-	span.LogObject("dataplane", dataplane)
+	span.LogObject("forwarder", forwarder)
 	span.LogObject("xcon", xcon)
 
 	existing := srv.model.GetClientConnection(xcon.GetId())
@@ -199,7 +199,7 @@ func (srv *networkServiceManager) restoreXconnection(ctx context.Context, xcon *
 		networkServiceName := ""
 		var connectionState model.ClientConnectionState
 
-		dp := srv.model.GetDataplane(dataplane)
+		dp := srv.model.GetDataplane(forwarder)
 		discovery, err := srv.serviceRegistry.DiscoveryClient(span.Context())
 		span.LogError(err)
 		if err != nil {

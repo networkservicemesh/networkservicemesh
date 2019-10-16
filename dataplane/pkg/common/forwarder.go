@@ -30,15 +30,15 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	remote "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
-	"github.com/networkservicemesh/networkservicemesh/dataplane/api/dataplane"
+	"github.com/networkservicemesh/networkservicemesh/forwarder/api/forwarder"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	monitor_crossconnect "github.com/networkservicemesh/networkservicemesh/sdk/monitor/crossconnect"
 )
 
 type NSMDataplane interface {
-	dataplane.MechanismsMonitorServer
+	forwarder.MechanismsMonitorServer
 	Init(*DataplaneConfig) error
-	CreateDataplaneServer(*DataplaneConfig) dataplane.DataplaneServer
+	CreateDataplaneServer(*DataplaneConfig) forwarder.DataplaneServer
 }
 
 // TODO Convert all the defaults to properly use NsmBaseDir
@@ -46,7 +46,7 @@ const (
 	NSMBaseDirKey                        = "NSM_BASEDIR"
 	NSMBaseDirDefault                    = "/var/lib/networkservicemesh/"
 	DataplaneRegistrarSocketKey          = "DATAPLANE_REGISTRAR_SOCKET"
-	DataplaneRegistrarSocketDefault      = "/var/lib/networkservicemesh/nsm.dataplane-registrar.io.sock"
+	DataplaneRegistrarSocketDefault      = "/var/lib/networkservicemesh/nsm.forwarder-registrar.io.sock"
 	DataplaneRegistrarSocketTypeKey      = "DATAPLANE_REGISTRAR_SOCKET_TYPE"
 	DataplaneRegistrarSocketTypeDefault  = "unix"
 	DataplaneMetricsEnabledKey           = "METRICS_COLLECTOR_ENABLED"
@@ -56,7 +56,7 @@ const (
 	DataplaneNameKey                     = "DATAPLANE_NAME"
 	DataplaneNameDefault                 = "vppagent"
 	DataplaneSocketKey                   = "DATAPLANE_SOCKET"
-	DataplaneSocketDefault               = "/var/lib/networkservicemesh/nsm-vppagent.dataplane.sock"
+	DataplaneSocketDefault               = "/var/lib/networkservicemesh/nsm-vppagent.forwarder.sock"
 	DataplaneSocketTypeKey               = "DATAPLANE_SOCKET_TYPE"
 	DataplaneSocketTypeDefault           = "unix"
 	DataplaneSrcIPKey                    = "NSM_DATAPLANE_SRC_IP"
@@ -87,7 +87,7 @@ type Mechanisms struct {
 	LocalMechanisms  []*local.Mechanism
 }
 
-func createDataplaneConfig(dataplaneGoals *DataplaneProbeGoals) *DataplaneConfig {
+func createDataplaneConfig(forwarderGoals *DataplaneProbeGoals) *DataplaneConfig {
 	cfg := &DataplaneConfig{}
 	var ok bool
 
@@ -108,7 +108,7 @@ func createDataplaneConfig(dataplaneGoals *DataplaneProbeGoals) *DataplaneConfig
 	if err != nil {
 		logrus.Fatalf("Error cleaning up socket %s: %s", cfg.DataplaneSocket, err)
 	} else {
-		dataplaneGoals.SetSocketCleanReady()
+		forwarderGoals.SetSocketCleanReady()
 	}
 
 	cfg.DataplaneSocketType, ok = os.LookupEnv(DataplaneSocketTypeKey)
@@ -169,19 +169,19 @@ func createDataplaneConfig(dataplaneGoals *DataplaneProbeGoals) *DataplaneConfig
 	if !ok {
 		logrus.Fatalf("Env variable %s must be set to valid srcIP for use for tunnels from this Pod.  Consider using downward API to do so.", DataplaneSrcIPKey)
 	} else {
-		dataplaneGoals.SetSrcIPReady()
+		forwarderGoals.SetSrcIPReady()
 	}
 	cfg.SrcIP = net.ParseIP(srcIPStr)
 	if cfg.SrcIP == nil {
 		logrus.Fatalf("Env variable %s must be set to a valid IP address, was set to %s", DataplaneSrcIPKey, srcIPStr)
 	} else {
-		dataplaneGoals.SetValidIPReady()
+		forwarderGoals.SetValidIPReady()
 	}
 	cfg.EgressInterface, err = NewEgressInterface(cfg.SrcIP)
 	if err != nil {
 		logrus.Fatalf("Unable to find egress Interface: %s", err)
 	} else {
-		dataplaneGoals.SetNewEgressIFReady()
+		forwarderGoals.SetNewEgressIFReady()
 	}
 	logrus.Infof("SrcIP: %s, IfaceName: %s, SrcIPNet: %s", cfg.SrcIP, cfg.EgressInterface.Name(), cfg.EgressInterface.SrcIPNet())
 
@@ -189,12 +189,12 @@ func createDataplaneConfig(dataplaneGoals *DataplaneProbeGoals) *DataplaneConfig
 }
 
 // CreateDataplane creates new Dataplane Registrar client
-func CreateDataplane(dp NSMDataplane, dataplaneGoals *DataplaneProbeGoals) *DataplaneRegistration {
+func CreateDataplane(dp NSMDataplane, forwarderGoals *DataplaneProbeGoals) *DataplaneRegistration {
 	start := time.Now()
 	// Populate common configuration
-	config := createDataplaneConfig(dataplaneGoals)
+	config := createDataplaneConfig(forwarderGoals)
 
-	// Initialize the dataplane
+	// Initialize the forwarder
 	err := dp.Init(config)
 	if err != nil {
 		logrus.Fatalf("Dataplane initialization failed: %s ", err)
@@ -210,11 +210,11 @@ func CreateDataplane(dp NSMDataplane, dataplaneGoals *DataplaneProbeGoals) *Data
 	if err != nil {
 		logrus.Fatalf("Error listening on socket %s: %s ", config.DataplaneSocket, err)
 	} else {
-		dataplaneGoals.SetSocketListenReady()
+		forwarderGoals.SetSocketListenReady()
 	}
 
-	dataplane.RegisterDataplaneServer(config.GRPCserver, dp.CreateDataplaneServer(config))
-	dataplane.RegisterMechanismsMonitorServer(config.GRPCserver, dp)
+	forwarder.RegisterDataplaneServer(config.GRPCserver, dp.CreateDataplaneServer(config))
+	forwarder.RegisterMechanismsMonitorServer(config.GRPCserver, dp)
 
 	// Start the server
 	logrus.Infof("Creating %s server...", config.Name)
@@ -223,7 +223,7 @@ func CreateDataplane(dp NSMDataplane, dataplaneGoals *DataplaneProbeGoals) *Data
 	}()
 	logrus.Infof("%s server serving", config.Name)
 
-	logrus.Debugf("Starting the %s dataplane server took: %s", config.Name, time.Since(start))
+	logrus.Debugf("Starting the %s forwarder server took: %s", config.Name, time.Since(start))
 
 	logrus.Info("Creating Dataplane Registrar Client...")
 	registrar := NewDataplaneRegistrarClient(config.RegistrarSocketType, config.RegistrarSocket)
@@ -233,13 +233,13 @@ func CreateDataplane(dp NSMDataplane, dataplaneGoals *DataplaneProbeGoals) *Data
 	return registration
 }
 
-func sanityCheckConfig(dataplaneConfig *DataplaneConfig) bool {
-	return len(dataplaneConfig.Name) > 0 &&
-		len(dataplaneConfig.NSMBaseDir) > 0 &&
-		len(dataplaneConfig.RegistrarSocket) > 0 &&
-		len(dataplaneConfig.RegistrarSocketType) > 0 &&
-		len(dataplaneConfig.DataplaneSocket) > 0 &&
-		len(dataplaneConfig.DataplaneSocketType) > 0
+func sanityCheckConfig(forwarderConfig *DataplaneConfig) bool {
+	return len(forwarderConfig.Name) > 0 &&
+		len(forwarderConfig.NSMBaseDir) > 0 &&
+		len(forwarderConfig.RegistrarSocket) > 0 &&
+		len(forwarderConfig.RegistrarSocketType) > 0 &&
+		len(forwarderConfig.DataplaneSocket) > 0 &&
+		len(forwarderConfig.DataplaneSocketType) > 0
 }
 
 // SanityCheckConnectionType checks whether the forwarding plane supports the connection type in the request

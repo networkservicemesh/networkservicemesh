@@ -19,7 +19,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
-	dataplaneapi "github.com/networkservicemesh/networkservicemesh/dataplane/api/dataplane"
+	forwarderapi "github.com/networkservicemesh/networkservicemesh/forwarder/api/forwarder"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
@@ -27,10 +27,10 @@ import (
 )
 
 const (
-	dataplanePort       = 9500
-	dataplaneSocketType = "tcp"
-	dataplanePortName   = "dataplane"
-	dataplaneProtocol   = "TCP"
+	forwarderPort       = 9500
+	forwarderSocketType = "tcp"
+	forwarderPortName   = "forwarder"
+	forwarderProtocol   = "TCP"
 
 	srcIp       = "10.30.1.1"
 	dstIp       = "10.30.1.2"
@@ -115,17 +115,17 @@ func TestDataplaneCrossConnectReconnect(t *testing.T) {
 }
 
 // A standaloneDataplaneFixture represents minimalist test configuration
-// with just a dataplane pod and two peer pods (source and destination)
+// with just a forwarder pod and two peer pods (source and destination)
 // deployed on a single node.
 type standaloneDataplaneFixture struct {
 	timeout         time.Duration
 	k8s             *kubetest.K8s
 	node            *v1.Node
-	dataplanePod    *v1.Pod
+	forwarderPod    *v1.Pod
 	sourcePod       *v1.Pod
 	destPod         *v1.Pod
 	forwarding      *kubetest.PortForward
-	dataplaneClient dataplaneapi.DataplaneClient
+	forwarderClient forwarderapi.DataplaneClient
 	test            *testing.T
 }
 
@@ -151,29 +151,29 @@ func createFixture(test *testing.T, timeout time.Duration) *standaloneDataplaneF
 
 	fixture.k8s = k8s
 	fixture.node = &nodes[0]
-	fixture.dataplanePod = fixture.k8s.CreatePod(dataplanePodTemplate(k8s.GetForwardingPlane(), fixture.node))
-	fixture.k8s.WaitLogsContains(fixture.dataplanePod, fixture.dataplanePod.Spec.Containers[0].Name, "Serve starting...", timeout)
+	fixture.forwarderPod = fixture.k8s.CreatePod(forwarderPodTemplate(k8s.GetForwardingPlane(), fixture.node))
+	fixture.k8s.WaitLogsContains(fixture.forwarderPod, fixture.forwarderPod.Spec.Containers[0].Name, "Serve starting...", timeout)
 
 	// deploy source and destination pods
 	fixture.sourcePod = k8s.CreatePod(pods.AlpinePod(fmt.Sprintf("source-pod-%s", fixture.node.Name), fixture.node))
 	fixture.destPod = k8s.CreatePod(pods.AlpinePod(fmt.Sprintf("dest-pod-%s", fixture.node.Name), fixture.node))
 
-	// forward dataplane port
-	fixture.forwardDataplanePort(dataplanePort)
+	// forward forwarder port
+	fixture.forwardDataplanePort(forwarderPort)
 
-	// connect to dataplane
+	// connect to forwarder
 	fixture.connectDataplane()
 
 	return fixture
 }
 
 func (fixture *standaloneDataplaneFixture) forwardDataplanePort(port int) {
-	fwd, err := fixture.k8s.NewPortForwarder(fixture.dataplanePod, port)
+	fwd, err := fixture.k8s.NewPortForwarder(fixture.forwarderPod, port)
 	wt.Expect(err).To(BeNil())
 
 	err = fwd.Start()
 	wt.Expect(err).To(BeNil())
-	logrus.Infof("Forwarded port: pod=%s, remote=%d local=%d\n", fixture.dataplanePod.Name, port, fwd.ListenPort)
+	logrus.Infof("Forwarded port: pod=%s, remote=%d local=%d\n", fixture.forwarderPod.Name, port, fwd.ListenPort)
 	fixture.forwarding = fwd
 }
 
@@ -181,9 +181,9 @@ func (fixture *standaloneDataplaneFixture) connectDataplane() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	dataplaneConn, err := tools.DialContext(ctx, localPort(dataplaneSocketType, fixture.forwarding.ListenPort))
+	forwarderConn, err := tools.DialContext(ctx, localPort(forwarderSocketType, fixture.forwarding.ListenPort))
 	wt.Expect(err).To(BeNil())
-	fixture.dataplaneClient = dataplaneapi.NewDataplaneClient(dataplaneConn)
+	fixture.forwarderClient = forwarderapi.NewDataplaneClient(forwarderConn)
 }
 
 func (fixture *standaloneDataplaneFixture) requestCrossConnect(id, srcMech, dstMech, iface, srcIp, dstIp string) *crossconnect.CrossConnect {
@@ -193,7 +193,7 @@ func (fixture *standaloneDataplaneFixture) requestCrossConnect(id, srcMech, dstM
 
 func (fixture *standaloneDataplaneFixture) request(req *crossconnect.CrossConnect) *crossconnect.CrossConnect {
 	ctx, _ := context.WithTimeout(context.Background(), fixture.timeout)
-	conn, err := fixture.dataplaneClient.Request(ctx, req)
+	conn, err := fixture.forwarderClient.Request(ctx, req)
 	wt.Expect(err).To(BeNil())
 	return conn
 }
@@ -289,7 +289,7 @@ func (fixture *standaloneDataplaneFixture) handleFailures(failures []string) {
 		for _, failure := range failures {
 			logrus.Errorf("test failure: %s\n", failure)
 		}
-		fixture.printLogs(fixture.dataplanePod)
+		fixture.printLogs(fixture.forwarderPod)
 		fixture.printLogs(fixture.sourcePod)
 		fixture.printLogs(fixture.destPod)
 		fixture.test.Fail()
@@ -321,7 +321,7 @@ func (fixture *standaloneDataplaneFixture) verifyKernelConnectionClosed(xcon *cr
 
 func (fixture *standaloneDataplaneFixture) closeConnection(conn *crossconnect.CrossConnect) {
 	ctx, _ := context.WithTimeout(context.Background(), fixture.timeout)
-	_, err := fixture.dataplaneClient.Close(ctx, conn)
+	_, err := fixture.forwarderClient.Close(ctx, conn)
 	wt.Expect(err).To(BeNil())
 }
 
@@ -344,30 +344,30 @@ func localPort(network string, port int) net.Addr {
 	}
 }
 
-func dataplanePodTemplate(plane string, node *v1.Node) *v1.Pod {
-	dataplaneName := fmt.Sprintf("nsmd-dataplane-%s", node.Name)
-	dataplane := pods.ForwardingPlane(dataplaneName, node, plane)
-	setupEnvVariables(dataplane, map[string]string{
-		"DATAPLANE_SOCKET_TYPE": dataplaneSocketType,
-		"DATAPLANE_SOCKET":      fmt.Sprintf("0.0.0.0:%d", dataplanePort),
+func forwarderPodTemplate(plane string, node *v1.Node) *v1.Pod {
+	forwarderName := fmt.Sprintf("nsmd-forwarder-%s", node.Name)
+	forwarder := pods.ForwardingPlane(forwarderName, node, plane)
+	setupEnvVariables(forwarder, map[string]string{
+		"DATAPLANE_SOCKET_TYPE": forwarderSocketType,
+		"DATAPLANE_SOCKET":      fmt.Sprintf("0.0.0.0:%d", forwarderPort),
 	})
-	exposePorts(dataplane,
+	exposePorts(forwarder,
 		v1.ContainerPort{
-			ContainerPort: dataplanePort,
-			Name:          dataplanePortName,
-			Protocol:      dataplaneProtocol,
+			ContainerPort: forwarderPort,
+			Name:          forwarderPortName,
+			Protocol:      forwarderProtocol,
 		},
 		v1.ContainerPort{
 			ContainerPort: 40000,
 			Name:          "debug",
-			Protocol:      dataplaneProtocol,
+			Protocol:      forwarderProtocol,
 		})
-	dataplane.ObjectMeta.Labels = map[string]string{"run": "dataplane"}
-	return dataplane
+	forwarder.ObjectMeta.Labels = map[string]string{"run": "forwarder"}
+	return forwarder
 }
 
-func setupEnvVariables(dataplane *v1.Pod, env map[string]string) {
-	vpp := &dataplane.Spec.Containers[0]
+func setupEnvVariables(forwarder *v1.Pod, env map[string]string) {
+	vpp := &forwarder.Spec.Containers[0]
 
 	environment := vpp.Env
 	for key, value := range env {
@@ -380,8 +380,8 @@ func setupEnvVariables(dataplane *v1.Pod, env map[string]string) {
 	vpp.Env = environment
 }
 
-func exposePorts(dataplane *v1.Pod, ports ...v1.ContainerPort) {
-	vpp := &dataplane.Spec.Containers[0]
+func exposePorts(forwarder *v1.Pod, ports ...v1.ContainerPort) {
+	vpp := &forwarder.Spec.Containers[0]
 	vpp.Ports = append(vpp.Ports, ports...)
 }
 

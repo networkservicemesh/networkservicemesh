@@ -19,7 +19,7 @@ import (
 	"runtime"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
-	"github.com/networkservicemesh/networkservicemesh/dataplane/kernel-forwarder/pkg/monitoring"
+	"github.com/networkservicemesh/networkservicemesh/forwarder/kernel-forwarder/pkg/monitoring"
 	"github.com/networkservicemesh/networkservicemesh/utils/fs"
 
 	"github.com/sirupsen/logrus"

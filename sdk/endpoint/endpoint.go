@@ -106,7 +106,7 @@ func (nsme *nsmEndpoint) Start() error {
 	defer span.Finish()
 
 	// Registering NSE API, it will listen for Connection requests from NSM and return information
-	// needed for NSE's dataplane programming.
+	// needed for NSE's forwarder programming.
 	nse := &registry.NetworkServiceEndpoint{
 		NetworkServiceName: nsme.Configuration.AdvertiseNseName,
 		Payload:            "IP",

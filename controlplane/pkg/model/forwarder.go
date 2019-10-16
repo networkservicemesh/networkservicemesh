@@ -10,18 +10,18 @@ import (
 	remote "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
 )
 
-// DataplaneState describes state of dataplane
+// DataplaneState describes state of forwarder
 type DataplaneState int8
 
 const (
-	// DataplaneStateNone means there is no active connection in dataplane
-	DataplaneStateNone DataplaneState = 0 // In case dataplane is not yet configured for connection
+	// DataplaneStateNone means there is no active connection in forwarder
+	DataplaneStateNone DataplaneState = 0 // In case forwarder is not yet configured for connection
 
-	// DataplaneStateReady means there is an active connection in dataplane
-	DataplaneStateReady DataplaneState = 1 // In case dataplane is configured for connection.
+	// DataplaneStateReady means there is an active connection in forwarder
+	DataplaneStateReady DataplaneState = 1 // In case forwarder is configured for connection.
 )
 
-// Dataplane structure in Model that describes dataplane
+// Dataplane structure in Model that describes forwarder
 type Dataplane struct {
 	RegisteredName       string
 	SocketLocation       string
@@ -55,7 +55,7 @@ func (d *Dataplane) clone() cloneable {
 	}
 }
 
-// SetLocalMechanisms sets dataplane local mechanisms
+// SetLocalMechanisms sets forwarder local mechanisms
 func (d *Dataplane) SetLocalMechanisms(mechanisms []*local.Mechanism) {
 	lm := make([]connection.Mechanism, 0, len(mechanisms))
 	for _, m := range mechanisms {
@@ -65,7 +65,7 @@ func (d *Dataplane) SetLocalMechanisms(mechanisms []*local.Mechanism) {
 	d.LocalMechanisms = lm
 }
 
-// SetRemoteMechanisms sets dataplane remote mechanisms
+// SetRemoteMechanisms sets forwarder remote mechanisms
 func (d *Dataplane) SetRemoteMechanisms(mechanisms []*remote.Mechanism) {
 	rm := make([]connection.Mechanism, 0, len(mechanisms))
 	for _, m := range mechanisms {
@@ -75,21 +75,21 @@ func (d *Dataplane) SetRemoteMechanisms(mechanisms []*remote.Mechanism) {
 	d.RemoteMechanisms = rm
 }
 
-type dataplaneDomain struct {
+type forwarderDomain struct {
 	baseDomain
 }
 
-func newDataplaneDomain() dataplaneDomain {
-	return dataplaneDomain{
+func newDataplaneDomain() forwarderDomain {
+	return forwarderDomain{
 		baseDomain: newBase(),
 	}
 }
 
-func (d *dataplaneDomain) AddDataplane(ctx context.Context, dp *Dataplane) {
+func (d *forwarderDomain) AddDataplane(ctx context.Context, dp *Dataplane) {
 	d.store(ctx, dp.RegisteredName, dp)
 }
 
-func (d *dataplaneDomain) GetDataplane(name string) *Dataplane {
+func (d *forwarderDomain) GetDataplane(name string) *Dataplane {
 	v, _ := d.load(name)
 	if v != nil {
 		return v.(*Dataplane)
@@ -97,25 +97,25 @@ func (d *dataplaneDomain) GetDataplane(name string) *Dataplane {
 	return nil
 }
 
-func (d *dataplaneDomain) DeleteDataplane(ctx context.Context, name string) {
+func (d *forwarderDomain) DeleteDataplane(ctx context.Context, name string) {
 	d.delete(ctx, name)
 }
 
-func (d *dataplaneDomain) UpdateDataplane(ctx context.Context, dp *Dataplane) {
+func (d *forwarderDomain) UpdateDataplane(ctx context.Context, dp *Dataplane) {
 	d.store(ctx, dp.RegisteredName, dp)
 }
 
-func (d *dataplaneDomain) SelectDataplane(dataplaneSelector func(dp *Dataplane) bool) (*Dataplane, error) {
+func (d *forwarderDomain) SelectDataplane(forwarderSelector func(dp *Dataplane) bool) (*Dataplane, error) {
 	var rv *Dataplane
 	d.kvRange(func(key string, value interface{}) bool {
 		dp := value.(*Dataplane)
 
-		if dataplaneSelector == nil {
+		if forwarderSelector == nil {
 			rv = dp
 			return false
 		}
 
-		if dataplaneSelector(dp) {
+		if forwarderSelector(dp) {
 			rv = dp
 			return false
 		}
@@ -124,12 +124,12 @@ func (d *dataplaneDomain) SelectDataplane(dataplaneSelector func(dp *Dataplane) 
 	})
 
 	if rv == nil {
-		return nil, errors.New("no appropriate dataplanes found")
+		return nil, errors.New("no appropriate forwarders found")
 	}
 
 	return rv, nil
 }
 
-func (d *dataplaneDomain) SetDataplaneModificationHandler(h *ModificationHandler) func() {
+func (d *forwarderDomain) SetDataplaneModificationHandler(h *ModificationHandler) func() {
 	return d.addHandler(h)
 }

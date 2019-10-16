@@ -213,7 +213,7 @@ func TestSlowDP(t *testing.T) {
 	request := CreateRequest()
 
 	request.Connection.Labels = map[string]string{}
-	request.Connection.Labels["dataplane_sleep"] = "1"
+	request.Connection.Labels["forwarder_sleep"] = "1"
 
 	ctx, cancelOp := context.WithTimeout(context.Background(), 30*time.Millisecond)
 	defer cancelOp()

@@ -31,8 +31,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
 
-	"github.com/networkservicemesh/networkservicemesh/dataplane/kernel-forwarder/pkg/monitoring"
-	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
+	"github.com/networkservicemesh/networkservicemesh/forwarder/kernel-forwarder/pkg/monitoring"
+	"github.com/networkservicemesh/networkservicemesh/forwarder/pkg/common"
 )
 
 // handleRemoteConnection handles remote connect/disconnect requests for either incoming or outgoing connections

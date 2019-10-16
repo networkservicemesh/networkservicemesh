@@ -79,15 +79,15 @@ func testDataplaneHeal(t *testing.T, killDataplaneIndex, nodesCount int, fixture
 	nscPodNode := fixture.DeployNsc(k8s, nodes_setup[0].Node, "nsc-1", defaultTimeout)
 	fixture.CheckNsc(k8s, nscPodNode)
 
-	logrus.Infof("Delete Selected dataplane")
+	logrus.Infof("Delete Selected forwarder")
 	k8s.DeletePods(nodes_setup[killDataplaneIndex].Dataplane)
 
-	logrus.Infof("Wait NSMD is waiting for dataplane recovery")
+	logrus.Infof("Wait NSMD is waiting for forwarder recovery")
 	k8s.WaitLogsContains(nodes_setup[killDataplaneIndex].Nsmd, "nsmd", "Waiting for Dataplane to recovery...", defaultTimeout)
-	// Now are are in dataplane dead state, and in Heal procedure waiting for dataplane.
-	dpName := fmt.Sprintf("nsmd-dataplane-recovered-%d", killDataplaneIndex)
+	// Now are are in forwarder dead state, and in Heal procedure waiting for forwarder.
+	dpName := fmt.Sprintf("nsmd-forwarder-recovered-%d", killDataplaneIndex)
 
-	logrus.Infof("Starting recovered dataplane...")
+	logrus.Infof("Starting recovered forwarder...")
 	startTime := time.Now()
 	nodes_setup[killDataplaneIndex].Dataplane = k8s.CreatePod(pods.ForwardingPlane(dpName, nodes_setup[killDataplaneIndex].Node, k8s.GetForwardingPlane()))
 	logrus.Printf("Started new Dataplane: %v on node %s", time.Since(startTime), nodes_setup[killDataplaneIndex].Node.Name)

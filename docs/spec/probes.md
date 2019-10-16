@@ -10,7 +10,7 @@ to allow it to determine whether a Pod is ‘Ready’ or in need of restart (Liv
 The following is a [good example](https://www.ianlewis.org/en/using-kubernetes-health-checks)
 of how to write a simple Readiness Probe in Go.
 
-For the time being, the probe checking covers the following services - `nsmgr` and `vppagent-dataplane`.
+For the time being, the probe checking covers the following services - `nsmgr` and `vppagent-forwarder`.
 
 Implementation details
 ---------------------------------

@@ -9,9 +9,9 @@ run:
     - build
     - conf
     - controlplane/scripts
-    - dataplane/vppagent/build
-    - dataplane/vppagent/conf
-    - dataplane/scripts
+    - forwarder/vppagent/build
+    - forwarder/vppagent/conf
+    - forwarder/scripts
     - deployments
     - docks
     - scripts

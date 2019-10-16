@@ -96,15 +96,15 @@ func testInterdomainDataplaneHeal(t *testing.T, clustersCount int, nodesCount in
 		nodeKillIndex = nodesCount - 1
 	}
 
-	logrus.Infof("Delete Selected dataplane")
+	logrus.Infof("Delete Selected forwarder")
 	k8ss[killIndex].K8s.DeletePods(k8ss[killIndex].NodesSetup[nodeKillIndex].Dataplane)
 
-	logrus.Infof("Wait NSMD is waiting for dataplane recovery")
+	logrus.Infof("Wait NSMD is waiting for forwarder recovery")
 	k8ss[killIndex].K8s.WaitLogsContains(k8ss[killIndex].NodesSetup[nodeKillIndex].Nsmd, "nsmd", "Waiting for Dataplane to recovery...", defaultTimeout)
-	// Now are are in dataplane dead state, and in Heal procedure waiting for dataplane.
-	dpName := fmt.Sprintf("nsmd-dataplane-recovered-%d", killIndex)
+	// Now are are in forwarder dead state, and in Heal procedure waiting for forwarder.
+	dpName := fmt.Sprintf("nsmd-forwarder-recovered-%d", killIndex)
 
-	logrus.Infof("Starting recovered dataplane...")
+	logrus.Infof("Starting recovered forwarder...")
 	startTime := time.Now()
 	k8ss[killIndex].NodesSetup[0].Dataplane = k8ss[killIndex].K8s.CreatePod(pods.ForwardingPlane(dpName, k8ss[killIndex].NodesSetup[nodeKillIndex].Node, k8ss[killIndex].K8s.GetForwardingPlane()))
 	logrus.Printf("Started new Dataplane: %v on node %s", time.Since(startTime), k8ss[killIndex].NodesSetup[nodeKillIndex].Node.Name)

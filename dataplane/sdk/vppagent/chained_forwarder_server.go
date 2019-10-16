@@ -7,11 +7,11 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
-	"github.com/networkservicemesh/networkservicemesh/dataplane/api/dataplane"
+	"github.com/networkservicemesh/networkservicemesh/forwarder/api/forwarder"
 )
 
 type chainedDataplaneServer struct {
-	handlers []dataplane.DataplaneServer
+	handlers []forwarder.DataplaneServer
 }
 
 func (c *chainedDataplaneServer) Request(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error) {
@@ -36,7 +36,7 @@ func (c *chainedDataplaneServer) Close(ctx context.Context, crossConnect *crossc
 	return next.Close(nextCtx, crossConnect)
 }
 
-// ChainOf makes chain of dataplane server handlers
-func ChainOf(handlers ...dataplane.DataplaneServer) dataplane.DataplaneServer {
+// ChainOf makes chain of forwarder server handlers
+func ChainOf(handlers ...forwarder.DataplaneServer) forwarder.DataplaneServer {
 	return &chainedDataplaneServer{handlers: handlers}
 }

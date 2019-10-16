@@ -3,6 +3,6 @@ FROM ${VPP_AGENT} as runtime
 RUN rm /opt/vpp-agent/dev/etcd.conf; echo "disabled: true" > /opt/vpp-agent/dev/linux-plugin.conf
 COPY startup.conf /etc/vpp/vpp.conf
 COPY supervisord.conf /opt/vpp-agent/dev/supervisor.conf
-COPY ["vppagent-dataplane", "/bin/"]
+COPY ["vppagent-forwarder", "/bin/"]
 RUN mkdir /tmp/vpp/
 RUN rm /opt/vpp-agent/dev/etcd.conf; echo 'Endpoint: "localhost:9111"' > /opt/vpp-agent/dev/grpc.conf

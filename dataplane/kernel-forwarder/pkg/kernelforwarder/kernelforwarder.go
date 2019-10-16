@@ -25,9 +25,9 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	remote "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
-	"github.com/networkservicemesh/networkservicemesh/dataplane/api/dataplane"
-	"github.com/networkservicemesh/networkservicemesh/dataplane/kernel-forwarder/pkg/monitoring"
-	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
+	"github.com/networkservicemesh/networkservicemesh/forwarder/api/forwarder"
+	"github.com/networkservicemesh/networkservicemesh/forwarder/kernel-forwarder/pkg/monitoring"
+	"github.com/networkservicemesh/networkservicemesh/forwarder/pkg/common"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
 )
 
@@ -55,7 +55,7 @@ func (k *KernelForwarder) Init(common *common.DataplaneConfig) error {
 }
 
 // CreateDataplaneServer creates an instance of DataplaneServer
-func (k *KernelForwarder) CreateDataplaneServer(config *common.DataplaneConfig) dataplane.DataplaneServer {
+func (k *KernelForwarder) CreateDataplaneServer(config *common.DataplaneConfig) forwarder.DataplaneServer {
 	return k
 }
 
@@ -144,8 +144,8 @@ func (k *KernelForwarder) configureKernelForwarder() {
 }
 
 // MonitorMechanisms handler
-func (k *KernelForwarder) MonitorMechanisms(empty *empty.Empty, updateSrv dataplane.MechanismsMonitor_MonitorMechanismsServer) error {
-	initialUpdate := &dataplane.MechanismUpdate{
+func (k *KernelForwarder) MonitorMechanisms(empty *empty.Empty, updateSrv forwarder.MechanismsMonitor_MonitorMechanismsServer) error {
+	initialUpdate := &forwarder.MechanismUpdate{
 		RemoteMechanisms: k.common.Mechanisms.RemoteMechanisms,
 		LocalMechanisms:  k.common.Mechanisms.LocalMechanisms,
 	}
@@ -154,12 +154,12 @@ func (k *KernelForwarder) MonitorMechanisms(empty *empty.Empty, updateSrv datapl
 		logrus.Errorf("kernel-forwarder: detected server error %s, gRPC code: %+v on gRPC channel", err.Error(), status.Convert(err).Code())
 		return nil
 	}
-	// Waiting for any updates which might occur during a life of dataplane module and communicating
+	// Waiting for any updates which might occur during a life of forwarder module and communicating
 	// them back to NSM.
 	for update := range k.common.MechanismsUpdateChannel {
 		k.common.Mechanisms = update
 		logrus.Infof("kernel-forwarder: sending MonitorMechanisms update: %v", update)
-		if err := updateSrv.Send(&dataplane.MechanismUpdate{
+		if err := updateSrv.Send(&forwarder.MechanismUpdate{
 			RemoteMechanisms: update.RemoteMechanisms,
 			LocalMechanisms:  update.LocalMechanisms,
 		}); err != nil {

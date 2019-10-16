@@ -1,4 +1,4 @@
-module github.com/networkservicemesh/networkservicemesh/dataplane/api
+module github.com/networkservicemesh/networkservicemesh/forwarder/api
 
 require (
 	github.com/golang/protobuf v1.3.2
@@ -10,7 +10,7 @@ replace github.com/census-instrumentation/opencensus-proto v0.1.0-0.201812141439
 
 replace (
 	github.com/networkservicemesh/networkservicemesh/controlplane/api => ../../controlplane/api
-	github.com/networkservicemesh/networkservicemesh/dataplane/api => ./
+	github.com/networkservicemesh/networkservicemesh/forwarder/api => ./
 	github.com/networkservicemesh/networkservicemesh/pkg => ../../pkg
 	github.com/networkservicemesh/networkservicemesh/utils => ../../utils
 )

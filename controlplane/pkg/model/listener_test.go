@@ -23,11 +23,11 @@ func (t *testListener) EndpointDeleted(ctx context.Context, endpoint *Endpoint) 
 	t.Done()
 }
 
-func (t *testListener) DataplaneAdded(ctx context.Context, dataplane *Dataplane) {
+func (t *testListener) DataplaneAdded(ctx context.Context, forwarder *Dataplane) {
 	t.Done()
 }
 
-func (t *testListener) DataplaneDeleted(ctx context.Context, dataplane *Dataplane) {
+func (t *testListener) DataplaneDeleted(ctx context.Context, forwarder *Dataplane) {
 	t.Done()
 }
 

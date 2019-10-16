@@ -24,7 +24,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/status"
 
-	"github.com/networkservicemesh/networkservicemesh/dataplane/api/dataplaneregistrar"
+	"github.com/networkservicemesh/networkservicemesh/forwarder/api/forwarderregistrar"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
@@ -40,12 +40,12 @@ type DataplaneRegistrarClient struct {
 // DataplaneRegistration contains Dataplane registrar client info and connection events callbacks
 type DataplaneRegistration struct {
 	registrar       *DataplaneRegistrarClient
-	dataplaneName   string
-	dataplaneSocket string
+	forwarderName   string
+	forwarderSocket string
 	cancelFunc      context.CancelFunc
 	onConnect       OnConnectFunc
 	onDisconnect    OnDisConnectFunc
-	client          dataplaneregistrar.DataplaneRegistrationClient
+	client          forwarderregistrar.DataplaneRegistrationClient
 	wasRegistered   bool
 }
 
@@ -56,7 +56,7 @@ func (dr *DataplaneRegistration) register(ctx context.Context) {
 	logrus.Info("Registering with NetworkServiceManager")
 	logrus.Infof("Retry interval: %s", dr.registrar.registrationRetryInterval)
 
-	// Wait fo NSMD to be ready to register dataplane.
+	// Wait fo NSMD to be ready to register forwarder.
 	_ = tools.WaitForPortAvailable(context.Background(), dr.registrar.registrarSocket.Network(), dr.registrar.registrarSocket.String(), 100*time.Millisecond)
 	ticker := time.NewTicker(dr.registrar.registrationRetryInterval)
 	for ; true; <-ticker.C {
@@ -73,10 +73,10 @@ func (dr *DataplaneRegistration) register(ctx context.Context) {
 }
 
 func (dr *DataplaneRegistration) tryRegistration(ctx context.Context) error {
-	logrus.Infof("Trying to register %s on socket %v", dr.dataplaneName, dr.registrar.registrarSocket)
+	logrus.Infof("Trying to register %s on socket %v", dr.forwarderName, dr.registrar.registrarSocket)
 	if dr.registrar.registrarSocket.Network() == "unix" {
 		if _, err := os.Stat(dr.registrar.registrarSocket.String()); err != nil {
-			logrus.Errorf("%s: failure to access nsm socket at \"%v\" with error: %+v, exiting...", dr.dataplaneName, dr.registrar.registrarSocket, err)
+			logrus.Errorf("%s: failure to access nsm socket at \"%v\" with error: %+v, exiting...", dr.forwarderName, dr.registrar.registrarSocket, err)
 			return err
 		}
 	}
@@ -86,20 +86,20 @@ func (dr *DataplaneRegistration) tryRegistration(ctx context.Context) error {
 
 	conn, err := tools.DialContext(dialCtx, dr.registrar.registrarSocket)
 	if err != nil {
-		logrus.Errorf("%s: failure to communicate with the socket \"%v\" with error: %+v", dr.dataplaneName, dr.registrar.registrarSocket, err)
+		logrus.Errorf("%s: failure to communicate with the socket \"%v\" with error: %+v", dr.forwarderName, dr.registrar.registrarSocket, err)
 		return err
 	}
-	logrus.Infof("%s: connection to dataplane registrar socket \"%v\" succeeded.", dr.dataplaneName, dr.registrar.registrarSocket)
+	logrus.Infof("%s: connection to forwarder registrar socket \"%v\" succeeded.", dr.forwarderName, dr.registrar.registrarSocket)
 
-	dr.client = dataplaneregistrar.NewDataplaneRegistrationClient(conn)
-	req := &dataplaneregistrar.DataplaneRegistrationRequest{
-		DataplaneName:   dr.dataplaneName,
-		DataplaneSocket: dr.dataplaneSocket,
+	dr.client = forwarderregistrar.NewDataplaneRegistrationClient(conn)
+	req := &forwarderregistrar.DataplaneRegistrationRequest{
+		DataplaneName:   dr.forwarderName,
+		DataplaneSocket: dr.forwarderSocket,
 	}
 	_, err = dr.client.RequestDataplaneRegistration(ctx, req)
-	logrus.Infof("%s: send request to Dataplane Registrar: %+v", dr.dataplaneName, req)
+	logrus.Infof("%s: send request to Dataplane Registrar: %+v", dr.forwarderName, req)
 	if err != nil {
-		logrus.Infof("%s: failure to create grpc client for RequestDataplaneRegistration on socket %v", dr.dataplaneName, dr.registrar.registrarSocket)
+		logrus.Infof("%s: failure to create grpc client for RequestDataplaneRegistration on socket %v", dr.forwarderName, dr.registrar.registrarSocket)
 		return err
 	}
 	if dr.onConnect != nil {
@@ -110,14 +110,14 @@ func (dr *DataplaneRegistration) tryRegistration(ctx context.Context) error {
 	return nil
 }
 
-// livenessMonitor is a stream initiated by NSM to inform the dataplane that NSM is still alive and
+// livenessMonitor is a stream initiated by NSM to inform the forwarder that NSM is still alive and
 // no re-registration is required. Detection a failure on this "channel" will mean
-// that NSM is gone and the dataplane needs to start re-registration logic.
+// that NSM is gone and the forwarder needs to start re-registration logic.
 func (dr *DataplaneRegistration) livenessMonitor(ctx context.Context) {
 	logrus.Infof("Starting DataplaneRegistrarClient liveliness monitor")
 	stream, err := dr.client.RequestLiveness(context.Background())
 	if err != nil {
-		logrus.Errorf("%s: fail to create liveness grpc channel with NSM with error: %s, grpc code: %+v", dr.dataplaneName, err.Error(), status.Convert(err).Code())
+		logrus.Errorf("%s: fail to create liveness grpc channel with NSM with error: %s, grpc code: %+v", dr.forwarderName, err.Error(), status.Convert(err).Code())
 		return
 	}
 	for {
@@ -132,7 +132,7 @@ func (dr *DataplaneRegistration) livenessMonitor(ctx context.Context) {
 		default:
 			err := stream.RecvMsg(&empty.Empty{})
 			if err != nil {
-				logrus.Errorf("%s: fail to receive from liveness grpc channel with error: %s, grpc code: %+v", dr.dataplaneName, err.Error(), status.Convert(err).Code())
+				logrus.Errorf("%s: fail to receive from liveness grpc channel with error: %s, grpc code: %+v", dr.forwarderName, err.Error(), status.Convert(err).Code())
 				if dr.onConnect != nil {
 					dr.onDisconnect()
 					dr.wasRegistered = false
@@ -144,7 +144,7 @@ func (dr *DataplaneRegistration) livenessMonitor(ctx context.Context) {
 	}
 }
 
-// Close dataplane registrar client
+// Close forwarder registrar client
 func (dr *DataplaneRegistration) Close() {
 	dr.cancelFunc()
 
@@ -154,17 +154,17 @@ func (dr *DataplaneRegistration) Close() {
 
 		conn, err := tools.DialContext(ctx, dr.registrar.registrarSocket)
 		if err != nil {
-			logrus.Errorf("%s: failure to communicate with the socket %v with error: %+v", dr.dataplaneName, dr.registrar.registrarSocket, err)
+			logrus.Errorf("%s: failure to communicate with the socket %v with error: %+v", dr.forwarderName, dr.registrar.registrarSocket, err)
 			return
 		}
-		logrus.Infof("%s: connection to dataplane registrar socket %v succeeded.", dr.dataplaneName, dr.registrar.registrarSocket)
-		client := dataplaneregistrar.NewDataplaneUnRegistrationClient(conn)
+		logrus.Infof("%s: connection to forwarder registrar socket %v succeeded.", dr.forwarderName, dr.registrar.registrarSocket)
+		client := forwarderregistrar.NewDataplaneUnRegistrationClient(conn)
 
 		unregCtx, unRegCancel := context.WithTimeout(context.Background(), 1*time.Second)
 		defer unRegCancel()
 
-		_, _ = client.RequestDataplaneUnRegistration(unregCtx, &dataplaneregistrar.DataplaneUnRegistrationRequest{
-			DataplaneName: dr.dataplaneName,
+		_, _ = client.RequestDataplaneUnRegistration(unregCtx, &forwarderregistrar.DataplaneUnRegistrationRequest{
+			DataplaneName: dr.forwarderName,
 		})
 	}
 }
@@ -180,12 +180,12 @@ func NewDataplaneRegistrarClient(network, registrarSocket string) *DataplaneRegi
 }
 
 // Register creates and register new DataplaneRegistration client
-func (n *DataplaneRegistrarClient) Register(ctx context.Context, dataplaneName, dataplaneSocket string, onConnect OnConnectFunc, onDisconnect OnDisConnectFunc) *DataplaneRegistration {
+func (n *DataplaneRegistrarClient) Register(ctx context.Context, forwarderName, forwarderSocket string, onConnect OnConnectFunc, onDisconnect OnDisConnectFunc) *DataplaneRegistration {
 	ctx, cancelFunc := context.WithCancel(ctx)
 	rv := &DataplaneRegistration{
 		registrar:       n,
-		dataplaneName:   dataplaneName,
-		dataplaneSocket: dataplaneSocket,
+		forwarderName:   forwarderName,
+		forwarderSocket: forwarderSocket,
 		onConnect:       onConnect,
 		onDisconnect:    onDisconnect,
 		cancelFunc:      cancelFunc,

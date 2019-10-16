@@ -42,7 +42,7 @@ The subject of the release are the following items:
     * Registry connectors
         * nsmd-k8s
     * Dataplane implementations
-        * vppagent-dataplane
+        * vppagent-forwarder
 * Deployability artifacts
     * Yaml files
     * Helm charts

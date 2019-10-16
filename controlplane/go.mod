@@ -5,7 +5,7 @@ require (
 	github.com/golang/protobuf v1.3.2
 	github.com/grpc-ecosystem/grpc-opentracing v0.0.0-20180507213350-8e809c8a8645
 	github.com/networkservicemesh/networkservicemesh/controlplane/api v0.2.0
-	github.com/networkservicemesh/networkservicemesh/dataplane/api v0.2.0
+	github.com/networkservicemesh/networkservicemesh/forwarder/api v0.2.0
 	github.com/networkservicemesh/networkservicemesh/pkg v0.2.0
 	github.com/networkservicemesh/networkservicemesh/sdk v0.2.0
 	github.com/networkservicemesh/networkservicemesh/utils v0.2.0
@@ -24,8 +24,8 @@ replace (
 	github.com/networkservicemesh/networkservicemesh => ../
 	github.com/networkservicemesh/networkservicemesh/controlplane => ./
 	github.com/networkservicemesh/networkservicemesh/controlplane/api => ./api
-	github.com/networkservicemesh/networkservicemesh/dataplane => ../dataplane
-	github.com/networkservicemesh/networkservicemesh/dataplane/api => ../dataplane/api
+	github.com/networkservicemesh/networkservicemesh/forwarder => ../forwarder
+	github.com/networkservicemesh/networkservicemesh/forwarder/api => ../forwarder/api
 	github.com/networkservicemesh/networkservicemesh/k8s/api => ../k8s/api
 	github.com/networkservicemesh/networkservicemesh/pkg => ../pkg
 	github.com/networkservicemesh/networkservicemesh/sdk => ../sdk

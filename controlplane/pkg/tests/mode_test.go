@@ -51,7 +51,7 @@ func TestModelSelectDataplaneNone(t *testing.T) {
 
 	dp, err := mdl.SelectDataplane(nil)
 	g.Expect(dp).To(BeNil())
-	g.Expect(err.Error()).To(Equal("no appropriate dataplanes found"))
+	g.Expect(err.Error()).To(Equal("no appropriate forwarders found"))
 }
 
 func TestModelAddEndpoint(t *testing.T) {

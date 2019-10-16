@@ -72,7 +72,7 @@ func main() {
 
 	var server nsmd.NSMServer
 	var srvErr error
-	// Start NSMD server first, load local NSE/client registry and only then start dataplane/wait for it and recover active connections.
+	// Start NSMD server first, load local NSE/client registry and only then start forwarder/wait for it and recover active connections.
 
 	if server, srvErr = nsmd.StartNSMServer(span.Context(), model, manager, apiRegistry); srvErr != nil {
 		logrus.Errorf("error starting nsmd service: %+v", srvErr)
@@ -91,16 +91,16 @@ func main() {
 	monitorCrossConnectClient := nsmd.NewMonitorCrossConnectClient(model, server, server.XconManager(), server)
 	model.AddListener(monitorCrossConnectClient)
 
-	// Starting dataplane
+	// Starting forwarder
 	logrus.Info("Starting Dataplane registration server...")
 	if err := server.StartDataplaneRegistratorServer(span.Context()); err != nil {
-		span.LogError(errors.Wrap(err, "error starting dataplane service"))
+		span.LogError(errors.Wrap(err, "error starting forwarder service"))
 		return
 	}
 
-	// Wait for dataplane to be connecting to us
+	// Wait for forwarder to be connecting to us
 	if err := manager.WaitForDataplane(span.Context(), nsmd.DataplaneTimeout); err != nil {
-		span.LogError(errors.Wrap(err, "error waiting for dataplane"))
+		span.LogError(errors.Wrap(err, "error waiting for forwarder"))
 		return
 	}
 

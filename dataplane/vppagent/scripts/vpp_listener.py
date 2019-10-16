@@ -8,7 +8,7 @@ import sys
 import time
 import traceback
 
-POSTMORTEM_DATA_LOCATION = os.environ.get('POSTMORTEM_DATA_LOCATION', '/var/tmp/nsm-postmortem/vpp-dataplane')
+POSTMORTEM_DATA_LOCATION = os.environ.get('POSTMORTEM_DATA_LOCATION', '/var/tmp/nsm-postmortem/vpp-forwarder')
 
 
 def write_stdout(msg):
@@ -79,7 +79,7 @@ def collect_postmortem_data():
     write_stderr("Collecting postmortem data...")
     collect('/tmp', 'agent-stdout', POSTMORTEM_DATA_LOCATION, timestamp)
     collect('/tmp', 'vpp-stdout', POSTMORTEM_DATA_LOCATION, timestamp)
-    collect('/tmp', 'vppagent-dataplane-stdout', POSTMORTEM_DATA_LOCATION, timestamp)
+    collect('/tmp', 'vppagent-forwarder-stdout', POSTMORTEM_DATA_LOCATION, timestamp)
     collect('/tmp', 'api_post_mortem', POSTMORTEM_DATA_LOCATION, timestamp)
     collect('/var/log/vpp', 'vpp.log', POSTMORTEM_DATA_LOCATION, timestamp)
     collect('/var/log', 'supervisord.log', POSTMORTEM_DATA_LOCATION, timestamp)

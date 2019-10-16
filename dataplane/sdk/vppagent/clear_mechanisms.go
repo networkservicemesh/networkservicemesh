@@ -11,8 +11,8 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
-	"github.com/networkservicemesh/networkservicemesh/dataplane/api/dataplane"
-	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/converter"
+	"github.com/networkservicemesh/networkservicemesh/forwarder/api/forwarder"
+	"github.com/networkservicemesh/networkservicemesh/forwarder/vppagent/pkg/converter"
 )
 
 type clearMechanisms struct {
@@ -20,7 +20,7 @@ type clearMechanisms struct {
 }
 
 //ClearMechanisms sends clear datachange request if crossconnect monitor has entity with request cross conenect id.
-func ClearMechanisms(baseDir string) dataplane.DataplaneServer {
+func ClearMechanisms(baseDir string) forwarder.DataplaneServer {
 	return &clearMechanisms{
 		baseDir: baseDir,
 	}

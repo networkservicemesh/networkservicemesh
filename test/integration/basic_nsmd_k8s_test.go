@@ -146,7 +146,7 @@ func TestUpdateNSM(t *testing.T) {
 	// We need to wait until it is started
 	k8s.WaitLogsContains(nsmd, "nsmd-k8s", "nsmd-k8s initialized and waiting for connection", fastTimeout)
 	// To be sure NSMD is already called for register.
-	k8s.WaitLogsContains(nsmd, "nsmd", "Waiting for dataplane available...", defaultTimeout)
+	k8s.WaitLogsContains(nsmd, "nsmd", "Waiting for forwarder available...", defaultTimeout)
 
 	e := fwd.Start()
 	if e != nil {
@@ -337,7 +337,7 @@ func createSingleNsmgr(k8s *kubetest.K8s, name string) *v1.Pod {
 	// We need to wait until it is started
 	k8s.WaitLogsContains(nsmgr, "nsmd-k8s", "nsmd-k8s initialized and waiting for connection", defaultTimeout)
 	// To be sure NSMD is already called for register.
-	k8s.WaitLogsContains(nsmgr, "nsmd", "Waiting for dataplane available...", defaultTimeout)
+	k8s.WaitLogsContains(nsmgr, "nsmd", "Waiting for forwarder available...", defaultTimeout)
 
 	return nsmgr
 }

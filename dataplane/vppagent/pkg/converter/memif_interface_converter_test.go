@@ -11,7 +11,7 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
-	. "github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/converter"
+	. "github.com/networkservicemesh/networkservicemesh/forwarder/vppagent/pkg/converter"
 )
 
 const (

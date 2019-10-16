@@ -6,7 +6,7 @@ import (
 	"github.com/ligato/vpp-agent/api/configurator"
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/dataplane/api/dataplane"
+	"github.com/networkservicemesh/networkservicemesh/forwarder/api/forwarder"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	monitor_crossconnect "github.com/networkservicemesh/networkservicemesh/sdk/monitor/crossconnect"
 )
@@ -21,13 +21,13 @@ const (
 	monitorKey    contextKeyType = "monitorKey"
 )
 
-func withNext(ctx context.Context, handler dataplane.DataplaneServer) context.Context {
+func withNext(ctx context.Context, handler forwarder.DataplaneServer) context.Context {
 	return context.WithValue(ctx, nextKey, handler)
 }
 
-// Next returns next dataplane server of current chain state. Returns nil if context has not chain.
-func Next(ctx context.Context) dataplane.DataplaneServer {
-	if v, ok := ctx.Value(nextKey).(dataplane.DataplaneServer); ok {
+// Next returns next forwarder server of current chain state. Returns nil if context has not chain.
+func Next(ctx context.Context) forwarder.DataplaneServer {
+	if v, ok := ctx.Value(nextKey).(forwarder.DataplaneServer); ok {
 		return v
 	}
 	return nil

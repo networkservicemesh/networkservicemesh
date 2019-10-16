@@ -7,12 +7,12 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
-	"github.com/networkservicemesh/networkservicemesh/dataplane/api/dataplane"
-	"github.com/networkservicemesh/networkservicemesh/dataplane/vppagent/pkg/memif"
+	"github.com/networkservicemesh/networkservicemesh/forwarder/api/forwarder"
+	"github.com/networkservicemesh/networkservicemesh/forwarder/vppagent/pkg/memif"
 )
 
-//DirectMemifInterfaces creates dataplane server handler with direct memif connection/ disconnection
-func DirectMemifInterfaces(baseDir string) dataplane.DataplaneServer {
+//DirectMemifInterfaces creates forwarder server handler with direct memif connection/ disconnection
+func DirectMemifInterfaces(baseDir string) forwarder.DataplaneServer {
 	return &directMemifInterface{
 		directMemifConnector: memif.NewDirectMemifConnector(baseDir),
 	}

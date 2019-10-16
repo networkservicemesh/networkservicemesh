@@ -33,10 +33,10 @@ func monitorCrossConnects(address string, continuousMonitor bool) {
 		return
 	}
 	defer conn.Close()
-	dataplaneClient := crossconnect.NewMonitorCrossConnectClient(conn)
+	forwarderClient := crossconnect.NewMonitorCrossConnectClient(conn)
 
 	// Looping indefinitely or until grpc returns an error indicating the other end closed connection.
-	stream, err := dataplaneClient.MonitorCrossConnects(context.Background(), &empty.Empty{})
+	stream, err := forwarderClient.MonitorCrossConnects(context.Background(), &empty.Empty{})
 
 	if err != nil {
 		logrus.Warningf("Error: %+v.", err)

@@ -6,11 +6,11 @@ import (
 	"github.com/golang/protobuf/ptypes/empty"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
-	"github.com/networkservicemesh/networkservicemesh/dataplane/api/dataplane"
+	"github.com/networkservicemesh/networkservicemesh/forwarder/api/forwarder"
 )
 
 //ConnectionValidator returns Dataplane Server with validation for Request and Close
-func ConnectionValidator() dataplane.DataplaneServer {
+func ConnectionValidator() forwarder.DataplaneServer {
 	return &validator{}
 }
 
