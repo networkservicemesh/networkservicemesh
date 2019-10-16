@@ -87,12 +87,12 @@ linters-settings:
 linters:
   disable:
     - depguard
+    - wsl
     - lll
     - gofmt
     - varcheck  # deprecated
     - unused  # deprecated
     - goimports
-    - dupl
   enable-all: true
 issues:
   exclude-use-default: false

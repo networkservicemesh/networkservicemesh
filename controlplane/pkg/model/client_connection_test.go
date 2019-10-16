@@ -152,7 +152,6 @@ func TestDeleteСс(t *testing.T) {
 	g.Expect(ccDel).To(BeNil())
 
 	ccd.DeleteClientConnection(context.Background(), "NotExistingId")
-
 }
 
 func TestUpdateExistingСс(t *testing.T) {

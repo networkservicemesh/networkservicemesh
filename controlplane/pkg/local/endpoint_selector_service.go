@@ -160,7 +160,6 @@ func (cce *endpointSelectorService) checkNSEUpdateIsRequired(ctx context.Context
 			if err != nil {
 				logger.Errorf("NSM:(4.1) Error during close of NSE during Request.Upgrade %v Existing connection: %v error %v", request, clientConnection, err)
 			}
-
 		} else {
 			// 4.2 Check if NSE is still required, if some more context requests are different.
 			requestNSEOnUpdate = cce.checkNeedNSERequest(logger, request.Connection, clientConnection, dp)

@@ -52,7 +52,6 @@ func (k *k8sClusterInfo) GetNodeIPConfiguration(ctx context.Context, nodeIPConfi
 		if node.Name == nodeIPConfiguration.NodeName ||
 			len(nodeInternalIP) > 0 && nodeInternalIP == nodeIPConfiguration.InternalIP ||
 			len(nodeExternalIP) > 0 && nodeExternalIP == nodeIPConfiguration.ExternalIP {
-
 			return &clusterinfo.NodeIPConfiguration{
 				NodeName:   node.Name,
 				ExternalIP: nodeExternalIP,

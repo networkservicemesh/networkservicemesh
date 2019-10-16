@@ -48,7 +48,6 @@ func (mce *MonitorEndpoint) Init(context *InitContext) error {
 //	   Next
 func (mce *MonitorEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 	if Next(ctx) != nil {
-
 		// Pass monitor server
 		ctx = WithMonitorServer(ctx, mce.monitorConnectionServer)
 

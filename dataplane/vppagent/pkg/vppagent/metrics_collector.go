@@ -39,7 +39,7 @@ func (m *MetricsCollector) collect(monitor metrics.MetricsMonitor, endpoint stri
 		logrus.Errorf("Metrics collector: can't dial %v", err)
 		return
 	}
-	logrus.Infof("Metrics collector: creating notificaiton client for %v", endpoint)
+	logrus.Infof("Metrics collector: creating notification client for %v", endpoint)
 	notificationClient := rpc.NewConfiguratorClient(conn)
 	m.startListenNotifications(monitor, notificationClient)
 }

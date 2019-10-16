@@ -15,7 +15,6 @@ type chainedDataplaneServer struct {
 }
 
 func (c *chainedDataplaneServer) Request(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error) {
-
 	if len(c.handlers) == 0 {
 		logrus.Info("chainedDataplaneServer: has not handlers for next request")
 		return crossConnect, nil
@@ -23,7 +22,6 @@ func (c *chainedDataplaneServer) Request(ctx context.Context, crossConnect *cros
 	next := &next{handlers: c.handlers, index: 0}
 	nextCtx := withNext(ctx, next)
 	return next.Request(nextCtx, crossConnect)
-
 }
 
 func (c *chainedDataplaneServer) Close(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*empty.Empty, error) {

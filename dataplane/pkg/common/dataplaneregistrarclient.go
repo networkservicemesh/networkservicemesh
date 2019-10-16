@@ -123,7 +123,7 @@ func (dr *DataplaneRegistration) livenessMonitor(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			logrus.Infof("DataplaneRegistrarClient cancelled, cleaning up")
+			logrus.Infof("DataplaneRegistrarClient canceled, cleaning up")
 			if dr.onDisconnect != nil {
 				dr.onDisconnect()
 				dr.wasRegistered = false

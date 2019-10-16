@@ -9,5 +9,4 @@ func GetTypeName(myvar interface{}) string {
 		return "*" + t.Elem().Name()
 	}
 	return t.Name()
-
 }

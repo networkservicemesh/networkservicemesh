@@ -50,7 +50,6 @@ func newNetworkServiceHealProcessor(
 	properties *nsm_properties.Properties,
 	manager nsm.NetworkServiceRequestManager,
 	nseManager nsm.NetworkServiceEndpointManager) nsm.NetworkServiceHealProcessor {
-
 	p := &healProcessor{
 		serviceRegistry: serviceRegistry,
 		model:           model,
@@ -266,7 +265,6 @@ func (p *healProcessor) healDataplaneDown(ctx context.Context, cc *model.ClientC
 }
 
 func (p *healProcessor) healDstUpdate(ctx context.Context, cc *model.ClientConnection) bool {
-
 	span := spanhelper.FromContext(ctx, "healDstUpdate")
 	defer span.Finish()
 	ctx = span.Context()
@@ -394,7 +392,6 @@ func (p *healProcessor) nseIsSameAndAvailable(ctx context.Context, endpointName 
 }
 
 func (p *healProcessor) waitNSE(ctx context.Context, endpointName, networkService string, nseValidator nseValidator) bool {
-
 	span := spanhelper.FromContext(ctx, "waitNSE")
 	defer span.Finish()
 	ctx = span.Context()

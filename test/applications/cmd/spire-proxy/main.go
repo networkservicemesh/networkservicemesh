@@ -44,7 +44,6 @@ func (sp *spireProxy) FetchJWTSVID(context.Context, *proto.JWTSVIDRequest) (*pro
 
 func (sp *spireProxy) FetchJWTBundles(*proto.JWTBundlesRequest, proto.SpiffeWorkloadAPI_FetchJWTBundlesServer) error {
 	return errors.New("not supported")
-
 }
 
 func (sp *spireProxy) ValidateJWTSVID(context.Context, *proto.ValidateJWTSVIDRequest) (*proto.ValidateJWTSVIDResponse, error) {

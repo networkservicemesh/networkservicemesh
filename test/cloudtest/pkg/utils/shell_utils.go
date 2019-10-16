@@ -30,7 +30,6 @@ func ParseCommandLine(cmdLine string) []string {
 	result := []string{}
 
 	for pos < count {
-
 		charAt := cmdLine[pos]
 
 		if charAt == '\\' {
@@ -67,19 +66,16 @@ func ParseCommandLine(cmdLine string) []string {
 	}
 
 	return result
-
 }
 
 // SubstituteVariable - perform a substitution of all ${var} $(arg) in passed string and return substitution results and error
 func SubstituteVariable(variable string, vars, args map[string]string) (string, error) {
-
 	pos := 0
 	result := strings.Builder{}
 
 	count := len(variable)
 
 	for pos < count {
-
 		charAt := variable[pos]
 
 		if charAt == '$' {
@@ -99,7 +95,6 @@ func SubstituteVariable(variable string, vars, args map[string]string) (string, 
 					} else {
 						return "", errors.Errorf("failed to find variable %v in passed variables", varName)
 					}
-
 				} else if nextChar == '(' {
 					// This is parameter substitution
 					pos += 2
@@ -113,7 +108,6 @@ func SubstituteVariable(variable string, vars, args map[string]string) (string, 
 						return "", errors.Errorf("failed to find argument %v in passed arguments", varName)
 					}
 				}
-
 			} else {
 				// End of string just add symbol to result
 				_ = result.WriteByte(charAt)
@@ -125,7 +119,6 @@ func SubstituteVariable(variable string, vars, args map[string]string) (string, 
 		pos++
 	}
 	return result.String(), nil
-
 }
 
 func readString(pos, count int, variable string, delim uint8) (string, int) {

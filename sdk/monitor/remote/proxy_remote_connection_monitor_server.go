@@ -101,7 +101,6 @@ func (s *proxyMonitorServer) monitorConnection(
 
 	for {
 		select {
-
 		case <-ctx.Done():
 			logrus.Infof(proxyLogFormat, name, "Removed")
 			quit <- nil

@@ -37,7 +37,6 @@ type bridgeConnect struct {
 
 // Request - plugs interface into a Bridge domain
 func (vbc *bridgeConnect) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
-
 	err := vbc.insertInterfaceIntoBridge(ctx, request.GetConnection())
 	if err != nil {
 		endpoint.Log(ctx).Error(err)

@@ -74,7 +74,6 @@ func waitTimeout(logPrefix string, wg *sync.WaitGroup, timeout time.Duration) bo
 }
 
 func (k8s *K8s) createAndBlock(client kubernetes.Interface, namespace string, timeout time.Duration, pods ...*v1.Pod) []*PodDeployResult {
-
 	var wg sync.WaitGroup
 
 	resultChan := make(chan *PodDeployResult, len(pods))
@@ -113,7 +112,6 @@ func (k8s *K8s) createAndBlock(client kubernetes.Interface, namespace string, ti
 				return
 			}
 			resultChan <- &PodDeployResult{updated_pod, nil}
-
 		}(pod)
 	}
 
@@ -143,7 +141,6 @@ func (k8s *K8s) createAndBlock(client kubernetes.Interface, namespace string, ti
 					logrus.Infof("Pod %v: container: %v status: %v: Logs: %v", pod.Name, cs.Name, cs.Ready, logs)
 				}
 				logrus.Infof("pod %s object:\n>>>>>>>>>>>%v\n<<<<<<<<<<", pod.Name, prettyPrint(pod))
-
 			}
 			k8s.DescribePod(p)
 
@@ -233,7 +230,6 @@ func blockUntilPodReady(client kubernetes.Interface, timeout time.Duration, sour
 		case <-time.After(timeout):
 			return sourcePod, podTimeout(sourcePod)
 		}
-
 	}
 }
 
@@ -253,7 +249,6 @@ func isPodReady(pod *v1.Pod) bool {
 }
 
 func blockUntilPodWorking(client kubernetes.Interface, context context.Context, pod *v1.Pod) error {
-
 	exists := make(chan error)
 	go func() {
 		for {
@@ -369,7 +364,6 @@ type ExtK8s struct {
 
 // NewK8s - Creates a new K8s Clientset with roles for the default config
 func NewK8s(g *WithT, prepare bool) (*K8s, error) {
-
 	client, err := NewK8sWithoutRoles(g, prepare)
 	if client == nil {
 		logrus.Errorf("Error Creating K8s %v", err)
@@ -593,7 +587,6 @@ func (k8s *K8s) ListPodsByNs(ns string) []v1.Pod {
 
 // CleanupCRDs cleans up CRDs
 func (k8s *K8s) CleanupCRDs() {
-
 	// Clean up Network Services
 	services, _ := k8s.versionedClientSet.NetworkservicemeshV1alpha1().NetworkServices(k8s.namespace).List(metaV1.ListOptions{})
 	for _, service := range services.Items {
@@ -909,7 +902,6 @@ func (k8s *K8s) WaitLogsContainsRegex(pod *v1.Pod, container, pattern string, ti
 
 //GetFullLogs - return full logs
 func (k8s *K8s) GetFullLogs(pod *v1.Pod, container string, previous bool) (string, error) {
-
 	container = k8s.fixContainer(pod, container)
 
 	getLogsOpt := &v1.PodLogOptions{
@@ -995,7 +987,7 @@ func (k8s *K8s) waitLogsMatch(ctx context.Context, pod *v1.Pod, container string
 		case <-ctx.Done():
 			updPod, err := k8s.GetPod(pod)
 			if err != nil {
-				logrus.Errorf("error retriving pod info %v %v", pod.Name, err)
+				logrus.Errorf("error retrieving pod info %v %v", pod.Name, err)
 			} else {
 				logrus.Infof("pod info: %v %v", pod.Name, prettyPrint(updPod))
 			}
@@ -1062,7 +1054,6 @@ func (k8s *K8s) GetNodesWait(requiredNumber int, timeout time.Duration) []v1.Nod
 		}
 		time.Sleep(50 * time.Millisecond)
 	}
-
 }
 
 // CreateService creates a service

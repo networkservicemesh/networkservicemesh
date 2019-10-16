@@ -124,7 +124,6 @@ func collectMetrics(devices *RegisteredDevices) (map[string]*crossconnect.Metric
 
 // getDeviceMetrics returns metrics for device in specific namespace
 func getDeviceMetrics(device, nsInode string) (map[string]string, error) {
-
 	/* Lock the OS thread so we don't accidentally switch namespaces */
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
