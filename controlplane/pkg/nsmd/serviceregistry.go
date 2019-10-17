@@ -102,13 +102,13 @@ func (impl *nsmdServiceRegistry) DataplaneConnection(ctx context.Context, datapl
 	return dpClient, dataplaneConn, nil
 }
 
-func (impl *nsmdServiceRegistry) NSMDApiClient() (nsmdapi.NSMDClient, *grpc.ClientConn, error) {
+func (impl *nsmdServiceRegistry) NSMDApiClient(ctx context.Context) (nsmdapi.NSMDClient, *grpc.ClientConn, error) {
 	logrus.Infof("Connecting to nsmd on socket: %s...", ServerSock)
 	if _, err := os.Stat(ServerSock); err != nil {
 		return nil, nil, err
 	}
 
-	conn, err := tools.DialUnix(ServerSock)
+	conn, err := tools.DialContextUnix(ctx, ServerSock)
 	if err != nil {
 		return nil, nil, err
 	}

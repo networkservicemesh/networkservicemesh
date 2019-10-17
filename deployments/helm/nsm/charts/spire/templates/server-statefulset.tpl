@@ -34,6 +34,8 @@ spec:
             - name: spire-data
               mountPath: /run/spire/data
               readOnly: false
+            - name: spire-secret
+              mountPath: /run/spire/secret
           livenessProbe:
             tcpSocket:
               port: 8081
@@ -45,6 +47,9 @@ spec:
         - name: spire-config
           configMap:
             name: spire-server
+        - name: spire-secret
+          secret:
+            secretName: spire-secret
         - name: spire-entries
           configMap:
             name: spire-entries

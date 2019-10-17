@@ -3,6 +3,7 @@ package kubetest
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"os"
@@ -91,12 +92,14 @@ func (k8s *K8s) createAndBlock(client kubernetes.Interface, namespace string, ti
 			}
 			if err != nil {
 				logrus.Errorf("Failed to create pod. Cause: %v pod: %v", err, pod)
+				k8s.DescribePod(pod)
 				resultChan <- &PodDeployResult{pod, err}
 				return
 			}
 			pod, err = blockUntilPodReady(client, timeout, pod)
 			if err != nil {
-				logrus.Errorf("blockUntilPodReady failed. Cause: %v pod: %v", err, pod)
+				logrus.Errorf("blockUntilPodReady failed. Cause: %v pod: %v", err, pod.Name)
+				k8s.DescribePod(pod)
 				resultChan <- &PodDeployResult{pod, err}
 				return
 			}
@@ -105,7 +108,7 @@ func (k8s *K8s) createAndBlock(client kubernetes.Interface, namespace string, ti
 
 			updated_pod, err := client.CoreV1().Pods(namespace).Get(pod.Name, metaV1.GetOptions{})
 			if err != nil {
-				logrus.Errorf("Failed to Get endpoint. Cause: %v pod: %v", err, pod)
+				logrus.Errorf("Failed to Get endpoint. Cause: %v pod: %v", err, pod.Name)
 				resultChan <- &PodDeployResult{pod, err}
 				return
 			}
@@ -114,7 +117,14 @@ func (k8s *K8s) createAndBlock(client kubernetes.Interface, namespace string, ti
 		}(pod)
 	}
 
-	if !waitTimeout(fmt.Sprintf("createAndBlock with pods: %v", pods), &wg, timeout) {
+	podNames := ""
+	for _, pod := range pods {
+		if len(podNames) > 0 {
+			podNames += ", "
+		}
+		podNames += pod.Name
+	}
+	if !waitTimeout(fmt.Sprintf("createAndBlock with pods: %v", podNames), &wg, timeout) {
 		logrus.Errorf("Failed to deploy pod, trying to get any information")
 		results := []*PodDeployResult{}
 		for _, p := range pods {
@@ -122,16 +132,21 @@ func (k8s *K8s) createAndBlock(client kubernetes.Interface, namespace string, ti
 			if err != nil {
 				logrus.Errorf("Failed to get pod information: %v", err)
 			}
-			k8s.DescribePod(pod)
 			if pod != nil {
-				logrus.Infof("Pod information: %v", pod)
-				for _, cs := range pod.Status.ContainerStatuses {
-					if !cs.Ready {
-						logs, _ := k8s.GetLogs(pod, cs.Name)
-						logrus.Infof("Pod %v container not started: %v Logs: %v", pod.Name, cs.Name, logs)
-					}
+				logrus.Infof("Pod container information: %v", pod.Name)
+				for _, cs := range pod.Status.InitContainerStatuses {
+					logs, _ := k8s.GetLogs(pod, cs.Name)
+					logrus.Infof("Pod %v: container: %v status: %v: Logs: %v", pod.Name, cs.Name, cs.Ready, logs)
 				}
+				for _, cs := range pod.Status.ContainerStatuses {
+					logs, _ := k8s.GetLogs(pod, cs.Name)
+					logrus.Infof("Pod %v: container: %v status: %v: Logs: %v", pod.Name, cs.Name, cs.Ready, logs)
+				}
+				logrus.Infof("pod %s object:\n>>>>>>>>>>>%v\n<<<<<<<<<<", pod.Name, prettyPrint(pod))
+
 			}
+			k8s.DescribePod(p)
+
 			results = append(results, &PodDeployResult{
 				err: errors.New("Failed to deploy pod"),
 				pod: pod,
@@ -155,6 +170,15 @@ func (k8s *K8s) createAndBlock(client kubernetes.Interface, namespace string, ti
 	return results
 }
 
+func prettyPrint(value interface{}) string {
+	res := value
+	msg, jerr := json.Marshal(value)
+	if jerr == nil {
+		res = string(msg)
+	}
+	return fmt.Sprintf("%v", res)
+}
+
 func blockUntilPodReady(client kubernetes.Interface, timeout time.Duration, sourcePod *v1.Pod) (*v1.Pod, error) {
 	st := time.Now()
 	infoPrinted := false
@@ -174,7 +198,7 @@ func blockUntilPodReady(client kubernetes.Interface, timeout time.Duration, sour
 		}
 
 		if time.Since(st) > timeout/2 && !infoPrinted {
-			logrus.Infof("Pod deploy half time passed: %v", pod)
+			logrus.Infof("Pod deploy half time passed: %v", pod.Name)
 			infoPrinted = true
 		}
 
@@ -313,7 +337,7 @@ func (k8s *K8s) reportSpans() {
 }
 
 func (k8s *K8s) findSpans(pod *v1.Pod, c v1.Container, spans map[string]*spanRecord) {
-	content, err := k8s.GetLogs(pod, c.Name)
+	content, err := k8s.GetFullLogs(pod, c.Name, false)
 	if err == nil {
 		lines := strings.Split(content, "\n")
 		for _, l := range lines {
@@ -351,9 +375,17 @@ func NewK8s(g *WithT, prepare bool) (*K8s, error) {
 		logrus.Errorf("Error Creating K8s %v", err)
 		return client, err
 	}
-	client.roles, _ = client.CreateRoles("admin", "view", "binding")
-
-	client.cleanupFunc = InitSpireSecurity(client)
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		client.roles, _ = client.CreateRoles("admin", "view", "binding")
+	}()
+	go func() {
+		defer wg.Done()
+		client.cleanupFunc = InitSpireSecurity(client)
+	}()
+	wg.Wait()
 
 	return client, err
 }
@@ -407,7 +439,7 @@ func NewK8sWithoutRolesForConfig(g *WithT, prepare bool, kubeconfigPath string) 
 
 	if prepare {
 		start := time.Now()
-		client.Prepare("nsmgr", "nsmd", "vppagent", "vpn", "icmp", "nsc", "source", "dest", "xcon", "spire-proxy")
+		client.Prepare("nsmgr", "nsmd", "vppagent", "vpn", "icmp", "nsc", "source", "dest", "xcon", "spire-proxy", "nse")
 		client.CleanupCRDs()
 		client.CleanupServices("nsm-admission-webhook-svc")
 		client.CleanupDeployments()
@@ -594,7 +626,7 @@ func (k8s *K8s) DescribePod(pod *v1.Pod) {
 
 	for i := len(events.Items) - 1; i >= 0; i-- {
 		if pod.UID == events.Items[i].InvolvedObject.UID {
-			logrus.Info(events.Items[i])
+			logrus.Infof("Pod %s event: %v", pod.Name, prettyPrint(events.Items[i]))
 		}
 	}
 }
@@ -849,6 +881,7 @@ func (k8s *K8s) WaitLogsContains(pod *v1.Pod, container, pattern string, timeout
 	matcher := func(s string) bool {
 		return strings.Contains(s, pattern)
 	}
+
 	description := fmt.Sprintf("Timeout waiting for logs pattern %v in %v::%v.", pattern, pod.Name, container)
 
 	k8s.waitLogsMatch(ctx, pod, container, matcher, description)
@@ -876,10 +909,14 @@ func (k8s *K8s) WaitLogsContainsRegex(pod *v1.Pod, container, pattern string, ti
 
 //GetFullLogs - return full logs
 func (k8s *K8s) GetFullLogs(pod *v1.Pod, container string, previous bool) (string, error) {
-	getLogsOpt := &v1.PodLogOptions{}
+
+	container = k8s.fixContainer(pod, container)
+
+	getLogsOpt := &v1.PodLogOptions{
+		Previous: previous,
+	}
 	if len(container) > 0 {
 		getLogsOpt.Container = container
-		getLogsOpt.Previous = previous
 	}
 	response := k8s.clientset.CoreV1().Pods(k8s.namespace).GetLogs(pod.Name, getLogsOpt)
 	result, error := response.DoRaw()
@@ -889,10 +926,41 @@ func (k8s *K8s) GetFullLogs(pod *v1.Pod, container string, previous bool) (strin
 	return fmt.Sprintf("%s", result), nil
 }
 
+func (k8s *K8s) fixContainer(pod *v1.Pod, container string) string {
+	updatedPod, err := k8s.GetPod(pod)
+	if err != nil {
+		logrus.Error(errors.WithMessagef(err, "failed to get update pod %v", pod.Name))
+	}
+
+	// Check if it is init container name
+	for _, c := range updatedPod.Spec.InitContainers {
+		if c.Name == container {
+			// All ok and it is allowed.
+			return container
+		}
+	}
+
+	if container != "" && len(updatedPod.Spec.Containers) == 1 {
+		logrus.Infof("getting logs without container %v=none", container)
+		container = ""
+	}
+	return container
+}
+
 func (k8s *K8s) waitLogsMatch(ctx context.Context, pod *v1.Pod, container string, matcher func(string) bool, description string) {
-	options := &v1.PodLogOptions{
-		Container: container,
-		Follow:    true,
+	container = k8s.fixContainer(pod, container)
+
+	var options *v1.PodLogOptions
+
+	if container != "" {
+		options = &v1.PodLogOptions{
+			Container: container,
+			Follow:    true,
+		}
+	} else {
+		options = &v1.PodLogOptions{
+			Follow: true,
+		}
 	}
 
 	var builder strings.Builder
@@ -915,7 +983,8 @@ func (k8s *K8s) waitLogsMatch(ctx context.Context, pod *v1.Pod, container string
 					k8s.g.Expect(false).To(BeTrue())
 				}
 			}
-			<-time.After(100 * time.Millisecond)
+			<-time.After(1000 * time.Millisecond)
+
 			linesChan, errChan = k8s.GetLogsChannel(ctx, pod, options)
 		case line := <-linesChan:
 			_, _ = builder.WriteString(line)
@@ -924,6 +993,14 @@ func (k8s *K8s) waitLogsMatch(ctx context.Context, pod *v1.Pod, container string
 				return
 			}
 		case <-ctx.Done():
+			updPod, err := k8s.GetPod(pod)
+			if err != nil {
+				logrus.Errorf("error retriving pod info %v %v", pod.Name, err)
+			} else {
+				logrus.Infof("pod info: %v %v", pod.Name, prettyPrint(updPod))
+			}
+			k8s.DescribePod(pod)
+
 			logrus.Errorf("%v Last logs: %v", description, builder.String())
 			k8s.g.Expect(false).To(BeTrue())
 			return
@@ -1149,7 +1226,7 @@ func (k8s *K8s) CreateServiceAccounts() ([]*v1.ServiceAccount, error) {
 				return nil, err
 			}
 			logrus.Info(sa)
-			<-time.After(300 * time.Millisecond)
+			<-time.After(10 * time.Millisecond)
 		}
 
 		rv = append(rv, sa)
@@ -1209,18 +1286,30 @@ func (k8s *K8s) CreateRoles(rolesList ...string) ([]nsmrbac.Role, error) {
 	createdRoles := []nsmrbac.Role{}
 	for _, kind := range rolesList {
 		role := nsmrbac.Roles[kind](nsmrbac.RoleNames[kind], k8s.GetK8sNamespace())
-		if err := role.Create(k8s.clientset); err != nil {
-			logrus.Errorf("failed creating role: %v %v", role, err)
-			return createdRoles, err
-		}
-		if err := role.Wait(ctx, k8s.clientset); err != nil {
-			logrus.Errorf("failed waiting role: %v %v", role, err)
-			return createdRoles, err
-		}
-		logrus.Infof("role is created: %v", role)
 		createdRoles = append(createdRoles, role)
 	}
-	return createdRoles, nil
+	var wg sync.WaitGroup
+	var roleError error
+	for _, r := range createdRoles {
+		wg.Add(1)
+		role := r
+		go func() {
+			defer wg.Done()
+			if err := role.Create(k8s.clientset); err != nil {
+				logrus.Errorf("failed creating role: %v %v", role, err)
+				roleError = err
+				return
+			}
+			if err := role.Wait(ctx, k8s.clientset); err != nil {
+				logrus.Errorf("failed waiting role: %v %v", role, err)
+				roleError = err
+				return
+			}
+			logrus.Infof("role is created: %v", role)
+		}()
+	}
+	wg.Wait()
+	return createdRoles, roleError
 }
 
 // DeleteRoles delete roles

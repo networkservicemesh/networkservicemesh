@@ -123,6 +123,7 @@ func (nsmc *NsmClient) ConnectRetry(ctx context.Context, name, mechanism, descri
 
 		if err != nil {
 			attemptSpan.LogError(err)
+
 			cancelProc()
 			if retryCount == 0 {
 				return nil, errors.Wrap(err, "nsm client: Failed to connect")

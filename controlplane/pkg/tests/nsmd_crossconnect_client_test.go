@@ -45,8 +45,8 @@ type endpointManager struct {
 	model model.Model
 }
 
-func (stub *endpointManager) DeleteEndpointWithBrokenConnection(endpoint *model.Endpoint) error {
-	stub.model.DeleteEndpoint(context.Background(), endpoint.EndpointName())
+func (stub *endpointManager) DeleteEndpointWithBrokenConnection(ctx context.Context, endpoint *model.Endpoint) error {
+	stub.model.DeleteEndpoint(ctx, endpoint.EndpointName())
 	return nil
 }
 
@@ -69,7 +69,7 @@ func startAPIServer(model model.Model, nsmdApiAddress string) (*grpc.Server, mon
 	crossconnect.RegisterMonitorCrossConnectServer(grpcServer, monitorManager.crossConnectMonitor)
 	connection.RegisterMonitorConnectionServer(grpcServer, compat.NewMonitorConnectionServerAdapter(monitorManager.remoteConnectionMonitor, nil))
 
-	monitorClient := nsmd.NewMonitorCrossConnectClient(monitorManager, xconManager, &endpointManager{model: model})
+	monitorClient := nsmd.NewMonitorCrossConnectClient(model, monitorManager, xconManager, &endpointManager{model: model})
 	model.AddListener(monitorClient)
 	// TODO: Add more public API services here.
 

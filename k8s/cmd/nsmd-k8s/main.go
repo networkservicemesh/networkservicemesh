@@ -6,9 +6,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
-
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	"github.com/sirupsen/logrus"
 
@@ -40,6 +40,10 @@ func main() {
 	defer span.Finish()
 
 	nsmName, ok := os.LookupEnv("NODE_NAME")
+
+	span.LogObject("address", address)
+	span.LogObject("nsmName", nsmName)
+
 	if !ok {
 		span.Logger().Fatalf("You must set env variable NODE_NAME to match the name of your Node.  See https://kubernetes.io/docs/tasks/inject-data-application/environment-variable-expose-pod-information/")
 	}
@@ -48,6 +52,7 @@ func main() {
 
 	nsmClientSet, config, err := utils.NewClientSet()
 	if err != nil {
+		span.LogError(err)
 		span.Logger().Fatalln("Fail to start NSMD Kubernetes service", err)
 	}
 
@@ -62,10 +67,12 @@ func main() {
 	go func() {
 		err = server.Serve(listener)
 		if err != nil {
-			logrus.Fatalln(err)
+			span.LogError(err)
+			span.Logger().Fatalln(err)
 		}
 	}()
 
+	span.Logger().Infof("Start prefix service")
 	prefixService, err := prefixcollector.NewPrefixService(config)
 	if err != nil {
 		span.Logger().Fatalln(err)
@@ -77,6 +84,7 @@ func main() {
 	if err = plugins.StartPlugin(span.Context(), "k8s-plugin", pluginsapi.PluginRegistrySocket, services); err != nil {
 		span.Logger().Fatalln("Failed to start K8s Plugin", err)
 	}
+
 	span.Finish()
 	<-c
 }

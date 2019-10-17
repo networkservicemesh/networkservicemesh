@@ -32,6 +32,7 @@ func (n *nextEndpoint) Request(ctx context.Context, request *networkservice.Netw
 	// Make sure we log to span
 
 	ctx = withLog(span.Context(), span.Logger())
+
 	span.LogObject("request", request)
 
 	// Actually call the next

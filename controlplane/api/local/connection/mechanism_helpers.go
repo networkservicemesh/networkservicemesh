@@ -18,7 +18,7 @@ import (
 func NewMechanism(t MechanismType, name, description string) (*Mechanism, error) {
 	inodeNum, err := tools.GetCurrentNS()
 	if err != nil {
-		return nil, err
+		return nil, errors.Errorf("failed to get current network namespace: %v", err)
 	}
 	rv := &Mechanism{
 		Type: t,
