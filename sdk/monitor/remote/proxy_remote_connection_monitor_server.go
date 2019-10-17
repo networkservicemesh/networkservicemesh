@@ -78,7 +78,7 @@ func (s *proxyMonitorServer) monitorConnection(
 	quit chan error) {
 	logrus.Infof(proxyLogFormat, name, "Added")
 
-	conn, err := tools.DialTCPInsecure(remotePeerURL)
+	conn, err := tools.DialTCP(remotePeerURL)
 	if err != nil {
 		logrus.Errorf(proxyLogWithParamFormat, name, "Failed to connect", err)
 		quit <- err
@@ -101,7 +101,6 @@ func (s *proxyMonitorServer) monitorConnection(
 
 	for {
 		select {
-
 		case <-ctx.Done():
 			logrus.Infof(proxyLogFormat, name, "Removed")
 			quit <- nil

@@ -48,3 +48,4 @@ providers:
         kubectl get nodes
         kubectl logs --selector app=spire-server -n spire --all-containers
         kubectl logs --selector app=spire-agent -n spire --all-containers
+        kubectl describe secret -n spire

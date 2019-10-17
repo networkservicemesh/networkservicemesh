@@ -7,9 +7,15 @@ import (
 	"sync"
 	"time"
 
+	remoteApi "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
+	remoteMonitor "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/remote"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/remote"
+
 	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
+	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/sirupsen/logrus"
@@ -19,16 +25,13 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/pkg/probes"
 	"github.com/networkservicemesh/networkservicemesh/pkg/probes/health"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
+	unified "github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsmdapi"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/remote"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nseregistry"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/remote/network_service_server"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/services"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
@@ -44,13 +47,13 @@ const (
 
 type NSMServer interface {
 	Stop()
-	StartDataplaneRegistratorServer() error
+	StartDataplaneRegistratorServer(ctx context.Context) error
 	StartAPIServerAt(ctx context.Context, sock net.Listener, probes probes.Probes)
 
 	XconManager() *services.ClientConnectionManager
 	Manager() nsm.NetworkServiceManager
 
-	MonitorManager
+	nsm.MonitorManager
 	EndpointManager
 }
 
@@ -64,11 +67,12 @@ type nsmServer struct {
 	localRegistry    *nseregistry.NSERegistry
 	registerServer   *grpc.Server
 	registerSock     net.Listener
-	regServer        *dataplaneRegistrarServer
+	regServer        *DataplaneRegistrarServer
 
 	xconManager             *services.ClientConnectionManager
 	crossConnectMonitor     monitor_crossconnect.MonitorServer
-	remoteConnectionMonitor remote.MonitorServer
+	remoteConnectionMonitor remoteMonitor.MonitorServer
+	remoteServer            remoteApi.NetworkServiceServer
 }
 
 func (nsm *nsmServer) XconManager() *services.ClientConnectionManager {
@@ -95,18 +99,23 @@ func (nsm *nsmServer) RemoteConnectionMonitor() monitor.Server {
 	return nsm.remoteConnectionMonitor
 }
 
-func RequestWorkspace(serviceRegistry serviceregistry.ServiceRegistry, id string) (*nsmdapi.ClientConnectionReply, error) {
-	client, con, err := serviceRegistry.NSMDApiClient()
+// RequestWorkspace - request a workspace
+func RequestWorkspace(ctx context.Context, serviceRegistry serviceregistry.ServiceRegistry, id string) (*nsmdapi.ClientConnectionReply, error) {
+	span := spanhelper.FromContext(ctx, "RequestWorkspace")
+	defer span.Finish()
+	client, con, err := serviceRegistry.NSMDApiClient(span.Context())
 	if err != nil {
-		logrus.Fatalf("Failed to connect to NSMD: %+v...", err)
+		span.Logger().Fatalf("Failed to connect to NSMD: %+v...", err)
 	}
 	defer con.Close()
 
-	reply, err := client.RequestClientConnection(context.Background(), &nsmdapi.ClientConnectionRequest{Workspace: id})
+	reply, err := client.RequestClientConnection(ctx, &nsmdapi.ClientConnectionRequest{Workspace: id})
+	span.LogError(err)
 	if err != nil {
 		return nil, err
 	}
-	logrus.Infof("nsmd allocated workspace %+v for client operations...", reply)
+	span.LogObject("response", reply)
+	span.Logger().Infof("nsmd allocated workspace %+v for client operations...", reply)
 	return reply, nil
 }
 
@@ -318,7 +327,6 @@ func (nsm *nsmServer) restoreEndpoint(ctx context.Context,
 	ws *Workspace,
 	registeredNSEs map[string]string,
 	networkServices map[string]bool) (string, nseregistry.NSEEntry, error) {
-
 	span := spanhelper.FromContext(ctx, "restoreEndpoint")
 	defer span.Finish()
 
@@ -358,7 +366,6 @@ func (nsm *nsmServer) restoreNotRegisteredEndpoint(ctx context.Context,
 	registryClient registry.NetworkServiceRegistryClient,
 	nse nseregistry.NSEEntry,
 	ws *Workspace) (string, nseregistry.NSEEntry, error) {
-
 	name := nse.NseReg.GetNetworkServiceEndpoint().GetName()
 	span := spanhelper.FromContext(ctx, fmt.Sprintf("restoreNotRegisteredEndpoint-%v", name))
 	span.LogObject("name", name)
@@ -399,8 +406,8 @@ func (nsm *nsmServer) deleteEndpointWithClient(ctx context.Context, name string,
 }
 
 // DeleteEndpointWithBrokenConnection deletes endpoint if it has no active connections
-func (nsm *nsmServer) DeleteEndpointWithBrokenConnection(endpoint *model.Endpoint) error {
-	span := spanhelper.FromContext(context.Background(), "DeleteEndpointWithBrokenConnection")
+func (nsm *nsmServer) DeleteEndpointWithBrokenConnection(ctx context.Context, endpoint *model.Endpoint) error {
+	span := spanhelper.FromContext(ctx, "DeleteEndpointWithBrokenConnection")
 	defer span.Finish()
 	// If endpoint has active client connection, it should be handled by MonitorNetNsInodeServer
 	for _, clientConnection := range nsm.model.GetAllClientConnections() {
@@ -431,7 +438,7 @@ func (nsm *nsmServer) Stop() {
 
 // StartNSMServer registers and starts gRPC server which is listening for
 // Network Service requests.
-func StartNSMServer(ctx context.Context, model model.Model, manager nsm.NetworkServiceManager, serviceRegistry serviceregistry.ServiceRegistry, apiRegistry serviceregistry.ApiRegistry) (NSMServer, error) {
+func StartNSMServer(ctx context.Context, model model.Model, manager nsm.NetworkServiceManager, apiRegistry serviceregistry.ApiRegistry) (NSMServer, error) {
 	span := spanhelper.FromContext(ctx, "nsm-server-start")
 	defer span.Finish()
 
@@ -441,9 +448,9 @@ func StartNSMServer(ctx context.Context, model model.Model, manager nsm.NetworkS
 		return nil, err
 	}
 
-	locationProvider := serviceRegistry.NewWorkspaceProvider()
+	locationProvider := manager.ServiceRegistry().NewWorkspaceProvider()
 
-	nsm := createNsmServer(model, manager, locationProvider, serviceRegistry)
+	nsm := createNsmServer(model, manager, locationProvider)
 
 	span.Logger().Infof("Starting NSM server")
 
@@ -469,7 +476,7 @@ func StartNSMServer(ctx context.Context, model model.Model, manager nsm.NetworkS
 	}
 
 	// Check if the socket of NSM server is operation
-	_, conn, err := nsm.serviceRegistry.NSMDApiClient()
+	_, conn, err := nsm.serviceRegistry.NSMDApiClient(span.Context())
 	if err != nil {
 		nsm.Stop()
 		return nil, err
@@ -481,17 +488,20 @@ func StartNSMServer(ctx context.Context, model model.Model, manager nsm.NetworkS
 	span.Logger().Infof("create monitor servers")
 	nsm.initMonitorServers()
 
+	nsm.remoteServer = remote.NewRemoteNetworkServiceServer(nsm.manager, nsm.remoteConnectionMonitor)
+	nsm.manager.SetRemoteServer(nsm.remoteServer)
+
 	// Restore existing clients in case of NSMd restart.
 	nsm.restore(span.Context(), endpoints)
 
 	return nsm, nil
 }
 
-func createNsmServer(model model.Model, manager nsm.NetworkServiceManager, locationProvider serviceregistry.WorkspaceLocationProvider, serviceRegistry serviceregistry.ServiceRegistry) *nsmServer {
+func createNsmServer(model model.Model, manager nsm.NetworkServiceManager, locationProvider serviceregistry.WorkspaceLocationProvider) *nsmServer {
 	nsm := &nsmServer{
 		workspaces:       make(map[string]*Workspace),
 		model:            model,
-		serviceRegistry:  serviceRegistry,
+		serviceRegistry:  manager.ServiceRegistry(),
 		manager:          manager,
 		locationProvider: locationProvider,
 		localRegistry:    nseregistry.NewNSERegistry(locationProvider.NsmNSERegistryFile()),
@@ -504,12 +514,12 @@ func (nsm *nsmServer) initMonitorServers() {
 	// Start CrossConnect monitor server
 	nsm.crossConnectMonitor = monitor_crossconnect.NewMonitorServer()
 	// Start Connection monitor server
-	nsm.remoteConnectionMonitor = remote.NewMonitorServer(nsm.xconManager)
+	nsm.remoteConnectionMonitor = remoteMonitor.NewMonitorServer(nsm.xconManager)
 }
 
-func (nsm *nsmServer) StartDataplaneRegistratorServer() error {
+func (nsm *nsmServer) StartDataplaneRegistratorServer(ctx context.Context) error {
 	var err error
-	nsm.regServer, err = StartDataplaneRegistrarServer(nsm.model)
+	nsm.regServer, err = StartDataplaneRegistrarServer(ctx, nsm.model)
 	return err
 }
 
@@ -551,15 +561,13 @@ func (nsm *nsmServer) StartAPIServerAt(ctx context.Context, sock net.Listener, p
 	grpcServer := tools.NewServer(span.Context())
 
 	crossconnect.RegisterMonitorCrossConnectServer(grpcServer, nsm.crossConnectMonitor)
-	connection.RegisterMonitorConnectionServer(grpcServer, nsm.remoteConnectionMonitor)
+	connection.RegisterMonitorConnectionServer(grpcServer, compat.NewMonitorConnectionServerAdapter(nsm.remoteConnectionMonitor, nil))
 	probes.Append(health.NewGrpcHealth(grpcServer, sock.Addr(), time.Minute))
 
 	// Register Remote NetworkServiceManager
-	remoteServer := network_service_server.NewRemoteNetworkServiceServer(nsm.model, nsm.manager, nsm.serviceRegistry, nsm.remoteConnectionMonitor)
-	networkservice.RegisterNetworkServiceServer(grpcServer, remoteServer)
+	unified.RegisterNetworkServiceServer(grpcServer, compat.NewUnifiedNetworkServiceServerAdapter(nsm.remoteServer, nil))
 
 	// TODO: Add more public API services here.
-
 	go func() {
 		if err := grpcServer.Serve(sock); err != nil {
 			span.Logger().Fatalf("Failed to start NSM API server: %+v", err)

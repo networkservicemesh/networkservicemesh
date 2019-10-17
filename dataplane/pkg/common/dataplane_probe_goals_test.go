@@ -3,7 +3,6 @@ package common
 import "testing"
 
 func TestDataplaneProbeGoals(t *testing.T) {
-
 	g := DataplaneProbeGoals{}
 	if g.IsComplete() {
 		t.FailNow()

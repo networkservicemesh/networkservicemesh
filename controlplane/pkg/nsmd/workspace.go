@@ -23,11 +23,13 @@ import (
 	"time"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
+	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
 
 	"google.golang.org/grpc"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
+	unified "github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nseregistry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
@@ -120,7 +122,7 @@ func registerWorkspaceServices(span spanhelper.SpanHelper, w *Workspace, nsm *ns
 	w.monitorConnectionServer = local.NewMonitorServer()
 
 	span.Logger().Infof("Creating new NetworkServiceServer")
-	w.networkServiceServer = NewNetworkServiceServer(nsm.model, w, nsm.manager, nsm.serviceRegistry)
+	w.networkServiceServer = NewNetworkServiceServer(nsm.model, w, nsm.manager)
 
 	span.Logger().Infof("Creating new GRPC MonitorServer")
 	w.grpcServer = tools.NewServer(span.Context())
@@ -128,9 +130,9 @@ func registerWorkspaceServices(span spanhelper.SpanHelper, w *Workspace, nsm *ns
 	span.Logger().Infof("Registering NetworkServiceRegistryServer with registerServer")
 	registry.RegisterNetworkServiceRegistryServer(w.grpcServer, w.registryServer)
 	span.Logger().Infof("Registering NetworkServiceServer with registerServer")
-	networkservice.RegisterNetworkServiceServer(w.grpcServer, w.networkServiceServer)
+	unified.RegisterNetworkServiceServer(w.grpcServer, compat.NewUnifiedNetworkServiceServerAdapter(nil, w.networkServiceServer))
 	span.Logger().Infof("Registering MonitorConnectionServer with registerServer")
-	connection.RegisterMonitorConnectionServer(w.grpcServer, w.monitorConnectionServer)
+	connection.RegisterMonitorConnectionServer(w.grpcServer, compat.NewMonitorConnectionServerAdapter(nil, w.monitorConnectionServer))
 }
 
 func (w *Workspace) Name() string {

@@ -8,7 +8,7 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/namespace"
 
-	"github.com/go-errors/errors"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"k8s.io/api/admission/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -82,7 +82,6 @@ func isSupportKind(request *v1beta1.AdmissionRequest) bool {
 }
 
 func getNsmAnnotationValue(ignoredNamespaceList []string, tuple *podSpecAndMeta) (string, bool) {
-
 	// skip special kubernetes system namespaces
 	for _, namespace := range ignoredNamespaceList {
 		if tuple.meta.Namespace == namespace {

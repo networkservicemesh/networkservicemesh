@@ -37,7 +37,6 @@ func newDiscoveryService(cache registryserver.RegistryCache, clusterInfoService 
 }
 
 func (d *discoveryService) FindNetworkService(ctx context.Context, request *registry.FindNetworkServiceRequest) (*registry.FindNetworkServiceResponse, error) {
-
 	networkService, remoteDomain, err := utils.ParseNsmURL(request.NetworkServiceName)
 	if err == nil {
 		originNetworkService := request.NetworkServiceName

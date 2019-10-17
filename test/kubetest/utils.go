@@ -166,9 +166,21 @@ func deployNSMgrAndDataplane(k8s *K8s, corePods []*v1.Pod, timeout time.Duration
 	k8s.g.Expect(nsmd.Name).To(Equal(corePods[0].Name))
 	k8s.g.Expect(dataplane.Name).To(Equal(corePods[1].Name))
 
-	_ = k8s.WaitLogsContainsRegex(nsmd, "nsmd", "NSM gRPC API Server: .* is operational", timeout)
-	k8s.WaitLogsContains(nsmd, "nsmdp", "nsmdp: successfully started", timeout)
-	k8s.WaitLogsContains(nsmd, "nsmd-k8s", "nsmd-k8s initialized and waiting for connection", timeout)
+	var wg sync.WaitGroup
+	wg.Add(3)
+	go func() {
+		defer wg.Done()
+		_ = k8s.WaitLogsContainsRegex(nsmd, "nsmd", "NSM gRPC API Server: .* is operational", timeout)
+	}()
+	go func() {
+		defer wg.Done()
+		k8s.WaitLogsContains(nsmd, "nsmdp", "nsmdp: successfully started", timeout)
+	}()
+	go func() {
+		defer wg.Done()
+		k8s.WaitLogsContains(nsmd, "nsmd-k8s", "nsmd-k8s initialized and waiting for connection", timeout)
+	}()
+	wg.Wait()
 
 	err = nil
 	return
@@ -451,7 +463,6 @@ func DeployAdmissionWebhook(k8s *K8s, name, image, namespace string, timeout tim
 // DeleteAdmissionWebhook - Delete admission webhook
 func DeleteAdmissionWebhook(k8s *K8s, secretName string,
 	awc *arv1beta1.MutatingWebhookConfiguration, awDeployment *appsv1.Deployment, awService *v1.Service, namespace string) {
-
 	err := k8s.DeleteService(awService, namespace)
 	k8s.g.Expect(err).To(BeNil())
 
@@ -467,7 +478,6 @@ func DeleteAdmissionWebhook(k8s *K8s, secretName string,
 
 // CreateAdmissionWebhookSecret - Create admission webhook secret
 func CreateAdmissionWebhookSecret(k8s *K8s, name, namespace string) (*v1.Secret, []byte) {
-
 	caCertSpec := &cert.Config{
 		CommonName: "admission-controller-ca",
 		Usages:     []x509.ExtKeyUsage{x509.ExtKeyUsageAny},
@@ -667,7 +677,6 @@ func waitWebhookPod(k8s *K8s, name string, timeout time.Duration) *v1.Pod {
 					return result
 				}
 			}
-
 		}
 		<-time.After(time.Millisecond * 100)
 	}

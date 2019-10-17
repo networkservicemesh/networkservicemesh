@@ -99,7 +99,7 @@ func TestHealLocalDataplane(t *testing.T) {
 	// We need to inform cross connection monitor about this connection, since dataplane is fake one.
 	// First update is with down state
 	// But we want to wait for Up state
-	l1.WaitUpdate(8, timeout, t)
+	l1.WaitUpdate(5, timeout, t)
 	// We need to inform cross connection monitor about this connection, since dataplane is fake one.
 
 	clientConnection1_1 := srv.TestModel.GetClientConnection(nsmResponse.GetId())

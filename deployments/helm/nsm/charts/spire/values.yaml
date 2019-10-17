@@ -10,3 +10,5 @@ pullPolicy: IfNotPresent
 
 # workaround since Azure doesn't support by default 10250 security port for kubelet
 azure: false
+namespace: spire
+selfSignedCA: true

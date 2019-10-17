@@ -17,7 +17,6 @@ func printUsage() {
 		"	Create			Create EKS cluster and configure kubernetes\n" +
 		"	Delete			Destroy EKS cluster\n" +
 		"	DeleteAll N		Destroy All EKS clusters older than N hours (Example: DeleteAll 24) \n")
-
 }
 
 func main() {

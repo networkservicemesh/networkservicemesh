@@ -15,9 +15,12 @@
 package main
 
 import (
+	"context"
 	"os"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	"github.com/sirupsen/logrus"
 
@@ -33,16 +36,25 @@ func main() {
 	// Capture signals to cleanup before exiting
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
+
 	closer := jaeger.InitJaeger("nsmdp")
 	defer func() { _ = closer.Close() }()
+
+	span := spanhelper.FromContext(context.Background(), "NSMgr.Device.Plugin")
+
 	serviceRegistry := nsmd.NewServiceRegistry()
-	err := NewNSMDeviceServer(serviceRegistry)
+	span.LogObject("registry.at", serviceRegistry.GetPublicAPI())
+	defer span.Finish()
+
+	err := NewNSMDeviceServer(span.Context(), serviceRegistry)
 
 	if err != nil {
+		span.LogError(err)
 		logrus.Errorf("failed to start server: %v", err)
 		os.Exit(1)
 	}
 
-	logrus.Info("nsmdp: successfully started")
+	span.Logger().Info("nsmdp: successfully started")
+	span.Finish()
 	<-c
 }
