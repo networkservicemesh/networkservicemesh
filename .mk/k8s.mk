@@ -51,9 +51,8 @@ endif
 ifeq ($(CONTAINER_TAG),)
 CONTAINER_TAG=latest
 endif
-ifeq ($(SPIRE_ENABLED),)
-SPIRE_ENABLED=false
-endif
+
+SPIRE_ENABLED?=true
 
 kubectl = kubectl -n ${NSM_NAMESPACE}
 images_tar = $(subst .tar,,$(filter %.tar, $(shell mkdir -p ./scripts/vagrant/images;ls ./scripts/vagrant/images)))
