@@ -14,6 +14,7 @@ providers:
       - AZURE_RESOURCE_GROUP=${CIRCLE_AZURE_RESOURCE_GROUP}
       - KUBECONFIG=$(tempdir)/config
       - AZURE_CREDENTIALS_PATH=$(tempdir)/config
+      - CA_DIR=./deployments/helm/nsm/charts/spire/
     env-check:
       - CIRCLE_BUILD_NUM
       - CONTAINER_REPO

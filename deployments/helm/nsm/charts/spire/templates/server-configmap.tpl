@@ -51,7 +51,7 @@ data:
           keys_path = "/run/spire/data/keys.json"
         }
       }
-      {{- if .Values.selfSignedCA }}
+      {{- if not .Values.selfSignedCA }}
       UpstreamCA "disk" {
         plugin_data {
           ttl = "12h"
