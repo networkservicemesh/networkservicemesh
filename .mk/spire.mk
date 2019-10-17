@@ -20,10 +20,9 @@ else
 selfSignedCA = false
 endif
 
-$(info Self Signed CA = $(selfSignedCA))
-
 .PHONY: spire-install
 spire-install:
+	$(info Self Signed CA = $(selfSignedCA))
 	@if ! helm install --name=spire \
 	--wait --timeout 600 \
 	--set org="${CONTAINER_REPO}",tag="${CONTAINER_TAG}" \
