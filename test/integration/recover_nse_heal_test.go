@@ -23,7 +23,7 @@ func TestNSEHealLocal(t *testing.T) {
 	testNSEHeal(t, 1, map[string]int{
 		"icmp-responder-nse-1": 0,
 		"icmp-responder-nse-2": 0,
-	}, kubetest.HealTestingPodFixture(g))
+	}, kubetest.DefaultTestingPodFixture(g))
 }
 
 func TestNSEHealLocalToRemote(t *testing.T) {
@@ -37,7 +37,7 @@ func TestNSEHealLocalToRemote(t *testing.T) {
 	testNSEHeal(t, 2, map[string]int{
 		"icmp-responder-nse-1": 0,
 		"icmp-responder-nse-2": 1,
-	}, kubetest.HealTestingPodFixture(g))
+	}, kubetest.DefaultTestingPodFixture(g))
 }
 
 func TestNSEHealRemoteToLocal(t *testing.T) {
@@ -51,7 +51,7 @@ func TestNSEHealRemoteToLocal(t *testing.T) {
 	testNSEHeal(t, 2, map[string]int{
 		"icmp-responder-nse-1": 1,
 		"icmp-responder-nse-2": 0,
-	}, kubetest.HealTestingPodFixture(g))
+	}, kubetest.DefaultTestingPodFixture(g))
 }
 
 func TestNSEHealRemote(t *testing.T) {
@@ -65,7 +65,7 @@ func TestNSEHealRemote(t *testing.T) {
 	testNSEHeal(t, 2, map[string]int{
 		"icmp-responder-nse-1": 1,
 		"icmp-responder-nse-2": 1,
-	}, kubetest.HealTestingPodFixture(g))
+	}, kubetest.DefaultTestingPodFixture(g))
 }
 
 func TestNSEHealLocalMemif(t *testing.T) {

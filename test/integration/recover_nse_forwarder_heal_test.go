@@ -54,7 +54,7 @@ func TestForwarderHealMultiNodesRemote(t *testing.T) {
 
 	g := NewWithT(t)
 
-	testForwarderHeal(t, 1, 2, kubetest.HealTestingPodFixture(g))
+	testForwarderHeal(t, 1, 2, kubetest.DefaultTestingPodFixture(g))
 }
 
 /**
