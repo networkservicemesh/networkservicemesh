@@ -104,7 +104,6 @@ func TestFirewallMemif(t *testing.T) {
 
 	_, err = composite.Close(context.Background(), conn)
 	g.Expect(err).To(gomega.BeNil())
-
 }
 
 // FileExists - check if file are exists.

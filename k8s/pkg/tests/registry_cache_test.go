@@ -90,7 +90,6 @@ func TestCreateOrUpdateNetworkServiceManager(t *testing.T) {
 	_, err = cache.CreateOrUpdateNetworkServiceManager(FakeNsm("fake"))
 	defer cache.Stop()
 	g.Expect(err).Should(BeNil())
-
 }
 func TestConcurrentCreateOrUpdateNetworkServiceManager(t *testing.T) {
 	g := NewWithT(t)
@@ -134,7 +133,6 @@ func TestUpdatingExistingNetworkServiceManager(t *testing.T) {
 	val, ok := serverData.Load("fake")
 	g.Expect(ok).Should(Equal(true))
 	g.Expect(val.(v1.NetworkServiceManager).Spec.URL).Should(Equal("update"))
-
 }
 func TestUpdatingNotExistingNetworkServiceManager(t *testing.T) {
 	g := NewWithT(t)

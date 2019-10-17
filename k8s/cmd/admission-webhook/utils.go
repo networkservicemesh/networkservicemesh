@@ -82,7 +82,6 @@ func isSupportKind(request *v1beta1.AdmissionRequest) bool {
 }
 
 func getNsmAnnotationValue(ignoredNamespaceList []string, tuple *podSpecAndMeta) (string, bool) {
-
 	// skip special kubernetes system namespaces
 	for _, namespace := range ignoredNamespaceList {
 		if tuple.meta.Namespace == namespace {

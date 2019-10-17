@@ -27,7 +27,6 @@ func TestDnsClientClose(t *testing.T) {
 		p.start()
 		go func() { p.Connect(req) }()
 		go func() { p.Connect(req) }()
-
 	}
 }
 

@@ -144,7 +144,7 @@ func (s *serviceController) processUpdate(msg configMessage) {
 
 func (s *serviceController) Stop() {
 	// Inform all network service instances to shut down
-	logrus.Infof("Service controller recieved shutdown message, will shutdown %d ", len(s.sriovNetServices))
+	logrus.Infof("Service controller received shutdown message, will shutdown %d ", len(s.sriovNetServices))
 	for s, ns := range s.sriovNetServices {
 		ns.stopCh <- struct{}{}
 		// Waiting for service instance to close

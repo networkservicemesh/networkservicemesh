@@ -192,7 +192,6 @@ func (cce *dataplaneService) doFailureClose(ctx context.Context) {
 }
 
 func (cce *dataplaneService) Close(ctx context.Context, conn *connection.Connection) (*empty.Empty, error) {
-
 	cc := common.ModelConnection(ctx)
 	logger := common.Log(ctx)
 	empt, err := ProcessClose(ctx, conn)

@@ -48,7 +48,6 @@ func (cce *ConnectionDump) Request(ctx context.Context, request *networkservice.
 // Consumes from ctx context.Context:
 //	   Next
 func (cce *ConnectionDump) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
-
 	cce.IncomingConnection = connection
 	cce.OutgoingConnection = endpoint.ClientConnection(ctx)
 	cce.ConnectionMap = vppagent.ConnectionMap(ctx)

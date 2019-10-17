@@ -137,7 +137,6 @@ func (s *serviceInstanceController) processDeleteVF(msg configMessage) {
 
 // TODO (sbezverk) need to make sure that NetworkService name is complaint with dpapi nameing convention.
 func (s *serviceInstanceController) startDevicePlugin(msg configMessage) {
-
 	// All info for registration with kubelet is ready, attempting to register
 	s.networkServiceName = msg.vf.NetworkService
 	s.socket = path.Join(serverBasePath, strings.Replace(s.networkServiceName, "/", "-", -1)+".sock")

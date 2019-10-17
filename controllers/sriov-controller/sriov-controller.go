@@ -133,7 +133,6 @@ func setupInformer(informer cache.SharedIndexInformer, queue workqueue.RateLimit
 }
 
 func initConfigController(cc *configController) {
-
 	queue := workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter())
 	cc.informer = cache.NewSharedIndexInformer(
 		&cache.ListWatch{
@@ -290,7 +289,6 @@ func buildClient() (*kubernetes.Clientset, error) {
 	k8sClientConfig, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
 	if err != nil {
 		return nil, err
-
 	}
 	k8sClientset, err := kubernetes.NewForConfig(k8sClientConfig)
 	if err != nil {

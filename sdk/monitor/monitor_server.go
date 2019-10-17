@@ -141,7 +141,7 @@ func (s *server) send(event Event, recipients ...Recipient) {
 		msg, err := event.Message()
 		logrus.Debugf("Try to send message %v", msg)
 		if err != nil {
-			logrus.Errorf("An error during convertion event: %v", err)
+			logrus.Errorf("An error during conversion event: %v", err)
 			continue
 		}
 		if err := recipient.SendMsg(msg); err != nil {

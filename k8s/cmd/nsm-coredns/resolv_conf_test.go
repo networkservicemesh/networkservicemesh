@@ -60,7 +60,6 @@ options ndots:5
 }
 
 func TestResolvConfFileWriteProperties(t *testing.T) {
-
 	sampleSource := `nameserver 127.0.0.1
 search default.svc.cluster.local svc.cluster.local cluster.local
 options ndots:5

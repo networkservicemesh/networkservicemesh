@@ -22,5 +22,4 @@ func TestClusterConfiguration(t *testing.T) {
 	g.Expect(err).To(BeNil())
 	g.Expect(len(testConfig.Providers)).To(Equal(3))
 	g.Expect(testConfig.Reporting.JUnitReportFile).To(Equal("./.tests/junit.xml"))
-
 }

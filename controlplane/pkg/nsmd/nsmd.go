@@ -327,7 +327,6 @@ func (nsm *nsmServer) restoreEndpoint(ctx context.Context,
 	ws *Workspace,
 	registeredNSEs map[string]string,
 	networkServices map[string]bool) (string, nseregistry.NSEEntry, error) {
-
 	span := spanhelper.FromContext(ctx, "restoreEndpoint")
 	defer span.Finish()
 
@@ -367,7 +366,6 @@ func (nsm *nsmServer) restoreNotRegisteredEndpoint(ctx context.Context,
 	registryClient registry.NetworkServiceRegistryClient,
 	nse nseregistry.NSEEntry,
 	ws *Workspace) (string, nseregistry.NSEEntry, error) {
-
 	name := nse.NseReg.GetNetworkServiceEndpoint().GetName()
 	span := spanhelper.FromContext(ctx, fmt.Sprintf("restoreNotRegisteredEndpoint-%v", name))
 	span.LogObject("name", name)

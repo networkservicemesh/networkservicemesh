@@ -117,7 +117,6 @@ func (e *OrEventChecker) Check(eventCh <-chan *crossconnect.CrossConnectEvent) e
 			buffer = append(buffer, event)
 			m.Unlock()
 			copyCh <- event
-
 		}
 	}()
 
@@ -293,7 +292,6 @@ func srcConnToString(xcon *crossconnect.CrossConnect) string {
 		ip = xcon.GetRemoteSource().GetContext().GetIpContext().GetSrcIpAddr()
 		state = xcon.GetRemoteSource().GetState().String()
 		distance = "remote"
-
 	}
 
 	return fmt.Sprintf("[SRC:%s:%s:%s]", distance, ip, state)
@@ -315,7 +313,6 @@ func dstConnToString(xcon *crossconnect.CrossConnect) string {
 		state = xcon.GetRemoteDestination().GetState().String()
 		distance = "remote"
 		endpoint = xcon.GetRemoteDestination().GetMechanism().GetParameters()[connection.WorkspaceNSEName]
-
 	}
 
 	return fmt.Sprintf("[DST:%s:%s:%s:%s]", endpoint, distance, ip, state)
