@@ -10,20 +10,38 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func TestParseGatewayZero(t *testing.T) {
+func TestParseGatewayLessThenEight(t *testing.T) {
 	g := NewWithT(t)
 
 	gw, err := parseGatewayIP("0")
 	g.Expect(err.Error()).To(Equal("Failed to parse IP from string"))
 	g.Expect(gw.IsUnspecified()).To(BeTrue())
 }
-func TestParseDefaultGateway(t *testing.T) {
+
+func TestParseGatewayStringLengthGreaterThenEight(t *testing.T) {
+	g := NewWithT(t)
+
+	gw, err := parseGatewayIP("111111111")
+	g.Expect(err.Error()).To(Equal("Failed to parse IP from string"))
+	g.Expect(gw.IsUnspecified()).To(BeTrue())
+}
+
+func TestParseDefaultGatewayValidString(t *testing.T) {
 	g := NewWithT(t)
 
 	gw, err := parseGatewayIP("010011AC")
 	g.Expect(err).To(BeNil())
 	logrus.Printf("Value %v", gw.String())
-	g.Expect(gw.String(), "172.17.0.1")
+	g.Expect(gw.String()).To(Equal("172.17.0.1"))
+}
+
+func TestParseDefaultGatewayInvalidIPString(t *testing.T) {
+	g := NewWithT(t)
+
+	gw, err := parseGatewayIP("010011AS")
+	g.Expect(err).To(BeNil())
+	logrus.Printf("Value %v", gw.String())
+	g.Expect(gw.String()).To(Equal("0.17.0.2"))
 }
 
 func TestParseProcBlankLine(t *testing.T) {

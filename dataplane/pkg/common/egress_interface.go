@@ -92,18 +92,19 @@ func parseProcFile(scanner *bufio.Scanner) (string, net.IP, error) {
 
 func parseGatewayIP(defaultGateway string) (net.IP, error) {
 	ip := net.IP{0, 0, 0, 0}
-	if len(defaultGateway) == 8 {
-		iv0, _ := strconv.ParseInt(defaultGateway[0:2], 16, 32)
-		iv1, _ := strconv.ParseInt(defaultGateway[2:4], 16, 32)
-		iv2, _ := strconv.ParseInt(defaultGateway[4:6], 16, 32)
-		iv3, _ := strconv.ParseInt(defaultGateway[6:], 16, 32)
-		ip[0] = byte(iv3)
-		ip[1] = byte(iv2)
-		ip[2] = byte(iv1)
-		ip[3] = byte(iv0)
-		return ip, nil
+	if len(defaultGateway) != 8 {
+		return ip, errors.New("Failed to parse IP from string")
 	}
-	return ip, errors.New("Failed to parse IP from string")
+	iv0, _ := strconv.ParseInt(defaultGateway[0:2], 16, 32)
+	iv1, _ := strconv.ParseInt(defaultGateway[2:4], 16, 32)
+	iv2, _ := strconv.ParseInt(defaultGateway[4:6], 16, 32)
+	iv3, _ := strconv.ParseInt(defaultGateway[6:], 16, 32)
+	ip[0] = byte(iv3)
+	ip[1] = byte(iv2)
+	ip[2] = byte(iv1)
+	ip[3] = byte(iv0)
+	return ip, nil
+
 }
 
 func getArpEntries() ([]*ARPEntry, error) {
