@@ -39,9 +39,9 @@ func TestParseDefaultGatewayInvalidIPString(t *testing.T) {
 	g := NewWithT(t)
 
 	gw, err := parseGatewayIP("010011AS")
-	g.Expect(err).To(BeNil())
+	g.Expect(err.Error()).To(Equal("String does not represent a valid IP address"))
 	logrus.Printf("Value %v", gw.String())
-	g.Expect(gw.String()).To(Equal("0.17.0.2"))
+	g.Expect(gw.String()).To(Equal("0.0.0.0"))
 }
 
 func TestParseProcBlankLine(t *testing.T) {
