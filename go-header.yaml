@@ -5,7 +5,7 @@ project_dir: ""
 goroutine-count: 6
 show-only-first-error: true
 scope:
-  policy: "diff"
+  policy: "new"
   master-branch: "origin/master"
 rules:
   - template: |-
@@ -22,10 +22,6 @@ rules:
       // limitations under the License.
     path-matcher: ""
     author-matcher: ""
-copyright-holders:
-  - VMware, Inc
-  - Cisco and/or its affiliates
-  - Red Hat, Inc
 custom-patterns:
   - name: NSM COPYRIHT HOLDERS
     pattern: "// Copyright (c) {YEAR} {COPYRIGHT HOLDER}.\n//\n"
