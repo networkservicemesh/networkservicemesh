@@ -15,7 +15,7 @@ func TestParseGatewayLessThenEight(t *testing.T) {
 
 	gw, err := parseGatewayIP("0")
 	g.Expect(err.Error()).To(Equal("Failed to parse IP from string"))
-	g.Expect(gw.IsUnspecified()).To(BeTrue())
+	g.Expect(gw).To(BeNil())
 }
 
 func TestParseGatewayStringLengthGreaterThenEight(t *testing.T) {
@@ -23,7 +23,7 @@ func TestParseGatewayStringLengthGreaterThenEight(t *testing.T) {
 
 	gw, err := parseGatewayIP("111111111")
 	g.Expect(err.Error()).To(Equal("Failed to parse IP from string"))
-	g.Expect(gw.IsUnspecified()).To(BeTrue())
+	g.Expect(gw).To(BeNil())
 }
 
 func TestParseDefaultGatewayValidString(t *testing.T) {
@@ -35,13 +35,13 @@ func TestParseDefaultGatewayValidString(t *testing.T) {
 	g.Expect(gw.String()).To(Equal("172.17.0.1"))
 }
 
-func TestParseDefaultGatewayInvalidIPString(t *testing.T) {
+func TestParseDefaultGatewayInvalidString(t *testing.T) {
 	g := NewWithT(t)
 
 	gw, err := parseGatewayIP("010011AS")
 	g.Expect(err.Error()).To(Equal("String does not represent a valid IP address"))
 	logrus.Printf("Value %v", gw.String())
-	g.Expect(gw.String()).To(Equal("0.0.0.0"))
+	g.Expect(gw).To(BeNil())
 }
 
 func TestParseProcBlankLine(t *testing.T) {

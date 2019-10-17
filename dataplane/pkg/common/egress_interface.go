@@ -91,26 +91,17 @@ func parseProcFile(scanner *bufio.Scanner) (string, net.IP, error) {
 }
 
 func parseGatewayIP(defaultGateway string) (net.IP, error) {
-	ip := net.IP{0, 0, 0, 0}
 	if len(defaultGateway) != 8 {
-		return ip, errors.New("Failed to parse IP from string")
+		return nil, errors.New("Failed to parse IP from string")
 	}
 	iv0, err := strconv.ParseInt(defaultGateway[0:2], 16, 32)
-	if err != nil {
-		return ip, errors.New("String does not represent a valid IP address")
-	}
 	iv1, err := strconv.ParseInt(defaultGateway[2:4], 16, 32)
-	if err != nil {
-		return ip, errors.New("String does not represent a valid IP address")
-	}
 	iv2, err := strconv.ParseInt(defaultGateway[4:6], 16, 32)
-	if err != nil {
-		return ip, errors.New("String does not represent a valid IP address")
-	}
 	iv3, err := strconv.ParseInt(defaultGateway[6:], 16, 32)
 	if err != nil {
-		return ip, errors.New("String does not represent a valid IP address")
+		return nil, errors.New("String does not represent a valid IP address")
 	}
+	ip := net.IP{0, 0, 0, 0}
 	ip[0] = byte(iv3)
 	ip[1] = byte(iv2)
 	ip[2] = byte(iv1)
