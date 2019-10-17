@@ -15,6 +15,7 @@
 package remote
 
 import (
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/remote"
 
 	remotenetworkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
@@ -24,6 +25,7 @@ import (
 // NewRemoteNetworkServiceServer -  creates a new remote.NetworkServiceServer
 func NewRemoteNetworkServiceServer(manager nsm.NetworkServiceManager, connectionMonitor remote.MonitorServer) remotenetworkservice.NetworkServiceServer {
 	return NewCompositeService(
+		NewSecurityService(tools.GetConfig().SecurityProvider),
 		NewRequestValidator(),
 		NewMonitorService(connectionMonitor),
 		NewConnectionService(manager.Model()),

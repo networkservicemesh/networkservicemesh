@@ -129,6 +129,9 @@ func (cce *endpointService) Request(ctx context.Context, request *networkservice
 
 	ctx = common.WithEndpointConnection(ctx, nseConn)
 
+	logrus.Infof("local.EndpointService: setting nseConn.ResponseJWT to SecurityContext - %v", nseConn.GetSignature())
+	common.SecurityContext(ctx).SetResponseOboToken(nseConn.GetSignature())
+
 	return ProcessNext(ctx, request)
 }
 

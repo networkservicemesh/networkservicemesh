@@ -173,7 +173,7 @@ func (nsme *nsmEndpoint) Request(ctx context.Context, request *networkservice.Ne
 		return incomingConnection, nil
 	}
 
-	if err := security.SignConnection(incomingConnection, nil, tools.GetConfig().SecurityProvider); err != nil {
+	if err := security.SignConnection(incomingConnection, "", tools.GetConfig().SecurityProvider); err != nil {
 		return nil, err
 	}
 	span.LogObject("response", incomingConnection)

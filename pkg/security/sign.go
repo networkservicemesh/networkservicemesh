@@ -10,12 +10,12 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type Signed interface {
-	GetSignature() string
-}
-
 type Signable interface {
 	SetSignature(sign string)
+}
+
+type Signed interface {
+	GetSignature() string
 }
 
 type ClaimsSetter func(claims *ChainClaims, msg interface{}) error
@@ -50,10 +50,10 @@ func WithLifetime(t time.Duration) SignOption {
 	})
 }
 
-func SignConnection(s Signable, obo Signed, provider Provider) error {
+func SignConnection(s Signable, oboToken string, provider Provider) error {
 	var opts []SignOption
-	if obo != nil {
-		opts = append(opts, WithObo(obo.GetSignature()))
+	if len(oboToken) != 0 {
+		opts = append(opts, WithObo(oboToken))
 	}
 
 	sign, err := GenerateSignature(s, ConnectionClaimSetter, provider, opts...)

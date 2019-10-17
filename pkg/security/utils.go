@@ -20,6 +20,8 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
+	unifiedns "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/networkservice"
 	"strings"
 
 	"github.com/dgrijalva/jwt-go"
@@ -30,9 +32,6 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
-
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/networkservice"
 )
 
 func ParseJWTWithClaims(tokenString string) (*jwt.Token, []string, *ChainClaims, error) {
@@ -58,13 +57,18 @@ func ClientInterceptor(securityProvider Provider) grpc.UnaryClientInterceptor {
 		invoker grpc.UnaryInvoker,
 		opts ...grpc.CallOption) error {
 
-		request, ok := req.(networkservice.Request)
-		if !ok {
+		//request, ok := req.(*networkservice.NetworkServiceRequest)
+		//if !ok {
+		//	return invoker(ctx, method, req, reply, cc, opts...)
+		//}
+		//
+		//logrus.Infof("ClientInterceptor start working, networkService = %v ...",
+		//	request.GetRequestConnection().GetNetworkService())
+
+		claimSetter := check(req)
+		if claimSetter == nil {
 			return invoker(ctx, method, req, reply, cc, opts...)
 		}
-
-		logrus.Infof("ClientInterceptor start working, networkService = %v ...",
-			request.GetRequestConnection().GetNetworkService())
 
 		var obo string
 		if token, ok := ctx.Value("token").(string); ok {
@@ -72,7 +76,7 @@ func ClientInterceptor(securityProvider Provider) grpc.UnaryClientInterceptor {
 			obo = token
 		}
 
-		token, err := GenerateSignature(req, RequestClaimSetter, securityProvider, WithObo(obo))
+		token, err := GenerateSignature(req, claimSetter, securityProvider, WithObo(obo))
 		if err != nil {
 			logrus.Error(err)
 			return err
@@ -89,7 +93,7 @@ func ClientInterceptor(securityProvider Provider) grpc.UnaryClientInterceptor {
 			return err
 		}
 
-		nsReply, ok := reply.(connection.Connection)
+		nsReply, ok := reply.(Signed)
 		if !ok {
 			return errors.New("can't verify response: wrong type")
 		}
@@ -102,18 +106,31 @@ func ClientInterceptor(securityProvider Provider) grpc.UnaryClientInterceptor {
 	}
 }
 
+func check(req interface{}) ClaimsSetter {
+	if _, ok := req.(*networkservice.NetworkServiceRequest); ok {
+		return NewAPIRequestClaimSetter
+	}
+
+	if _, ok := req.(unifiedns.Request); ok {
+		return RequestClaimSetter
+	}
+
+	return nil
+}
+
 func ServerInterceptor(securityProvider Provider) grpc.UnaryServerInterceptor {
 	return func(
 		ctx context.Context,
 		req interface{},
 		info *grpc.UnaryServerInfo,
 		handler grpc.UnaryHandler) (resp interface{}, err error) {
-		_, ok := req.(networkservice.Request)
-		if !ok {
+
+		if check(req) == nil {
 			return handler(ctx, req)
 		}
 
 		logrus.Infof("ServerInterceptor start working...")
+
 		spiffeID, err := spiffeIDFromContext(ctx)
 		if err != nil {
 			return nil, status.Errorf(codes.Unauthenticated, err.Error())

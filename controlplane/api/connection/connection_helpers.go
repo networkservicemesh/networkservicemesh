@@ -89,6 +89,10 @@ func (c *Connection) IsComplete() error {
 	return nil
 }
 
+func (c *Connection) GetSignature() string {
+	return c.ResponseToken
+}
+
 func (c *Connection) MatchesMonitorScopeSelector(selector *MonitorScopeSelector) bool {
 	if c == nil {
 		return false

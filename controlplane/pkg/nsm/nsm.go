@@ -16,6 +16,7 @@ package nsm
 import (
 	"crypto/rand"
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"sync"
 	"time"
 
@@ -75,6 +76,7 @@ func (srv *networkServiceManager) Context() context.Context {
 
 func (srv *networkServiceManager) LocalManager(clientConnection nsm.ClientConnection) local_networkservice.NetworkServiceServer {
 	return local.NewCompositeService(
+		local.NewSecurityService(tools.GetConfig().SecurityProvider),
 		local.NewRequestValidator(),
 		local.NewMonitorService(clientConnection.(*model.ClientConnection).Monitor),
 		local.NewConnectionService(srv.model),

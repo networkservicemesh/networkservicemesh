@@ -27,6 +27,8 @@ type Provider interface {
 	GetCertificate() *tls.Certificate
 	GetCABundle() *x509.CertPool
 	GetSpiffeID() string
+	GetChecker() func(interface{}) bool
+	SetChecker(func(interface{}) bool)
 }
 
 // CertificateObtainer abstracts certificates obtaining
@@ -44,9 +46,18 @@ type Response struct {
 
 type certificateManager struct {
 	sync.RWMutex
-	caBundle *x509.CertPool
-	cert     *tls.Certificate
-	readyCh  chan struct{}
+	caBundle    *x509.CertPool
+	cert        *tls.Certificate
+	readyCh     chan struct{}
+	checkerFunc func(interface{}) bool
+}
+
+func (cm *certificateManager) GetChecker() func(interface{}) bool {
+	return cm.checkerFunc
+}
+
+func (cm *certificateManager) SetChecker(f func(interface{}) bool) {
+	cm.checkerFunc = f
 }
 
 // NewProvider creates new security.Manager using SpireCertObtainer
@@ -58,6 +69,9 @@ func NewProvider() Provider {
 func NewProviderWithCertObtainer(obtainer CertificateObtainer) Provider {
 	cm := &certificateManager{
 		readyCh: make(chan struct{}),
+		checkerFunc: func(i interface{}) bool {
+			return false
+		},
 	}
 	go cm.exchangeCertificates(obtainer)
 	return cm

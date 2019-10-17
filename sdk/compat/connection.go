@@ -106,6 +106,7 @@ func ConnectionLocalToUnified(c *local.Connection) *unified.Connection {
 	if c == nil {
 		return nil
 	}
+
 	return &unified.Connection{
 		Id:                         c.GetId(),
 		NetworkService:             c.GetNetworkService(),
@@ -115,6 +116,7 @@ func ConnectionLocalToUnified(c *local.Connection) *unified.Connection {
 		NetworkServiceManagers:     make([]string, 1),
 		NetworkServiceEndpointName: c.GetNetworkServiceEndpointName(),
 		State:                      unified.State(c.GetState()),
+		ResponseToken:              c.GetResponseJWT(),
 	}
 }
 
@@ -129,6 +131,7 @@ func ConnectionUnifiedToLocal(c *unified.Connection) *local.Connection {
 		Context:        c.GetContext(),
 		Labels:         c.GetLabels(),
 		State:          local.State(c.GetState()),
+		ResponseJWT:    c.GetResponseToken(),
 	}
 }
 
@@ -145,6 +148,7 @@ func ConnectionRemoteToUnified(c *remote.Connection) *unified.Connection {
 		NetworkServiceManagers:     make([]string, 2),
 		NetworkServiceEndpointName: c.GetNetworkServiceEndpointName(),
 		State:                      unified.State(c.GetState()),
+		ResponseToken:              c.GetResponseJWT(),
 	}
 	if c.GetSourceNetworkServiceManagerName() != "" {
 		rv.GetNetworkServiceManagers()[0] = c.GetSourceNetworkServiceManagerName()
@@ -167,6 +171,7 @@ func ConnectionUnifiedToRemote(c *unified.Connection) *remote.Connection {
 		Labels:                     c.GetLabels(),
 		NetworkServiceEndpointName: c.GetNetworkServiceEndpointName(),
 		State:                      remote.State(c.GetState()),
+		ResponseJWT:                c.GetResponseToken(),
 	}
 	if len(c.GetNetworkServiceManagers()) >= 1 {
 		rv.SourceNetworkServiceManagerName = c.GetNetworkServiceManagers()[0]
