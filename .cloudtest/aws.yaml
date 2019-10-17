@@ -13,6 +13,7 @@ providers:
       - AWS_CLUSTER_NAME=$(cluster-name)-$(date)-${CIRCLE_BUILD_NUM}-$(rands10)
       - KUBECONFIG=$(tempdir)/config
       - NSM_AWS_SERVICE_SUFFIX=${AWS_CLUSTER_NAME}
+      - CA_DIR=./deployments/helm/nsm/charts/spire/
     env-check:
       - COMMIT
       - CIRCLE_BUILD_NUM
