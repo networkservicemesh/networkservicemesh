@@ -17,6 +17,7 @@ func TestParseDefaultGateway(t *testing.T) {
 	logrus.Printf("Value %v", gw.String())
 	g.Expect(gw.String(), "172.17.0.1")
 }
+
 func TestParseProcBlankLine(t *testing.T) {
 	g := NewWithT(t)
 
@@ -26,6 +27,7 @@ func TestParseProcBlankLine(t *testing.T) {
 	g.Expect(eth0).To(Equal(""))
 	g.Expect(gw).To(BeNil())
 }
+
 func TestParseProcContent(t *testing.T) {
 	g := NewWithT(t)
 
