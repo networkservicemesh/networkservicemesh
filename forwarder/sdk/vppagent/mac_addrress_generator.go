@@ -12,12 +12,12 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/forwarder/api/forwarder"
 )
 
+//NewDestinationMacAddressGenerator simulates generation phys addr on vpp side...
 func NewDestinationMacAddressGenerator() forwarder.ForwarderServer {
 	return &destinationMacAddressGenerator{}
 }
 
 type destinationMacAddressGenerator struct {
-	state int
 }
 
 func (c *destinationMacAddressGenerator) Request(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error) {
@@ -45,7 +45,7 @@ func (c *destinationMacAddressGenerator) Close(ctx context.Context, crossConnect
 
 func (c *destinationMacAddressGenerator) generateMac() string {
 	bytes := make([]byte, 6)
-	rand.Read(bytes)
+	_, _ = rand.Read(bytes)
 	bytes = administeredAddress(bytes)
 	return fmt.Sprintf("%02x:%02x:%02x:%02x:%02x:%02x", bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5])
 }

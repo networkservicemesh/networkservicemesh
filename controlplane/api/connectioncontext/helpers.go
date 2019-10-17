@@ -6,6 +6,7 @@ import (
 	"github.com/pkg/errors"
 )
 
+//IsEthernetContextEmtpy returns true if ethernet config is empty
 func (c *ConnectionContext) IsEthernetContextEmtpy() bool {
 	return c.EthernetContext == nil || (c.EthernetContext.SrcMac == "" && c.EthernetContext.DstMac == "")
 }
