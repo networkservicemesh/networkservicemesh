@@ -3,6 +3,10 @@ package connection
 const (
 	// NetNsInodeKey - netns inode mechanism property key
 	NetNsInodeKey = "netnsInode"
+	// PodNameKey - pod name a container is running in
+	PodNameKey = "podName"
+	// NamespaceKey - namespace a container is running in
+	NamespaceKey = "namespace"
 	// InterfaceNameKey - interface name mechanism property key
 	InterfaceNameKey = "name"
 	// InterfaceDescriptionKey - interface description mechanism property key

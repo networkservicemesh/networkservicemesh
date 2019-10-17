@@ -77,6 +77,9 @@ func main() {
 		endpoints = append(endpoints, endpoint.NewCustomFuncEndpoint("dns", dnsMutator))
 	}
 
+	podName := endpoint.CreatePodNameMutator()
+	endpoints = append(endpoints, endpoint.NewCustomFuncEndpoint("podName", podName))
+
 	if flags.Update {
 		logrus.Infof("Adding updating endpoint to chain")
 		endpoints = append(endpoints,
