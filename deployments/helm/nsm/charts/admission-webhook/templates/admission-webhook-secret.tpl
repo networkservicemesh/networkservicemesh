@@ -41,7 +41,8 @@ spec:
             - name: TAG
               value: "{{ .Values.tag }}"
 {{- if .Values.global.JaegerTracing }}
-          env:
+            - name: TRACER_ENABLED
+              value: "true"
             - name: JAEGER_AGENT_HOST
               value: jaeger.nsm-system
             - name: JAEGER_AGENT_PORT

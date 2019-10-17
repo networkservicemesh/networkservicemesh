@@ -107,6 +107,15 @@ func createNsmInitContainerPatch(annotationValue string) []patchOperation {
 				Value: jaegerHost,
 			})
 	}
+	tracerEnabled := getTracerEnabled()
+	if tracerEnabled != "" {
+		envVals = append(envVals,
+			corev1.EnvVar{
+				Name:  tracerEnabledEnv,
+				Value: tracerEnabled,
+			})
+	}
+
 	jaegerPort := getJaegerPort()
 	if jaegerPort != "" {
 		envVals = append(envVals,

@@ -27,6 +27,14 @@ spec:
 {{- else }}
               value: "false"
 {{- end }}
+{{- if .Values.global.JaegerTracing }}
+            - name: TRACER_ENABLED
+              value: "true"
+            - name: JAEGER_AGENT_HOST
+              value: jaeger.nsm-system
+            - name: JAEGER_AGENT_PORT
+              value: "6831"
+{{- end }}
             - name: NSM_FORWARDER_SRC_IP
               valueFrom:
                 fieldRef:
