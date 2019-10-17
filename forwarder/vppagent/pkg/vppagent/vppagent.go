@@ -65,9 +65,11 @@ func (v *VPPAgent) CreateForwarderServer(config *common.ForwarderConfig) forward
 		sdk.UseMonitor(config.Monitor),
 		sdk.DirectMemifInterfaces(config.NSMBaseDir),
 		sdk.Connect(v.endpoint()),
+		sdk.NewDestinationMacAddressGenerator(),
 		sdk.KernelInterfaces(config.NSMBaseDir),
 		sdk.ClearMechanisms(config.NSMBaseDir),
-		sdk.Commit())
+		sdk.Commit(),
+		sdk.NewEthernetContextUpdater())
 }
 
 // MonitorMechanisms sends mechanism updates

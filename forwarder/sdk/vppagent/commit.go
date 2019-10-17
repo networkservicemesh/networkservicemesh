@@ -5,7 +5,6 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/gogo/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/ligato/vpp-agent/api/configurator"
 
@@ -21,11 +20,11 @@ func (c *commit) Request(ctx context.Context, crossConnect *crossconnect.CrossCo
 	if err != nil {
 		return nil, err
 	}
+	Logger(ctx).Infof("update vpp-agent with config: %v", dataChange)
 	_, err = client.Update(ctx, &configurator.UpdateRequest{Update: dataChange})
 	if err != nil {
 		return nil, err
 	}
-	printVppAgentConfiguration(ctx, client)
 	next := Next(ctx)
 	if next == nil {
 		return crossConnect, nil
@@ -42,7 +41,6 @@ func (c *commit) Close(ctx context.Context, crossConnect *crossconnect.CrossConn
 	if err != nil {
 		return nil, err
 	}
-	printVppAgentConfiguration(ctx, client)
 	next := Next(ctx)
 	if next == nil {
 		return new(empty.Empty), nil
@@ -60,14 +58,6 @@ func getDataChangeAndClient(ctx context.Context) (*configurator.Config, configur
 		return nil, nil, errors.New("configuration client is not passed")
 	}
 	return dataChange, client, nil
-}
-
-func printVppAgentConfiguration(ctx context.Context, client configurator.ConfiguratorClient) {
-	dumpResult, err := client.Dump(context.Background(), &configurator.DumpRequest{})
-	if err != nil {
-		Logger(ctx).Errorf("Failed to dump VPP-agent state %v", err)
-	}
-	Logger(ctx).Infof("VPP Agent Configuration: %v", proto.MarshalTextString(dumpResult))
 }
 
 // Commit commits changes

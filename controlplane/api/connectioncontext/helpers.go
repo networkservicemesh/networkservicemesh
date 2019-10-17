@@ -6,6 +6,10 @@ import (
 	"github.com/pkg/errors"
 )
 
+func (c *ConnectionContext) IsEthernetContextEmtpy() bool {
+	return c.EthernetContext == nil || (c.EthernetContext.SrcMac == "" && c.EthernetContext.DstMac == "")
+}
+
 // IsValid - checks ConnectionContext validation
 func (c *ConnectionContext) IsValid() error {
 	if c == nil {

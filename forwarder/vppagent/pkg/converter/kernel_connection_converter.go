@@ -2,6 +2,7 @@ package converter
 
 import (
 	"os"
+	"strings"
 
 	"github.com/ligato/vpp-agent/api/configurator"
 	"github.com/ligato/vpp-agent/api/models/linux"
@@ -59,11 +60,18 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 		return nil, err
 	}
 	var ipAddresses []string
+	var mac string
 	if c.conversionParameters.Side == DESTINATION {
 		ipAddresses = []string{c.Connection.GetContext().GetIpContext().GetDstIpAddr()}
+		if !c.GetContext().IsEthernetContextEmtpy() {
+			mac = c.GetContext().EthernetContext.DstMac
+		}
 	}
 	if c.conversionParameters.Side == SOURCE {
 		ipAddresses = []string{c.Connection.GetContext().GetIpContext().GetSrcIpAddr()}
+		if !c.GetContext().IsEthernetContextEmtpy() {
+			mac = c.GetContext().EthernetContext.SrcMac
+		}
 	}
 
 	logrus.Infof("m.GetParameters()[%s]: %s", connection.InterfaceNameKey, m.GetParameters()[connection.InterfaceNameKey])
@@ -93,6 +101,7 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 			Type:        linux_interfaces.Interface_TAP_TO_VPP,
 			Enabled:     true,
 			IpAddresses: ipAddresses,
+			PhysAddress: mac,
 			HostIfName:  m.GetParameters()[connection.InterfaceNameKey],
 			Namespace: &linux_namespace.NetNamespace{
 				Type:      linux_namespace.NetNamespace_FD,
@@ -122,6 +131,7 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 			Type:        linux_interfaces.Interface_VETH,
 			Enabled:     true,
 			IpAddresses: ipAddresses,
+			PhysAddress: mac,
 			HostIfName:  m.GetParameters()[connection.InterfaceNameKey],
 			Namespace: &linux_namespace.NetNamespace{
 				Type:      linux_namespace.NetNamespace_FD,
@@ -176,8 +186,15 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 				HwAddress: neightbour.HardwareAddress,
 			})
 		}
+		if c.GetContext().EthernetContext != nil && c.GetContext().EthernetContext.DstMac != "" {
+			logrus.Infof("set arp for: %v", c.GetContext().String())
+			rv.LinuxConfig.ArpEntries = append(rv.LinuxConfig.ArpEntries, &linux.ARPEntry{
+				IpAddress: strings.Split(c.GetContext().IpContext.DstIpAddr, "/")[0],
+				Interface: c.conversionParameters.Name,
+				HwAddress: c.GetContext().EthernetContext.DstMac,
+			})
+		}
 	}
-
 	return rv, nil
 }
 

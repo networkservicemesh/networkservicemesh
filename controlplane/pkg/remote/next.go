@@ -84,7 +84,7 @@ func (n *nextEndpoint) Request(ctx context.Context, request *networkservice.Netw
 	ctx = span.Context()
 
 	ctx = common.WithLog(ctx, logger)
-	span.LogObject("request", request)
+	span.LogObject(fmt.Sprintf("Remote.%s.request", typeutils.GetTypeName(n.composite.services[n.index])), request)
 
 	// Actually call the next
 	rv, err := n.composite.services[n.index].Request(ctx, request)
@@ -93,7 +93,7 @@ func (n *nextEndpoint) Request(ctx context.Context, request *networkservice.Netw
 		span.LogError(err)
 		return nil, err
 	}
-	span.LogObject("response", rv)
+	span.LogObject(fmt.Sprintf("Remote.%s.response", typeutils.GetTypeName(n.composite.services[n.index])), rv)
 	return rv, err
 }
 
