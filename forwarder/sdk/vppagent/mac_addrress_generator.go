@@ -22,8 +22,13 @@ type destinationMacAddressGenerator struct {
 
 func (c *destinationMacAddressGenerator) Request(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error) {
 	mac := c.generateMac()
-	if crossConnect.GetLocalDestination() != nil {
+	if crossConnect.GetLocalDestination() != nil && crossConnect.GetLocalDestination().GetContext().IsEthernetContextEmtpy() {
 		crossConnect.GetLocalDestination().GetContext().EthernetContext = &connectioncontext.EthernetContext{
+			DstMac: mac,
+		}
+	}
+	if crossConnect.GetLocalSource() != nil && crossConnect.GetLocalSource().GetContext().IsEthernetContextEmtpy() {
+		crossConnect.GetLocalSource().GetContext().EthernetContext = &connectioncontext.EthernetContext{
 			DstMac: mac,
 		}
 	}
