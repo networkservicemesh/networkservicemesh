@@ -80,26 +80,26 @@ func parseProcFile(scanner *bufio.Scanner) (string, net.IP, error) {
 			defaultGateway := strings.TrimSpace(parts[2])
 			ip, err := parseGatewayIP(defaultGateway)
 			if err != nil {
-				logrus.Printf("Error processing gateway IP %v for outgoing interface: %v", defaultGateway, outgoingInterface)
+				logrus.Errorf("error processing gateway IP %v for outgoing interface: %v", defaultGateway, outgoingInterface)
 				break
 			}
 			logrus.Printf("Found default gateway %v outgoing: %v", ip.String(), outgoingInterface)
 			return outgoingInterface, ip, nil
 		}
 	}
-	return "", nil, errors.New("Failed to locate default route...")
+	return "", nil, errors.New("failed to locate default route...")
 }
 
 func parseGatewayIP(defaultGateway string) (net.IP, error) {
 	if len(defaultGateway) != 8 {
-		return nil, errors.New("Failed to parse IP from string")
+		return nil, errors.New("failed to parse IP from string")
 	}
 	iv0, err := strconv.ParseInt(defaultGateway[0:2], 16, 32)
 	iv1, err := strconv.ParseInt(defaultGateway[2:4], 16, 32)
 	iv2, err := strconv.ParseInt(defaultGateway[4:6], 16, 32)
 	iv3, err := strconv.ParseInt(defaultGateway[6:], 16, 32)
 	if err != nil {
-		return nil, errors.New("String does not represent a valid IP address")
+		return nil, errors.New("string does not represent a valid IP address")
 	}
 	ip := net.IP{0, 0, 0, 0}
 	ip[0] = byte(iv3)
@@ -184,7 +184,7 @@ func NewEgressInterface(srcIP net.IP) (EgressInterfaceType, error) {
 					}, nil
 				}
 			default:
-				return nil, errors.New("Type of addr not net.IPNET")
+				return nil, errors.New("type of addr not net.IPNET")
 			}
 		}
 	}
