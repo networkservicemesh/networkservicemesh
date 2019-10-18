@@ -61,9 +61,9 @@ func testInterdomainNSCAndICMP(t *testing.T, clustersCount int, nodesCount int, 
 			Variables: pods.DefaultNSMD(),
 		}
 		cfg.Namespace = k8s.GetK8sNamespace()
-		cfg.DataplaneVariables = kubetest.DefaultDataplaneVariables(k8s.GetForwardingPlane())
+		cfg.ForwarderVariables = kubetest.DefaultForwarderVariables(k8s.GetForwardingPlane())
 		if disableVHost {
-			cfg.DataplaneVariables["DATAPLANE_ALLOW_VHOST"] = "false"
+			cfg.ForwarderVariables["FORWARDER_ALLOW_VHOST"] = "false"
 		}
 		config = append(config, cfg)
 

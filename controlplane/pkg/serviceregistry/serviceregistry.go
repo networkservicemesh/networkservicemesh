@@ -14,7 +14,7 @@ import (
 	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/vni"
-	dataplaneapi "github.com/networkservicemesh/networkservicemesh/dataplane/api/dataplane"
+	forwarderapi "github.com/networkservicemesh/networkservicemesh/forwarder/api/forwarder"
 )
 
 type ApiRegistry interface {
@@ -34,12 +34,12 @@ type ServiceRegistry interface {
 
 	Stop()
 	NSMDApiClient(ctx context.Context) (nsmdapi.NSMDClient, *grpc.ClientConn, error)
-	DataplaneConnection(ctx context.Context, dataplane *model.Dataplane) (dataplaneapi.DataplaneClient, *grpc.ClientConn, error)
+	ForwarderConnection(ctx context.Context, forwarder *model.Forwarder) (forwarderapi.ForwarderClient, *grpc.ClientConn, error)
 
 	EndpointConnection(ctx context.Context, endpoint *model.Endpoint) (networkservice.NetworkServiceClient, *grpc.ClientConn, error)
 	RemoteNetworkServiceClient(ctx context.Context, nsm *registry.NetworkServiceManager) (remote_networkservice.NetworkServiceClient, *grpc.ClientConn, error)
 
-	WaitForDataplaneAvailable(ctx context.Context, model model.Model, timeout time.Duration) error
+	WaitForForwarderAvailable(ctx context.Context, model model.Model, timeout time.Duration) error
 
 	VniAllocator() vni.VniAllocator
 

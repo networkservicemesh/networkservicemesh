@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: spire-secret
-  namespace: {{ .Release.Namespace }}
+  namespace: {{ .Values.namespace }}
 type: Opaque
 data:
   bootstrap.key: |-

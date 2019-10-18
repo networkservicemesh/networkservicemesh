@@ -60,7 +60,7 @@ func testInterdomainNSMDies(t *testing.T, clustersCount int, killSrc bool) {
 		defer kubetest.MakeLogsSnapshot(k8s, t)
 
 		nseNoHealPodConfig.Namespace = k8s.GetK8sNamespace()
-		nseNoHealPodConfig.DataplaneVariables = kubetest.DefaultDataplaneVariables(k8s.GetForwardingPlane())
+		nseNoHealPodConfig.ForwarderVariables = kubetest.DefaultForwarderVariables(k8s.GetForwardingPlane())
 
 		nodesSetup, err := kubetest.SetupNodesConfig(k8s, 1, defaultTimeout, []*pods.NSMgrPodConfig{
 			nseNoHealPodConfig,
@@ -117,7 +117,7 @@ func testInterdomainNSMDies(t *testing.T, clustersCount int, killSrc bool) {
 	}
 
 	k8ss[clusterToKill].K8s.DeletePods(podToKill)
-	k8ss[clusterToCheck].K8s.WaitLogsContains(k8ss[clusterToCheck].NodesSetup[0].Nsmd, "nsmd", "Cross connection successfully closed on dataplane", defaultTimeout)
+	k8ss[clusterToCheck].K8s.WaitLogsContains(k8ss[clusterToCheck].NodesSetup[0].Nsmd, "nsmd", "Cross connection successfully closed on forwarder", defaultTimeout)
 
 	ipResponse, errOut, err = k8ss[clusterToCheck].K8s.Exec(podToCheck, podToCheck.Spec.Containers[0].Name, "ip", "addr")
 	g.Expect(err).To(BeNil())

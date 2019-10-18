@@ -37,12 +37,12 @@ kubectl version
 ```bash
 make docker-build
 make docker-save
-cd dataplanes/vpp
+cd forwarders/vpp
 make docker-build
 make docker-save
 ```
 
-Will create docker images (and docker images for the dataplane) and put them in
+Will create docker images (and docker images for the forwarder) and put them in
 
 ```
 scripts/vagrant/images/

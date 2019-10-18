@@ -47,9 +47,9 @@ import (
 )
 
 const (
-	DataplaneRetryCount = 10 // A number of times to call Dataplane Request, TODO: Remove after DP will be stable.
-	DataplaneRetryDelay = 500 * time.Millisecond
-	DataplaneTimeout    = 15 * time.Second
+	ForwarderRetryCount = 10 // A number of times to call Forwarder Request, TODO: Remove after DP will be stable.
+	ForwarderRetryDelay = 500 * time.Millisecond
+	ForwarderTimeout    = 15 * time.Second
 )
 
 // Network service manager to manage both local/remote NSE connections.
@@ -78,7 +78,7 @@ func (srv *networkServiceManager) LocalManager(clientConnection nsm.ClientConnec
 		local.NewRequestValidator(),
 		local.NewMonitorService(clientConnection.(*model.ClientConnection).Monitor),
 		local.NewConnectionService(srv.model),
-		local.NewDataplaneService(srv.model, srv.serviceRegistry),
+		local.NewForwarderService(srv.model, srv.serviceRegistry),
 		local.NewEndpointSelectorService(srv.nseManager, srv.pluginRegistry),
 		local.NewEndpointService(srv.nseManager, srv.properties, srv.model, srv.pluginRegistry),
 		local.NewCrossConnectService(),
@@ -157,12 +157,12 @@ func (srv *networkServiceManager) getNetworkServiceManagerName() string {
 	return srv.model.GetNsm().GetName()
 }
 
-func (srv *networkServiceManager) WaitForDataplane(ctx context.Context, timeout time.Duration) error {
-	// Wait for at least one dataplane to be available
-	if err := srv.serviceRegistry.WaitForDataplaneAvailable(ctx, srv.model, timeout); err != nil {
+func (srv *networkServiceManager) WaitForForwarder(ctx context.Context, timeout time.Duration) error {
+	// Wait for at least one forwarder to be available
+	if err := srv.serviceRegistry.WaitForForwarderAvailable(ctx, srv.model, timeout); err != nil {
 		return err
 	}
-	logrus.Infof("Dataplane is available, waiting for initial state received and processed...")
+	logrus.Infof("Forwarder is available, waiting for initial state received and processed...")
 	select {
 	case <-srv.stateRestored:
 		return nil
@@ -171,24 +171,24 @@ func (srv *networkServiceManager) WaitForDataplane(ctx context.Context, timeout 
 	}
 }
 
-func (srv *networkServiceManager) RestoreConnections(xcons []*crossconnect.CrossConnect, dataplane string, manager nsm.MonitorManager) {
+func (srv *networkServiceManager) RestoreConnections(xcons []*crossconnect.CrossConnect, forwarder string, manager nsm.MonitorManager) {
 	span := spanhelper.FromContext(srv.Context(), "Nsmgr.RestoreConnections")
 	defer span.Finish()
 	logger := span.Logger()
 	for _, xcon := range xcons {
-		srv.restoreXconnection(span.Context(), xcon, logger, dataplane, manager)
+		srv.restoreXconnection(span.Context(), xcon, logger, forwarder, manager)
 	}
 	logger.Infof("All connections are recovered...")
 	// Notify state is restored
 	srv.stateRestored <- true
 }
 
-func (srv *networkServiceManager) restoreXconnection(ctx context.Context, xcon *crossconnect.CrossConnect, logger logrus.FieldLogger, dataplane string, manager nsm.MonitorManager) {
-	// Model should increase its id counter to max of xcons restored from dataplane
+func (srv *networkServiceManager) restoreXconnection(ctx context.Context, xcon *crossconnect.CrossConnect, logger logrus.FieldLogger, forwarder string, manager nsm.MonitorManager) {
+	// Model should increase its id counter to max of xcons restored from forwarder
 	srv.model.CorrectIDGenerator(xcon.GetId())
 	span := spanhelper.FromContext(ctx, "restoreXConnection")
 	defer span.Finish()
-	span.LogObject("dataplane", dataplane)
+	span.LogObject("forwarder", forwarder)
 	span.LogObject("xcon", xcon)
 
 	existing := srv.model.GetClientConnection(xcon.GetId())
@@ -199,7 +199,7 @@ func (srv *networkServiceManager) restoreXconnection(ctx context.Context, xcon *
 		networkServiceName := ""
 		var connectionState model.ClientConnectionState
 
-		dp := srv.model.GetDataplane(dataplane)
+		dp := srv.model.GetForwarder(forwarder)
 		discovery, err := srv.serviceRegistry.DiscoveryClient(span.Context())
 		span.LogError(err)
 		if err != nil {
@@ -295,15 +295,15 @@ func (srv *networkServiceManager) performHeal(ctx context.Context, xcon *crossco
 	}
 }
 
-func (srv *networkServiceManager) createConnection(xcon *crossconnect.CrossConnect, request networkservice.Request, endpoint *registry.NSERegistration, dp *model.Dataplane, state model.ClientConnectionState, manager nsm.MonitorManager, monitor monitor.Server) *model.ClientConnection {
+func (srv *networkServiceManager) createConnection(xcon *crossconnect.CrossConnect, request networkservice.Request, endpoint *registry.NSERegistration, dp *model.Forwarder, state model.ClientConnectionState, manager nsm.MonitorManager, monitor monitor.Server) *model.ClientConnection {
 	return &model.ClientConnection{
 		ConnectionID:            xcon.GetId(),
 		Request:                 request,
 		Xcon:                    xcon,
 		Endpoint:                endpoint, // We do not have endpoint here.
-		DataplaneRegisteredName: dp.RegisteredName,
+		ForwarderRegisteredName: dp.RegisteredName,
 		ConnectionState:         state,
-		DataplaneState:          model.DataplaneStateReady, // It is configured already.
+		ForwarderState:          model.ForwarderStateReady, // It is configured already.
 		Monitor:                 monitor,
 	}
 }

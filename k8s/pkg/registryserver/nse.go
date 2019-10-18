@@ -92,7 +92,6 @@ func (rs *nseRegistryService) RegisterNSE(ctx context.Context, request *registry
 	}
 	logrus.Infof("Returned from RegisterNSE: time: %v request: %v", time.Since(st), request)
 	return request, nil
-
 }
 
 func (rs *nseRegistryService) RemoveNSE(ctx context.Context, request *registry.RemoveNSERequest) (*empty.Empty, error) {

@@ -92,6 +92,11 @@ jobs:
           command: |
             ./scripts/lint-download.sh
             ./scripts/for-each-module.sh "$(pwd)/scripts/lint-check-diff.sh"
+      - run:
+          name: license lint
+          command: |
+            go get github.com/denis-tingajkin/go-header@v0.1.0
+            go-header
     environment:
       GO111MODULE: "on"
       LOG_LEVEL: "error"
@@ -213,7 +218,7 @@ jobs:
             export CONTAINERS=(nsmd nsmd-k8s nsmdp)
             export CONTAINERS=(${CONTAINERS[@]} proxy-nsmd proxy-nsmd-k8s)
             export CONTAINERS=(${CONTAINERS[@]} crossconnect-monitor nsm-init nsm-monitor admission-webhook)
-            export CONTAINERS=(${CONTAINERS[@]} vppagent-dataplane)
+            export CONTAINERS=(${CONTAINERS[@]} vppagent-forwarder)
             export CONTAINERS=(${CONTAINERS[@]} test-common vpp-test-common nsm-coredns)
             export CONTAINERS=(${CONTAINERS[@]} kernel-forwarder)
             export CONTAINERS=(${CONTAINERS[@]} spire-registration)
@@ -230,9 +235,6 @@ jobs:
       - image: quay.io/helmpack/chart-testing:v2.3.0
     steps:
       - checkout
-      - run:
-          name: Check for only Doc Changes
-          command: circleci-agent step halt
       - run:
           name: Install and lint Helm charts
           command: |

@@ -19,39 +19,39 @@ func TestModelAddRemove(t *testing.T) {
 
 	mdl := newModel()
 
-	mdl.AddDataplane(context.Background(), &model.Dataplane{
+	mdl.AddForwarder(context.Background(), &model.Forwarder{
 		RegisteredName: "test_name",
 		SocketLocation: "location",
 	})
 
-	g.Expect(mdl.GetDataplane("test_name").RegisteredName).To(Equal("test_name"))
+	g.Expect(mdl.GetForwarder("test_name").RegisteredName).To(Equal("test_name"))
 
-	mdl.DeleteDataplane(context.Background(), "test_name")
+	mdl.DeleteForwarder(context.Background(), "test_name")
 
-	g.Expect(mdl.GetDataplane("test_name")).To(BeNil())
+	g.Expect(mdl.GetForwarder("test_name")).To(BeNil())
 }
 
-func TestModelSelectDataplane(t *testing.T) {
+func TestModelSelectForwarder(t *testing.T) {
 	g := NewWithT(t)
 
 	mdl := newModel()
 
-	mdl.AddDataplane(context.Background(), &model.Dataplane{
+	mdl.AddForwarder(context.Background(), &model.Forwarder{
 		RegisteredName: "test_name",
 		SocketLocation: "location",
 	})
-	dp, err := mdl.SelectDataplane(nil)
+	dp, err := mdl.SelectForwarder(nil)
 	g.Expect(dp.RegisteredName).To(Equal("test_name"))
 	g.Expect(err).To(BeNil())
 }
-func TestModelSelectDataplaneNone(t *testing.T) {
+func TestModelSelectForwarderNone(t *testing.T) {
 	g := NewWithT(t)
 
 	mdl := newModel()
 
-	dp, err := mdl.SelectDataplane(nil)
+	dp, err := mdl.SelectForwarder(nil)
 	g.Expect(dp).To(BeNil())
-	g.Expect(err.Error()).To(Equal("no appropriate dataplanes found"))
+	g.Expect(err.Error()).To(Equal("no appropriate forwarders found"))
 }
 
 func TestModelAddEndpoint(t *testing.T) {
@@ -121,5 +121,4 @@ func TestModelRestoreIds(t *testing.T) {
 	mdl2 := newModel()
 	mdl2.CorrectIDGenerator(mdl.ConnectionID())
 	g.Expect(mdl2.ConnectionID()).To(Equal("4"))
-
 }

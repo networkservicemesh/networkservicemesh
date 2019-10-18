@@ -48,8 +48,8 @@ const (
 	endpointLogFormat          = "NSM-EndpointMonitor(%v): %v"
 	endpointLogWithParamFormat = "NSM-EndpointMonitor(%v): %v: %v"
 
-	dataplaneLogFormat          = "NSM-DataplaneMonitor(%v): %v"
-	dataplaneLogWithParamFormat = "NSM-DataplaneMonitor(%v): %v: %v"
+	forwarderLogFormat          = "NSM-ForwarderMonitor(%v): %v"
+	forwarderLogWithParamFormat = "NSM-ForwarderMonitor(%v): %v: %v"
 
 	peerLogFormat          = "NSM-PeerMonitor(%v): %v"
 	peerLogWithParamFormat = "NSM-PeerMonitor(%v): %v: %v"
@@ -67,7 +67,7 @@ type NsmMonitorCrossConnectClient struct {
 	monitorManager nsm.MonitorManager
 	xconManager    *services.ClientConnectionManager
 	endpoints      sync.Map
-	dataplanes     sync.Map
+	forwarders     sync.Map
 	remotePeers    map[string]*remotePeerDescriptor
 
 	endpointManager EndpointManager
@@ -94,7 +94,7 @@ func NewMonitorCrossConnectClient(model model.Model, monitorManager nsm.MonitorM
 		xconManager:     xconManager,
 		endpointManager: endpointManager,
 		endpoints:       sync.Map{},
-		dataplanes:      sync.Map{},
+		forwarders:      sync.Map{},
 		remotePeers:     map[string]*remotePeerDescriptor{},
 		model:           model,
 	}
@@ -118,24 +118,24 @@ func (client *NsmMonitorCrossConnectClient) EndpointDeleted(_ context.Context, e
 	}
 }
 
-// DataplaneAdded implements method from Listener
-func (client *NsmMonitorCrossConnectClient) DataplaneAdded(_ context.Context, dp *model.Dataplane) {
-	span := spanhelper.FromContext(context.Background(), "DataplaneAdded")
+// ForwarderAdded implements method from Listener
+func (client *NsmMonitorCrossConnectClient) ForwarderAdded(_ context.Context, dp *model.Forwarder) {
+	span := spanhelper.FromContext(context.Background(), "ForwarderAdded")
 	defer span.Finish()
 	ctx, cancel := context.WithCancel(span.Context())
-	client.dataplanes.Store(dp.RegisteredName, cancel)
+	client.forwarders.Store(dp.RegisteredName, cancel)
 
-	go client.dataplaneCrossConnectMonitor(ctx, dp)
+	go client.forwarderCrossConnectMonitor(ctx, dp)
 }
 
-// DataplaneDeleted implements method from Listener
-func (client *NsmMonitorCrossConnectClient) DataplaneDeleted(_ context.Context, dp *model.Dataplane) {
-	span := spanhelper.FromContext(context.Background(), "DataplaneDeleted")
+// ForwarderDeleted implements method from Listener
+func (client *NsmMonitorCrossConnectClient) ForwarderDeleted(_ context.Context, dp *model.Forwarder) {
+	span := spanhelper.FromContext(context.Background(), "ForwarderDeleted")
 	defer span.Finish()
-	client.xconManager.DataplaneDown(span.Context(), dp)
-	if cancel, ok := client.dataplanes.Load(dp.RegisteredName); ok {
+	client.xconManager.ForwarderDown(span.Context(), dp)
+	if cancel, ok := client.forwarders.Load(dp.RegisteredName); ok {
 		cancel.(context.CancelFunc)()
-		client.dataplanes.Delete(dp.RegisteredName)
+		client.forwarders.Delete(dp.RegisteredName)
 	}
 }
 
@@ -337,27 +337,27 @@ func (client *NsmMonitorCrossConnectClient) handleLocalConnection(entity monitor
 	return nil
 }
 
-// dataplaneCrossConnectMonitor is per registered dataplane crossconnect monitoring routine.
-// It creates a grpc client for the socket advertsied by the dataplane and listens for a stream of Cross Connect Events.
-// If it detects a failure of the connection, it will indicate that dataplane is no longer operational. In this case
-// monitor will remove all dataplane connections and will terminate itself.
-func (client *NsmMonitorCrossConnectClient) dataplaneCrossConnectMonitor(ctx context.Context, dataplane *model.Dataplane) {
-	span := spanhelper.FromContext(ctx, fmt.Sprintf("Dataplane-%v-monitor", dataplane.RegisteredName))
+// forwarderCrossConnectMonitor is per registered forwarder crossconnect monitoring routine.
+// It creates a grpc client for the socket advertsied by the forwarder and listens for a stream of Cross Connect Events.
+// If it detects a failure of the connection, it will indicate that forwarder is no longer operational. In this case
+// monitor will remove all forwarder connections and will terminate itself.
+func (client *NsmMonitorCrossConnectClient) forwarderCrossConnectMonitor(ctx context.Context, forwarder *model.Forwarder) {
+	span := spanhelper.FromContext(ctx, fmt.Sprintf("Forwarder-%v-monitor", forwarder.RegisteredName))
 	defer span.Finish()
 
-	span.Logger().Infof("Starting Dataplane crossconnect monitoring client...")
+	span.Logger().Infof("Starting Forwarder crossconnect monitoring client...")
 	grpcConnectionSupplier := func() (*grpc.ClientConn, error) {
-		logrus.Infof(dataplaneLogWithParamFormat, dataplane.RegisteredName, "Connecting to", dataplane.SocketLocation)
-		return tools.DialContextUnix(span.Context(), dataplane.SocketLocation)
+		logrus.Infof(forwarderLogWithParamFormat, forwarder.RegisteredName, "Connecting to", forwarder.SocketLocation)
+		return tools.DialContextUnix(span.Context(), forwarder.SocketLocation)
 	}
 
 	eventHandler := func(event monitor.Event, parameters map[string]string) error {
-		return client.handleXconEvent(event, dataplane, parameters)
+		return client.handleXconEvent(event, forwarder, parameters)
 	}
 
 	_ = client.monitor(
 		span.Context(),
-		dataplaneLogFormat, dataplaneLogWithParamFormat, dataplane.RegisteredName,
+		forwarderLogFormat, forwarderLogWithParamFormat, forwarder.RegisteredName,
 		grpcConnectionSupplier, monitor_crossconnect.NewMonitorClient,
 		client.handleXcon, eventHandler, nil)
 }
@@ -399,7 +399,7 @@ func (client *NsmMonitorCrossConnectClient) handleXcon(entity monitor.Entity, ev
 	return nil
 }
 
-func (client *NsmMonitorCrossConnectClient) handleXconEvent(event monitor.Event, dataplane *model.Dataplane, _ map[string]string) error {
+func (client *NsmMonitorCrossConnectClient) handleXconEvent(event monitor.Event, forwarder *model.Forwarder, _ map[string]string) error {
 	xconEvent, ok := event.(*monitor_crossconnect.Event)
 	if !ok {
 		return errors.Errorf("unable to cast %v to crossconnect.Event", event)
@@ -415,7 +415,7 @@ func (client *NsmMonitorCrossConnectClient) handleXconEvent(event monitor.Event,
 			xcons = append(xcons, entity.(*crossconnect.CrossConnect))
 		}
 
-		client.xconManager.UpdateFromInitialState(xcons, dataplane, client.monitorManager)
+		client.xconManager.UpdateFromInitialState(xcons, forwarder, client.monitorManager)
 	}
 
 	return nil

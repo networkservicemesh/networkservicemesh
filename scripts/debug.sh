@@ -40,8 +40,8 @@ if [ "$1" = "icmp-responder-nse" ]; then
     output=/bin/$1
 fi
 
-if [ "$1" = "vppagent-dataplane" ]; then
-    go_file=./dataplane/vppagent/cmd/vppagent-dataplane.go
+if [ "$1" = "vppagent-forwarder" ]; then
+    go_file=./forwarder/vppagent/cmd/vppagent-forwarder.go
     output=/bin/$1
 fi
 
@@ -57,5 +57,5 @@ pkill -f "$output"
 echo "Compile and start debug of ${go_file} at port ${port}"
 
 # Prepare environment for NSMD
-export NSM_SERVER_SOCKET=/var/lib/networkservicemesh/nsm.dataplane-registrar.io.sock
+export NSM_SERVER_SOCKET=/var/lib/networkservicemesh/nsm.forwarder-registrar.io.sock
 dlv debug --headless --listen=:${port} --api-version=2 --build-flags "-i"  "${go_file}" --output "${output}"

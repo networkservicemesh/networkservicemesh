@@ -26,7 +26,6 @@ type nseManager struct {
 }
 
 func (nsem *nseManager) GetEndpoint(ctx context.Context, requestConnection connection.Connection, ignoreEndpoints map[registry.EndpointNSMName]*registry.NSERegistration) (*registry.NSERegistration, error) {
-
 	span := spanhelper.FromContext(ctx, "GetEndpoint")
 	defer span.Finish()
 	span.LogObject("request", requestConnection)
@@ -87,7 +86,6 @@ func (nsem *nseManager) GetEndpoint(ctx context.Context, requestConnection conne
 ctx - we assume it is big enought to perform connection.
 */
 func (nsem *nseManager) CreateNSEClient(ctx context.Context, endpoint *registry.NSERegistration) (nsm.NetworkServiceClient, error) {
-
 	span := spanhelper.FromContext(ctx, "createNSEClient")
 	defer span.Finish()
 	logger := span.Logger()

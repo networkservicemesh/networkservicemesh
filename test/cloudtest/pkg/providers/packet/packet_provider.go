@@ -277,7 +277,6 @@ func (pi *packetInstance) waitDevicesStartup(context context.Context) error {
 }
 
 func (pi *packetInstance) createDevice(devCfg *config.DeviceConfig) (*packngo.Device, error) {
-
 	finalEnv := pi.shellInterface.GetProcessedEnv()
 
 	environment := map[string]string{}
@@ -626,7 +625,6 @@ func NewPacketClusterProvider(root string) providers.ClusterProvider {
 }
 
 func (p *packetProvider) ValidateConfig(config *config.ClusterProviderConfig) error {
-
 	if config.Packet == nil {
 		return errors.New("packet configuration element should be specified")
 	}

@@ -62,8 +62,8 @@ replace (
 	github.com/networkservicemesh/networkservicemesh => ../
 	github.com/networkservicemesh/networkservicemesh/controlplane => ../controlplane
 	github.com/networkservicemesh/networkservicemesh/controlplane/api => ../controlplane/api
-	github.com/networkservicemesh/networkservicemesh/dataplane => ../dataplane
-	github.com/networkservicemesh/networkservicemesh/dataplane/api => ../dataplane/api
+	github.com/networkservicemesh/networkservicemesh/forwarder => ../forwarder
+	github.com/networkservicemesh/networkservicemesh/forwarder/api => ../forwarder/api
 	github.com/networkservicemesh/networkservicemesh/k8s/api => ../k8s/api
 	github.com/networkservicemesh/networkservicemesh/pkg => ../pkg
 	github.com/networkservicemesh/networkservicemesh/sdk => ../sdk

@@ -50,7 +50,6 @@ func newNetworkServiceHealProcessor(
 	properties *nsm_properties.Properties,
 	manager nsm.NetworkServiceRequestManager,
 	nseManager nsm.NetworkServiceEndpointManager) nsm.NetworkServiceHealProcessor {
-
 	p := &healProcessor{
 		serviceRegistry: serviceRegistry,
 		model:           model,
@@ -146,8 +145,8 @@ func (p *healProcessor) serve() {
 			switch e.healState {
 			case nsm.HealStateDstDown:
 				healed = p.healDstDown(ctx, e.cc)
-			case nsm.HealStateDataplaneDown:
-				healed = p.healDataplaneDown(ctx, e.cc)
+			case nsm.HealStateForwarderDown:
+				healed = p.healForwarderDown(ctx, e.cc)
 			case nsm.HealStateDstUpdate:
 				healed = p.healDstUpdate(ctx, e.cc)
 			case nsm.HealStateDstNmgrDown:
@@ -223,24 +222,24 @@ func (p *healProcessor) healDstDown(ctx context.Context, cc *model.ClientConnect
 	return false
 }
 
-func (p *healProcessor) healDataplaneDown(ctx context.Context, cc *model.ClientConnection) bool {
+func (p *healProcessor) healForwarderDown(ctx context.Context, cc *model.ClientConnection) bool {
 	var cancel context.CancelFunc
 	ctx, cancel = context.WithTimeout(ctx, p.properties.HealTimeout)
 	defer cancel()
 
-	span := spanhelper.FromContext(ctx, "healDataplaneDown")
+	span := spanhelper.FromContext(ctx, "healForwarderDown")
 	defer span.Finish()
 
 	logger := span.Logger()
-	// Dataplane is down, we only need to re-programm dataplane.
-	// 1. Wait for dataplane to appear.
-	logger.Infof("NSM_Heal(3.1) Waiting for Dataplane to recovery...")
-	if err := p.serviceRegistry.WaitForDataplaneAvailable(span.Context(), p.model, p.properties.HealDataplaneTimeout); err != nil {
-		err = errors.Errorf("NSM_Heal(3.1) Dataplane is not available on recovery for timeout %v: %v", p.properties.HealDataplaneTimeout, err)
+	// Forwarder is down, we only need to re-programm forwarder.
+	// 1. Wait for forwarder to appear.
+	logger.Infof("NSM_Heal(3.1) Waiting for Forwarder to recovery...")
+	if err := p.serviceRegistry.WaitForForwarderAvailable(span.Context(), p.model, p.properties.HealForwarderTimeout); err != nil {
+		err = errors.Errorf("NSM_Heal(3.1) Forwarder is not available on recovery for timeout %v: %v", p.properties.HealForwarderTimeout, err)
 		span.LogError(err)
 		return false
 	}
-	logger.Infof("NSM_Heal(3.2) Dataplane is now available...")
+	logger.Infof("NSM_Heal(3.2) Forwarder is now available...")
 
 	// 3.3. Set source connection down
 	p.model.ApplyClientConnectionChanges(span.Context(), cc.GetID(), func(modelCC *model.ClientConnection) {
@@ -266,7 +265,6 @@ func (p *healProcessor) healDataplaneDown(ctx context.Context, cc *model.ClientC
 }
 
 func (p *healProcessor) healDstUpdate(ctx context.Context, cc *model.ClientConnection) bool {
-
 	span := spanhelper.FromContext(ctx, "healDstUpdate")
 	defer span.Finish()
 	ctx = span.Context()
@@ -394,7 +392,6 @@ func (p *healProcessor) nseIsSameAndAvailable(ctx context.Context, endpointName 
 }
 
 func (p *healProcessor) waitNSE(ctx context.Context, endpointName, networkService string, nseValidator nseValidator) bool {
-
 	span := spanhelper.FromContext(ctx, "waitNSE")
 	defer span.Finish()
 	ctx = span.Context()

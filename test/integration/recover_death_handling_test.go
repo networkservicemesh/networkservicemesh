@@ -94,7 +94,7 @@ func testDie(t *testing.T, killSrc bool, nodesCount int) {
 	}
 
 	k8s.DeletePods(podToKill)
-	k8s.WaitLogsContains(nsmdPodToCheck, "nsmd", "Cross connection successfully closed on dataplane", defaultTimeout)
+	k8s.WaitLogsContains(nsmdPodToCheck, "nsmd", "Cross connection successfully closed on forwarder", defaultTimeout)
 
 	ipResponse, errOut, err = k8s.Exec(podToCheck, podToCheck.Spec.Containers[0].Name, "ip", "addr")
 	g.Expect(err).To(BeNil())

@@ -41,7 +41,7 @@ import (
 
 type NodeConf struct {
 	Nsmd      *v1.Pod
-	Dataplane *v1.Pod
+	Forwarder *v1.Pod
 	Node      *v1.Node
 }
 
@@ -63,7 +63,7 @@ type NsePinger = func(k8s *K8s, from *v1.Pod) bool
 type NscChecker = func(*K8s, *v1.Pod) *NSCCheckInfo
 type ipParser = func(string) (string, error)
 
-// SetupNodes - Setup NSMgr and Dataplane for particular number of nodes in cluster
+// SetupNodes - Setup NSMgr and Forwarder for particular number of nodes in cluster
 func SetupNodes(k8s *K8s, nodesCount int, timeout time.Duration) ([]*NodeConf, error) {
 	return SetupNodesConfig(k8s, nodesCount, timeout, []*pods.NSMgrPodConfig{}, k8s.GetK8sNamespace())
 }
@@ -87,7 +87,7 @@ func DeployCorefile(k8s *K8s, name, content string) error {
 	return err
 }
 
-// SetupNodesConfig - Setup NSMgr and Dataplane for particular number of nodes in cluster
+// SetupNodesConfig - Setup NSMgr and Forwarder for particular number of nodes in cluster
 func SetupNodesConfig(k8s *K8s, nodesCount int, timeout time.Duration, conf []*pods.NSMgrPodConfig, namespace string) ([]*NodeConf, error) {
 	nodes := k8s.GetNodesWait(nodesCount, timeout)
 	k8s.g.Expect(len(nodes) >= nodesCount).To(Equal(true),
@@ -104,24 +104,24 @@ func SetupNodesConfig(k8s *K8s, nodesCount int, timeout time.Duration, conf []*p
 			startTime := time.Now()
 			node := &nodes[i]
 			nsmdName := fmt.Sprintf("nsmgr-%s", node.Name)
-			dataplaneName := fmt.Sprintf("nsmd-dataplane-%s", node.Name)
+			forwarderName := fmt.Sprintf("nsmd-forwarder-%s", node.Name)
 			var corePod *v1.Pod
-			var dataplanePod *v1.Pod
+			var forwarderPod *v1.Pod
 			debug := false
 			if i >= len(conf) {
 				corePod = pods.NSMgrPod(nsmdName, node, k8s.GetK8sNamespace())
-				dataplanePod = pods.ForwardingPlaneWithConfig(dataplaneName, node, DefaultDataplaneVariables(k8s.GetForwardingPlane()), k8s.GetForwardingPlane())
+				forwarderPod = pods.ForwardingPlaneWithConfig(forwarderName, node, DefaultForwarderVariables(k8s.GetForwardingPlane()), k8s.GetForwardingPlane())
 			} else {
 				conf[i].Namespace = namespace
 				if conf[i].Nsmd == pods.NSMgrContainerDebug || conf[i].NsmdK8s == pods.NSMgrContainerDebug || conf[i].NsmdP == pods.NSMgrContainerDebug {
 					debug = true
 				}
 				corePod = pods.NSMgrPodWithConfig(nsmdName, node, conf[i])
-				dataplanePod = pods.ForwardingPlaneWithConfig(dataplaneName, node, conf[i].DataplaneVariables, k8s.GetForwardingPlane())
+				forwarderPod = pods.ForwardingPlaneWithConfig(forwarderName, node, conf[i].ForwarderVariables, k8s.GetForwardingPlane())
 			}
-			corePods, err := k8s.CreatePodsRaw(PodStartTimeout, true, corePod, dataplanePod)
+			corePods, err := k8s.CreatePodsRaw(PodStartTimeout, true, corePod, forwarderPod)
 			if err != nil {
-				logrus.Errorf("Failed to Started NSMgr/Dataplane: %v on node %s %v", time.Since(startTime), node.Name, err)
+				logrus.Errorf("Failed to Started NSMgr/Forwarder: %v on node %s %v", time.Since(startTime), node.Name, err)
 				resultError = err
 				return
 			}
@@ -136,16 +136,16 @@ func SetupNodesConfig(k8s *K8s, nodesCount int, timeout time.Duration, conf []*p
 				k8s.WaitLogsContains(corePod, podContainer, "API server listening at: [::]:40000", timeout)
 				logrus.Infof("Debug devenv container is running. Please do\n make k8s-forward pod=%v port1=40000 port2=40000. And attach via debugger...", corePod.Name)
 			}
-			nsmd, dataplane, err := deployNSMgrAndDataplane(k8s, corePods, timeout)
+			nsmd, forwarder, err := deployNSMgrAndForwarder(k8s, corePods, timeout)
 			if err != nil {
-				logrus.Errorf("Failed to Started NSMgr/Dataplane: %v on node %s %v", time.Since(startTime), node.Name, err)
+				logrus.Errorf("Failed to Started NSMgr/Forwarder: %v on node %s %v", time.Since(startTime), node.Name, err)
 				resultError = err
 				return
 			}
-			logrus.Printf("Started NSMgr/Dataplane: %v on node %s", time.Since(startTime), node.Name)
+			logrus.Printf("Started NSMgr/Forwarder: %v on node %s", time.Since(startTime), node.Name)
 			confs[i] = &NodeConf{
 				Nsmd:      nsmd,
-				Dataplane: dataplane,
+				Forwarder: forwarder,
 				Node:      &nodes[i],
 			}
 		}()
@@ -154,17 +154,17 @@ func SetupNodesConfig(k8s *K8s, nodesCount int, timeout time.Duration, conf []*p
 	return confs, resultError
 }
 
-func deployNSMgrAndDataplane(k8s *K8s, corePods []*v1.Pod, timeout time.Duration) (nsmd, dataplane *v1.Pod, err error) {
+func deployNSMgrAndForwarder(k8s *K8s, corePods []*v1.Pod, timeout time.Duration) (nsmd, forwarder *v1.Pod, err error) {
 	for _, pod := range corePods {
 		if !k8s.IsPodReady(pod) {
 			return nil, nil, errors.Errorf("Pod %v is not ready...", pod.Name)
 		}
 	}
 	nsmd = corePods[0]
-	dataplane = corePods[1]
+	forwarder = corePods[1]
 
 	k8s.g.Expect(nsmd.Name).To(Equal(corePods[0].Name))
-	k8s.g.Expect(dataplane.Name).To(Equal(corePods[1].Name))
+	k8s.g.Expect(forwarder.Name).To(Equal(corePods[1].Name))
 
 	var wg sync.WaitGroup
 	wg.Add(3)
@@ -396,7 +396,7 @@ func noHealNSMgrPodConfig(k8s *K8s) *pods.NSMgrPodConfig {
 			nsm.NsmdHealEnabled:           "false",
 		},
 		Namespace:          k8s.GetK8sNamespace(),
-		DataplaneVariables: DefaultDataplaneVariables(k8s.GetForwardingPlane()),
+		ForwarderVariables: DefaultForwarderVariables(k8s.GetForwardingPlane()),
 	}
 }
 
@@ -463,7 +463,6 @@ func DeployAdmissionWebhook(k8s *K8s, name, image, namespace string, timeout tim
 // DeleteAdmissionWebhook - Delete admission webhook
 func DeleteAdmissionWebhook(k8s *K8s, secretName string,
 	awc *arv1beta1.MutatingWebhookConfiguration, awDeployment *appsv1.Deployment, awService *v1.Service, namespace string) {
-
 	err := k8s.DeleteService(awService, namespace)
 	k8s.g.Expect(err).To(BeNil())
 
@@ -479,7 +478,6 @@ func DeleteAdmissionWebhook(k8s *K8s, secretName string,
 
 // CreateAdmissionWebhookSecret - Create admission webhook secret
 func CreateAdmissionWebhookSecret(k8s *K8s, name, namespace string) (*v1.Secret, []byte) {
-
 	caCertSpec := &cert.Config{
 		CommonName: "admission-controller-ca",
 		Usages:     []x509.ExtKeyUsage{x509.ExtKeyUsageAny},
@@ -679,7 +677,6 @@ func waitWebhookPod(k8s *K8s, name string, timeout time.Duration) *v1.Pod {
 					return result
 				}
 			}
-
 		}
 		<-time.After(time.Millisecond * 100)
 	}

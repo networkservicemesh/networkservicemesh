@@ -51,7 +51,6 @@ type endpointService struct {
 }
 
 func (cce *endpointService) closeEndpoint(ctx context.Context, cc *model.ClientConnection) error {
-
 	span := spanhelper.FromContext(ctx, "closeEndpoint")
 	defer span.Finish()
 	ctx = span.Context()
@@ -82,7 +81,7 @@ func (cce *endpointService) closeEndpoint(ctx context.Context, cc *model.ClientC
 func (cce *endpointService) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 	logger := common.Log(ctx)
 	clientConnection := common.ModelConnection(ctx)
-	dp := common.Dataplane(ctx)
+	dp := common.Forwarder(ctx)
 	endpoint := common.Endpoint(ctx)
 
 	if clientConnection == nil {
@@ -131,7 +130,6 @@ func (cce *endpointService) Request(ctx context.Context, request *networkservice
 }
 
 func (cce *endpointService) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
-
 	clientConnection := common.ModelConnection(ctx)
 	if clientConnection != nil {
 		if err := cce.closeEndpoint(ctx, clientConnection); err != nil {
@@ -142,7 +140,7 @@ func (cce *endpointService) Close(ctx context.Context, connection *connection.Co
 	return ProcessClose(ctx, connection)
 }
 
-func (cce *endpointService) createLocalNSERequest(endpoint *registry.NSERegistration, dp *model.Dataplane, requestConn *connection.Connection, clientConnection *model.ClientConnection) unifiednetworkservice.Request {
+func (cce *endpointService) createLocalNSERequest(endpoint *registry.NSERegistration, dp *model.Forwarder, requestConn *connection.Connection, clientConnection *model.ClientConnection) unifiednetworkservice.Request {
 	// We need to obtain parameters for local mechanism
 	localM := append([]unifiedconnection.Mechanism{}, dp.LocalMechanisms...)
 
@@ -171,7 +169,7 @@ func (cce *endpointService) createLocalNSERequest(endpoint *registry.NSERegistra
 	)
 }
 
-func (cce *endpointService) createRemoteNSMRequest(endpoint *registry.NSERegistration, requestConn *connection.Connection, dp *model.Dataplane, clientConnection *model.ClientConnection) unifiednetworkservice.Request {
+func (cce *endpointService) createRemoteNSMRequest(endpoint *registry.NSERegistration, requestConn *connection.Connection, dp *model.Forwarder, clientConnection *model.ClientConnection) unifiednetworkservice.Request {
 	// We need to obtain parameters for remote mechanism
 	remoteM := append([]unifiedconnection.Mechanism{}, dp.RemoteMechanisms...)
 

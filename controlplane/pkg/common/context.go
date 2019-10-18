@@ -38,7 +38,7 @@ const (
 	modelConnectionKey    ContextKeyType = "ModelConnection"
 	monitorServerKey      ContextKeyType = "MonitorServer"
 	logKey                ContextKeyType = "Log"
-	dataplaneKey          ContextKeyType = "Dataplane"
+	forwarderKey          ContextKeyType = "Forwarder"
 	endpointKey           ContextKeyType = "Endpoint"
 	endpointConnectionKey ContextKeyType = "EndpointConnection"
 	originalSpan          ContextKeyType = "OriginalSpan"
@@ -143,26 +143,26 @@ func ModelConnection(ctx context.Context) *model.ClientConnection {
 	return conn.(*model.ClientConnection)
 }
 
-// WithDataplane -
-//   Wraps 'parent' in a new Context that has the dataplane selected
+// WithForwarder -
+//   Wraps 'parent' in a new Context that has the forwarder selected
 //   using Context.Value(...) and returns the result.
 //   Note: any previously existing value will be overwritten.
 //
-func WithDataplane(parent context.Context, dp *model.Dataplane) context.Context {
+func WithForwarder(parent context.Context, dp *model.Forwarder) context.Context {
 	if parent == nil {
 		parent = context.Background()
 	}
-	return context.WithValue(parent, dataplaneKey, dp)
+	return context.WithValue(parent, forwarderKey, dp)
 }
 
-// Dataplane - Return dataplane
+// Forwarder - Return forwarder
 //
-func Dataplane(ctx context.Context) *model.Dataplane {
-	value := ctx.Value(dataplaneKey)
+func Forwarder(ctx context.Context) *model.Forwarder {
+	value := ctx.Value(forwarderKey)
 	if value == nil {
 		return nil
 	}
-	return value.(*model.Dataplane)
+	return value.(*model.Forwarder)
 }
 
 // WithEndpoint -
@@ -219,7 +219,7 @@ func WithOriginalSpan(parent context.Context, span opentracing.Span) context.Con
 	return context.WithValue(parent, originalSpan, span)
 }
 
-// OriginalSpan - Return dataplane
+// OriginalSpan - Return forwarder
 func OriginalSpan(ctx context.Context) opentracing.Span {
 	value := ctx.Value(originalSpan)
 	if value == nil {

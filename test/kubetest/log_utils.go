@@ -83,7 +83,6 @@ func archiveLogs(testName string) {
 			distill(writer, zr)
 			_ = zr.Close()
 		}
-
 	}
 
 	err = writer.Flush()

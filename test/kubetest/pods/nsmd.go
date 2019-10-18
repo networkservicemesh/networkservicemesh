@@ -63,7 +63,7 @@ type NSMgrPodConfig struct {
 	NsmdK8s             NSMgrContainerMode // nsmd-k8s launch options - debug - for debug.sh, run - for run.sh
 	NsmdP               NSMgrContainerMode // nsmdp launch options - debug - for debug.sh, run - for run.sh
 	Variables           map[string]string
-	DataplaneVariables  map[string]string
+	ForwarderVariables  map[string]string
 	liveness, readiness *v1.Probe
 	Namespace           string
 }
@@ -92,7 +92,6 @@ func NSMgrPodLiveCheck(name string, node *v1.Node, namespace string) *v1.Pod {
 }
 
 func NSMgrPodWithConfig(name string, node *v1.Node, config *NSMgrPodConfig) *v1.Pod {
-
 	ht := new(v1.HostPathType)
 	*ht = v1.HostPathDirectoryOrCreate
 

@@ -24,7 +24,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/vni"
-	dataplaneapi "github.com/networkservicemesh/networkservicemesh/dataplane/api/dataplane"
+	forwarderapi "github.com/networkservicemesh/networkservicemesh/forwarder/api/forwarder"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
@@ -93,13 +93,13 @@ func (impl *nsmdServiceRegistry) EndpointConnection(ctx context.Context, endpoin
 	return client, nseConn, nil
 }
 
-func (impl *nsmdServiceRegistry) DataplaneConnection(ctx context.Context, dataplane *model.Dataplane) (dataplaneapi.DataplaneClient, *grpc.ClientConn, error) {
-	dataplaneConn, err := tools.DialContextUnix(ctx, dataplane.SocketLocation)
+func (impl *nsmdServiceRegistry) ForwarderConnection(ctx context.Context, forwarder *model.Forwarder) (forwarderapi.ForwarderClient, *grpc.ClientConn, error) {
+	forwarderConn, err := tools.DialContextUnix(ctx, forwarder.SocketLocation)
 	if err != nil {
 		return nil, nil, err
 	}
-	dpClient := dataplaneapi.NewDataplaneClient(dataplaneConn)
-	return dpClient, dataplaneConn, nil
+	dpClient := forwarderapi.NewForwarderClient(forwarderConn)
+	return dpClient, forwarderConn, nil
 }
 
 func (impl *nsmdServiceRegistry) NSMDApiClient(ctx context.Context) (nsmdapi.NSMDClient, *grpc.ClientConn, error) {
@@ -160,7 +160,6 @@ func (impl *nsmdServiceRegistry) DiscoveryClient(ctx context.Context) (registry.
 }
 
 func (impl *nsmdServiceRegistry) initRegistryClient(ctx context.Context) {
-
 	if impl.registryClientConnection != nil && impl.registryClientConnection.GetState() == connectivity.Ready {
 		return // Connection already established.
 	}
@@ -220,22 +219,22 @@ func NewServiceRegistryAt(nsmAddress string) serviceregistry.ServiceRegistry {
 	}
 }
 
-func (impl *nsmdServiceRegistry) WaitForDataplaneAvailable(ctx context.Context, mdl model.Model, timeout time.Duration) error {
-	span := spanhelper.FromContext(ctx, "wait-dataplane")
+func (impl *nsmdServiceRegistry) WaitForForwarderAvailable(ctx context.Context, mdl model.Model, timeout time.Duration) error {
+	span := spanhelper.FromContext(ctx, "wait-forwarder")
 	defer span.Finish()
-	span.Logger().Info("Waiting for dataplane available...")
+	span.Logger().Info("Waiting for forwarder available...")
 
 	st := time.Now()
-	checkConfigured := func(dp *model.Dataplane) bool {
+	checkConfigured := func(dp *model.Forwarder) bool {
 		return dp.MechanismsConfigured
 	}
 	for ; true; <-time.After(100 * time.Millisecond) {
-		if dp, _ := mdl.SelectDataplane(checkConfigured); dp != nil {
+		if dp, _ := mdl.SelectForwarder(checkConfigured); dp != nil {
 			// We have configured monitor
 			return nil
 		}
 		if time.Since(st) > timeout {
-			err := errors.New("error waiting for dataplane... timeout happened")
+			err := errors.New("error waiting for forwarder... timeout happened")
 			span.LogError(err)
 		}
 	}

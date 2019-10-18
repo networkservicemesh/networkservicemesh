@@ -39,7 +39,6 @@ type genArgsParam struct {
 }
 
 func genArgs(p genArgsParam) args {
-
 	labels := map[string]string{}
 	for _, id := range p.labelIDs {
 		labels["label"+strconv.Itoa(id)] = "value" + strconv.Itoa(id)
@@ -96,7 +95,6 @@ func genArgs(p genArgsParam) args {
 }
 
 func Test_matchSelector_SelectEndpoint(t *testing.T) {
-
 	tests := []struct {
 		name string
 		args args

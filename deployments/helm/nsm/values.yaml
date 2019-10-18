@@ -12,7 +12,7 @@ forwardingPlane: vpp
 insecure: false
 
 vpp:
-  image: vppagent-dataplane
+  image: vppagent-forwarder
 
 kernel:
   image: kernel-forwarder

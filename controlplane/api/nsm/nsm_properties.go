@@ -26,7 +26,7 @@ type Properties struct {
 	HealRetryCount                 int
 	HealRetryDelay                 time.Duration
 	HealRequestConnectCheckTimeout time.Duration
-	HealDataplaneTimeout           time.Duration
+	HealForwarderTimeout           time.Duration
 
 	// Total DST heal timeout is 20 seconds.
 	HealDSTNSEWaitTimeout time.Duration
@@ -43,7 +43,7 @@ func NewNsmProperties() *Properties {
 		HealRequestTimeout:             time.Second * 20,
 		HealRequestConnectTimeout:      time.Second * 15,
 		HealRequestConnectCheckTimeout: time.Second * 1,
-		HealDataplaneTimeout:           time.Minute * 1,
+		HealForwarderTimeout:           time.Minute * 1,
 		HealRetryCount:                 10,
 		HealRetryDelay:                 time.Second * 5,
 

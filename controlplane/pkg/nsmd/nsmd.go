@@ -41,13 +41,13 @@ import (
 
 const (
 	NsmdDeleteLocalRegistry = "NSMD_LOCAL_REGISTRY_DELETE"
-	DataplaneTimeout        = 1 * time.Hour
+	ForwarderTimeout        = 1 * time.Hour
 	NSEAliveTimeout         = 1 * time.Second
 )
 
 type NSMServer interface {
 	Stop()
-	StartDataplaneRegistratorServer(ctx context.Context) error
+	StartForwarderRegistratorServer(ctx context.Context) error
 	StartAPIServerAt(ctx context.Context, sock net.Listener, probes probes.Probes)
 
 	XconManager() *services.ClientConnectionManager
@@ -67,7 +67,7 @@ type nsmServer struct {
 	localRegistry    *nseregistry.NSERegistry
 	registerServer   *grpc.Server
 	registerSock     net.Listener
-	regServer        *DataplaneRegistrarServer
+	regServer        *ForwarderRegistrarServer
 
 	xconManager             *services.ClientConnectionManager
 	crossConnectMonitor     monitor_crossconnect.MonitorServer
@@ -327,7 +327,6 @@ func (nsm *nsmServer) restoreEndpoint(ctx context.Context,
 	ws *Workspace,
 	registeredNSEs map[string]string,
 	networkServices map[string]bool) (string, nseregistry.NSEEntry, error) {
-
 	span := spanhelper.FromContext(ctx, "restoreEndpoint")
 	defer span.Finish()
 
@@ -367,7 +366,6 @@ func (nsm *nsmServer) restoreNotRegisteredEndpoint(ctx context.Context,
 	registryClient registry.NetworkServiceRegistryClient,
 	nse nseregistry.NSEEntry,
 	ws *Workspace) (string, nseregistry.NSEEntry, error) {
-
 	name := nse.NseReg.GetNetworkServiceEndpoint().GetName()
 	span := spanhelper.FromContext(ctx, fmt.Sprintf("restoreNotRegisteredEndpoint-%v", name))
 	span.LogObject("name", name)
@@ -519,9 +517,9 @@ func (nsm *nsmServer) initMonitorServers() {
 	nsm.remoteConnectionMonitor = remoteMonitor.NewMonitorServer(nsm.xconManager)
 }
 
-func (nsm *nsmServer) StartDataplaneRegistratorServer(ctx context.Context) error {
+func (nsm *nsmServer) StartForwarderRegistratorServer(ctx context.Context) error {
 	var err error
-	nsm.regServer, err = StartDataplaneRegistrarServer(ctx, nsm.model)
+	nsm.regServer, err = StartForwarderRegistrarServer(ctx, nsm.model)
 	return err
 }
 

@@ -103,18 +103,18 @@ func (m *ClientConnectionManager) DestinationDown(ctx context.Context, cc nsm.Cl
 	}
 }
 
-// DataplaneDown handles case of local dp down
-func (m *ClientConnectionManager) DataplaneDown(ctx context.Context, dataplane *model.Dataplane) {
+// ForwarderDown handles case of local dp down
+func (m *ClientConnectionManager) ForwarderDown(ctx context.Context, forwarder *model.Forwarder) {
 	span := spanhelper.GetSpanHelper(ctx)
 	ccs := m.model.GetAllClientConnections()
 	for _, cc := range ccs {
-		span.LogObject(fmt.Sprintf("DataplaneDeleted-%v", cc.GetID()), cc)
-		if cc.DataplaneRegisteredName == dataplane.RegisteredName {
-			span := common.SpanHelperFromConnection(ctx, cc, "DataplaneDown")
+		span.LogObject(fmt.Sprintf("ForwarderDeleted-%v", cc.GetID()), cc)
+		if cc.ForwarderRegisteredName == forwarder.RegisteredName {
+			span := common.SpanHelperFromConnection(ctx, cc, "ForwarderDown")
 			defer span.Finish()
-			span.LogObject("dataplane", dataplane)
+			span.LogObject("forwarder", forwarder)
 
-			m.manager.Heal(span.Context(), cc, nsm.HealStateDataplaneDown)
+			m.manager.Heal(span.Context(), cc, nsm.HealStateForwarderDown)
 		}
 	}
 }
@@ -142,7 +142,6 @@ func (m *ClientConnectionManager) LocalDestinationUpdated(ctx context.Context, c
 
 // RemoteDestinationUpdated handles case when remote connection parameters changed
 func (m *ClientConnectionManager) RemoteDestinationUpdated(ctx context.Context, cc *model.ClientConnection, remoteDst *remote.Connection) {
-
 	span := spanhelper.FromContext(ctx, "RemoteDestinationUpdated")
 	defer span.Finish()
 	ctx = span.Context()
@@ -326,12 +325,12 @@ func (m *ClientConnectionManager) GetClientConnectionByRemote(nsm *registry.Netw
 	return result
 }
 
-func (m *ClientConnectionManager) GetClientConnectionsByDataplane(name string) []*model.ClientConnection {
+func (m *ClientConnectionManager) GetClientConnectionsByForwarder(name string) []*model.ClientConnection {
 	clientConnections := m.getClientConnections()
 
 	var rv []*model.ClientConnection
 	for _, clientConnection := range clientConnections {
-		if clientConnection.DataplaneRegisteredName == name {
+		if clientConnection.ForwarderRegisteredName == name {
 			rv = append(rv, clientConnection)
 		}
 	}
@@ -362,9 +361,9 @@ func (m *ClientConnectionManager) UpdateRemoteMonitorDone(networkServiceManagerN
 	}
 }
 
-// UpdateFromInitialState - restore from dataplane init state request
-func (m *ClientConnectionManager) UpdateFromInitialState(xcons []*crossconnect.CrossConnect, dataplane *model.Dataplane, manager nsm.MonitorManager) {
-	m.manager.RestoreConnections(xcons, dataplane.RegisteredName, manager)
+// UpdateFromInitialState - restore from forwarder init state request
+func (m *ClientConnectionManager) UpdateFromInitialState(xcons []*crossconnect.CrossConnect, forwarder *model.Forwarder, manager nsm.MonitorManager) {
+	m.manager.RestoreConnections(xcons, forwarder.RegisteredName, manager)
 }
 
 // MarkConnectionDeleted - put connection into map of deleted connections.

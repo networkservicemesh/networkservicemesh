@@ -62,7 +62,7 @@ func (cce *endpointSelectorService) updateConnection(ctx context.Context, conn *
 func (cce *endpointSelectorService) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 	logger := common.Log(ctx)
 	clientConnection := common.ModelConnection(ctx)
-	dp := common.Dataplane(ctx)
+	dp := common.Forwarder(ctx)
 
 	if clientConnection == nil {
 		return nil, errors.Errorf("client connection need to be passed")
@@ -148,7 +148,7 @@ func (cce *endpointSelectorService) selectEndpoint(ctx context.Context, clientCo
 	return endpoint, nil
 }
 
-func (cce *endpointSelectorService) checkNSEUpdateIsRequired(ctx context.Context, clientConnection *model.ClientConnection, request *networkservice.NetworkServiceRequest, logger logrus.FieldLogger, dp *model.Dataplane) bool {
+func (cce *endpointSelectorService) checkNSEUpdateIsRequired(ctx context.Context, clientConnection *model.ClientConnection, request *networkservice.NetworkServiceRequest, logger logrus.FieldLogger, dp *model.Forwarder) bool {
 	requestNSEOnUpdate := false
 	if clientConnection.ConnectionState == model.ClientConnectionHealing {
 		if request.Connection.GetNetworkService() != clientConnection.GetNetworkService() {
@@ -160,7 +160,6 @@ func (cce *endpointSelectorService) checkNSEUpdateIsRequired(ctx context.Context
 			if err != nil {
 				logger.Errorf("NSM:(4.1) Error during close of NSE during Request.Upgrade %v Existing connection: %v error %v", request, clientConnection, err)
 			}
-
 		} else {
 			// 4.2 Check if NSE is still required, if some more context requests are different.
 			requestNSEOnUpdate = cce.checkNeedNSERequest(logger, request.Connection, clientConnection, dp)
@@ -202,7 +201,7 @@ func (cce *endpointSelectorService) updateConnectionContext(ctx context.Context,
 /**
 check if we need to do a NSE/Remote NSM request in case of our connection Upgrade/Healing procedure.
 */
-func (cce *endpointSelectorService) checkNeedNSERequest(logger logrus.FieldLogger, nsmConn *connection.Connection, existingCC *model.ClientConnection, dp *model.Dataplane) bool {
+func (cce *endpointSelectorService) checkNeedNSERequest(logger logrus.FieldLogger, nsmConn *connection.Connection, existingCC *model.ClientConnection, dp *model.Forwarder) bool {
 	// 4.2.x
 	// 4.2.1 Check if context is changed, if changed we need to
 	if !proto.Equal(nsmConn.GetContext(), existingCC.GetConnectionSource().GetContext()) {
@@ -213,7 +212,7 @@ func (cce *endpointSelectorService) checkNeedNSERequest(logger logrus.FieldLogge
 	if dst := existingCC.GetConnectionDestination(); dst.IsRemote() {
 		dstM := dst.GetConnectionMechanism()
 
-		// 4.2.2 Let's check if remote destination is matchs our dataplane destination.
+		// 4.2.2 Let's check if remote destination is matchs our forwarder destination.
 		if dpM := cce.findMechanism(dp.RemoteMechanisms, dstM.GetMechanismType()); dpM != nil {
 			// 4.2.3 We need to check if source mechanism type and source parameters are different
 			for k, v := range dpM.GetParameters() {
@@ -228,7 +227,7 @@ func (cce *endpointSelectorService) checkNeedNSERequest(logger logrus.FieldLogge
 				return true
 			}
 		} else {
-			logger.Infof("NSM:(4.2.5) Remote mechanism previously selected was not found: %v  in dataplane %v", dstM, dp.RemoteMechanisms)
+			logger.Infof("NSM:(4.2.5) Remote mechanism previously selected was not found: %v  in forwarder %v", dstM, dp.RemoteMechanisms)
 			return true
 		}
 	}

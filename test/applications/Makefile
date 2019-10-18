@@ -29,7 +29,7 @@ GOTEST=${GOCMD} test
 
 ORG=networkservicemesh
 BUILD_CONTAINERS=test-common nsm-generate-sriov-configmap
-RUN_CONTAINERS=dataplane $(BUILD_CONTAINERS)
+RUN_CONTAINERS=forwarder $(BUILD_CONTAINERS)
 KILL_CONTAINERS=$(BUILD_CONTAINERS)
 LOG_CONTAINERS=$(KILL_CONTAINERS)
 
@@ -86,8 +86,8 @@ docker-%-run: docker-%-build docker-%-kill
 	@echo "Starting $*..."
 	@docker run -d -v "/var/lib/networkservicemesh:/var/lib/networkservicemesh" $*/$* > /tmp/container.$*
 
-.PHONY: docker-dataplane-run
-docker-dataplane-run:
+.PHONY: docker-forwarder-run
+docker-forwarder-run:
 	@echo "Starting vpp..."
 	@docker run --network=host --privileged=true --volume=/var/run:/var/run --volume=/var/lib:/var/lib --volume=/lib/modules:/lib/modules --ipc=host --pid=host -d networkservicemesh/vpp > /tmp/container.vpp 
 	@echo "Starting vpp-daemon..."
