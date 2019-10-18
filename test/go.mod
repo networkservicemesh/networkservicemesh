@@ -9,8 +9,8 @@ require (
 	github.com/ligato/vpp-agent v2.3.0+incompatible
 	github.com/networkservicemesh/networkservicemesh/controlplane v0.2.0
 	github.com/networkservicemesh/networkservicemesh/controlplane/api v0.2.0
-	github.com/networkservicemesh/networkservicemesh/dataplane v0.2.0
-	github.com/networkservicemesh/networkservicemesh/dataplane/api v0.2.0
+	github.com/networkservicemesh/networkservicemesh/forwarder v0.2.0
+	github.com/networkservicemesh/networkservicemesh/forwarder/api v0.2.0
 	github.com/networkservicemesh/networkservicemesh/k8s v0.2.0
 	github.com/networkservicemesh/networkservicemesh/pkg v0.2.0
 	github.com/networkservicemesh/networkservicemesh/sdk v0.2.0
@@ -67,8 +67,8 @@ replace (
 	github.com/networkservicemesh/networkservicemesh => ../
 	github.com/networkservicemesh/networkservicemesh/controlplane => ../controlplane
 	github.com/networkservicemesh/networkservicemesh/controlplane/api => ../controlplane/api
-	github.com/networkservicemesh/networkservicemesh/dataplane => ../dataplane
-	github.com/networkservicemesh/networkservicemesh/dataplane/api => ../dataplane/api
+	github.com/networkservicemesh/networkservicemesh/forwarder => ../forwarder
+	github.com/networkservicemesh/networkservicemesh/forwarder/api => ../forwarder/api
 	github.com/networkservicemesh/networkservicemesh/k8s => ../k8s
 	github.com/networkservicemesh/networkservicemesh/k8s/api => ../k8s/api
 	github.com/networkservicemesh/networkservicemesh/pkg => ../pkg

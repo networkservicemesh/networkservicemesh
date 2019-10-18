@@ -6,22 +6,22 @@ import (
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// KernelDataplanePod creates a pod
-func KernelDataplanePod(name string, node *v1.Node) *v1.Pod {
-	return createKernelDataplanePod(name, node, nil, nil, nil)
+// KernelForwarderPod creates a pod
+func KernelForwarderPod(name string, node *v1.Node) *v1.Pod {
+	return createKernelForwarderPod(name, node, nil, nil, nil)
 }
 
-// KernelDataplanePodConfig creates a pod with config
-func KernelDataplanePodConfig(name string, node *v1.Node, variables map[string]string) *v1.Pod {
-	return createKernelDataplanePod(name, node, nil, nil, variables)
+// KernelForwarderPodConfig creates a pod with config
+func KernelForwarderPodConfig(name string, node *v1.Node, variables map[string]string) *v1.Pod {
+	return createKernelForwarderPod(name, node, nil, nil, variables)
 }
 
-// KernelDataplanePodLiveCheck creates a pod with live check
-func KernelDataplanePodLiveCheck(name string, node *v1.Node) *v1.Pod {
-	return createKernelDataplanePod(name, node, createProbe("/liveness"), createProbe("/readiness"), nil)
+// KernelForwarderPodLiveCheck creates a pod with live check
+func KernelForwarderPodLiveCheck(name string, node *v1.Node) *v1.Pod {
+	return createKernelForwarderPod(name, node, createProbe("/liveness"), createProbe("/readiness"), nil)
 }
 
-func createKernelDataplanePod(name string, node *v1.Node, liveness, readiness *v1.Probe, variables map[string]string) *v1.Pod {
+func createKernelForwarderPod(name string, node *v1.Node, liveness, readiness *v1.Probe, variables map[string]string) *v1.Pod {
 	ht := new(v1.HostPathType)
 	*ht = v1.HostPathDirectoryOrCreate
 
@@ -62,7 +62,7 @@ func createKernelDataplanePod(name string, node *v1.Node, liveness, readiness *v
 					},
 					Env: []v1.EnvVar{
 						{
-							Name: "NSM_DATAPLANE_SRC_IP",
+							Name: "NSM_FORWARDER_SRC_IP",
 							ValueFrom: &v1.EnvVarSource{
 								FieldRef: &v1.ObjectFieldSelector{
 									FieldPath: "status.podIP",
@@ -79,7 +79,7 @@ func createKernelDataplanePod(name string, node *v1.Node, liveness, readiness *v
 					},
 					LivenessProbe:  liveness,
 					ReadinessProbe: readiness,
-					Resources:      createDefaultDataplaneResources(),
+					Resources:      createDefaultForwarderResources(),
 				}),
 			},
 			TerminationGracePeriodSeconds: &ZeroGraceTimeout,

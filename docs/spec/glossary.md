@@ -85,7 +85,7 @@ Fundamentally, the defining characteristics of a Network Service Manager is that
 
 **Forwarding Element** - The component that makes decisions on moving packets between inputs and outputs
 
-**Network Service Mesh Dataplane** - The logical construct providing end-to-end connections, wires, mechanisms and forwarding elements to a network service. This may be achieved by provisioning mechanisms and configuring forwarding elements directly, or by making requests to an intermediate control plane acting as a proxy capable of providing the four components needed to realize the network service.
+**Network Service Mesh Forwarder** - The logical construct providing end-to-end connections, wires, mechanisms and forwarding elements to a network service. This may be achieved by provisioning mechanisms and configuring forwarding elements directly, or by making requests to an intermediate control plane acting as a proxy capable of providing the four components needed to realize the network service.
 
 *For example*: FD.io (VPP), OvS, Kernel Networking, SRIOV etc.
 

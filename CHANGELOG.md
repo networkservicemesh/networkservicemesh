@@ -3,8 +3,8 @@
 FEATURES:
 
 - spec: Mutating Admission Controller injecting NSM init container into pod spec - #708
-- spec: Readiness probes for nsmd, vppagent-dataplane - #711
-- core: Add liveness/readiness probes for nsmd and vppagent-dataplane #730
+- spec: Readiness probes for nsmd, vppagent-forwarder - #711
+- core: Add liveness/readiness probes for nsmd and vppagent-forwarder #730
 
 IMPROVEMENTS:
 
@@ -17,5 +17,5 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
-- core: TestNSCAndICMPRemote is failed because of VPP dataplane error - #725
+- core: TestNSCAndICMPRemote is failed because of VPP forwarder error - #725
 - core: Add check of cmdline during resolving namespace by inode - #748

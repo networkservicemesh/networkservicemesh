@@ -88,7 +88,7 @@ func testInterdomainVPN(t *testing.T, ptnum, clustersCount int, nodesCount int, 
 			Variables: pods.DefaultNSMD(),
 		}
 		cfg.Namespace = k8s.GetK8sNamespace()
-		cfg.DataplaneVariables = kubetest.DefaultDataplaneVariables(k8s.GetForwardingPlane())
+		cfg.ForwarderVariables = kubetest.DefaultForwarderVariables(k8s.GetForwardingPlane())
 
 		config = append(config, cfg)
 

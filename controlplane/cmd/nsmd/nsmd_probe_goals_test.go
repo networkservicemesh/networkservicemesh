@@ -19,7 +19,7 @@ func TestNsmdProbeGoals(t *testing.T) {
 	if g.IsComplete() {
 		t.FailNow()
 	}
-	g.SetDataplaneServerReady()
+	g.SetForwarderServerReady()
 	if !g.IsComplete() {
 		t.FailNow()
 	}

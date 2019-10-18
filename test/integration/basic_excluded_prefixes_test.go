@@ -42,7 +42,7 @@ func TestExcludePrefixCheck(t *testing.T) {
 	nodes, err := kubetest.SetupNodesConfig(k8s, nodesCount, defaultTimeout, []*pods.NSMgrPodConfig{
 		{
 			Variables:          variables,
-			DataplaneVariables: kubetest.DefaultDataplaneVariables(k8s.GetForwardingPlane()),
+			ForwarderVariables: kubetest.DefaultForwarderVariables(k8s.GetForwardingPlane()),
 			Namespace:          k8s.GetK8sNamespace(),
 		},
 	}, k8s.GetK8sNamespace())

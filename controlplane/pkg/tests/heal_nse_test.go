@@ -24,8 +24,8 @@ func TestHealRemoteNSE(t *testing.T) {
 	defer srv.Stop()
 	defer srv2.Stop()
 
-	srv.TestModel.AddDataplane(context.Background(), testDataplane1)
-	srv2.TestModel.AddDataplane(context.Background(), testDataplane2)
+	srv.TestModel.AddForwarder(context.Background(), testForwarder1)
+	srv2.TestModel.AddForwarder(context.Background(), testForwarder2)
 
 	// Register in both
 	nseReg := srv2.registerFakeEndpointWithName("golden_network", "test", Worker, "ep1")
@@ -80,7 +80,7 @@ func TestHealRemoteNSE(t *testing.T) {
 	clientConnection2 := srv2.TestModel.GetClientConnection(clientConnection1.Xcon.GetRemoteDestination().GetId())
 	g.Expect(clientConnection2.GetID()).To(Equal("1"))
 
-	// We need to inform cross connection monitor about this connection, since dataplane is fake one.
+	// We need to inform cross connection monitor about this connection, since forwarder is fake one.
 	l1.WaitAdd(1, timeout, t)
 
 	epName := clientConnection1.Endpoint.GetNetworkServiceEndpoint().GetName()

@@ -77,7 +77,7 @@ func testInterdomainNSEHeal(t *testing.T, clustersCount int, nodesCount int, aff
 			Variables: pods.DefaultNSMD(),
 		}
 		cfg.Namespace = k8s.GetK8sNamespace()
-		cfg.DataplaneVariables = kubetest.DefaultDataplaneVariables(k8s.GetForwardingPlane())
+		cfg.ForwarderVariables = kubetest.DefaultForwarderVariables(k8s.GetForwardingPlane())
 
 		config = append(config, cfg)
 

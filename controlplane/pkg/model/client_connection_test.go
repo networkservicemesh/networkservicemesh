@@ -37,10 +37,10 @@ func TestAddAndGetСс(t *testing.T) {
 				NetworkServiceName: "ns1",
 			},
 		},
-		DataplaneRegisteredName: "dp1",
+		ForwarderRegisteredName: "dp1",
 		ConnectionState:         ClientConnectionHealing,
 		Request:                 nil,
-		DataplaneState:          DataplaneStateReady,
+		ForwarderState:          ForwarderStateReady,
 	}
 
 	ccd := newClientConnectionDomain()
@@ -49,7 +49,7 @@ func TestAddAndGetСс(t *testing.T) {
 
 	g.Expect(getConn.ConnectionID).To(Equal(cc.ConnectionID))
 	g.Expect(getConn.ConnectionState).To(Equal(cc.ConnectionState))
-	g.Expect(getConn.DataplaneState).To(Equal(cc.DataplaneState))
+	g.Expect(getConn.ForwarderState).To(Equal(cc.ForwarderState))
 	g.Expect(getConn.Request).To(BeNil())
 
 	g.Expect(getConn.GetNetworkService()).To(Equal(cc.GetNetworkService()))
@@ -90,10 +90,10 @@ func TestGetAllСс(t *testing.T) {
 					NetworkServiceName: "ns1",
 				},
 			},
-			DataplaneRegisteredName: "dp1",
+			ForwarderRegisteredName: "dp1",
 			ConnectionState:         ClientConnectionHealing,
 			Request:                 nil,
-			DataplaneState:          DataplaneStateReady,
+			ForwarderState:          ForwarderStateReady,
 		})
 	}
 
@@ -137,10 +137,10 @@ func TestDeleteСс(t *testing.T) {
 				NetworkServiceName: "ns1",
 			},
 		},
-		DataplaneRegisteredName: "dp1",
+		ForwarderRegisteredName: "dp1",
 		ConnectionState:         ClientConnectionHealing,
 		Request:                 nil,
-		DataplaneState:          DataplaneStateReady,
+		ForwarderState:          ForwarderStateReady,
 	})
 
 	cc := ccd.GetClientConnection("1")
@@ -179,10 +179,10 @@ func TestUpdateExistingСс(t *testing.T) {
 				NetworkServiceName: "ns1",
 			},
 		},
-		DataplaneRegisteredName: "dp1",
+		ForwarderRegisteredName: "dp1",
 		ConnectionState:         ClientConnectionHealing,
 		Request:                 nil,
-		DataplaneState:          DataplaneStateReady,
+		ForwarderState:          ForwarderStateReady,
 	}
 
 	ccd := newClientConnectionDomain()
@@ -191,16 +191,16 @@ func TestUpdateExistingСс(t *testing.T) {
 	newUrl := "3.3.3.3"
 	newDpName := "updatedName"
 	cc.Endpoint.NetworkServiceManager.Url = newUrl
-	cc.DataplaneRegisteredName = newDpName
+	cc.ForwarderRegisteredName = newDpName
 
 	notUpdated := ccd.GetClientConnection("1")
 	g.Expect(notUpdated.Endpoint.NetworkServiceManager.Url).ToNot(Equal(newUrl))
-	g.Expect(notUpdated.DataplaneRegisteredName).ToNot(Equal(newDpName))
+	g.Expect(notUpdated.ForwarderRegisteredName).ToNot(Equal(newDpName))
 
 	ccd.UpdateClientConnection(context.Background(), cc)
 	updated := ccd.GetClientConnection("1")
 	g.Expect(updated.Endpoint.NetworkServiceManager.Url).To(Equal(newUrl))
-	g.Expect(updated.DataplaneRegisteredName).To(Equal(newDpName))
+	g.Expect(updated.ForwarderRegisteredName).To(Equal(newDpName))
 }
 
 func TestUpdateNotExistingСс(t *testing.T) {
@@ -228,10 +228,10 @@ func TestUpdateNotExistingСс(t *testing.T) {
 				NetworkServiceName: "ns1",
 			},
 		},
-		DataplaneRegisteredName: "dp1",
+		ForwarderRegisteredName: "dp1",
 		ConnectionState:         ClientConnectionHealing,
 		Request:                 nil,
-		DataplaneState:          DataplaneStateReady,
+		ForwarderState:          ForwarderStateReady,
 	}
 
 	ccd := newClientConnectionDomain()
@@ -239,7 +239,7 @@ func TestUpdateNotExistingСс(t *testing.T) {
 	ccd.UpdateClientConnection(context.Background(), cc)
 	updated := ccd.GetClientConnection("1")
 	g.Expect(updated.Endpoint.NetworkServiceManager.Url).To(Equal("2.2.2.2"))
-	g.Expect(updated.DataplaneRegisteredName).To(Equal("dp1"))
+	g.Expect(updated.ForwarderRegisteredName).To(Equal("dp1"))
 }
 
 func TestApplyChanges(t *testing.T) {
@@ -268,10 +268,10 @@ func TestApplyChanges(t *testing.T) {
 				NetworkServiceName: "ns1",
 			},
 		},
-		DataplaneRegisteredName: "dp1",
+		ForwarderRegisteredName: "dp1",
 		ConnectionState:         ClientConnectionHealing,
 		Request:                 nil,
-		DataplaneState:          DataplaneStateReady,
+		ForwarderState:          ForwarderStateReady,
 	})
 
 	ccd.ApplyClientConnectionChanges(context.Background(), "1", func(cc *ClientConnection) {

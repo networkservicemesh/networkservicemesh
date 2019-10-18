@@ -37,8 +37,8 @@ replace (
 	github.com/networkservicemesh/networkservicemesh/controllers/sriov-controller => ./controllers/sriov-controller
 	github.com/networkservicemesh/networkservicemesh/controlplane => ./controlplane
 	github.com/networkservicemesh/networkservicemesh/controlplane/api => ./controlplane/api
-	github.com/networkservicemesh/networkservicemesh/dataplane => ./dataplane
-	github.com/networkservicemesh/networkservicemesh/dataplane/api => ./dataplane/api
+	github.com/networkservicemesh/networkservicemesh/forwarder => ./forwarder
+	github.com/networkservicemesh/networkservicemesh/forwarder/api => ./forwarder/api
 	github.com/networkservicemesh/networkservicemesh/k8s => ./k8s
 	github.com/networkservicemesh/networkservicemesh/k8s/api => ./k8s/api
 	github.com/networkservicemesh/networkservicemesh/pkg => ./pkg
@@ -51,4 +51,4 @@ replace (
 
 go 1.13
 
-require github.com/networkservicemesh/networkservicemesh/dataplane v0.0.0-00010101000000-000000000000 // indirect
+require github.com/networkservicemesh/networkservicemesh/forwarder v0.0.0-00010101000000-000000000000 // indirect

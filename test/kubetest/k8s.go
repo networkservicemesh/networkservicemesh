@@ -1336,7 +1336,7 @@ func (k8s *K8s) UseIPv6() bool {
 func (k8s *K8s) setForwardingPlane() {
 	plane, ok := os.LookupEnv(pods.EnvForwardingPlane)
 	if !ok {
-		logrus.Infof("%s not set, using default dataplane - %s", pods.EnvForwardingPlane, pods.EnvForwardingPlaneDefault)
+		logrus.Infof("%s not set, using default forwarder - %s", pods.EnvForwardingPlane, pods.EnvForwardingPlaneDefault)
 		k8s.forwardingPlane = pods.EnvForwardingPlaneDefault
 	} else {
 		logrus.Infof("%s set to: %s", pods.EnvForwardingPlane, plane)

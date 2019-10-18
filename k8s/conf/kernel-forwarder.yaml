@@ -19,7 +19,7 @@ spec:
           image: networkservicemesh/kernel-forwarder:latest
           imagePullPolicy: IfNotPresent
           env:
-            - name: NSM_DATAPLANE_SRC_IP
+            - name: NSM_FORWARDER_SRC_IP
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP

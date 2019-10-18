@@ -37,8 +37,8 @@ if [ "$1" = "icmp-responder-nse" ]; then
     output=/bin/$1
 fi
 
-if [ "$1" = "vppagent-dataplane" ]; then
-    go_file=./dataplane/vppagent/cmd/vppagent-dataplane.go
+if [ "$1" = "vppagent-forwarder" ]; then
+    go_file=./forwarder/vppagent/cmd/vppagent-forwarder.go
     output=/bin/$1
 fi
 
@@ -54,6 +54,6 @@ pkill -f "$output"
 echo "Compile and start of ${go_file}"
 
 # Prepare environment for NSMD
-export NSM_SERVER_SOCKET=/var/lib/networkservicemesh/nsm.dataplane-registrar.io.sock
+export NSM_SERVER_SOCKET=/var/lib/networkservicemesh/nsm.forwarder-registrar.io.sock
 CGO_ENABLED=0 GOOS=linux go build -i -ldflags '-extldflags "-static"' -o "${output}" "${go_file}"
 "${output}"

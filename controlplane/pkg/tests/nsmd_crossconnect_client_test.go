@@ -116,10 +116,10 @@ func readNMSDCrossConnectEvents(address string, count int) []*crossconnect.Cross
 		return nil
 	}
 	defer conn.Close()
-	dataplaneClient := crossconnect.NewMonitorCrossConnectClient(conn)
+	forwarderClient := crossconnect.NewMonitorCrossConnectClient(conn)
 
 	// Looping indefinitely or until grpc returns an error indicating the other end closed connection.
-	stream, err := dataplaneClient.MonitorCrossConnects(context.Background(), &empty.Empty{})
+	stream, err := forwarderClient.MonitorCrossConnects(context.Background(), &empty.Empty{})
 	if err != nil {
 		logrus.Warningf("Error: %+v.", err)
 		return nil

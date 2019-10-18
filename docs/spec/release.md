@@ -41,8 +41,8 @@ The subject of the release are the following items:
         * nsmdp
     * Registry connectors
         * nsmd-k8s
-    * Dataplane implementations
-        * vppagent-dataplane
+    * Forwarder implementations
+        * vppagent-forwarder
 * Deployability artifacts
     * Yaml files
     * Helm charts
@@ -55,7 +55,7 @@ The subject of the release are the following items:
         * Private on-prem deployment
         * Writing Network Service yaml
     * NS Client and Endpoint development through the SDK
-    * (Optional) Dataplane implementator’s guide
+    * (Optional) Forwarder implementator’s guide
 
 Image publishing
 ----------------

@@ -115,7 +115,7 @@ func (c *Commit) send(ctx context.Context, dataChange *configurator.Config) erro
 	}
 	defer func() {
 		if err := conn.Close(); err != nil {
-			logrus.Errorf("error closing dataplane connection %v", err)
+			logrus.Errorf("error closing forwarder connection %v", err)
 		}
 	}()
 	client := configurator.NewConfiguratorClient(conn)

@@ -10,7 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 
-	"github.com/networkservicemesh/networkservicemesh/dataplane/pkg/common"
+	"github.com/networkservicemesh/networkservicemesh/forwarder/pkg/common"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 )
 
@@ -86,6 +86,6 @@ func IsVppAgentNsePinged(k8s *K8s, from *v1.Pod) (result bool) {
 // DefaultPlaneVariablesVPP - Default variables for VPP deployment
 func DefaultPlaneVariablesVPP() map[string]string {
 	return map[string]string{
-		common.DataplaneMetricsEnabledKey: "false",
+		common.ForwarderMetricsEnabledKey: "false",
 	}
 }

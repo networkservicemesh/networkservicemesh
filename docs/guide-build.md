@@ -67,7 +67,7 @@ By default this will:
 1. Spin up a two node K8s cluster from `scripts/vagrant` if one is not already running.
 2. Delete old instances of NSM config if present
 3. Load all images from `scripts/vagrant/images` into the `master` and `worker` node
-4. Deploy the `nsmd` and `vppagent-dataplane` Daemonsets
+4. Deploy the `nsmd` and `vppagent-forwarder` Daemonsets
 5. Deploy a variety of Network Service Endpoints and Network Service Clients
 6. Deploy the `crossconnect-monitor` (a useful tool for debugging)
 
@@ -109,7 +109,7 @@ source scripts/vagrant/env.sh
 
 ### Deploying the NSM infrastructure
 
-Network Service Mesh consists of a number of system pods, which take care of service registration, provide the dataplane functionality, do monitoring and observability.
+Network Service Mesh consists of a number of system pods, which take care of service registration, provide the forwarder functionality, do monitoring and observability.
 
 Once you have configured your ```kubectl``` to the desired Kubernetes `master` (may or may not be set through Vagrant), you can initiate the NSM infrastructure deployment and deletion using 
 ```bash 

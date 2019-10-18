@@ -23,11 +23,11 @@ func (t *testListener) EndpointDeleted(ctx context.Context, endpoint *Endpoint) 
 	t.Done()
 }
 
-func (t *testListener) DataplaneAdded(ctx context.Context, dataplane *Dataplane) {
+func (t *testListener) ForwarderAdded(ctx context.Context, forwarder *Forwarder) {
 	t.Done()
 }
 
-func (t *testListener) DataplaneDeleted(ctx context.Context, dataplane *Dataplane) {
+func (t *testListener) ForwarderDeleted(ctx context.Context, forwarder *Forwarder) {
 	t.Done()
 }
 
@@ -53,8 +53,8 @@ func TestModelListener(t *testing.T) {
 	m.UpdateEndpoint(context.Background(), &Endpoint{})
 	m.DeleteEndpoint(context.Background(), "")
 
-	m.AddDataplane(context.Background(), &Dataplane{})
-	m.DeleteDataplane(context.Background(), "")
+	m.AddForwarder(context.Background(), &Forwarder{})
+	m.DeleteForwarder(context.Background(), "")
 
 	m.AddClientConnection(context.Background(), &ClientConnection{})
 	m.UpdateClientConnection(context.Background(), &ClientConnection{})

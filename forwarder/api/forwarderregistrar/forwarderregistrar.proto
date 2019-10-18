@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package forwarderregistrar;
+
+import "ptypes/empty/empty.proto";
+
+// ForwarderRegistrationRequest is sent by the forwarder to NSM
+// to advertise itself and inform NSM about the location of the forwarder socket
+// and its initially supported parameters.
+message ForwarderRegistrationRequest {
+  string forwarder_name = 1;
+  string forwarder_socket = 2;
+}
+
+message ForwarderRegistrationReply {
+  bool registered = 1;
+}
+
+service ForwarderRegistration {
+    rpc RequestForwarderRegistration (ForwarderRegistrationRequest) returns (ForwarderRegistrationReply);
+    // RequestLiveness is a stream initiated by NSM to inform the forwarder that NSM is still alive and
+    // no re-registration is required. Detection a failure on this "channel" will mean
+    // that NSM is gone and the forwarder needs to start re-registration logic.
+    rpc RequestLiveness (stream google.protobuf.Empty) returns (stream google.protobuf.Empty);
+}
+
+// ForwarderUnRegistrationRequest is sent by the forwarder to NSM
+// to remove itself from the list of available forwarders.
+message ForwarderUnRegistrationRequest {
+    string forwarder_name = 1;
+  }
+  
+  message ForwarderUnRegistrationReply {
+    bool un_registered = 1;
+  }
+  
+  service ForwarderUnRegistration {
+      rpc RequestForwarderUnRegistration (ForwarderUnRegistrationRequest) returns (ForwarderUnRegistrationReply);
+  }

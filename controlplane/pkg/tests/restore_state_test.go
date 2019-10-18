@@ -18,13 +18,13 @@ func TestRestoreConnectionState(t *testing.T) {
 	srv := NewNSMDFullServer(Master, storage)
 	defer srv.Stop()
 
-	srv.AddFakeDataplane("dp1", "tcp:some_address")
+	srv.AddFakeForwarder("dp1", "tcp:some_address")
 
-	g.Expect(srv.nsmServer.Manager().WaitForDataplane(context.Background(), 1*time.Millisecond).Error()).To(Equal("failed to wait for NSMD stare restore... timeout 1ms happened"))
+	g.Expect(srv.nsmServer.Manager().WaitForForwarder(context.Background(), 1*time.Millisecond).Error()).To(Equal("failed to wait for NSMD stare restore... timeout 1ms happened"))
 
 	xcons := []*crossconnect.CrossConnect{}
 	srv.nsmServer.Manager().RestoreConnections(xcons, "dp1", srv.nsmServer)
-	g.Expect(srv.nsmServer.Manager().WaitForDataplane(context.Background(), 1*time.Second)).To(BeNil())
+	g.Expect(srv.nsmServer.Manager().WaitForForwarder(context.Background(), 1*time.Second)).To(BeNil())
 }
 
 func TestRestoreConnectionStateWrongDst(t *testing.T) {
@@ -34,7 +34,7 @@ func TestRestoreConnectionStateWrongDst(t *testing.T) {
 	srv := NewNSMDFullServer(Master, storage)
 	defer srv.Stop()
 
-	srv.AddFakeDataplane("dp1", "tcp:some_address")
+	srv.AddFakeForwarder("dp1", "tcp:some_address")
 	srv.registerFakeEndpointWithName("ns1", "IP", Worker, "ep2")
 
 	nsmClient := srv.RequestNSM("nsm1")
@@ -71,6 +71,6 @@ func TestRestoreConnectionStateWrongDst(t *testing.T) {
 		},
 	}
 	srv.nsmServer.Manager().RestoreConnections(xcons, "dp1", srv.nsmServer)
-	g.Expect(srv.nsmServer.Manager().WaitForDataplane(context.Background(), 1*time.Second)).To(BeNil())
+	g.Expect(srv.nsmServer.Manager().WaitForForwarder(context.Background(), 1*time.Second)).To(BeNil())
 	g.Expect(len(srv.TestModel.GetAllClientConnections())).To(Equal(0))
 }

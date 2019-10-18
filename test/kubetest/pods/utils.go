@@ -38,7 +38,7 @@ func createDefaultResources() v1.ResourceRequirements {
 	}
 }
 
-func createDefaultDataplaneResources() v1.ResourceRequirements {
+func createDefaultForwarderResources() v1.ResourceRequirements {
 	return v1.ResourceRequirements{
 		Requests: v1.ResourceList{
 			v1.ResourceCPU: resource.NewScaledQuantity(1, -3).DeepCopy(),

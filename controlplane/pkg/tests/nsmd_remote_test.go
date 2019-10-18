@@ -27,9 +27,9 @@ func TestNSMDRequestClientRemoteNSMD(t *testing.T) {
 	defer srv.Stop()
 	defer srv2.Stop()
 
-	srv.TestModel.AddDataplane(context.Background(), testDataplane1)
+	srv.TestModel.AddForwarder(context.Background(), testForwarder1)
 
-	srv2.TestModel.AddDataplane(context.Background(), testDataplane2)
+	srv2.TestModel.AddForwarder(context.Background(), testForwarder2)
 
 	// Register in both
 	nseReg := srv2.RegisterFakeEndpoint("golden_network", "test", Worker)
@@ -67,7 +67,7 @@ func TestNSMDRequestClientRemoteNSMD(t *testing.T) {
 	g.Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
 
 	// We need to check for cross connections.
-	cross_connections := srv2.serviceRegistry.testDataplaneConnection.connections
+	cross_connections := srv2.serviceRegistry.testForwarderConnection.connections
 	g.Expect(len(cross_connections)).To(Equal(1))
 	logrus.Print("End of test")
 }
@@ -80,7 +80,7 @@ func TestNSMDCloseCrossConnection(t *testing.T) {
 	srv2 := NewNSMDFullServer(Worker, storage)
 	defer srv.Stop()
 	defer srv2.Stop()
-	srv.TestModel.AddDataplane(context.Background(), &model.Dataplane{
+	srv.TestModel.AddForwarder(context.Background(), &model.Forwarder{
 		RegisteredName: "test_data_plane",
 		SocketLocation: "tcp:some_addr",
 		LocalMechanisms: []connection.Mechanism{
@@ -100,7 +100,7 @@ func TestNSMDCloseCrossConnection(t *testing.T) {
 		MechanismsConfigured: true,
 	})
 
-	srv2.TestModel.AddDataplane(context.Background(), &model.Dataplane{
+	srv2.TestModel.AddForwarder(context.Background(), &model.Forwarder{
 		RegisteredName: "test_data_plane",
 		SocketLocation: "tcp:some_addr",
 		RemoteMechanisms: []connection.Mechanism{
@@ -180,14 +180,14 @@ func TestNSMDDelayRemoteMechanisms(t *testing.T) {
 	defer srv.Stop()
 	defer srv2.Stop()
 
-	srv.TestModel.AddDataplane(context.Background(), testDataplane1)
+	srv.TestModel.AddForwarder(context.Background(), testForwarder1)
 
-	testDataplane2_2 := &model.Dataplane{
+	testForwarder2_2 := &model.Forwarder{
 		RegisteredName: "test_data_plane2",
 		SocketLocation: "tcp:some_addr",
 	}
 
-	srv2.TestModel.AddDataplane(context.Background(), testDataplane2_2)
+	srv2.TestModel.AddForwarder(context.Background(), testForwarder2_2)
 
 	// Register in both
 	nseReg := srv2.RegisterFakeEndpoint("golden_network", "test", Worker)
@@ -233,17 +233,17 @@ func TestNSMDDelayRemoteMechanisms(t *testing.T) {
 
 	<-time.After(100 * time.Millisecond)
 
-	testDataplane2_2.LocalMechanisms = testDataplane2.LocalMechanisms
-	testDataplane2_2.RemoteMechanisms = testDataplane2.RemoteMechanisms
-	testDataplane2_2.MechanismsConfigured = true
-	srv2.TestModel.UpdateDataplane(context.Background(), testDataplane2_2)
+	testForwarder2_2.LocalMechanisms = testForwarder2.LocalMechanisms
+	testForwarder2_2.RemoteMechanisms = testForwarder2.RemoteMechanisms
+	testForwarder2_2.MechanismsConfigured = true
+	srv2.TestModel.UpdateForwarder(context.Background(), testForwarder2_2)
 
 	res := <-resultChan
 	g.Expect(res.err).To(BeNil())
 	g.Expect(res.nsmResponse.GetNetworkService()).To(Equal("golden_network"))
 
 	// We need to check for crМфвук31oss connections.
-	cross_connections := srv2.serviceRegistry.testDataplaneConnection.connections
+	cross_connections := srv2.serviceRegistry.testForwarderConnection.connections
 	g.Expect(len(cross_connections)).To(Equal(1))
 	logrus.Print("End of test")
 }
