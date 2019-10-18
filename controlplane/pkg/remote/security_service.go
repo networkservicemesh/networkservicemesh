@@ -22,7 +22,6 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 	"github.com/networkservicemesh/networkservicemesh/pkg/security"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 )
@@ -39,9 +38,8 @@ func NewSecurityService(provider security.Provider) *securityService {
 
 func (s *securityService) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 	span := spanhelper.GetSpanHelper(ctx)
-	sc := security.NewContext()
 
-	conn, err := ProcessNext(common.WithSecurityContext(ctx, sc), request)
+	conn, err := ProcessNext(ctx, request)
 	if err != nil {
 		span.LogError(err)
 		return nil, err
@@ -52,7 +50,7 @@ func (s *securityService) Request(ctx context.Context, request *networkservice.N
 		return conn, nil
 	}
 
-	if err := security.SignConnection(conn, sc.GetResponseOboToken(), s.provider); err != nil {
+	if err := security.SignConnection(conn, security.SecurityContext(ctx).GetResponseOboToken(), s.provider); err != nil {
 		span.LogError(err)
 		return nil, err
 	}
@@ -62,13 +60,4 @@ func (s *securityService) Request(ctx context.Context, request *networkservice.N
 
 func (s *securityService) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
 	return ProcessClose(ctx, connection)
-}
-
-func getOboToken(ctx context.Context) string {
-	nseConn := common.EndpointConnection(ctx)
-	if nseConn == nil {
-		return ""
-	}
-
-	return nseConn.GetSignature()
 }

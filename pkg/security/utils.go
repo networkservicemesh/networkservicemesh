@@ -58,23 +58,15 @@ func ClientInterceptor(securityProvider Provider) grpc.UnaryClientInterceptor {
 		invoker grpc.UnaryInvoker,
 		opts ...grpc.CallOption) error {
 
-		//request, ok := req.(*networkservice.NetworkServiceRequest)
-		//if !ok {
-		//	return invoker(ctx, method, req, reply, cc, opts...)
-		//}
-		//
-		//logrus.Infof("ClientInterceptor start working, networkService = %v ...",
-		//	request.GetRequestConnection().GetNetworkService())
-
 		claimSetter := check(req)
 		if claimSetter == nil {
 			return invoker(ctx, method, req, reply, cc, opts...)
 		}
 
 		var obo string
-		if token, ok := ctx.Value("token").(string); ok {
-			logrus.Infof("ClientInterceptor discovered obo-token: %v", token)
-			obo = token
+		if SecurityContext(ctx) != nil && SecurityContext(ctx).GetRequestOboToken() != "" {
+			logrus.Infof("ClientInterceptor discovered obo-token: %v", SecurityContext(ctx).GetRequestOboToken())
+			obo = SecurityContext(ctx).GetRequestOboToken()
 		}
 
 		token, err := GenerateSignature(req, claimSetter, securityProvider, WithObo(obo))
@@ -153,10 +145,12 @@ func ServerInterceptor(securityProvider Provider) grpc.UnaryServerInterceptor {
 		}
 
 		_, _, claims, _ := ParseJWTWithClaims(jwt)
-		newCtx := context.WithValue(ctx, NSMClaimsContextKey, claims)
-		newCtx = context.WithValue(newCtx, "token", jwt)
 
-		return handler(newCtx, req)
+		securityContext := NewContext()
+		securityContext.SetRequestOboToken(jwt)
+		securityContext.SetClaims(claims)
+
+		return handler(WithSecurityContext(ctx, securityContext), req)
 	}
 }
 

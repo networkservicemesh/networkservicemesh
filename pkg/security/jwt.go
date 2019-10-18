@@ -13,7 +13,7 @@ import (
 type contextKey int
 
 const (
-	NSMClaimsContextKey contextKey = iota
+	securityContextKey contextKey = iota
 )
 
 // NSMToken is implementation of PerRPCCredentials for NSM

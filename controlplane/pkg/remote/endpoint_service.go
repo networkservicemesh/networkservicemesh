@@ -16,6 +16,7 @@ package remote
 
 import (
 	"context"
+	"github.com/networkservicemesh/networkservicemesh/pkg/security"
 
 	"github.com/pkg/errors"
 
@@ -127,7 +128,7 @@ func (cce *endpointService) Request(ctx context.Context, request *networkservice
 	ctx = common.WithEndpointConnection(ctx, nseConn)
 
 	logrus.Infof("remote.EndpointService: setting nseConn.ResponseJWT to SecurityContext - %v", nseConn.GetSignature())
-	common.SecurityContext(ctx).SetResponseOboToken(nseConn.GetSignature())
+	security.SecurityContext(ctx).SetResponseOboToken(nseConn.GetSignature())
 
 	return ProcessNext(ctx, request)
 }

@@ -17,8 +17,6 @@ package common
 import (
 	"context"
 
-	"github.com/networkservicemesh/networkservicemesh/pkg/security"
-
 	"github.com/opentracing/opentracing-go"
 
 	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
@@ -272,19 +270,4 @@ func WorkspaceName(ctx context.Context) string {
 		return ""
 	}
 	return value.(string)
-}
-
-func WithSecurityContext(parent context.Context, sc security.Context) context.Context {
-	if parent == nil {
-		parent = context.Background()
-	}
-	return context.WithValue(parent, securityContextKey, sc)
-}
-
-func SecurityContext(ctx context.Context) security.Context {
-	value := ctx.Value(securityContextKey)
-	if value == nil {
-		return nil
-	}
-	return value.(security.Context)
 }
