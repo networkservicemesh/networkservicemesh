@@ -92,7 +92,6 @@ func NSMgrPodLiveCheck(name string, node *v1.Node, namespace string) *v1.Pod {
 }
 
 func NSMgrPodWithConfig(name string, node *v1.Node, config *NSMgrPodConfig) *v1.Pod {
-
 	ht := new(v1.HostPathType)
 	*ht = v1.HostPathDirectoryOrCreate
 

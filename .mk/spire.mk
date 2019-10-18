@@ -12,14 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-SPIRE_NAMESPACE=spire
+ifeq ($(CA_DIR),)
+selfSignedCA = true
+else
+selfSignedCA = false
+endif
 
 .PHONY: spire-install
 spire-install:
+	$(info Self Signed CA = $(selfSignedCA))
 	@if ! helm install --name=spire \
 	--wait --timeout 600 \
 	--set org="${CONTAINER_REPO}",tag="${CONTAINER_TAG}" \
-	--namespace="${SPIRE_NAMESPACE}" \
+	--set selfSignedCA="${selfSignedCA}",caDir="${CA_DIR}" \
 	deployments/helm/nsm/charts/spire ; then \
 		echo "ERROR: Failed to deploy spire"; \
 		kubectl get pods --all-namespaces; \
@@ -32,8 +37,8 @@ spire-install-azure:
 	helm install --name=spire \
 	--wait --timeout 300 \
 	--set org="${CONTAINER_REPO}",tag="${CONTAINER_TAG}" \
+	--set selfSignedCA="${selfSignedCA}",caDir="${CA_DIR}" \
 	--set azure.enabled=true \
-	--namespace="${SPIRE_NAMESPACE}" \
 	deployments/helm/nsm/charts/spire
 
 .PHONY: spire-delete

@@ -40,7 +40,6 @@ type ConnectionEndpoint struct {
 // Consumes from ctx context.Context:
 //	   Next
 func (cce *ConnectionEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
-
 	err := request.IsValid()
 	if err != nil {
 		Log(ctx).Errorf("Request is not valid: %v", err)

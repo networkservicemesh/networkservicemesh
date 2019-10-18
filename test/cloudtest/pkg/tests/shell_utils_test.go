@@ -27,7 +27,6 @@ func TestVariableSubstitutions(t *testing.T) {
 	var1, err := utils.SubstituteVariable("qwe ${KUBECONFIG} $(uuid) BBB", env, args)
 	g.Expect(err).To(BeNil())
 	g.Expect(var1).To(Equal("qwe ~/.kube/config uu-uu BBB"))
-
 }
 
 func TestParseCommandLine1(t *testing.T) {

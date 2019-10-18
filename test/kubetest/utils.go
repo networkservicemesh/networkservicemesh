@@ -463,7 +463,6 @@ func DeployAdmissionWebhook(k8s *K8s, name, image, namespace string, timeout tim
 // DeleteAdmissionWebhook - Delete admission webhook
 func DeleteAdmissionWebhook(k8s *K8s, secretName string,
 	awc *arv1beta1.MutatingWebhookConfiguration, awDeployment *appsv1.Deployment, awService *v1.Service, namespace string) {
-
 	err := k8s.DeleteService(awService, namespace)
 	k8s.g.Expect(err).To(BeNil())
 
@@ -479,7 +478,6 @@ func DeleteAdmissionWebhook(k8s *K8s, secretName string,
 
 // CreateAdmissionWebhookSecret - Create admission webhook secret
 func CreateAdmissionWebhookSecret(k8s *K8s, name, namespace string) (*v1.Secret, []byte) {
-
 	caCertSpec := &cert.Config{
 		CommonName: "admission-controller-ca",
 		Usages:     []x509.ExtKeyUsage{x509.ExtKeyUsageAny},
@@ -679,7 +677,6 @@ func waitWebhookPod(k8s *K8s, name string, timeout time.Duration) *v1.Pod {
 					return result
 				}
 			}
-
 		}
 		<-time.After(time.Millisecond * 100)
 	}

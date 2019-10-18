@@ -7,7 +7,6 @@ import (
 )
 
 func main() {
-
 	var wg sync.WaitGroup
 	wg.Add(1)
 
@@ -22,5 +21,4 @@ func main() {
 	lookForNSMServers()
 
 	wg.Wait()
-
 }

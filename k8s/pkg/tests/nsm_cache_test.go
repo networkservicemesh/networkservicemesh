@@ -41,7 +41,6 @@ func TestNsmCacheConcurrentModification(t *testing.T) {
 		g.Expect(nsm1.Name).Should(Equal("nsm-1"))
 
 		c.Get("nsm-2")
-
 	})
 	defer stopRead()
 	stopUpdate := RepeatAsync(func() {
@@ -51,7 +50,6 @@ func TestNsmCacheConcurrentModification(t *testing.T) {
 	stopWrite := RepeatAsync(func() {
 		c.Delete("nsm-2")
 		c.Add(FakeNsm("nsm-2"))
-
 	})
 	defer stopWrite()
 

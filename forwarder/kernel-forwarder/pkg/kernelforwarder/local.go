@@ -43,7 +43,6 @@ func handleLocalConnection(crossConnect *crossconnect.CrossConnect, connect bool
 			logrus.Errorf("local: failed to create connection - %v", err)
 			devices = nil
 		}
-
 	} else {
 		/* 3. Delete a connection */
 		devices, err = deleteLocalConnection(cfg)
@@ -88,7 +87,6 @@ func createLocalConnection(cfg *connectionConfig) (map[string]monitoring.Device,
 			logrus.Error("local: error when closing destination handle: ", err)
 		}
 		logrus.Debug("local: closed destination handle: ", dstNsHandle, cfg.dstNetNsInode)
-
 	}()
 	logrus.Debug("local: opened destination handle: ", dstNsHandle, cfg.dstNetNsInode)
 
@@ -149,7 +147,6 @@ func deleteLocalConnection(cfg *connectionConfig) (map[string]monitoring.Device,
 			logrus.Error("local: error when closing destination handle: ", err)
 		}
 		logrus.Debug("local: closed destination handle: ", dstNsHandle, cfg.dstNetNsInode)
-
 	}()
 	logrus.Debug("local: opened destination handle: ", dstNsHandle, cfg.dstNetNsInode)
 

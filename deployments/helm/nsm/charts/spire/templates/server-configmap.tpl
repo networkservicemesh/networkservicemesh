@@ -51,6 +51,15 @@ data:
           keys_path = "/run/spire/data/keys.json"
         }
       }
+      {{- if not .Values.selfSignedCA }}
+      UpstreamCA "disk" {
+        plugin_data {
+          ttl = "12h"
+          key_file_path = "/run/spire/secret/bootstrap.key"
+          cert_file_path = "/run/spire/secret/bootstrap.crt"
+        }
+      }
+      {{- end }}
       Notifier "k8sbundle" {
         plugin_data {
           # This plugin updates the bundle.crt value in the spire:spire-bundle

@@ -160,7 +160,6 @@ func (impl *nsmdServiceRegistry) DiscoveryClient(ctx context.Context) (registry.
 }
 
 func (impl *nsmdServiceRegistry) initRegistryClient(ctx context.Context) {
-
 	if impl.registryClientConnection != nil && impl.registryClientConnection.GetState() == connectivity.Ready {
 		return // Connection already established.
 	}

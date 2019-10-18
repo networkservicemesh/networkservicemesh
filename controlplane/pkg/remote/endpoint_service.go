@@ -51,7 +51,6 @@ type endpointService struct {
 }
 
 func (cce *endpointService) closeEndpoint(ctx context.Context, cc *model.ClientConnection) error {
-
 	span := spanhelper.FromContext(ctx, "closeEndpoint")
 	defer span.Finish()
 	ctx = span.Context()
@@ -131,7 +130,6 @@ func (cce *endpointService) Request(ctx context.Context, request *networkservice
 }
 
 func (cce *endpointService) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
-
 	clientConnection := common.ModelConnection(ctx)
 	if clientConnection != nil {
 		if err := cce.closeEndpoint(ctx, clientConnection); err != nil {

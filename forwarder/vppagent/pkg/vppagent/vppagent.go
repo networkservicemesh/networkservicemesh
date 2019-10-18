@@ -266,7 +266,6 @@ func (v *VPPAgent) setupMetricsCollector() {
 
 func (v *VPPAgent) endpoint() string {
 	return utils.EnvVar(VPPEndpointKey).GetStringOrDefault(VPPEndpointDefault)
-
 }
 
 func (v *VPPAgent) configureVPPAgent() error {

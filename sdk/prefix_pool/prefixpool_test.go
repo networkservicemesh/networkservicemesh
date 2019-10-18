@@ -328,7 +328,6 @@ func TestIntersect2(t *testing.T) {
 	g.Expect(pp.Intersect("10.32.0.0/10")).To(Equal(true))
 	g.Expect(pp.Intersect("10.32.0.0/24")).To(Equal(true))
 	g.Expect(pp.Intersect("10.2.0.0/16")).To(Equal(false))
-
 }
 
 func TestReleaseExcludePrefixes(t *testing.T) {

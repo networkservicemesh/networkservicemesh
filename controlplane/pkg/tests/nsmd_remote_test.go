@@ -169,7 +169,6 @@ func TestNSMDCloseCrossConnection(t *testing.T) {
 
 	cross_connection2 = srv2.TestModel.GetClientConnection(destConnectionId)
 	g.Expect(cross_connection2).To(BeNil())
-
 }
 
 func TestNSMDDelayRemoteMechanisms(t *testing.T) {

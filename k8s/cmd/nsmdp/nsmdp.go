@@ -291,7 +291,6 @@ func (nsm *nsmClientEndpoints) addClientDevice() {
 		nsm.resp.Devices = append(nsm.resp.Devices, dev)
 		break
 	}
-
 }
 
 func (n *nsmClientEndpoints) sendDeviceUpdate(ctx context.Context) {

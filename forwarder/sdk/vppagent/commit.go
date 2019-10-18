@@ -54,7 +54,6 @@ func getDataChangeAndClient(ctx context.Context) (*configurator.Config, configur
 	dataChange := DataChange(ctx)
 	if dataChange == nil {
 		return nil, nil, errors.New("dataChange is not passed")
-
 	}
 	client := ConfiguratorClient(ctx)
 	if client == nil {

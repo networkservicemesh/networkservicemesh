@@ -143,7 +143,6 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 				},
 			},
 		})
-
 	}
 
 	// Process static routes

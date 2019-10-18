@@ -12,6 +12,7 @@ providers:
       - CLUSTER_RULES_PREFIX=null  # To not add any specific code
       - KUBECONFIG=$(tempdir)/config
       - CLUSTER_NAME=$(cluster-name)-$(date)-${CIRCLE_BUILD_NUM}-$(rands10)
+      - CA_DIR=./deployments/helm/nsm/charts/spire/
     env-check:
       - PACKET_AUTH_TOKEN
       - PACKET_PROJECT_ID
@@ -48,3 +49,4 @@ providers:
         kubectl get nodes
         kubectl logs --selector app=spire-server -n spire --all-containers
         kubectl logs --selector app=spire-agent -n spire --all-containers
+        kubectl describe secret -n spire

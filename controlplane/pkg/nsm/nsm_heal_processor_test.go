@@ -487,7 +487,6 @@ func (data *healTestData) createRequest(isRemote bool) networkservice.Request {
 			NetworkService: networkServiceName,
 		},
 	}
-
 }
 
 func (data *healTestData) createClientConnection(id string, xcon *crossconnect.CrossConnect, nse *registry.NSERegistration, nsm, forwarder string, request networkservice.Request) *model.ClientConnection {

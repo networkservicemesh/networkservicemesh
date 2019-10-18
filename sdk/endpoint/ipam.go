@@ -38,7 +38,6 @@ type IpamEndpoint struct {
 // Consumes from ctx context.Context:
 //	   Next
 func (ice *IpamEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
-
 	/* Exclude the prefixes from the pool of available prefixes */
 	excludedPrefixes, err := ice.PrefixPool.ExcludePrefixes(request.Connection.GetContext().GetIpContext().GetExcludedPrefixes())
 	if err != nil {

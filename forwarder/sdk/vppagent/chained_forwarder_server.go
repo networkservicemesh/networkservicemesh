@@ -23,7 +23,6 @@ func (c *chainedForwarderServer) Request(ctx context.Context, crossConnect *cros
 	next := &next{handlers: c.handlers, index: 0}
 	nextCtx := withNext(ctx, next)
 	return next.Request(nextCtx, crossConnect)
-
 }
 
 func (c *chainedForwarderServer) Close(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*empty.Empty, error) {

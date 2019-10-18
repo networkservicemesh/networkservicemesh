@@ -142,6 +142,11 @@ jobs:
             ./scripts/go-mod-download.sh
           no_output_timeout: 40m
       - run:
+          name: Generating CA
+          command: |
+            export CA_DIR=./deployments/helm/nsm/charts/spire/
+            ./scripts/generate-ca.sh $CA_DIR
+      - run:
           name: Running integration tests
           command: |
             export COMMIT="ci_${CIRCLE_WORKFLOW_ID}_${CIRCLE_SHA1:8:8}"

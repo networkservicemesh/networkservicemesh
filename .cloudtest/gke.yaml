@@ -16,6 +16,7 @@ providers:
       - GKE_CLUSTER_ZONE=$(zone-selector)
       - GKE_CLUSTER_TYPE=n1-standard-2
       - GKE_CLUSTER_NUM_NODES=2
+      - CA_DIR=./deployments/helm/nsm/charts/spire/
     env-check:
       - GCLOUD_SERVICE_KEY
       - CIRCLE_BUILD_NUM
@@ -32,3 +33,4 @@ providers:
       prepare: |
         make k8s-config helm-init
         make spire-install
+        kubectl describe secret -n spire

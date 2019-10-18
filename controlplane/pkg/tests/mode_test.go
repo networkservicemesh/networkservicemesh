@@ -121,5 +121,4 @@ func TestModelRestoreIds(t *testing.T) {
 	mdl2 := newModel()
 	mdl2.CorrectIDGenerator(mdl.ConnectionID())
 	g.Expect(mdl2.ConnectionID()).To(Equal("4"))
-
 }
