@@ -80,7 +80,7 @@ func parseProcFile(scanner *bufio.Scanner) (string, net.IP, error) {
 			defaultGateway := strings.TrimSpace(parts[2])
 			ip, err := parseGatewayIP(defaultGateway)
 			if err != nil {
-				logrus.Printf("Error Processing gateway IP %v for outgoing interface: %v", defaultGateway, outgoingInterface)
+				logrus.Printf("Error processing gateway IP %v for outgoing interface: %v", defaultGateway, outgoingInterface)
 				break
 			}
 			logrus.Printf("Found default gateway %v outgoing: %v", ip.String(), outgoingInterface)
