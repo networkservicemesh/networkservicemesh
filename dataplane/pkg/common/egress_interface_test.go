@@ -14,7 +14,7 @@ func TestParseGatewayLessThenEight(t *testing.T) {
 	g := gomega.NewWithT(t)
 
 	gw, err := parseGatewayIP("0")
-	g.Expect(err.Error()).To(gomega.Equal("Failed to parse IP from string"))
+	g.Expect(err.Error()).To(gomega.Equal("failed to parse IP from string"))
 	g.Expect(gw).To(gomega.BeNil())
 }
 
@@ -22,7 +22,7 @@ func TestParseGatewayStringLengthGreaterThenEight(t *testing.T) {
 	g := gomega.NewWithT(t)
 
 	gw, err := parseGatewayIP("111111111")
-	g.Expect(err.Error()).To(gomega.Equal("Failed to parse IP from string"))
+	g.Expect(err.Error()).To(gomega.Equal("failed to parse IP from string"))
 	g.Expect(gw).To(gomega.BeNil())
 }
 
@@ -39,7 +39,7 @@ func TestParseDefaultGatewayInvalidString(t *testing.T) {
 	g := gomega.NewWithT(t)
 
 	gw, err := parseGatewayIP("010011AS")
-	g.Expect(err.Error()).To(gomega.Equal("String does not represent a valid IP address"))
+	g.Expect(err.Error()).To(gomega.Equal("string does not represent a valid IP address"))
 	logrus.Printf("Value %v", gw.String())
 	g.Expect(gw).To(gomega.BeNil())
 }
@@ -77,7 +77,7 @@ func TestParseProcWrongContent(t *testing.T) {
 		"eth0	000011AC	00000000	0001	0	0	0	0000FFFF	0	0	0\n"))
 
 	eth0, gw, err := parseProcFile(s)
-	g.Expect(err.Error()).To(gomega.Equal("Failed to locate default route..."))
+	g.Expect(err.Error()).To(gomega.Equal("failed to locate default route..."))
 	logrus.Printf("Value %v", gw.String())
 	g.Expect(eth0).To(gomega.Equal(""))
 	g.Expect(gw).To(gomega.BeNil())
