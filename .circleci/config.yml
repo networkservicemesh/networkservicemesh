@@ -231,9 +231,6 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Check for only Doc Changes
-          command: circleci-agent step halt
-      - run:
           name: Install and lint Helm charts
           command: |
             .circleci/helm/test-charts.sh
