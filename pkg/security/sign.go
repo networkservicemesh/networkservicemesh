@@ -3,8 +3,9 @@ package security
 import (
 	"crypto/x509"
 	"encoding/base64"
-	"fmt"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/sirupsen/logrus"
@@ -84,7 +85,7 @@ func GenerateSignature(msg interface{}, claimsSetter ClaimsSetter, p Provider, o
 		}
 
 		if err := verifyJWTChain(token, parts, oboClaims, p.GetCABundle()); err != nil {
-			return "", fmt.Errorf("obo token validation error: %s", err.Error())
+			return "", errors.Wrap(err, "obo token validation error: %s")
 		}
 
 		if oboClaims.Subject == p.GetSpiffeID() {
@@ -111,12 +112,12 @@ func VerifySignature(signature string, ca *x509.CertPool, spiffeID string) error
 	}
 
 	if claims.Subject != spiffeID {
-		return fmt.Errorf("wrong spiffeID")
+		return errors.New("wrong spiffeID")
 	}
 
 	if claims.ExpiresAt != 0 {
 		if time.Now().After(time.Unix(claims.ExpiresAt, 0)) {
-			return fmt.Errorf("token expired")
+			return errors.New("token expired")
 		}
 	}
 

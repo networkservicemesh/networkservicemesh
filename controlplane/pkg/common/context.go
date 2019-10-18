@@ -16,6 +16,7 @@ package common
 
 import (
 	"context"
+
 	"github.com/networkservicemesh/networkservicemesh/pkg/security"
 
 	"github.com/opentracing/opentracing-go"
@@ -283,9 +284,7 @@ func WithSecurityContext(parent context.Context, sc security.Context) context.Co
 func SecurityContext(ctx context.Context) security.Context {
 	value := ctx.Value(securityContextKey)
 	if value == nil {
-		logrus.Info("IT IS NIL")
 		return nil
 	}
-	logrus.Info("NOT NIL")
 	return value.(security.Context)
 }

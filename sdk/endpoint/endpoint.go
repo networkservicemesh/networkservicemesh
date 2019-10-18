@@ -18,9 +18,10 @@ package endpoint
 import (
 	"context"
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/pkg/security"
 	"io"
 	"net"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/security"
 
 	"github.com/pkg/errors"
 

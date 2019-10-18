@@ -18,13 +18,14 @@ import (
 	"context"
 	"crypto/x509"
 	"encoding/pem"
-	"errors"
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
-	unifiedns "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/networkservice"
 	"strings"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
+	unifiedns "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/networkservice"
+
 	"github.com/dgrijalva/jwt-go"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -171,15 +172,15 @@ func spiffeIDFromContext(ctx context.Context) (string, error) {
 func spiffeIDFromPeer(p *peer.Peer) (string, error) {
 	tlsInfo, ok := p.AuthInfo.(credentials.TLSInfo)
 	if !ok {
-		return "", fmt.Errorf("peer has wrong type")
+		return "", errors.New("peer has wrong type")
 	}
 
 	if len(tlsInfo.State.PeerCertificates) == 0 {
-		return "", fmt.Errorf("peer's certificate list is empty")
+		return "", errors.New("peer's certificate list is empty")
 	}
 
 	if len(tlsInfo.State.PeerCertificates[0].URIs) == 0 {
-		return "", fmt.Errorf("certificate doesn't have URIs")
+		return "", errors.New("certificate doesn't have URIs")
 	}
 
 	return tlsInfo.State.PeerCertificates[0].URIs[0].String(), nil
@@ -241,7 +242,7 @@ func verifySingleJwt(token *jwt.Token, parts []string, claims *ChainClaims, ca *
 	}
 
 	if err := token.Method.Verify(strings.Join(parts[0:2], "."), parts[2], crt.PublicKey); err != nil {
-		return fmt.Errorf("jwt signature is not valid: %s", err.Error())
+		return errors.Wrap(err, "jwt signature is not valid: %s")
 	}
 
 	return nil

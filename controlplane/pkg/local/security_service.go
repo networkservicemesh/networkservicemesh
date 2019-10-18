@@ -16,13 +16,15 @@ package local
 
 import (
 	"context"
+
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/sirupsen/logrus"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 	"github.com/networkservicemesh/networkservicemesh/pkg/security"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
-	"github.com/sirupsen/logrus"
 )
 
 type securityService struct {
@@ -43,10 +45,7 @@ func (s *securityService) Request(ctx context.Context, request *networkservice.N
 	span := spanhelper.GetSpanHelper(ctx)
 	sc := security.NewContext()
 
-	nctx := common.WithSecurityContext(ctx, sc)
-	nsc := common.SecurityContext(nctx)
-	logrus.Infof("New SC = %v", nsc)
-	conn, err := ProcessNext(nctx, request)
+	conn, err := ProcessNext(common.WithSecurityContext(ctx, sc), request)
 	if err != nil {
 		span.LogError(err)
 		return nil, err
@@ -56,8 +55,6 @@ func (s *securityService) Request(ctx context.Context, request *networkservice.N
 		logrus.Warn("insecure: provider is not set, return Connection without signature")
 		return conn, nil
 	}
-
-	logrus.Infof("local.SecurityService: sc.GetResponseOboToken() = %v", sc.GetResponseOboToken())
 
 	if err := security.SignConnection(conn, sc.GetResponseOboToken(), s.provider); err != nil {
 		span.LogError(err)

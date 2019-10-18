@@ -4,7 +4,8 @@ import (
 	"context"
 	"crypto/x509"
 	"encoding/base64"
-	"fmt"
+
+	"github.com/pkg/errors"
 
 	"github.com/dgrijalva/jwt-go"
 )
@@ -61,11 +62,11 @@ func (c *ChainClaims) verifyAndGetCertificate(caBundle *x509.CertPool) (*x509.Ce
 	}
 
 	if len(crt) == 0 {
-		return nil, fmt.Errorf("no certificates in chain")
+		return nil, errors.New("no certificates in chain")
 	}
 
 	if crt[0].URIs[0].String() != c.Subject {
-		return nil, fmt.Errorf("spiffeID provided with JWT not equal to spiffeID from x509 TLS certificate")
+		return nil, errors.New("spiffeID provided with JWT not equal to spiffeID from x509 TLS certificate")
 	}
 
 	interm := x509.NewCertPool()
@@ -82,7 +83,7 @@ func (c *ChainClaims) verifyAndGetCertificate(caBundle *x509.CertPool) (*x509.Ce
 	})
 
 	if err != nil {
-		return nil, fmt.Errorf("certificate is signed by untrusted authority: %s", err.Error())
+		return nil, errors.Wrap(err, "certificate is signed by untrusted authority: %s")
 	}
 
 	return crt[0], nil
