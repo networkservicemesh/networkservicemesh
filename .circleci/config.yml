@@ -92,6 +92,11 @@ jobs:
           command: |
             ./scripts/lint-download.sh
             ./scripts/for-each-module.sh "$(pwd)/scripts/lint-check-diff.sh"
+      - run:
+          name: license lint
+          command: |
+            go get github.com/denis-tingajkin/go-header@v0.1.0
+            go-header
     environment:
       GO111MODULE: "on"
       LOG_LEVEL: "error"
