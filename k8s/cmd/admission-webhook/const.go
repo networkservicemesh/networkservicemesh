@@ -12,6 +12,7 @@ const (
 	repoEnv              = "REPO"
 	initContainerEnv     = "INITCONTAINER"
 	tagEnv               = "TAG"
+	tracerEnabledEnv     = "TRACER_ENABLED"
 	jaegerHostEnv        = "JAEGER_AGENT_HOST"
 	jaegerPortEnv        = "JAEGER_AGENT_PORT"
 	repoDefault          = "networkservicemesh"

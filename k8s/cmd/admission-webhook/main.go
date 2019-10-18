@@ -78,6 +78,10 @@ func getInitContainer() string {
 	return initContainer
 }
 
+func getTracerEnabled() string {
+	return os.Getenv(tracerEnabledEnv)
+}
+
 func getJaegerHost() string {
 	return os.Getenv(jaegerHostEnv)
 }
