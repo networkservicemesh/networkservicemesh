@@ -7,3 +7,7 @@ registry: docker.io
 org: networkservicemesh
 tag: master
 pullPolicy: IfNotPresent
+
+global:
+  # set to true to enable Jaeger tracing for NSM components
+  JaegerTracing: false

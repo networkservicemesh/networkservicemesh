@@ -39,10 +39,16 @@ spec:
               value: "icmp-responder"
             - name: ADVERTISE_NSE_LABELS
               value: "app=icmp-responder"
-            - name: TRACER_ENABLED
-              value: "true"
             - name: IP_ADDRESS
               value: "10.30.1.0/24"
+{{- if .Values.global.JaegerTracing }}
+            - name: TRACER_ENABLED
+              value: "true"
+            - name: JAEGER_AGENT_HOST
+              value: jaeger.nsm-system
+            - name: JAEGER_AGENT_PORT
+              value: "6831"
+{{- end }}
           resources:
             limits:
               networkservicemesh.io/socket: 1
