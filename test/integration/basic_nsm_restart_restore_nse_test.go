@@ -65,7 +65,8 @@ func TestNSMgrRestartRestoreNSE(t *testing.T) {
 	}))
 	g.Expect(nsMgrPod).NotTo(BeNil())
 
-	_ = k8s.WaitLogsContainsRegex(nsMgrPod, "nsmd", "NSM gRPC API Server: .* is operational", defaultTimeout)
+	// Wait for NSMgr to be deployed, to not get admission error
+	kubetest.WaitNSMgrDeployed(k8s, nsMgrPod, defaultTimeout)
 
 	networkServices, err := k8s.GetNetworkServices()
 	g.Expect(err).To(BeNil())

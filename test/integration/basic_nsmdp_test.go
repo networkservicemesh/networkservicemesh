@@ -32,6 +32,8 @@ func TestNSMDDP(t *testing.T) {
 	nsmdName := nodes[0].Nsmd.Name
 	k8s.DeletePods(nodes[0].Nsmd, icmpPod)
 	nodes[0].Nsmd = k8s.CreatePod(pods.NSMgrPod(nsmdName, nodes[0].Node, k8s.GetK8sNamespace())) // Recovery NSEs
+	// Wait for NSMgr to be deployed, to not get admission error
+	kubetest.WaitNSMgrDeployed(k8s, nodes[0].Nsmd, defaultTimeout)
 	icmpPod = kubetest.DeployICMP(k8s, nodes[0].Node, "icmp-responder-nse-2", defaultTimeout)
 	g.Expect(icmpPod).ToNot(BeNil())
 }
@@ -68,6 +70,8 @@ func TestNSMDRecoverNSE(t *testing.T) {
 	nodes[0].Nsmd = k8s.CreatePod(pods.NSMgrPodWithConfig(nsmdName, nodes[0].Node, &pods.NSMgrPodConfig{
 		Namespace: k8s.GetK8sNamespace(),
 	})) // Recovery NSEs
+	// Wait for NSMgr to be deployed, to not get admission error
+	kubetest.WaitNSMgrDeployed(k8s, nodes[0].Nsmd, defaultTimeout)
 	icmpPod = kubetest.DeployICMP(k8s, nodes[0].Node, "icmp-responder-nse-2", defaultTimeout)
 	g.Expect(icmpPod).ToNot(BeNil())
 }
