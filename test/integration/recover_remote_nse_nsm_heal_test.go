@@ -68,8 +68,8 @@ func TestNSMHealRemoteDieNSMD_NSE(t *testing.T) {
 	logrus.Infof("Starting recovered NSMD...")
 	startTime := time.Now()
 	nodes_setup[1].Nsmd = k8s.CreatePod(pods.NSMgrPodWithConfig(nsmdName, nodes_setup[1].Node, &pods.NSMgrPodConfig{Namespace: k8s.GetK8sNamespace()})) // Recovery NSEs
-	_ = k8s.WaitLogsContainsRegex(nodes_setup[1].Nsmd, "nsmd", "NSM gRPC API Server: .* is operational", defaultTimeout)
-	k8s.WaitLogsContains(nodes_setup[1].Nsmd, "nsmdp", "nsmdp: successfully started", defaultTimeout)
+	// Wait for NSMgr to be deployed, to not get admission error
+	kubetest.WaitNSMgrDeployed(k8s, nodes_setup[1].Nsmd, defaultTimeout)
 	logrus.Printf("Started new NSMD: %v on node %s", time.Since(startTime), nodes_setup[1].Node.Name)
 
 	// Restore ICMP responder pod.
@@ -117,6 +117,8 @@ func TestNSMHealRemoteDieNSMD(t *testing.T) {
 	logrus.Infof("Starting recovered NSMD...")
 	startTime := time.Now()
 	nodes_setup[1].Nsmd = k8s.CreatePod(pods.NSMgrPodWithConfig(nsmdName, nodes_setup[1].Node, &pods.NSMgrPodConfig{Namespace: k8s.GetK8sNamespace()})) // Recovery NSEs
+	// Wait for NSMgr to be deployed, to not get admission error
+	kubetest.WaitNSMgrDeployed(k8s, nodes_setup[1].Nsmd, defaultTimeout)
 	logrus.Printf("Started new NSMD: %v on node %s", time.Since(startTime), nodes_setup[1].Node.Name)
 
 	logrus.Infof("Waiting for connection recovery...")

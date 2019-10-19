@@ -213,9 +213,12 @@ func (m *ClientConnectionManager) GetClientConnectionByLocalDst(dstID string) *m
 	clientConnections := m.getClientConnections()
 
 	for _, clientConnection := range clientConnections {
-		logrus.Infof("checking existing connection: %v to match %v", clientConnection.Xcon, dstID)
-		if dst := clientConnection.Xcon.GetLocalDestination(); dst != nil && dst.GetId() == dstID {
-			return clientConnection
+		xCon := clientConnection.Xcon
+		if xCon != nil {
+			logrus.Infof("checking existing connection: %v to match %v", xCon, dstID)
+			if dst := xCon.GetLocalDestination(); dst != nil && dst.GetId() == dstID {
+				return clientConnection
+			}
 		}
 	}
 
@@ -227,10 +230,13 @@ func (m *ClientConnectionManager) GetClientConnectionByLocalDst(dstID string) *m
 func (m *ClientConnectionManager) GetClientConnectionByRemoteDst(dstID, remoteName string) *model.ClientConnection {
 	clientConnections := m.getClientConnections()
 	for _, clientConnection := range clientConnections {
-		logrus.Infof("checking existing connection: %v to match %v %v", clientConnection.Xcon, dstID, remoteName)
-		if dst := clientConnection.Xcon.GetRemoteDestination(); dst != nil && dst.GetId() == dstID && dst.GetDestinationNetworkServiceManagerName() == remoteName {
-			logrus.Infof("found remote connection %v", clientConnection)
-			return clientConnection
+		xCon := clientConnection.Xcon
+		if xCon != nil {
+			logrus.Infof("checking existing connection: %v to match %v %v", xCon, dstID, remoteName)
+			if dst := xCon.GetRemoteDestination(); dst != nil && dst.GetId() == dstID && dst.GetDestinationNetworkServiceManagerName() == remoteName {
+				logrus.Infof("found remote connection %v", clientConnection)
+				return clientConnection
+			}
 		}
 	}
 
@@ -318,7 +324,7 @@ func (m *ClientConnectionManager) GetClientConnectionByRemote(nsm *registry.Netw
 	clientConnections := m.getClientConnections()
 	var result []*model.ClientConnection
 	for _, clientConnection := range clientConnections {
-		if clientConnection.RemoteNsm.GetName() == nsm.GetName() {
+		if clientConnection.RemoteNsm != nil && clientConnection.RemoteNsm.GetName() == nsm.GetName() {
 			result = append(result, clientConnection)
 		}
 	}
@@ -338,14 +344,15 @@ func (m *ClientConnectionManager) GetClientConnectionsByForwarder(name string) [
 	return rv
 }
 
-func (m *ClientConnectionManager) GetClientConnectionBySource(networkServiceName string) []*model.ClientConnection {
+// GetClientConnectionBySource - return client connection by source networkservice manager name
+func (m *ClientConnectionManager) GetClientConnectionBySource(networkServiceManagerName string) []*model.ClientConnection {
 	clientConnections := m.getClientConnections()
 
 	var rv []*model.ClientConnection
 	for _, clientConnection := range clientConnections {
-		if clientConnection.Request.IsRemote() {
-			nsmConnection := clientConnection.Xcon.GetSource().(*crossconnect.CrossConnect_RemoteSource).RemoteSource
-			if nsmConnection.SourceNetworkServiceManagerName == networkServiceName {
+		if clientConnection.Request != nil && clientConnection.Xcon != nil && clientConnection.Request.IsRemote() {
+			nsmConnection := clientConnection.Xcon.GetRemoteSource()
+			if nsmConnection != nil && nsmConnection.SourceNetworkServiceManagerName == networkServiceManagerName {
 				rv = append(rv, clientConnection)
 			}
 		}

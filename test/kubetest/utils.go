@@ -166,6 +166,14 @@ func deployNSMgrAndForwarder(k8s *K8s, corePods []*v1.Pod, timeout time.Duration
 	k8s.g.Expect(nsmd.Name).To(Equal(corePods[0].Name))
 	k8s.g.Expect(forwarder.Name).To(Equal(corePods[1].Name))
 
+	WaitNSMgrDeployed(k8s, nsmd, timeout)
+
+	err = nil
+	return
+}
+
+// WaitNSMgrDeployed - wait for NSMgr pod to be fully deployed.
+func WaitNSMgrDeployed(k8s *K8s, nsmd *v1.Pod, timeout time.Duration) {
 	var wg sync.WaitGroup
 	wg.Add(3)
 	go func() {
@@ -181,9 +189,6 @@ func deployNSMgrAndForwarder(k8s *K8s, corePods []*v1.Pod, timeout time.Duration
 		k8s.WaitLogsContains(nsmd, "nsmd-k8s", "nsmd-k8s initialized and waiting for connection", timeout)
 	}()
 	wg.Wait()
-
-	err = nil
-	return
 }
 
 // DeployProxyNSMgr - Setup Proxy NSMgr on Cluster
