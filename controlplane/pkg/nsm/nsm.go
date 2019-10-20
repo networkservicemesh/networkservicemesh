@@ -221,11 +221,11 @@ func (srv *networkServiceManager) restoreXconnection(ctx context.Context, xcon *
 			workspaceName = src.GetConnectionMechanism().GetParameters()[local_connection.Workspace]
 		}
 
-		monitor := manager.LocalConnectionMonitor(workspaceName)
-		clientConnection := srv.createConnection(xcon, request, endpoint, dp, connectionState, manager, monitor)
+		localMonitor := manager.LocalConnectionMonitor(workspaceName)
+		clientConnection := srv.createConnection(xcon, request, endpoint, dp, connectionState, manager, localMonitor)
 		srv.model.AddClientConnection(span.Context(), clientConnection)
 
-		if monitor == nil {
+		if localMonitor == nil {
 			span.LogError(errors.Errorf("failed to restore connection %v. Workspace could be found for %v. closing", xcon, workspaceName))
 			srv.CloseConnection(span.Context(), clientConnection)
 			return

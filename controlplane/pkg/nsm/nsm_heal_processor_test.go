@@ -142,10 +142,10 @@ func TestHealDstDown_RemoteClientLocalEndpoint(t *testing.T) {
 
 	xcon := data.createCrossConnection(true, false, "src", "dst")
 	request := data.createRequest(true)
-	connection := data.createClientConnection("id", xcon, nse1, remoteNSMName, forwarder1Name, request)
-	data.model.AddClientConnection(context.Background(), connection)
+	clientConnection := data.createClientConnection("id", xcon, nse1, remoteNSMName, forwarder1Name, request)
+	data.model.AddClientConnection(context.Background(), clientConnection)
 
-	healed := data.healProcessor.healDstDown(context.Background(), data.cloneClientConnection(connection))
+	healed := data.healProcessor.healDstDown(context.Background(), data.cloneClientConnection(clientConnection))
 	g.Expect(healed).To(BeFalse())
 
 	test_utils.NewModelVerifier(data.model).
@@ -168,13 +168,13 @@ func TestHealDstDown_LocalClientLocalEndpoint(t *testing.T) {
 
 	xcon := data.createCrossConnection(false, false, "src", "dst")
 	request := data.createRequest(false)
-	connection := data.createClientConnection("id", xcon, nse1, localNSMName, forwarder1Name, request)
-	data.model.AddClientConnection(context.Background(), connection)
+	clientConnection := data.createClientConnection("id", xcon, nse1, localNSMName, forwarder1Name, request)
+	data.model.AddClientConnection(context.Background(), clientConnection)
 
 	data.serviceRegistry.discoveryClient.response = data.createFindNetworkServiceResponse(nse2)
 	data.connectionManager.nse = nse2
 
-	healed := data.healProcessor.healDstDown(context.Background(), data.cloneClientConnection(connection))
+	healed := data.healProcessor.healDstDown(context.Background(), data.cloneClientConnection(clientConnection))
 	g.Expect(healed).To(BeTrue())
 
 	test_utils.NewModelVerifier(data.model).
@@ -196,10 +196,10 @@ func TestHealDstDown_LocalClientLocalEndpoint_NoNSEFound(t *testing.T) {
 
 	xcon := data.createCrossConnection(false, false, "src", "dst")
 	request := data.createRequest(false)
-	connection := data.createClientConnection("id", xcon, nse1, localNSMName, forwarder1Name, request)
-	data.model.AddClientConnection(context.Background(), connection)
+	clientConnection := data.createClientConnection("id", xcon, nse1, localNSMName, forwarder1Name, request)
+	data.model.AddClientConnection(context.Background(), clientConnection)
 
-	healed := data.healProcessor.healDstDown(context.Background(), data.cloneClientConnection(connection))
+	healed := data.healProcessor.healDstDown(context.Background(), data.cloneClientConnection(clientConnection))
 	g.Expect(healed).To(BeFalse())
 
 	test_utils.NewModelVerifier(data.model).
@@ -220,12 +220,12 @@ func TestHealDstDown_LocalClientLocalEndpoint_RequestFailed(t *testing.T) {
 
 	xcon := data.createCrossConnection(false, false, "src", "dst")
 	request := data.createRequest(false)
-	connection := data.createClientConnection("id", xcon, nse1, localNSMName, forwarder1Name, request)
-	data.model.AddClientConnection(context.Background(), connection)
+	clientConnection := data.createClientConnection("id", xcon, nse1, localNSMName, forwarder1Name, request)
+	data.model.AddClientConnection(context.Background(), clientConnection)
 
 	data.connectionManager.requestError = errors.New("request error")
 
-	healed := data.healProcessor.healDstDown(context.Background(), data.cloneClientConnection(connection))
+	healed := data.healProcessor.healDstDown(context.Background(), data.cloneClientConnection(clientConnection))
 	g.Expect(healed).To(BeFalse())
 
 	test_utils.NewModelVerifier(data.model).
@@ -245,13 +245,13 @@ func TestHealDstDown_LocalClientRemoteEndpoint(t *testing.T) {
 
 	xcon := data.createCrossConnection(false, true, "src", "dst")
 	request := data.createRequest(false)
-	connection := data.createClientConnection("id", xcon, nse1, remoteNSMName, forwarder1Name, request)
-	data.model.AddClientConnection(context.Background(), connection)
+	clientConnection := data.createClientConnection("id", xcon, nse1, remoteNSMName, forwarder1Name, request)
+	data.model.AddClientConnection(context.Background(), clientConnection)
 
 	data.serviceRegistry.discoveryClient.response = data.createFindNetworkServiceResponse(nse2)
 	data.connectionManager.nse = nse2
 
-	healed := data.healProcessor.healDstDown(context.Background(), data.cloneClientConnection(connection))
+	healed := data.healProcessor.healDstDown(context.Background(), data.cloneClientConnection(clientConnection))
 	g.Expect(healed).To(BeTrue())
 
 	g.Expect(data.nseManager.nseClients[nse1Name].cleanedUp).To(BeTrue())
@@ -273,10 +273,10 @@ func TestHealDstDown_LocalClientRemoteEndpoint_NoNSEFound(t *testing.T) {
 
 	xcon := data.createCrossConnection(false, true, "src", "dst")
 	request := data.createRequest(false)
-	connection := data.createClientConnection("id", xcon, nse1, remoteNSMName, forwarder1Name, request)
-	data.model.AddClientConnection(context.Background(), connection)
+	clientConnection := data.createClientConnection("id", xcon, nse1, remoteNSMName, forwarder1Name, request)
+	data.model.AddClientConnection(context.Background(), clientConnection)
 
-	healed := data.healProcessor.healDstDown(context.Background(), data.cloneClientConnection(connection))
+	healed := data.healProcessor.healDstDown(context.Background(), data.cloneClientConnection(clientConnection))
 	g.Expect(healed).To(BeFalse())
 
 	g.Expect(data.nseManager.nseClients[nse1Name].cleanedUp).To(BeTrue())
@@ -507,7 +507,7 @@ func (data *healTestData) cloneClientConnection(connection *model.ClientConnecti
 	id := connection.GetID()
 	xcon := proto.Clone(connection.Xcon).(*crossconnect.CrossConnect)
 	nse := data.createEndpoint(connection.Endpoint.GetNetworkServiceEndpoint().GetName(), connection.Endpoint.GetNetworkServiceManager().GetName())
-	nsm := connection.RemoteNsm.GetName()
+	remoteNsmName := connection.RemoteNsm.GetName()
 	forwarder := connection.ForwarderRegisteredName
 	request := data.createRequest(connection.Request.IsRemote())
 
@@ -517,7 +517,7 @@ func (data *healTestData) cloneClientConnection(connection *model.ClientConnecti
 		request.(*local_networkservice.NetworkServiceRequest).Connection.Id = id
 	}
 
-	return data.createClientConnection(id, xcon, nse, nsm, forwarder, request)
+	return data.createClientConnection(id, xcon, nse, remoteNsmName, forwarder, request)
 }
 
 func (data *healTestData) createFindNetworkServiceResponse(nses ...*registry.NSERegistration) *registry.FindNetworkServiceResponse {
@@ -530,9 +530,9 @@ func (data *healTestData) createFindNetworkServiceResponse(nses ...*registry.NSE
 	}
 
 	for _, nse := range nses {
-		nsm := nse.GetNetworkServiceManager().GetName()
-		response.NetworkServiceManagers[nsm] = &registry.NetworkServiceManager{
-			Name: nsm,
+		nsmName := nse.GetNetworkServiceManager().GetName()
+		response.NetworkServiceManagers[nsmName] = &registry.NetworkServiceManager{
+			Name: nsmName,
 		}
 		response.NetworkServiceEndpoints = append(response.NetworkServiceEndpoints, nse.GetNetworkServiceEndpoint())
 	}

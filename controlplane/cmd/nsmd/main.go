@@ -18,7 +18,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	pluginsapi "github.com/networkservicemesh/networkservicemesh/controlplane/api/plugins"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
+	nsmmodel "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/plugins"
@@ -66,7 +66,7 @@ func main() {
 		}
 	}()
 
-	model := model.NewModel() // This is TCP gRPC server uri to access this NSMD via network.
+	model := nsmmodel.NewModel() // This is TCP gRPC server uri to access this NSMD via network.
 	defer serviceRegistry.Stop()
 	manager := nsm.NewNetworkServiceManager(span.Context(), model, serviceRegistry, pluginRegistry)
 

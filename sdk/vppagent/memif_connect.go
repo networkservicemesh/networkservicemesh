@@ -47,8 +47,8 @@ func (mc *MemifConnect) Request(ctx context.Context, request *networkservice.Net
 
 func (mc *MemifConnect) updateConnectionMap(ctx context.Context, vppAgentConfig *configurator.Config, incomingConnection *connection.Connection) {
 	connectionMap := ConnectionMap(ctx)
-	interfaces := vppAgentConfig.VppConfig.Interfaces
-	connectionMap[incomingConnection.GetId()] = interfaces[len(interfaces)-1]
+	vppInterfaces := vppAgentConfig.VppConfig.Interfaces
+	connectionMap[incomingConnection.GetId()] = vppInterfaces[len(vppInterfaces)-1]
 }
 
 // Close implements the close handler

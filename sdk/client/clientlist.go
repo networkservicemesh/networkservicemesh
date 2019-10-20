@@ -71,8 +71,8 @@ func (nsmcl *NsmClientList) ConnectRetry(ctx context.Context, name, mechanism, d
 func (nsmcl *NsmClientList) Close(ctx context.Context) error {
 	for i := range nsmcl.clients {
 		entry := &nsmcl.clients[i]
-		for _, connection := range entry.connections {
-			err := entry.client.Close(ctx, connection)
+		for _, entryConnection := range entry.connections {
+			err := entry.client.Close(ctx, entryConnection)
 			if err != nil {
 				return err
 			}

@@ -178,11 +178,11 @@ type NSUrl struct {
 func parseNSUrl(urlString string) (*NSUrl, error) {
 	result := &NSUrl{}
 
-	url, err := url.Parse(urlString)
+	parsedUrl, err := url.Parse(urlString)
 	if err != nil {
 		return nil, err
 	}
-	path := strings.Split(url.Path, "/")
+	path := strings.Split(parsedUrl.Path, "/")
 	if len(path) > 2 {
 		return nil, errors.New("Invalid NSUrl format")
 	}
@@ -193,7 +193,7 @@ func parseNSUrl(urlString string) (*NSUrl, error) {
 		result.Intf = path[1]
 	}
 	result.NsName = path[0]
-	result.Params = url.Query()
+	result.Params = parsedUrl.Query()
 	return result, nil
 }
 

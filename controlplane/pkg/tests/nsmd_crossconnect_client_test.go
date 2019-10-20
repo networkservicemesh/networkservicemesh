@@ -90,14 +90,14 @@ func TestCCServerEmpty(t *testing.T) {
 
 	crossConnectAddress := "127.0.0.1:0"
 
-	grpcServer, monitor, sock, err := startAPIServer(myModel, crossConnectAddress)
+	grpcServer, apiMonitor, sock, err := startAPIServer(myModel, crossConnectAddress)
 	defer grpcServer.Stop()
 
 	crossConnectAddress = sock.Addr().String()
 
 	g.Expect(err).To(BeNil())
 
-	monitor.Update(context.Background(), &crossconnect.CrossConnect{
+	apiMonitor.Update(context.Background(), &crossconnect.CrossConnect{
 		Id:      "cc1",
 		Payload: "json_data",
 	})

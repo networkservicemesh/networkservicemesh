@@ -84,32 +84,32 @@ func createNSERegistration(networkServiceName string, endpointName string) *mode
 func TestModelTwoEndpoint(t *testing.T) {
 	g := NewWithT(t)
 
-	model := newModel()
+	testModel := newModel()
 
 	ep1 := createNSERegistration("golden-network", "ep1")
 	ep2 := createNSERegistration("golden-network", "ep2")
-	model.AddEndpoint(context.Background(), ep1)
-	model.AddEndpoint(context.Background(), ep2)
-	g.Expect(model.GetEndpoint("ep1")).To(Equal(ep1))
-	g.Expect(model.GetEndpoint("ep2")).To(Equal(ep2))
+	testModel.AddEndpoint(context.Background(), ep1)
+	testModel.AddEndpoint(context.Background(), ep2)
+	g.Expect(testModel.GetEndpoint("ep1")).To(Equal(ep1))
+	g.Expect(testModel.GetEndpoint("ep2")).To(Equal(ep2))
 
-	g.Expect(len(model.GetEndpointsByNetworkService("golden-network"))).To(Equal(2))
+	g.Expect(len(testModel.GetEndpointsByNetworkService("golden-network"))).To(Equal(2))
 }
 
 func TestModelAddDeleteEndpoint(t *testing.T) {
 	g := NewWithT(t)
 
-	model := newModel()
+	testModel := newModel()
 
 	ep1 := createNSERegistration("golden-network", "ep1")
 	ep2 := createNSERegistration("golden-network", "ep2")
-	model.AddEndpoint(context.Background(), ep1)
-	model.AddEndpoint(context.Background(), ep2)
-	model.DeleteEndpoint(context.Background(), "ep1")
-	g.Expect(model.GetEndpoint("ep1")).To(BeNil())
-	g.Expect(model.GetEndpoint("ep2")).To(Equal(ep2))
+	testModel.AddEndpoint(context.Background(), ep1)
+	testModel.AddEndpoint(context.Background(), ep2)
+	testModel.DeleteEndpoint(context.Background(), "ep1")
+	g.Expect(testModel.GetEndpoint("ep1")).To(BeNil())
+	g.Expect(testModel.GetEndpoint("ep2")).To(Equal(ep2))
 
-	g.Expect(len(model.GetEndpointsByNetworkService("golden-network"))).To(Equal(1))
+	g.Expect(len(testModel.GetEndpointsByNetworkService("golden-network"))).To(Equal(1))
 }
 
 func TestModelRestoreIds(t *testing.T) {

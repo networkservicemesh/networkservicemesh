@@ -740,24 +740,24 @@ func (ctx *executionContext) executeTask(task *testTask, clusterConfigs []string
 }
 
 func (ctx *executionContext) handleOnFailTask(task *testTask, env []string, writer *bufio.Writer) error {
-	config := task.test.ExecutionConfig
-	if config == nil {
+	cfg := task.test.ExecutionConfig
+	if cfg == nil {
 		logrus.Warnf("OnFail: no execution config for %v", task.test.Name)
 		return nil
 	}
-	if strings.TrimSpace(config.OnFail) == "" {
-		logrus.Infof("OnFail: not provided OnFail script for config %v", config.Name)
+	if strings.TrimSpace(cfg.OnFail) == "" {
+		logrus.Infof("OnFail: not provided OnFail script for config %v", cfg.Name)
 		return nil
 	}
 	mgr := shell_mgr.NewEnvironmentManager()
-	if err := mgr.ProcessEnvironment(task.clusterTaskID, "shellrun", os.TempDir(), append(env, config.Env...), nil); err != nil {
+	if err := mgr.ProcessEnvironment(task.clusterTaskID, "shellrun", os.TempDir(), append(env, cfg.Env...), nil); err != nil {
 		logrus.Errorf("OnFail: an error during process env: %v", err)
 		return err
 	}
 	timeout := ctx.getTestTimeout(task)
-	context, cancel := context.WithTimeout(context.Background(), timeout)
+	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	return runOnFailScript(context, config.OnFail, mgr.GetProcessedEnv(), writer)
+	return runOnFailScript(ctxWithTimeout, cfg.OnFail, mgr.GetProcessedEnv(), writer)
 }
 
 func runOnFailScript(ctx context.Context, script string, env []string, writer *bufio.Writer) error {

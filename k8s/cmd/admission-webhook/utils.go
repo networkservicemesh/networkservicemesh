@@ -83,8 +83,8 @@ func isSupportKind(request *v1beta1.AdmissionRequest) bool {
 
 func getNsmAnnotationValue(ignoredNamespaceList []string, tuple *podSpecAndMeta) (string, bool) {
 	// skip special kubernetes system namespaces
-	for _, namespace := range ignoredNamespaceList {
-		if tuple.meta.Namespace == namespace {
+	for _, ignoredNamespace := range ignoredNamespaceList {
+		if tuple.meta.Namespace == ignoredNamespace {
 			logrus.Infof("Skip validation for %v for it's in special namespace:%v", tuple.meta.Name, tuple.meta.Namespace)
 			return "", false
 		}

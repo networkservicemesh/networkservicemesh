@@ -84,7 +84,7 @@ func (si *shellInstance) GetClusterConfig() (string, error) {
 func (si *shellInstance) Start(timeout time.Duration) (string, error) {
 	logrus.Infof("Starting cluster %s-%s", si.config.Name, si.id)
 
-	context, cancel := context.WithTimeout(context.Background(), timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	// Set seed
@@ -96,7 +96,7 @@ func (si *shellInstance) Start(timeout time.Duration) (string, error) {
 
 	// Do prepare
 	if !si.params.NoInstall {
-		if fileName, err = si.doInstall(context); err != nil {
+		if fileName, err = si.doInstall(ctx); err != nil {
 			return fileName, err
 		}
 	}
@@ -105,7 +105,7 @@ func (si *shellInstance) Start(timeout time.Duration) (string, error) {
 
 	if len(si.zoneSelectorScript) > 0 {
 		var zones string
-		zones, err = si.shellInterface.RunRead(context, zoneSelector, si.zoneSelectorScript, nil)
+		zones, err = si.shellInterface.RunRead(ctx, zoneSelector, si.zoneSelectorScript, nil)
 		if err != nil {
 			logrus.Errorf("Failed to select zones...")
 			return "", err
@@ -132,7 +132,7 @@ func (si *shellInstance) Start(timeout time.Duration) (string, error) {
 	si.manager.AddLog(si.id, "environment", printableEnv)
 
 	// Run start script
-	if fileName, err = si.shellInterface.RunCmd(context, "start", si.startScript, nil); err != nil {
+	if fileName, err = si.shellInterface.RunCmd(ctx, "start", si.startScript, nil); err != nil {
 		return fileName, err
 	}
 
@@ -142,7 +142,7 @@ func (si *shellInstance) Start(timeout time.Duration) (string, error) {
 
 	if si.configLocation == "" {
 		var output []string
-		output, err = utils.ExecRead(context, "", strings.Split(si.configScript, " "))
+		output, err = utils.ExecRead(ctx, "", strings.Split(si.configScript, " "))
 		if err != nil {
 			msg := fmt.Sprintf("Failed to retrieve configuration location %v", err)
 			logrus.Errorf(msg)
@@ -158,7 +158,7 @@ func (si *shellInstance) Start(timeout time.Duration) (string, error) {
 	}
 	// Run prepare script
 	if !si.params.NoPrepare {
-		if fileName, err := si.shellInterface.RunCmd(context, "prepare", si.prepareScript, []string{"KUBECONFIG=" + si.configLocation}); err != nil {
+		if fileName, err := si.shellInterface.RunCmd(ctx, "prepare", si.prepareScript, []string{"KUBECONFIG=" + si.configLocation}); err != nil {
 			return fileName, err
 		}
 	}
@@ -166,7 +166,7 @@ func (si *shellInstance) Start(timeout time.Duration) (string, error) {
 	// Wait a bit to be sure clusters are up and running.
 	st := time.Now()
 
-	err = si.validator.WaitValid(context)
+	err = si.validator.WaitValid(ctx)
 	if err != nil {
 		logrus.Errorf("Failed to wait for required number of nodes: %v", err)
 		return fileName, err
@@ -181,11 +181,11 @@ func (si *shellInstance) Start(timeout time.Duration) (string, error) {
 func (si *shellInstance) Destroy(timeout time.Duration) error {
 	logrus.Infof("Destroying cluster  %s", si.id)
 
-	context, cancel := context.WithTimeout(context.Background(), timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	attempts := si.config.RetryCount
 	for {
-		_, err := si.shellInterface.RunCmd(context, fmt.Sprintf("destroy-%d", si.config.RetryCount-attempts), si.stopScript, nil)
+		_, err := si.shellInterface.RunCmd(ctx, fmt.Sprintf("destroy-%d", si.config.RetryCount-attempts), si.stopScript, nil)
 		if err == nil || attempts == 0 {
 			return err
 		}

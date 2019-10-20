@@ -14,7 +14,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
-	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/metrics"
+	nsmmetrics "github.com/networkservicemesh/networkservicemesh/sdk/monitor/metrics"
 )
 
 type MetricsCollector struct {
@@ -29,11 +29,11 @@ func NewMetricsCollector(requestPeriod time.Duration) *MetricsCollector {
 }
 
 // CollectAsync starts ago routine for asynchronous metrics collection
-func (m *MetricsCollector) CollectAsync(monitor metrics.MetricsMonitor, endpoint string) {
+func (m *MetricsCollector) CollectAsync(monitor nsmmetrics.MetricsMonitor, endpoint string) {
 	go m.collect(monitor, endpoint)
 }
 
-func (m *MetricsCollector) collect(monitor metrics.MetricsMonitor, endpoint string) {
+func (m *MetricsCollector) collect(monitor nsmmetrics.MetricsMonitor, endpoint string) {
 	conn, err := tools.DialTCPInsecure(endpoint)
 	if err != nil {
 		logrus.Errorf("Metrics collector: can't dial %v", err)
@@ -44,7 +44,7 @@ func (m *MetricsCollector) collect(monitor metrics.MetricsMonitor, endpoint stri
 	m.startListenNotifications(monitor, notificationClient)
 }
 
-func (m *MetricsCollector) startListenNotifications(monitor metrics.MetricsMonitor, client rpc.ConfiguratorClient) {
+func (m *MetricsCollector) startListenNotifications(monitor nsmmetrics.MetricsMonitor, client rpc.ConfiguratorClient) {
 	var nextIdx uint32 = 0
 	for {
 		logrus.Infof("Metrics collector: request %v", nextIdx)
@@ -64,7 +64,7 @@ func (m *MetricsCollector) startListenNotifications(monitor metrics.MetricsMonit
 		time.Sleep(m.requestPeriod)
 	}
 }
-func (m *MetricsCollector) handleNotifications(monitor metrics.MetricsMonitor, stream rpc.Configurator_NotifyClient, nextIndex *uint32) error {
+func (m *MetricsCollector) handleNotifications(monitor nsmmetrics.MetricsMonitor, stream rpc.Configurator_NotifyClient, nextIndex *uint32) error {
 	for {
 		notification, err := stream.Recv()
 		if err != nil {
