@@ -19,7 +19,7 @@ linters-settings:
     check-type-assertions: false
     check-blank: false
   govet:
-    check-shadowing: true
+    check-shadowing: false
     settings:
       printf:
         funcs:
@@ -95,6 +95,7 @@ linters:
   disable-all: true
   enable:
     - gofmt
+    - govet
 issues:
   exclude-use-default: false
   max-issues-per-linter: 0
