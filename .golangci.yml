@@ -85,13 +85,13 @@ linters-settings:
       rangeValCopy:
         sizeThreshold: 100
 linters:
-  #disable:
-  #  - depguard
-  #  - wsl
-  #  - lll
-  #  - varcheck  # deprecated
-  #  - unused  # deprecated
-  #  - goimports
+  # disable:
+  #   - depguard
+  #   - wsl
+  #   - lll
+  #   - varcheck  # deprecated
+  #   - unused  # deprecated
+  #   - goimports
   disable-all: true
   enable:
     - gofmt
