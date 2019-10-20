@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	. "github.com/onsi/gomega"
 	"google.golang.org/grpc"
 )
@@ -57,8 +59,10 @@ func TestCloneArgsClientInterceptor(t *testing.T) {
 		return nil
 	}
 
-	ami(context.Background(), simpleMethod, globalReq, globalResp, nil, nil)
+	err := ami(context.Background(), simpleMethod, globalReq, globalResp, nil, nil)
+	assert.NoError(t, err)
 
 	cloneArgsAmi := CloneArgsClientInterceptor(ami)
-	cloneArgsAmi(context.Background(), cloneMethod, globalReq, globalResp, nil, nil)
+	err = cloneArgsAmi(context.Background(), cloneMethod, globalReq, globalResp, nil, nil)
+	assert.NoError(t, err)
 }

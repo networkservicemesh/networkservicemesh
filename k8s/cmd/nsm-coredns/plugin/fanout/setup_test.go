@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/caddyserver/caddy"
 )
 
@@ -63,7 +65,11 @@ func TestSetupResolvconf(t *testing.T) {
 nameserver 10.10.255.253`), 0666); err != nil {
 		t.Fatalf("Failed to write resolv.conf file: %s", err)
 	}
-	defer os.Remove(resolv)
+	defer func() {
+		if err := os.Remove(resolv); err != nil {
+			logrus.Error(err)
+		}
+	}()
 
 	tests := []struct {
 		input         string

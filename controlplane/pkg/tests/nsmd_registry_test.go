@@ -43,7 +43,11 @@ func TestNSMDRestart1(t *testing.T) {
 	l1 := newTestConnectionModelListener()
 	srv.TestModel.AddListener(l1)
 	_ = nsmEndpoint.Start()
-	defer nsmEndpoint.Delete()
+	defer func() {
+		if err := nsmEndpoint.Delete(); err != nil {
+			logrus.Error(err)
+		}
+	}()
 
 	// Wait for at least one NSE is available.
 	l1.WaitEndpoints(1, time.Second*30, t)

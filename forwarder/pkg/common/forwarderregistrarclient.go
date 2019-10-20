@@ -103,7 +103,10 @@ func (dr *ForwarderRegistration) tryRegistration(ctx context.Context) error {
 		return err
 	}
 	if dr.onConnect != nil {
-		dr.onConnect()
+		if connectErr := dr.onConnect(); connectErr != nil {
+			// TODO determine if we should clean up and exit here
+			logrus.Error(connectErr)
+		}
 		dr.wasRegistered = true
 	}
 	go dr.livenessMonitor(ctx)
@@ -125,7 +128,9 @@ func (dr *ForwarderRegistration) livenessMonitor(ctx context.Context) {
 		case <-ctx.Done():
 			logrus.Infof("ForwarderRegistrarClient cancelled, cleaning up")
 			if dr.onDisconnect != nil {
-				dr.onDisconnect()
+				if disconnectErr := dr.onDisconnect(); disconnectErr != nil {
+					logrus.Error(disconnectErr)
+				}
 				dr.wasRegistered = false
 			}
 			return
@@ -134,7 +139,9 @@ func (dr *ForwarderRegistration) livenessMonitor(ctx context.Context) {
 			if err != nil {
 				logrus.Errorf("%s: fail to receive from liveness grpc channel with error: %s, grpc code: %+v", dr.forwarderName, err.Error(), status.Convert(err).Code())
 				if dr.onConnect != nil {
-					dr.onDisconnect()
+					if disconnectErr := dr.onDisconnect(); disconnectErr != nil {
+						logrus.Error(disconnectErr)
+					}
 					dr.wasRegistered = false
 				}
 				go dr.register(ctx) // Use base ctx, to not go into deep

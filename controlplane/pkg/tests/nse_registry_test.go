@@ -5,6 +5,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/sirupsen/logrus"
+
 	. "github.com/onsi/gomega"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
@@ -15,7 +17,7 @@ func TestNSEFileRegistry(t *testing.T) {
 	g := NewWithT(t)
 	fileName, err := tmpFile()
 	g.Expect(err).To(BeNil())
-	defer os.Remove(fileName)
+	defer removeFile(fileName)
 	reg := nseregistry.NewNSERegistry(fileName)
 
 	err = addValues(reg)
@@ -26,6 +28,13 @@ func TestNSEFileRegistry(t *testing.T) {
 	g.Expect(clients).To(Equal([]string{"nsm-1", "nsm-2", "nsm-3"}))
 	g.Expect(nses).To(Equal(map[string]nseregistry.NSEEntry{"endpoint1": createEntry("nsm-1", "endpoint1"), "endpoint2": createEntry("nsm-2", "endpoint2")}))
 }
+
+func removeFile(fileName string) {
+	if removeErr := os.Remove(fileName); removeErr != nil {
+		logrus.Error("unable to remove file", fileName, removeErr)
+	}
+}
+
 func createEntry(workspace string, endpoint string) nseregistry.NSEEntry {
 	return nseregistry.NSEEntry{
 		Workspace: workspace,
@@ -36,7 +45,7 @@ func TestNSEDeleteTest(t *testing.T) {
 	g := NewWithT(t)
 	fileName, err := tmpFile()
 	g.Expect(err).To(BeNil())
-	defer os.Remove(fileName)
+	defer removeFile(fileName)
 	reg := nseregistry.NewNSERegistry(fileName)
 
 	err = addValues(reg)
@@ -54,7 +63,7 @@ func TestNSEDeleteClientTest(t *testing.T) {
 	g := NewWithT(t)
 	fileName, err := tmpFile()
 	g.Expect(err).To(BeNil())
-	defer os.Remove(fileName)
+	defer removeFile(fileName)
 	reg := nseregistry.NewNSERegistry(fileName)
 
 	err = addValues(reg)

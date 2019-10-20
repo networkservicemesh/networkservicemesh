@@ -298,16 +298,20 @@ func buildClient() (*kubernetes.Clientset, error) {
 }
 
 func main() {
-	flag.Set("logtostderr", "true")
+	if err := flag.Set("logtostderr", "true"); err != nil {
+		logrus.Fatalln(err)
+	}
 	flag.Parse()
 
 	// creating directory to store pods' network services configuration files
 	if _, err := os.Stat(containersConfigPath); err != nil {
 		if os.IsNotExist(err) {
-			os.MkdirAll(containersConfigPath, 0644)
-		} else {
-			logrus.Errorf("failure to access folder %s with error: %+v", containersConfigPath, err)
-			os.Exit(1)
+			err = os.MkdirAll(containersConfigPath, 0644)
+		}
+
+		// if os.IsNotExist was true and os.MkdirAll is successful, then err will be nil
+		if err != nil {
+			logrus.Fatalf("failure to access folder %s with error: %+v", containersConfigPath, err)
 		}
 	}
 	// Instantiating config controller

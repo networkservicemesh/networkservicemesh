@@ -94,6 +94,7 @@ linters:
   #   - goimports
   disable-all: true
   enable:
+    - errcheck
     - gofmt
     - govet
 issues:

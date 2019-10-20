@@ -8,6 +8,8 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/golang/protobuf/ptypes/empty"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
@@ -21,7 +23,11 @@ import (
 func startClient(g *WithT, target string) {
 	_ = os.Setenv(tools.InsecureEnv, "true")
 	conn, err := tools.DialTCP(target)
-	defer conn.Close()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			logrus.Error(err)
+		}
+	}()
 
 	g.Expect(err).To(BeNil())
 	monitorClient := crossconnect.NewMonitorCrossConnectClient(conn)
@@ -41,7 +47,11 @@ func TestSimple(t *testing.T) {
 	g := NewWithT(t)
 
 	listener, err := net.Listen("tcp", "localhost:0")
-	defer listener.Close()
+	defer func() {
+		if err := listener.Close(); err != nil {
+			logrus.Error(err)
+		}
+	}()
 	g.Expect(err).To(BeNil())
 
 	grpcServer := grpc.NewServer()
@@ -49,7 +59,8 @@ func TestSimple(t *testing.T) {
 	crossconnect.RegisterMonitorCrossConnectServer(grpcServer, monitor)
 
 	go func() {
-		grpcServer.Serve(listener)
+		serveErr := grpcServer.Serve(listener)
+		assert.NoError(t, serveErr)
 	}()
 
 	monitor.Update(context.Background(), &crossconnect.CrossConnect{Id: "1"})
@@ -67,7 +78,11 @@ func TestSeveralRecipient(t *testing.T) {
 	g := NewWithT(t)
 
 	listener, err := net.Listen("tcp", "localhost:0")
-	defer listener.Close()
+	defer func() {
+		if listenErr := listener.Close(); listenErr != nil {
+			logrus.Error(err)
+		}
+	}()
 	g.Expect(err).To(BeNil())
 
 	grpcServer := grpc.NewServer()

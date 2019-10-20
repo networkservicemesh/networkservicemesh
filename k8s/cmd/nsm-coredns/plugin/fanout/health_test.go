@@ -5,6 +5,8 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/coredns/coredns/plugin/test"
 
 	"github.com/miekg/dns"
@@ -19,7 +21,8 @@ func TestHealth(t *testing.T) {
 		}
 		ret := new(dns.Msg)
 		ret.SetReply(r)
-		w.WriteMsg(ret)
+		err := w.WriteMsg(ret)
+		assert.NoError(t, err)
 	})
 	defer s.close()
 	p := createFanoutClient(s.Addr)
@@ -30,7 +33,8 @@ func TestHealth(t *testing.T) {
 	req := new(dns.Msg)
 	req.SetQuestion("example.org.", dns.TypeA)
 
-	f.ServeDNS(context.TODO(), &test.ResponseWriter{}, req)
+	_, err := f.ServeDNS(context.TODO(), &test.ResponseWriter{}, req)
+	assert.NoError(t, err)
 
 	i1 := atomic.LoadUint32(&i)
 	if i1 != expected {
@@ -52,7 +56,8 @@ func TestHealthFailTwice(t *testing.T) {
 			ret := new(dns.Msg)
 			ret.SetReply(r)
 
-			w.WriteMsg(ret)
+			err := w.WriteMsg(ret)
+			assert.NoError(t, err)
 			return
 		}
 		if atomic.LoadUint32(&q) == 0 { //drop only first query
@@ -61,7 +66,8 @@ func TestHealthFailTwice(t *testing.T) {
 		}
 		ret := new(dns.Msg)
 		ret.SetReply(r)
-		w.WriteMsg(ret)
+		err := w.WriteMsg(ret)
+		assert.NoError(t, err)
 	})
 	defer s.close()
 
@@ -72,7 +78,8 @@ func TestHealthFailTwice(t *testing.T) {
 
 	req := new(dns.Msg)
 	req.SetQuestion("example.org", dns.TypeA)
-	f.ServeDNS(context.TODO(), &test.ResponseWriter{}, req)
+	_, err := f.ServeDNS(context.TODO(), &test.ResponseWriter{}, req)
+	assert.NoError(t, err)
 	i1 := atomic.LoadUint32(&i)
 	if i1 != expected {
 		t.Errorf("Expected number of health checks to be %d, got %d", expected, i1)
@@ -87,7 +94,8 @@ func TestHealthNoMaxFails(t *testing.T) {
 			atomic.AddUint32(&i, 1)
 			ret := new(dns.Msg)
 			ret.SetReply(r)
-			w.WriteMsg(ret)
+			err := w.WriteMsg(ret)
+			assert.NoError(t, err)
 		}
 	})
 	defer s.close()
@@ -101,7 +109,8 @@ func TestHealthNoMaxFails(t *testing.T) {
 	req := new(dns.Msg)
 	req.SetQuestion("example.org.", dns.TypeA)
 
-	f.ServeDNS(context.TODO(), &test.ResponseWriter{}, req)
+	_, err := f.ServeDNS(context.TODO(), &test.ResponseWriter{}, req)
+	assert.NoError(t, err)
 	i1 := atomic.LoadUint32(&i)
 	if i1 != expected {
 		t.Errorf("Expected number of health checks to be %d, got %d", expected, i1)

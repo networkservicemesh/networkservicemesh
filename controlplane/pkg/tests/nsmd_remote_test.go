@@ -38,7 +38,11 @@ func TestNSMDRequestClientRemoteNSMD(t *testing.T) {
 
 	// Now we could try to connect via Client API
 	nsmClient, conn := srv.requestNSMConnection("nsm-1")
-	defer conn.Close()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			logrus.Error(err)
+		}
+	}()
 
 	request := &networkservice.NetworkServiceRequest{
 		Connection: &local.Connection{
@@ -122,7 +126,11 @@ func TestNSMDCloseCrossConnection(t *testing.T) {
 
 	// Now we could try to connect via Client API
 	nsmClient, conn := srv.requestNSMConnection("nsm-1")
-	defer conn.Close()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			logrus.Error(err)
+		}
+	}()
 
 	request := &networkservice.NetworkServiceRequest{
 		Connection: &local.Connection{
@@ -196,7 +204,11 @@ func TestNSMDDelayRemoteMechanisms(t *testing.T) {
 
 	// Now we could try to connect via Client API
 	nsmClient, conn := srv.requestNSMConnection("nsm-1")
-	defer conn.Close()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			logrus.Error(err)
+		}
+	}()
 
 	request := &networkservice.NetworkServiceRequest{
 		Connection: &local.Connection{

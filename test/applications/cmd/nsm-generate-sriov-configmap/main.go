@@ -25,7 +25,9 @@ var version string
 func main() {
 	logrus.Info("Starting nsm-generate-sriov-configmap...")
 	logrus.Infof("Version: %v", version)
-	flag.Set("logtostderr", "true")
+	if err := flag.Set("logtostderr", "true"); err != nil {
+		logrus.Fatalln(err)
+	}
 	flag.Parse()
 	discoveredVFs := newVFs()
 	if err := discoverNetworks(discoveredVFs); err != nil {

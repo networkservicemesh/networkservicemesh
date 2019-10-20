@@ -58,7 +58,11 @@ func findDefaultGateway4() (string, net.IP, error) {
 	if err != nil {
 		return "", nil, err
 	}
-	defer f.Close()
+	defer func() {
+		if closeErr := f.Close(); closeErr != nil {
+			logrus.Error(closeErr)
+		}
+	}()
 
 	scanner := bufio.NewScanner(f)
 	return parseProcFile(scanner)
@@ -104,7 +108,11 @@ func getArpEntries() ([]*ARPEntry, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	defer func() {
+		if closeErr := f.Close(); closeErr != nil {
+			logrus.Error(closeErr)
+		}
+	}()
 
 	reader := bufio.NewReader(f)
 

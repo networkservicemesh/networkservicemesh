@@ -32,7 +32,11 @@ func monitorCrossConnects(address string, continuousMonitor bool) {
 		logrus.Errorf("failure to communicate with the socket %s with error: %+v", address, err)
 		return
 	}
-	defer conn.Close()
+	defer func() {
+		if closeErr := conn.Close(); closeErr != nil {
+			logrus.Error(closeErr)
+		}
+	}()
 	forwarderClient := crossconnect.NewMonitorCrossConnectClient(conn)
 
 	// Looping indefinitely or until grpc returns an error indicating the other end closed connection.
