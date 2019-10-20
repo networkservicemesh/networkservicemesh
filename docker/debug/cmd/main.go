@@ -34,8 +34,14 @@ func main() {
 	checkError(err)
 
 	// Non-blockingly echo command output to terminal
-	go io.Copy(os.Stdout, stdout)
-	go io.Copy(os.Stderr, stderr)
+	go func() {
+		_, copyErr := io.Copy(os.Stdout, stdout)
+		checkError(copyErr)
+	}()
+	go func() {
+		_, copyErr := io.Copy(os.Stderr, stderr)
+		checkError(copyErr)
+	}()
 
 	// Don't let main() exit before our command has finished running
 	err = cmd.Wait() // Doesn't block

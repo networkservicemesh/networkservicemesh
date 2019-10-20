@@ -17,4 +17,5 @@
 // shutdown) and defines the core lifecycle SPI. The core lifecycle SPI
 // must be implemented by each plugin.
 
+// Package idempotent is the root NSM package
 package idempotent
