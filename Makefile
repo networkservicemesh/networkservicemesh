@@ -114,3 +114,7 @@ dep-check: get-dep
 checkproxy:
 	echo "HTTPBUILD=${HTTPBUILD} HTTPSBUILD=${HTTPSBUILD}"
 	echo "DOCKERBUILD=${DOCKERBUILD}"
+
+.PHONY: verify
+verify:
+	./scripts/for-each-module.sh golangci-lint run ./...
