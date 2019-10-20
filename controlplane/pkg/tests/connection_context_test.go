@@ -21,7 +21,7 @@ func TestPrefixConnectionContext(t *testing.T) {
 	ctx := &connectioncontext.ConnectionContext{
 		IpContext: &connectioncontext.IPContext{
 			SrcRoutes: []*connectioncontext.Route{
-				&connectioncontext.Route{
+				{
 					Prefix: "",
 				},
 			},
@@ -32,7 +32,7 @@ func TestPrefixConnectionContext(t *testing.T) {
 	ctx = &connectioncontext.ConnectionContext{
 		IpContext: &connectioncontext.IPContext{
 			DstRoutes: []*connectioncontext.Route{
-				&connectioncontext.Route{
+				{
 					Prefix: "",
 				},
 			},
@@ -46,7 +46,7 @@ func TestPrefixWrongConnectionContext(t *testing.T) {
 	ctx := &connectioncontext.ConnectionContext{
 		IpContext: &connectioncontext.IPContext{
 			SrcRoutes: []*connectioncontext.Route{
-				&connectioncontext.Route{
+				{
 					Prefix: "8.8.8.8",
 				},
 			},
@@ -57,7 +57,7 @@ func TestPrefixWrongConnectionContext(t *testing.T) {
 	ctx = &connectioncontext.ConnectionContext{
 		IpContext: &connectioncontext.IPContext{
 			DstRoutes: []*connectioncontext.Route{
-				&connectioncontext.Route{
+				{
 					Prefix: "8.8.8.8",
 				},
 			},
@@ -71,7 +71,7 @@ func TestPrefixFineConnectionContext(t *testing.T) {
 	ctx := &connectioncontext.ConnectionContext{
 		IpContext: &connectioncontext.IPContext{
 			SrcRoutes: []*connectioncontext.Route{
-				&connectioncontext.Route{
+				{
 					Prefix: "8.8.8.8/30",
 				},
 			},
@@ -82,7 +82,7 @@ func TestPrefixFineConnectionContext(t *testing.T) {
 	ctx = &connectioncontext.ConnectionContext{
 		IpContext: &connectioncontext.IPContext{
 			DstRoutes: []*connectioncontext.Route{
-				&connectioncontext.Route{
+				{
 					Prefix: "8.8.8.8/30",
 				},
 			},
@@ -97,7 +97,7 @@ func TestIpNeighbors(t *testing.T) {
 	ctx := &connectioncontext.ConnectionContext{
 		IpContext: &connectioncontext.IPContext{
 			IpNeighbors: []*connectioncontext.IpNeighbor{
-				&connectioncontext.IpNeighbor{
+				{
 					Ip: "",
 				},
 			},
@@ -112,7 +112,7 @@ func TestHWNeighbors(t *testing.T) {
 	ctx := &connectioncontext.ConnectionContext{
 		IpContext: &connectioncontext.IPContext{
 			IpNeighbors: []*connectioncontext.IpNeighbor{
-				&connectioncontext.IpNeighbor{
+				{
 					Ip: "8.8.8.8",
 				},
 			},
@@ -129,7 +129,7 @@ func TestValidNeighbors(t *testing.T) {
 	ctx := &connectioncontext.ConnectionContext{
 		IpContext: &connectioncontext.IPContext{
 			IpNeighbors: []*connectioncontext.IpNeighbor{
-				&connectioncontext.IpNeighbor{
+				{
 					Ip:              "8.8.8.8",
 					HardwareAddress: "00:25:96:FF:FE:12:34:56",
 				},

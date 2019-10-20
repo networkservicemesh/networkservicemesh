@@ -104,7 +104,7 @@ func NewNSMClientList(ctx context.Context, configuration *common.NSConfiguration
 		}
 		return &NsmClientList{
 			clients: []nsmClientListEntry{
-				nsmClientListEntry{
+				{
 					client: client}},
 		}, nil
 	}

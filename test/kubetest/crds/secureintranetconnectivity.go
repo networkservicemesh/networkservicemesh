@@ -36,21 +36,21 @@ func SecureIntranetConnectivity(ptnum int) *nsapiv1.NetworkService {
 		Spec: nsapiv1.NetworkServiceSpec{
 			Payload: "IP",
 			Matches: []*nsapiv1.Match{
-				&nsapiv1.Match{
+				{
 					SourceSelector: map[string]string{
 						"app": "firewall",
 					},
 					Routes: []*nsapiv1.Destination{
-						&nsapiv1.Destination{
+						{
 							DestinationSelector: map[string]string{
 								"app": "vpn-gateway",
 							},
 						},
 					},
 				},
-				&nsapiv1.Match{
+				{
 					Routes: []*nsapiv1.Destination{
-						&nsapiv1.Destination{
+						{
 							DestinationSelector: map[string]string{
 								"app": "firewall",
 							},
@@ -71,7 +71,7 @@ func SecureIntranetConnectivity(ptnum int) *nsapiv1.NetworkService {
 				"app": "passthrough-" + id,
 			},
 			Routes: []*nsapiv1.Destination{
-				&nsapiv1.Destination{
+				{
 					DestinationSelector: map[string]string{
 						"app": dest,
 					},

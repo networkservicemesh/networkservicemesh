@@ -52,7 +52,7 @@ func TestNSMDRecoverNSE(t *testing.T) {
 	g.Expect(err).To(BeNil())
 
 	nodes, err := kubetest.SetupNodesConfig(k8s, 1, defaultTimeout, []*pods.NSMgrPodConfig{
-		&pods.NSMgrPodConfig{
+		{
 			Variables: map[string]string{
 				nsmd.NsmdDeleteLocalRegistry: "true",
 			},
