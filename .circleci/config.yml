@@ -56,7 +56,7 @@ jobs:
       - run:
           name: Check linters
           command: |
-            make verify
+            make lint
       - run: ./scripts/prepare-generate.sh
       - run: sudo ./scripts/install-protoc.sh
       - run: ./scripts/for-each-module.sh "go generate ./..."

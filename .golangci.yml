@@ -95,7 +95,6 @@ linters:
   disable-all: true
   enable:
     - gofmt
-    - errcheck
 issues:
   exclude-use-default: false
   max-issues-per-linter: 0
