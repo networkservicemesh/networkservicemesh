@@ -19,7 +19,6 @@
 
 # Cmds being built
 cmd/nsm/nsm
-cmd/nsm/nsm
 cmd/nsm-init/nsm-init
 
 # VScode files
@@ -35,7 +34,6 @@ containers.txt
 scripts/terraform/packet.tfvars
 *.tfstate
 *.backup
-**/.terraform*
 **/.terraform*
 
 unit-tests.xml
