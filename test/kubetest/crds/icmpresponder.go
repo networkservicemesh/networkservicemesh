@@ -34,10 +34,10 @@ func IcmpResponder(sourceSelector, destinationSelector map[string]string) *nsapi
 		Spec: nsapiv1.NetworkServiceSpec{
 			Payload: "IP",
 			Matches: []*nsapiv1.Match{
-				&nsapiv1.Match{
+				{
 					SourceSelector: sourceSelector,
 					Routes: []*nsapiv1.Destination{
-						&nsapiv1.Destination{
+						{
 							DestinationSelector: destinationSelector,
 						},
 					},

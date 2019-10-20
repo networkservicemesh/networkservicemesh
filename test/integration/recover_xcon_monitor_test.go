@@ -22,7 +22,7 @@ func TestXconMonitorSingleNodeHealFailed(t *testing.T) {
 	g.Expect(err).To(BeNil())
 
 	nodesConf, err := kubetest.SetupNodesConfig(k8s, 1, defaultTimeout, []*pods.NSMgrPodConfig{
-		&pods.NSMgrPodConfig{
+		{
 			Variables: map[string]string{
 				nsmd.NsmdDeleteLocalRegistry: "true", // Do not use local registry restore for clients/NSEs
 				"NSMD_HEAL_RETRY_COUNT":      "2",
@@ -76,7 +76,7 @@ func TestXconMonitorSingleNodeHealSuccess(t *testing.T) {
 	g.Expect(err).To(BeNil())
 
 	nodesConf, err := kubetest.SetupNodesConfig(k8s, 1, defaultTimeout, []*pods.NSMgrPodConfig{
-		&pods.NSMgrPodConfig{
+		{
 			Variables: map[string]string{
 				nsmd.NsmdDeleteLocalRegistry: "true", // Do not use local registry restore for clients/NSEs
 				"NSMD_HEAL_RETRY_COUNT":      "2",
@@ -134,7 +134,7 @@ func TestXconMonitorMultiNodeHealFail(t *testing.T) {
 	g.Expect(err).To(BeNil())
 
 	nodesConf, err := kubetest.SetupNodesConfig(k8s, 2, defaultTimeout, []*pods.NSMgrPodConfig{
-		&pods.NSMgrPodConfig{
+		{
 			Variables: map[string]string{
 				nsmd.NsmdDeleteLocalRegistry: "true", // Do not use local registry restore for clients/NSEs
 				"NSMD_HEAL_RETRY_COUNT":      "2",
@@ -220,7 +220,7 @@ func TestXconMonitorMultiNodeHealSuccess(t *testing.T) {
 	g.Expect(err).To(BeNil())
 
 	nodesConf, err := kubetest.SetupNodesConfig(k8s, 2, defaultTimeout, []*pods.NSMgrPodConfig{
-		&pods.NSMgrPodConfig{
+		{
 			Variables: map[string]string{
 				nsmd.NsmdDeleteLocalRegistry: "true", // Do not use local registry restore for clients/NSEs
 				"NSMD_HEAL_RETRY_COUNT":      "2",
@@ -308,7 +308,7 @@ func TestXconMonitorNsmgrRestart(t *testing.T) {
 	g.Expect(err).To(BeNil())
 
 	nodesConf, err := kubetest.SetupNodesConfig(k8s, 1, defaultTimeout, []*pods.NSMgrPodConfig{
-		&pods.NSMgrPodConfig{
+		{
 			Variables: map[string]string{
 				nsmd.NsmdDeleteLocalRegistry: "true", // Do not use local registry restore for clients/NSEs
 				"NSMD_HEAL_RETRY_COUNT":      "2",

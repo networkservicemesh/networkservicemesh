@@ -60,7 +60,7 @@ func TestRestoreConnectionStateWrongDst(t *testing.T) {
 		NetworkService: "ns1",
 	}
 	xcons := []*crossconnect.CrossConnect{
-		&crossconnect.CrossConnect{
+		{
 			Source: &crossconnect.CrossConnect_LocalSource{
 				LocalSource: requestConnection,
 			},

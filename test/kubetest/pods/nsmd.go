@@ -169,11 +169,11 @@ func NSMgrPodWithConfig(name string, node *v1.Node, config *NSMgrPodConfig) *v1.
 					ImagePullPolicy: v1.PullIfNotPresent,
 					VolumeMounts:    []v1.VolumeMount{spireVolumeMount(), newNSMPluginMount()},
 					Env: []v1.EnvVar{
-						v1.EnvVar{
+						{
 							Name:  "NODE_NAME",
 							Value: nodeName,
 						},
-						v1.EnvVar{
+						{
 							Name:  namespace.NsmNamespaceEnv,
 							Value: config.Namespace,
 						},
