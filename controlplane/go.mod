@@ -3,7 +3,6 @@ module github.com/networkservicemesh/networkservicemesh/controlplane
 require (
 	github.com/gogo/protobuf v1.2.2-0.20190723190241-65acae22fc9d
 	github.com/golang/protobuf v1.3.2
-	github.com/grpc-ecosystem/grpc-opentracing v0.0.0-20180507213350-8e809c8a8645
 	github.com/networkservicemesh/networkservicemesh/controlplane/api v0.2.0
 	github.com/networkservicemesh/networkservicemesh/forwarder/api v0.2.0
 	github.com/networkservicemesh/networkservicemesh/pkg v0.2.0

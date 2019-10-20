@@ -8,7 +8,6 @@ require (
 	github.com/networkservicemesh/networkservicemesh/sdk v0.2.0
 	github.com/networkservicemesh/networkservicemesh/utils v0.2.0
 	github.com/onsi/gomega v1.7.0
-	github.com/opentracing/opentracing-go v1.1.0
 	github.com/sirupsen/logrus v1.4.2
 )
 
