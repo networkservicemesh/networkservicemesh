@@ -25,14 +25,13 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
-	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	unified "github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
@@ -82,7 +81,7 @@ func (nsme *nsmEndpoint) Start() error {
 	nsme.tracerCloser = jaeger.InitJaeger(nsme.Configuration.AdvertiseNseName)
 
 	nsme.grpcServer = tools.NewServer(nsme.Context)
-	unified.RegisterNetworkServiceServer(nsme.grpcServer, compat.NewUnifiedNetworkServiceServerAdapter(nil, nsme))
+	unified.RegisterNetworkServiceServer(nsme.grpcServer, nsme)
 
 	listener, err := nsme.setupNSEServerConnection()
 
@@ -167,6 +166,7 @@ func (nsme *nsmEndpoint) Request(ctx context.Context, request *networkservice.Ne
 	}
 
 	logger.Infof("Responding to NetworkService.Request(%v): %v", request, incomingConnection)
+	span.LogObject("response", incomingConnection)
 	return incomingConnection, nil
 }
 

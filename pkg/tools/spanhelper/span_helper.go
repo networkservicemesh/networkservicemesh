@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/log"
 	"github.com/sirupsen/logrus"
@@ -89,8 +90,9 @@ func (s *spanHelper) Span() opentracing.Span {
 
 func (s *spanHelper) LogError(err error) {
 	if s.span != nil && err != nil {
-		s.span.LogFields(log.Error(err))
-		s.Logger().Error(err)
+		otgrpc.SetSpanTags(s.span, err, false)
+		s.span.LogFields(log.String("event", "error"), log.String("message", fmt.Sprintf("%+v", err)))
+		logrus.Errorf(">><<%s %s=%v span=%v", getPrefix("--", traceDepth(s.ctx)), "error", fmt.Sprintf("%+v", err), s.span)
 	}
 }
 

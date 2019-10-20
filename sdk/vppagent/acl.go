@@ -27,8 +27,8 @@ import (
 	acl "github.com/ligato/vpp-agent/api/models/vpp/acl"
 	"github.com/pkg/errors"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
 )

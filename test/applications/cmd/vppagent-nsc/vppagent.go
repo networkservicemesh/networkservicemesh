@@ -6,9 +6,11 @@ import (
 
 	"github.com/ligato/vpp-agent/api/configurator"
 
+	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
+
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/forwarder/vppagent/pkg/converter"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
@@ -28,7 +30,7 @@ func CreateVppInterface(nscConnection *connection.Connection, baseDir string, vp
 		Side:      converter.SOURCE,
 		BaseDir:   baseDir,
 	}
-	dataChange, err := converter.NewMemifInterfaceConverter(nscConnection, conversionParameters).ToDataRequest(nil, true)
+	dataChange, err := converter.NewMemifInterfaceConverter(compat.ConnectionUnifiedToLocal(nscConnection), conversionParameters).ToDataRequest(nil, true)
 
 	if err != nil {
 		logrus.Error(err)

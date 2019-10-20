@@ -10,8 +10,8 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 )
 
 // TestClientEndpoint - opens a Client connection to another Network Service

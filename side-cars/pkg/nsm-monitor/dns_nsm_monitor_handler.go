@@ -10,7 +10,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/k8s/api/nsm-coredns/update"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 )
 
 const (
