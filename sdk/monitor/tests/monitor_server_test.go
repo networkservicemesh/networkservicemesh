@@ -3,12 +3,11 @@ package tests
 import (
 	"context"
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"net"
 	"os"
 	"sync"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	. "github.com/onsi/gomega"
@@ -58,14 +57,18 @@ func TestSimple(t *testing.T) {
 	monitor := monitor_crossconnect.NewMonitorServer()
 	crossconnect.RegisterMonitorCrossConnectServer(grpcServer, monitor)
 
+	done := false
 	go func() {
 		serveErr := grpcServer.Serve(listener)
-		assert.NoError(t, serveErr)
+		if !done {
+			assert.NoError(t, serveErr)
+		}
 	}()
 
 	monitor.Update(context.Background(), &crossconnect.CrossConnect{Id: "1"})
 
 	startClient(g, listenerAddress(listener))
+	done = true
 }
 
 func listenerAddress(listener net.Listener) string {
