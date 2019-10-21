@@ -67,27 +67,30 @@ func findDefaultGateway4() (string, net.IP, error) {
 func parseProcFile(scanner *bufio.Scanner) (string, net.IP, error) {
 	for scanner.Scan() {
 		if err := scanner.Err(); err != nil {
-			logrus.Errorf("Failed to read routes files: %v", err)
-			break
+			return "", nil, errors.Wrap(err, "failed to read proc file")
 		}
 		line := strings.TrimSpace(scanner.Text())
 		if len(line) == 0 {
 			continue
 		}
 		parts := strings.Split(line, "\t")
+		logrus.Printf("Parts: %v", parts)
+		if len(parts) < 3 {
+			return "", nil, errors.New("invalid line in proc file")
+		}
 		if strings.TrimSpace(parts[1]) == "00000000" {
 			outgoingInterface := strings.TrimSpace(parts[0])
 			defaultGateway := strings.TrimSpace(parts[2])
 			ip, err := parseGatewayIP(defaultGateway)
 			if err != nil {
-				logrus.Errorf("error processing gateway IP %v for outgoing interface: %v", defaultGateway, outgoingInterface)
-				break
+				return "", nil, errors.WithMessagef(err, "error processing gateway IP %v for outgoing interface: %v", defaultGateway, outgoingInterface)
+
 			}
 			logrus.Printf("Found default gateway %v outgoing: %v", ip.String(), outgoingInterface)
 			return outgoingInterface, ip, nil
 		}
 	}
-	return "", nil, errors.New("failed to locate default route...")
+	return "", nil, errors.New("failed to locate default route")
 }
 
 func parseGatewayIP(defaultGateway string) (net.IP, error) {
@@ -95,8 +98,17 @@ func parseGatewayIP(defaultGateway string) (net.IP, error) {
 		return nil, errors.New("failed to parse IP from string")
 	}
 	iv0, err := strconv.ParseInt(defaultGateway[0:2], 16, 32)
+	if err != nil {
+		return nil, errors.New("string does not represent a valid IP address")
+	}
 	iv1, err := strconv.ParseInt(defaultGateway[2:4], 16, 32)
+	if err != nil {
+		return nil, errors.New("string does not represent a valid IP address")
+	}
 	iv2, err := strconv.ParseInt(defaultGateway[4:6], 16, 32)
+	if err != nil {
+		return nil, errors.New("string does not represent a valid IP address")
+	}
 	iv3, err := strconv.ParseInt(defaultGateway[6:], 16, 32)
 	if err != nil {
 		return nil, errors.New("string does not represent a valid IP address")
