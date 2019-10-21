@@ -1,10 +1,11 @@
 package common
 
 import (
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	connection2 "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
 	"github.com/pkg/errors"
 
 	unifiedns "github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/pkg/security"
 )
@@ -39,11 +40,15 @@ func (cfg *NSTokenConfig) RequestFilter(req interface{}) bool {
 }
 
 func ConnectionFillClaimsFunc(claims *security.ChainClaims, msg interface{}) error {
-	conn, ok := msg.(connection.Connection)
-	if !ok {
-		return errors.New("unable to cast msg to connection.Connection")
+	if conn, ok := msg.(*connection.Connection); ok {
+		claims.Audience = conn.GetNetworkService()
+		return nil
 	}
 
-	claims.Audience = conn.GetNetworkService()
-	return nil
+	if conn, ok := msg.(connection2.Connection); ok {
+		claims.Audience = conn.GetNetworkService()
+		return nil
+	}
+
+	return errors.New("unable to cast msg to connection.Connection")
 }

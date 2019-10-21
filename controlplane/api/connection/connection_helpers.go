@@ -93,6 +93,10 @@ func (c *Connection) GetSignature() string {
 	return c.ResponseToken
 }
 
+func (c *Connection) SetSignature(sign string) {
+	c.ResponseToken = sign
+}
+
 func (c *Connection) MatchesMonitorScopeSelector(selector *MonitorScopeSelector) bool {
 	if c == nil {
 		return false

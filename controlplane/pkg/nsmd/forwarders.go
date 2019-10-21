@@ -64,7 +64,7 @@ func forwarderMonitor(model model.Model, forwarderName string) {
 		logrus.Errorf("Forwarder object store does not have registered plugin %s", forwarderName)
 		return
 	}
-	conn, err := tools.DialUnix(forwarder.SocketLocation)
+	conn, err := tools.DialUnix(context.Background(), forwarder.SocketLocation)
 	if err != nil {
 		logrus.Errorf("failure to communicate with the socket %s with error: %+v", forwarder.SocketLocation, err)
 		model.DeleteForwarder(context.Background(), forwarderName)
@@ -179,7 +179,7 @@ func (r *ForwarderRegistrarServer) startForwarderRegistrarServer(ctx context.Con
 		}
 	}()
 
-	conn, dialErr := tools.DialContextUnix(span.Context(), forwarderRegistrar)
+	conn, dialErr := tools.DialUnix(span.Context(), forwarderRegistrar)
 	if dialErr != nil {
 		span.LogError(errors.Errorf("failure to communicate with the socket %s with error: %+v", forwarderRegistrar, dialErr))
 		return err
