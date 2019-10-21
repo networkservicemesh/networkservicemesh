@@ -5,6 +5,8 @@ import (
 	"path"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/ligato/vpp-agent/api/models/vpp"
 	vpp_interfaces "github.com/ligato/vpp-agent/api/models/vpp/interfaces"
 	. "github.com/onsi/gomega"
@@ -127,5 +129,6 @@ func TestTerminateDestinationSideConverter(t *testing.T) {
 	g.Expect(dataRequest.VppConfig.Interfaces[0].Link.(*vpp_interfaces.Interface_Memif).Memif).ToNot(BeNil())
 	checkMemif(g, dataRequest.VppConfig.Interfaces[0].Link.(*vpp_interfaces.Interface_Memif), true)
 
-	os.RemoveAll(baseDir)
+	err = os.RemoveAll(baseDir)
+	assert.NoError(t, err)
 }

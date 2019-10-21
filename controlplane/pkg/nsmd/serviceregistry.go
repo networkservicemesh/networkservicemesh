@@ -197,7 +197,9 @@ func (impl *nsmdServiceRegistry) Stop() {
 	defer impl.RWMutex.Unlock()
 
 	if impl.registryClientConnection != nil {
-		impl.registryClientConnection.Close()
+		if err := impl.registryClientConnection.Close(); err != nil {
+			logrus.Error("error closing registry client connection", err)
+		}
 	}
 }
 

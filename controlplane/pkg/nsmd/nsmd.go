@@ -107,7 +107,11 @@ func RequestWorkspace(ctx context.Context, serviceRegistry serviceregistry.Servi
 	if err != nil {
 		span.Logger().Fatalf("Failed to connect to NSMD: %+v...", err)
 	}
-	defer con.Close()
+	defer func() {
+		if closeErr := con.Close(); closeErr != nil {
+			logrus.Error("unable to close connection", err)
+		}
+	}()
 
 	reply, err := client.RequestClientConnection(ctx, &nsmdapi.ClientConnectionRequest{Workspace: id})
 	span.LogError(err)

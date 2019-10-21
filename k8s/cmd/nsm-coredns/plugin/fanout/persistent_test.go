@@ -4,6 +4,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/coredns/coredns/plugin/pkg/dnstest"
 
 	"github.com/miekg/dns"
@@ -13,7 +15,8 @@ func TestCached(t *testing.T) {
 	s := dnstest.NewServer(func(w dns.ResponseWriter, r *dns.Msg) {
 		ret := new(dns.Msg)
 		ret.SetReply(r)
-		w.WriteMsg(ret)
+		err := w.WriteMsg(ret)
+		assert.NoError(t, err)
 	})
 	defer s.Close()
 	tr := newTransport(s.Addr)
@@ -42,7 +45,8 @@ func TestCleanupByTimer(t *testing.T) {
 	s := newServer(func(w dns.ResponseWriter, r *dns.Msg) {
 		ret := new(dns.Msg)
 		ret.SetReply(r)
-		w.WriteMsg(ret)
+		err := w.WriteMsg(ret)
+		assert.NoError(t, err)
 	})
 	defer s.close()
 
@@ -76,7 +80,8 @@ func TestPartialCleanup(t *testing.T) {
 	s := newServer(func(w dns.ResponseWriter, r *dns.Msg) {
 		ret := new(dns.Msg)
 		ret.SetReply(r)
-		w.WriteMsg(ret)
+		err := w.WriteMsg(ret)
+		assert.NoError(t, err)
 	})
 	defer s.close()
 
@@ -124,7 +129,8 @@ func TestCleanupAll(t *testing.T) {
 	s := dnstest.NewServer(func(w dns.ResponseWriter, r *dns.Msg) {
 		ret := new(dns.Msg)
 		ret.SetReply(r)
-		w.WriteMsg(ret)
+		err := w.WriteMsg(ret)
+		assert.NoError(t, err)
 	})
 	defer s.Close()
 

@@ -14,6 +14,7 @@ require (
 	github.com/pkg/errors v0.8.1
 	github.com/sirupsen/logrus v1.4.2
 	github.com/spiffe/spire v0.0.0-20190515205011-c8123525fba8
+	github.com/stretchr/testify v1.3.0
 	github.com/uber-go/atomic v1.4.0
 	github.com/uber/jaeger-client-go v2.17.0+incompatible
 	github.com/uber/jaeger-lib v2.1.1+incompatible

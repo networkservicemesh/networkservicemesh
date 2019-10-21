@@ -8,6 +8,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/caddyserver/caddy"
 	"github.com/coredns/coredns/plugin/pkg/dnstest"
 	"github.com/coredns/coredns/plugin/test"
@@ -33,7 +36,9 @@ type server struct {
 }
 
 func (s *server) close() {
-	s.inner.Shutdown()
+	if err := s.inner.Shutdown(); err != nil {
+		logrus.Error("shutdown failed", err)
+	}
 }
 
 func newServer(f dns.HandlerFunc) *server {
@@ -52,7 +57,11 @@ func newServer(f dns.HandlerFunc) *server {
 	}
 
 	s.NotifyStartedFunc = func() { close(ch) }
-	go s.ActivateAndServe()
+	go func() {
+		if serveErr := s.ActivateAndServe(); serveErr != nil {
+			logrus.Error(serveErr)
+		}
+	}()
 
 	<-ch
 	return &server{inner: s, Addr: s.Listener.Addr().String()}
@@ -67,7 +76,8 @@ func TestFanoutCanReturnUnsuccessRespnse(t *testing.T) {
 	s := newServer(func(w dns.ResponseWriter, r *dns.Msg) {
 		msg := testNxdomainMsg()
 		msg.SetRcode(r, msg.Rcode)
-		w.WriteMsg(msg)
+		err := w.WriteMsg(msg)
+		assert.NoError(t, err)
 	})
 	f := NewFanout()
 	c := createFanoutClient(s.Addr)
@@ -76,7 +86,8 @@ func TestFanoutCanReturnUnsuccessRespnse(t *testing.T) {
 	req := new(dns.Msg)
 	req.SetQuestion("example1.", dns.TypeA)
 	writer := &cachedDNSWriter{ResponseWriter: new(test.ResponseWriter)}
-	f.ServeDNS(context.TODO(), writer, req)
+	_, err := f.ServeDNS(context.TODO(), writer, req)
+	assert.NoError(t, err)
 	if len(writer.answers) != 1 {
 		fmt.Println(len(writer.answers))
 		t.FailNow()
@@ -93,7 +104,8 @@ func TestFanoutTwoServersNotSuccessResponse(t *testing.T) {
 			msg.SetRcode(r, rcode)
 			rcode++
 			rcode %= dns.RcodeNotZone
-			w.WriteMsg(msg)
+			err := w.WriteMsg(msg)
+			assert.NoError(t, err)
 			//let another server answer
 			<-time.After(time.Millisecond * 100)
 		}
@@ -104,7 +116,8 @@ func TestFanoutTwoServersNotSuccessResponse(t *testing.T) {
 				Answer: []dns.RR{makeRecordA("example1. 3600	IN	A 10.0.0.1")},
 			}
 			msg.SetReply(r)
-			w.WriteMsg(&msg)
+			err := w.WriteMsg(&msg)
+			assert.NoError(t, err)
 			//let another server answer
 			<-time.After(time.Millisecond * 100)
 		}
@@ -121,7 +134,8 @@ func TestFanoutTwoServersNotSuccessResponse(t *testing.T) {
 	writer := &cachedDNSWriter{ResponseWriter: new(test.ResponseWriter)}
 	for i := 0; i < 10; i++ {
 		req.SetQuestion("example1.", dns.TypeA)
-		f.ServeDNS(context.TODO(), writer, req)
+		_, err := f.ServeDNS(context.TODO(), writer, req)
+		assert.NoError(t, err)
 	}
 	for _, m := range writer.answers {
 		if m.MsgHdr.Rcode != dns.RcodeSuccess {
@@ -141,7 +155,8 @@ func TestFanoutTwoServers(t *testing.T) {
 			}
 			answerCount1++
 			msg.SetReply(r)
-			w.WriteMsg(&msg)
+			err := w.WriteMsg(&msg)
+			assert.NoError(t, err)
 		}
 	})
 	s2 := newServer(func(w dns.ResponseWriter, r *dns.Msg) {
@@ -151,7 +166,8 @@ func TestFanoutTwoServers(t *testing.T) {
 			}
 			answerCount2++
 			msg.SetReply(r)
-			w.WriteMsg(&msg)
+			err := w.WriteMsg(&msg)
+			assert.NoError(t, err)
 		}
 	})
 	defer s1.close()
@@ -166,11 +182,13 @@ func TestFanoutTwoServers(t *testing.T) {
 
 	req := new(dns.Msg)
 	req.SetQuestion("example1.", dns.TypeA)
-	f.ServeDNS(context.TODO(), &test.ResponseWriter{}, req)
+	_, err := f.ServeDNS(context.TODO(), &test.ResponseWriter{}, req)
+	assert.NoError(t, err)
 	<-time.After(time.Second)
 	req = new(dns.Msg)
 	req.SetQuestion("example2.", dns.TypeA)
-	f.ServeDNS(context.TODO(), &test.ResponseWriter{}, req)
+	_, err = f.ServeDNS(context.TODO(), &test.ResponseWriter{}, req)
+	assert.NoError(t, err)
 	<-time.After(time.Second)
 	if answerCount2 != expected || answerCount1 != expected {
 		t.Errorf("Expected number of health checks to be %d, got s1: %d, s2: %d", expected, answerCount1, answerCount2)
@@ -182,7 +200,8 @@ func TestFanout(t *testing.T) {
 		ret := new(dns.Msg)
 		ret.SetReply(r)
 		ret.Answer = append(ret.Answer, test.A("example.org. IN A 127.0.0.1"))
-		w.WriteMsg(ret)
+		err := w.WriteMsg(ret)
+		assert.NoError(t, err)
 	})
 	defer s.close()
 	c := caddy.NewTestController("dns", "fanout "+s.Addr)
@@ -190,8 +209,12 @@ func TestFanout(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed to create fanout: %s", err)
 	}
-	f.OnStartup()
-	defer f.OnShutdown()
+	err = f.OnStartup()
+	assert.NoError(t, err)
+	defer func() {
+		err = f.OnShutdown()
+		assert.NoError(t, err)
+	}()
 
 	m := new(dns.Msg)
 	m.SetQuestion("example.org.", dns.TypeA)

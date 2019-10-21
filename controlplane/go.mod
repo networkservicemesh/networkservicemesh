@@ -13,6 +13,7 @@ require (
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/pkg/errors v0.8.1
 	github.com/sirupsen/logrus v1.4.2
+	github.com/stretchr/testify v1.3.0
 	golang.org/x/net v0.0.0-20190812203447-cdfb69ac37fc
 	golang.org/x/sys v0.0.0-20190618155005-516e3c20635f
 	google.golang.org/grpc v1.23.1

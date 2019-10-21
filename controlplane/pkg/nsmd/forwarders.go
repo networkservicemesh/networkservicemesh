@@ -70,7 +70,11 @@ func forwarderMonitor(model model.Model, forwarderName string) {
 		model.DeleteForwarder(context.Background(), forwarderName)
 		return
 	}
-	defer conn.Close()
+	defer func() {
+		if closeErr := conn.Close(); closeErr != nil {
+			logrus.Error(closeErr)
+		}
+	}()
 	forwarderClient := forwarderapi.NewMechanismsMonitorClient(conn)
 
 	// Looping indefinitely or until grpc returns an error indicating the other end closed connection.

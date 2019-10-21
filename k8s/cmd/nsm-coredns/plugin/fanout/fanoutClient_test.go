@@ -1,6 +1,7 @@
 package fanout
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/coredns/coredns/plugin/pkg/dnstest"
@@ -25,8 +26,14 @@ func TestDnsClientClose(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		p := createFanoutClient(s.Addr)
 		p.start()
-		go func() { p.Connect(req) }()
-		go func() { p.Connect(req) }()
+
+		fn := func() {
+			_, connErr := p.Connect(req)
+			fmt.Println(connErr)
+		}
+
+		go fn()
+		go fn()
 	}
 }
 
@@ -36,7 +43,8 @@ func TestProtocol(t *testing.T) {
 	req := request.Request{W: &test.ResponseWriter{TCP: true}, Req: new(dns.Msg)}
 
 	go func() {
-		p.Connect(req)
+		_, connErr := p.Connect(req)
+		fmt.Println(connErr)
 	}()
 
 	proto := <-p.transport.dial

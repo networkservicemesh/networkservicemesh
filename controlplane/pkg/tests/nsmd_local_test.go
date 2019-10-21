@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/golang/protobuf/ptypes/empty"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
@@ -88,7 +90,11 @@ func TestNSMDRequestClientConnectionRequest(t *testing.T) {
 	srv.TestModel.AddEndpoint(context.Background(), srv.RegisterFakeEndpoint("golden_network", "test", Master))
 
 	nsmClient, conn := srv.requestNSMConnection("nsm")
-	defer conn.Close()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			logrus.Error(err)
+		}
+	}()
 
 	request := CreateRequest()
 
@@ -115,12 +121,16 @@ func TestNSENoSrc(t *testing.T) {
 	srv.TestModel.AddEndpoint(context.Background(), srv.RegisterFakeEndpoint("golden_network", "test", Master))
 
 	nsmClient, conn := srv.requestNSMConnection("nsm")
-	defer conn.Close()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			logrus.Error(err)
+		}
+	}()
 
 	request := CreateRequest()
 
 	nsmResponse, err := nsmClient.Request(context.Background(), request)
-	println(err.Error())
+	assert.Error(t, err)
 	g.Expect(strings.Contains(err.Error(), "failure Validating NSE Connection: ConnectionContext.SrcIp is required cannot be empty/nil")).To(Equal(true))
 	g.Expect(nsmResponse).To(BeNil())
 }
@@ -142,7 +152,11 @@ func TestNSEIPNeghtbours(t *testing.T) {
 	srv.TestModel.AddEndpoint(context.Background(), srv.RegisterFakeEndpoint("golden_network", "test", Master))
 
 	nsmClient, conn := srv.requestNSMConnection("nsm")
-	defer conn.Close()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			logrus.Error(err)
+		}
+	}()
 
 	request := CreateRequest()
 
@@ -176,7 +190,11 @@ func TestSlowNSE(t *testing.T) {
 	srv.TestModel.AddEndpoint(context.Background(), srv.RegisterFakeEndpoint("golden_network", "test", Master))
 
 	nsmClient, conn := srv.requestNSMConnection("nsm")
-	defer conn.Close()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			logrus.Error(err)
+		}
+	}()
 
 	request := CreateRequest()
 
@@ -208,7 +226,11 @@ func TestSlowDP(t *testing.T) {
 	srv.TestModel.AddEndpoint(context.Background(), srv.RegisterFakeEndpoint("golden_network", "test", Master))
 
 	nsmClient, conn := srv.requestNSMConnection("nsm")
-	defer conn.Close()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			logrus.Error(err)
+		}
+	}()
 
 	request := CreateRequest()
 
@@ -218,7 +240,7 @@ func TestSlowDP(t *testing.T) {
 	ctx, cancelOp := context.WithTimeout(context.Background(), 30*time.Millisecond)
 	defer cancelOp()
 	nsmResponse, err := nsmClient.Request(ctx, request)
-	println(err.Error())
+	assert.Error(t, err)
 	g.Expect(strings.Contains(err.Error(), "rpc error: code = DeadlineExceeded desc = context deadline exceeded")).To(Equal(true))
 	g.Expect(nsmResponse).To(BeNil())
 }

@@ -156,7 +156,11 @@ func enumWorkspaces(ctx context.Context, serviceRegistry serviceregistry.Service
 	if err != nil {
 		logrus.Fatalf("Failed to connect to NSMD: %+v...", err)
 	}
-	defer con.Close()
+	defer func() {
+		if err := con.Close(); err != nil {
+			logrus.Error(err)
+		}
+	}()
 	reply, err := client.EnumConnection(span.Context(), &nsmdapi.EnumConnectionRequest{})
 	span.LogObject("reply", reply)
 	span.LogError(err)

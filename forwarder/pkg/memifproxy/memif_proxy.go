@@ -105,7 +105,11 @@ func (p *Proxy) proxy() error {
 	if sourceConn == nil {
 		return nil
 	}
-	defer sourceConn.Close()
+	defer func() {
+		if closeErr := sourceConn.Close(); closeErr != nil {
+			logrus.Error(closeErr)
+		}
+	}()
 
 	targetConn, err := connectToTargetAsync(p.target, p.network, p.stopCh)
 	if err != nil {
@@ -115,7 +119,11 @@ func (p *Proxy) proxy() error {
 		return nil
 	}
 
-	defer targetConn.Close()
+	defer func() {
+		if closeErr := targetConn.Close(); closeErr != nil {
+			logrus.Error(closeErr)
+		}
+	}()
 
 	sourceFd, closeSourceFd, err := getConnFd(sourceConn)
 	if err != nil {
@@ -231,7 +239,11 @@ func getConnFd(conn *net.UnixConn) (int, func(), error) {
 	}
 
 	fd := int(file.Fd())
-	return fd, func() { file.Close() }, nil
+	return fd, func() {
+		if fileErr := file.Close(); fileErr != nil {
+			logrus.Error(fileErr)
+		}
+	}, nil
 }
 
 func tryDeleteFileIfExist(path string) error {

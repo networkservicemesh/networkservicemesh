@@ -122,7 +122,11 @@ func (v *VPPAgent) reset() error {
 		logrus.Errorf("can't dial grpc server: %v", err)
 		return err
 	}
-	defer conn.Close()
+	defer func() {
+		if closeErr := conn.Close(); closeErr != nil {
+			logrus.Error(closeErr)
+		}
+	}()
 	client := configurator.NewConfiguratorClient(conn)
 	logrus.Infof("Resetting vppagent...")
 	_, err = client.Update(context.Background(), &configurator.UpdateRequest{Update: &configurator.Config{}, FullResync: true})
@@ -145,7 +149,11 @@ func (v *VPPAgent) programMgmtInterface() error {
 		logrus.Errorf("can't dial grpc server: %v", err)
 		return err
 	}
-	defer conn.Close()
+	defer func() {
+		if closeErr := conn.Close(); closeErr != nil {
+			logrus.Error(closeErr)
+		}
+	}()
 	client := configurator.NewConfiguratorClient(conn)
 
 	vppArpEntries := []*vpp.ARPEntry{}

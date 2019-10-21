@@ -4,6 +4,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
 
 	. "github.com/onsi/gomega"
@@ -43,7 +45,11 @@ func TestHealRemoteNSE(t *testing.T) {
 
 	// Now we could try to connect via Client API
 	nsmClient, conn := srv.requestNSMConnection("nsm-1")
-	defer conn.Close()
+	defer func() {
+		if closeErr := conn.Close(); closeErr != nil {
+			logrus.Error(closeErr)
+		}
+	}()
 
 	request := &networkservice.NetworkServiceRequest{
 		Connection: &connection.Connection{

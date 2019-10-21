@@ -115,7 +115,11 @@ func readNMSDCrossConnectEvents(address string, count int) []*crossconnect.Cross
 		logrus.Errorf("failure to communicate with the socket %s with error: %+v", address, err)
 		return nil
 	}
-	defer conn.Close()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			logrus.Error(err)
+		}
+	}()
 	forwarderClient := crossconnect.NewMonitorCrossConnectClient(conn)
 
 	// Looping indefinitely or until grpc returns an error indicating the other end closed connection.

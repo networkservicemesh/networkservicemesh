@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/sirupsen/logrus"
+
 	. "github.com/onsi/gomega"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
@@ -73,7 +75,11 @@ func TestSelectForwarder(t *testing.T) {
 
 	// Now we could try to connect via Client API
 	nsmClient, conn := srv.requestNSMConnection("nsm-1")
-	defer conn.Close()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			logrus.Error(err)
+		}
+	}()
 
 	request := &networkservice.NetworkServiceRequest{
 		Connection: &local.Connection{

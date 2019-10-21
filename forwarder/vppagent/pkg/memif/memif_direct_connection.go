@@ -68,7 +68,9 @@ func (d *DirectMemifConnector) Disconnect(crossConnect *crossconnect.CrossConnec
 	}
 
 	proxy := value.(*memifproxy.Proxy)
-	proxy.Stop()
+	if stopErr := proxy.Stop(); stopErr != nil {
+		logrus.Error(stopErr)
+	}
 
 	d.proxyMap.Delete(crossConnect.Id)
 }

@@ -71,9 +71,9 @@ endif
 
 DOCKERBUILD=docker build ${HTTPBUILD} ${HTTPSBUILD}
 
-.PHONY: all check verify # docker-build docker-push
+.PHONY: all check lint # docker-build docker-push
 
-all: check verify docker-build
+all: check lint docker-build
 
 check:
 	@shellcheck `find . -name "*.sh" -not -path "*vendor/*"`
@@ -114,3 +114,7 @@ dep-check: get-dep
 checkproxy:
 	echo "HTTPBUILD=${HTTPBUILD} HTTPSBUILD=${HTTPSBUILD}"
 	echo "DOCKERBUILD=${DOCKERBUILD}"
+
+.PHONY: lint
+lint:
+	./scripts/for-each-module.sh golangci-lint run ./...

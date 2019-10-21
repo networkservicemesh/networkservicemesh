@@ -21,7 +21,11 @@ func CreateVppInterface(nscConnection *connection.Connection, baseDir string, vp
 		logrus.Errorf("can't dial grpc server: %v", err)
 		return err
 	}
-	defer conn.Close()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			logrus.Error(err)
+		}
+	}()
 	client := configurator.NewConfiguratorClient(conn)
 
 	conversionParameters := &converter.ConnectionConversionParameters{
@@ -39,7 +43,9 @@ func CreateVppInterface(nscConnection *connection.Connection, baseDir string, vp
 	logrus.Infof("Sending DataChange to vppagent: %v", dataChange)
 	if _, err := client.Update(context.Background(), &configurator.UpdateRequest{Update: dataChange}); err != nil {
 		logrus.Error(err)
-		client.Delete(context.Background(), &configurator.DeleteRequest{Delete: dataChange})
+		if _, deleteErr := client.Delete(context.Background(), &configurator.DeleteRequest{Delete: dataChange}); deleteErr != nil {
+			logrus.Error("unable to delete request", deleteErr)
+		}
 		return err
 	}
 	return nil
@@ -48,14 +54,21 @@ func CreateVppInterface(nscConnection *connection.Connection, baseDir string, vp
 func Reset(vppAgentEndpoint string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
-	tools.WaitForPortAvailable(ctx, "tcp", vppAgentEndpoint, 100*time.Millisecond)
+	if waitErr := tools.WaitForPortAvailable(ctx, "tcp", vppAgentEndpoint, 100*time.Millisecond); waitErr != nil {
+		logrus.Error("wait for por available failed", waitErr)
+		return waitErr
+	}
 
 	conn, err := tools.DialTCPInsecure(vppAgentEndpoint)
 	if err != nil {
 		logrus.Errorf("can't dial grpc server: %v", err)
 		return err
 	}
-	defer conn.Close()
+	defer func() {
+		if closeConn := conn.Close(); closeConn != nil {
+			logrus.Error(closeConn)
+		}
+	}()
 
 	client := configurator.NewConfiguratorClient(conn)
 	logrus.Infof("Resetting vppagent...")

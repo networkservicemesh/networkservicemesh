@@ -250,7 +250,9 @@ func (ctx *executionContext) performShutdown() {
 				go func() {
 					defer ctx.clusterWaitGroup.Done()
 					logrus.Infof("Closing cluster %v %v", group.config.Name, curInst.id)
-					ctx.destroyCluster(curInst, false, false)
+					if err := ctx.destroyCluster(curInst, false, false); err != nil {
+						logrus.Error("error destroying cluster", err)
+					}
 				}()
 			}
 		}
@@ -720,7 +722,9 @@ func (ctx *executionContext) executeTask(task *testTask, clusterConfigs []string
 				if err != nil {
 					logrus.Errorf("Task failed because cluster is not valid: %v %v %v", task.test.Name, inst.id, err)
 					clusterNotAvailable = true
-					ctx.destroyCluster(inst, true, false)
+					if err := ctx.destroyCluster(inst, true, false); err != nil {
+						logrus.Error("error destroying cluster", err)
+					}
 				}
 				inst.taskCancel = nil
 			}
@@ -868,7 +872,9 @@ func (ctx *executionContext) monitorCluster(context context.Context, ci *cluster
 		err := ci.instance.CheckIsAlive()
 		if err != nil {
 			logrus.Errorf("Failed to interact with cluster %v %v", ci.id, err)
-			ctx.destroyCluster(ci, true, false)
+			if destroyErr := ctx.destroyCluster(ci, true, false); destroyErr != nil {
+				logrus.Error("error destroying cluster", destroyErr)
+			}
 			break
 		}
 
@@ -1223,7 +1229,10 @@ func (ctx *executionContext) checkClustersUsage() {
 				logrus.Infof("All tasks for cluster group %v are complete. Starting cluster shutdown.", ci.config.Name)
 				for _, inst := range ci.instances {
 					if !ctx.isClusterDown(inst) && inst.state != clusterBusy {
-						ctx.destroyCluster(inst, false, true)
+						if err := ctx.destroyCluster(inst, false, true); err != nil {
+							logrus.Error("error destroying cluster", err)
+						}
+
 						ctx.setClusterState(inst, func(inst *clusterInstance) {
 							inst.state = clusterShutdown
 						})

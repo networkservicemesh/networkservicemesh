@@ -380,7 +380,9 @@ func (impl *nsmdTestServiceRegistry) NsmRegistryClient(context.Context) (registr
 
 func (impl *nsmdTestServiceRegistry) Stop() {
 	logrus.Printf("Delete temporary workspace root: %s", impl.rootDir)
-	os.RemoveAll(impl.rootDir)
+	if err := os.RemoveAll(impl.rootDir); err != nil {
+		logrus.Error(err)
+	}
 }
 
 type testApiRegistry struct {
@@ -521,7 +523,11 @@ func (srv *nsmdFullServerImpl) RequestNSM(clientName string) *nsmdapi.ClientConn
 	if err != nil {
 		panic(err)
 	}
-	defer con.Close()
+	defer func() {
+		if err := con.Close(); err != nil {
+			logrus.Error(err)
+		}
+	}()
 
 	response, err := client.RequestClientConnection(context.Background(), &nsmdapi.ClientConnectionRequest{
 		Workspace: clientName,

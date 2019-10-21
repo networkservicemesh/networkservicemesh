@@ -142,7 +142,9 @@ func (s *serviceInstanceController) startDevicePlugin(msg configMessage) {
 	s.socket = path.Join(serverBasePath, strings.Replace(s.networkServiceName, "/", "-", -1)+".sock")
 
 	// starting gRPC server for kubelet's Allocate and ListAndWatch calls
-	s.startServer()
+	if startErr := s.startServer(); startErr != nil {
+		logrus.Fatalln("unable to start grpc server", startErr)
+	}
 
 	logrus.Infof("attempting to register network service: %s on socket: %s", s.networkServiceName, s.socket)
 	for s.regState != registered {
@@ -179,14 +181,22 @@ func (s *serviceInstanceController) startServer() error {
 	s.server = tools.NewServer(context.Background())
 	pluginapi.RegisterDevicePluginServer(s.server, s)
 
-	go s.server.Serve(sock)
+	go func() {
+		if serveErr := s.server.Serve(sock); serveErr != nil {
+			logrus.Fatalln("unable to start server", serveErr)
+		}
+	}()
 
 	// Wait for server to start by launching a blocking connection
 	conn, err := tools.DialUnix(s.socket)
 	if err != nil {
 		return err
 	}
-	conn.Close()
+	defer func() {
+		if closeErr := conn.Close(); closeErr != nil {
+			logrus.Error(closeErr)
+		}
+	}()
 
 	return nil
 }
@@ -205,7 +215,11 @@ func (s *serviceInstanceController) register() error {
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
+	defer func() {
+		if closeErr := conn.Close(); closeErr != nil {
+			logrus.Error(closeErr)
+		}
+	}()
 
 	client := pluginapi.NewRegistrationClient(conn)
 	reqt := &pluginapi.RegisterRequest{
@@ -238,20 +252,28 @@ func (s *serviceInstanceController) buildDeviceList(health string) []*pluginapi.
 // ListAndWatch converts VFs into device and list them
 func (s *serviceInstanceController) ListAndWatch(e *pluginapi.Empty, d pluginapi.DevicePlugin_ListAndWatchServer) error {
 	logrus.Infof("network service %s received ListandWatch from kubelet", s.networkServiceName)
-	d.Send(&pluginapi.ListAndWatchResponse{Devices: s.buildDeviceList(pluginapi.Healthy)})
+	if sendErr := d.Send(&pluginapi.ListAndWatchResponse{Devices: s.buildDeviceList(pluginapi.Healthy)}); sendErr != nil {
+		logrus.Error(sendErr)
+		return sendErr
+	}
 	for {
 		select {
 		case <-s.regStopCh:
 			logrus.Infof("ListAndWatch of Network Service %s received shut down signal.", s.networkServiceName)
 			// Informing kubelet that VFs which belong to network service are not useable now
-			d.Send(&pluginapi.ListAndWatchResponse{
-				Devices: []*pluginapi.Device{}})
+			sendErr := d.Send(&pluginapi.ListAndWatchResponse{Devices: []*pluginapi.Device{}})
+			if sendErr != nil {
+				logrus.Error(sendErr)
+			}
 			close(s.regDoneCh)
-			return nil
+			return sendErr // nil if no error
 		case <-s.regUpdateCh:
 			// Received a notification of a change in VFs resending updated list to kubelet
-			d.Send(&pluginapi.ListAndWatchResponse{Devices: s.buildDeviceList(pluginapi.Healthy)})
 			logrus.Infof("ListAndWatch of Network Service %s received update signal.", s.networkServiceName)
+
+			if sendErr := d.Send(&pluginapi.ListAndWatchResponse{Devices: s.buildDeviceList(pluginapi.Healthy)}); sendErr != nil {
+				logrus.Error("unable to send list and watch response", sendErr)
+			}
 		}
 	}
 }
@@ -303,7 +325,11 @@ func (s *serviceInstanceController) Allocate(ctx context.Context, reqs *pluginap
 	if err != nil {
 		return nil, fmt.Errorf("fail to create network services config file with error: %+v", err)
 	}
-	defer configFile.Close()
+	defer func() {
+		if closeErr := configFile.Close(); closeErr != nil {
+			logrus.Error("unable to close config file", closeErr)
+		}
+	}()
 	for _, req := range reqs.ContainerRequests {
 		response := pluginapi.ContainerAllocateResponse{
 			Devices: []*pluginapi.DeviceSpec{},

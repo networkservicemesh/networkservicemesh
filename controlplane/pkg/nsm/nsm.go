@@ -227,7 +227,9 @@ func (srv *networkServiceManager) restoreXconnection(ctx context.Context, xcon *
 
 		if monitor == nil {
 			span.LogError(errors.Errorf("failed to restore connection %v. Workspace could be found for %v. closing", xcon, workspaceName))
-			srv.CloseConnection(span.Context(), clientConnection)
+			if closeErr := srv.CloseConnection(span.Context(), clientConnection); err != nil {
+				logrus.Error("unable to close connection", closeErr)
+			}
 			return
 		}
 

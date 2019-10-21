@@ -73,7 +73,11 @@ func (reg *NSERegistry) writeLine(op ...string) error {
 		return err
 	}
 
-	defer f.Close()
+	defer func() {
+		if closeErr := f.Close(); closeErr != nil {
+			logrus.Error("unable to close reg file", closeErr)
+		}
+	}()
 
 	if _, err = f.WriteString(store(op...) + "\n"); err != nil {
 		return err
@@ -149,7 +153,11 @@ func (reg *NSERegistry) loadRegistry() (clients []string, nses map[string]NSEEnt
 		logrus.Infof("No stored registry file exists")
 		return
 	}
-	defer f.Close()
+	defer func() {
+		if closeErr := f.Close(); closeErr != nil {
+			logrus.Error("unable to close reg", err)
+		}
+	}()
 
 	reader := bufio.NewReader(f)
 	for {

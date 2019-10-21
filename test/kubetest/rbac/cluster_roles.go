@@ -224,9 +224,18 @@ func CreateRoleBinding(name, namespace string) Role {
 }
 
 func DeleteAllRoles(clientset kubernetes.Interface) error {
-	(&ClusterRole{}).Delete(clientset, RoleNames["admin"])
-	(&ClusterRole{}).Delete(clientset, RoleNames["view"])
-	(&ClusterRoleBinding{}).Delete(clientset, RoleNames["binding"])
+	if err := (&ClusterRole{}).Delete(clientset, RoleNames["admin"]); err != nil {
+		logrus.Error("Unable to delete kubernetes admin roles, aborting", err)
+		return err
+	}
+	if err := (&ClusterRole{}).Delete(clientset, RoleNames["view"]); err != nil {
+		logrus.Error("Unable to delete kubernetes view roles, aborting", err)
+		return err
+	}
+	if err := (&ClusterRoleBinding{}).Delete(clientset, RoleNames["binding"]); err != nil {
+		logrus.Error("Unable to delete kubernetes binding roles, aborting", err)
+		return err
+	}
 
 	return nil
 }

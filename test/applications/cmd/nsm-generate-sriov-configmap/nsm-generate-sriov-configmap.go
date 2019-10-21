@@ -356,7 +356,11 @@ func bindVF(vf *VF) error {
 	if err != nil {
 		return fmt.Errorf("fail to open unbind path %s with error: %+v", unbindPath, err)
 	}
-	defer u.Close()
+	defer func() {
+		if closeErr := u.Close(); closeErr != nil {
+			logrus.Error(closeErr)
+		}
+	}()
 	cmdUnbind.Stdout = u
 	if err := cmdUnbind.Run(); err != nil {
 		return fmt.Errorf("unbind failed with error: %+v", err)
@@ -369,7 +373,11 @@ func bindVF(vf *VF) error {
 	if err != nil {
 		return fmt.Errorf("fail to open bind path %s with error: %+v", unbindPath, err)
 	}
-	defer b.Close()
+	defer func() {
+		if closeErr := b.Close(); closeErr != nil {
+			logrus.Error(closeErr)
+		}
+	}()
 	cmdBind.Stdout = b
 	if err := cmdBind.Run(); err != nil {
 		return fmt.Errorf("bind failed with error: %+v", err)
