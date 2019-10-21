@@ -705,7 +705,9 @@ func (ctx *executionContext) executeTask(task *testTask, clusterConfigs []string
 		defer cancel()
 
 		for _, inst := range instances {
+			inst.Lock()
 			inst.taskCancel = cancel
+			inst.Unlock()
 		}
 
 		task.test.Lock()
@@ -831,8 +833,10 @@ func (ctx *executionContext) startCluster(ci *clusterInstance) {
 	ci.executions = append(ci.executions, execution)
 	go func() {
 		timeout := ctx.getClusterTimeout(ci.group)
+		ci.Lock()
 		ci.startCount++
 		execution.attempt = ci.startCount
+		ci.Unlock()
 		errFile, err := ci.instance.Start(timeout)
 		if err != nil {
 			execution.logFile = errFile
@@ -854,9 +858,7 @@ func (ctx *executionContext) startCluster(ci *clusterInstance) {
 		// Starting cloud monitoring thread
 		if state != clusterCrashed {
 			monitorContext, monitorCancel := context.WithCancel(context.Background())
-			ci.Lock()
 			ci.cancelMonitor = monitorCancel
-			ci.Unlock()
 			ctx.monitorCluster(monitorContext, ci)
 		} else {
 			ctx.operationChannel <- operationEvent{

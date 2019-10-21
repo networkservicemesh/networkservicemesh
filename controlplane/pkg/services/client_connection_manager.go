@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/pkg/errors"
@@ -29,6 +30,7 @@ const (
 )
 
 type managedClientConnection struct {
+	sync.Mutex
 	deleteTime       time.Time
 	deleted          bool
 	clientConnection *model.ClientConnection
@@ -40,15 +42,14 @@ type ClientConnectionManager struct {
 	manager         nsm.NetworkServiceManager
 
 	// A map of deleted connections.
-	clientConnections map[string]*managedClientConnection
+	clientConnections sync.Map
 }
 
 func NewClientConnectionManager(model model.Model, manager nsm.NetworkServiceManager, serviceRegistry serviceregistry.ServiceRegistry) *ClientConnectionManager {
 	return &ClientConnectionManager{
-		model:             model,
-		serviceRegistry:   serviceRegistry,
-		manager:           manager,
-		clientConnections: map[string]*managedClientConnection{},
+		model:           model,
+		serviceRegistry: serviceRegistry,
+		manager:         manager,
 	}
 }
 
@@ -200,9 +201,10 @@ func (m *ClientConnectionManager) GetClientConnectionByXcon(xcon *crossconnect.C
 	if result != nil {
 		return result
 	}
-	deleted := m.clientConnections[id]
-	if deleted != nil {
-		return deleted.clientConnection
+	if v, ok := m.clientConnections.Load(id); ok {
+		if deleted, ok := v.(*managedClientConnection); ok {
+			return deleted.clientConnection
+		}
 	}
 	return nil
 }
@@ -247,10 +249,14 @@ func (m *ClientConnectionManager) GetClientConnectionByRemoteDst(dstID, remoteNa
 
 func (m *ClientConnectionManager) getClientConnections() []*model.ClientConnection {
 	clientConnections := m.model.GetAllClientConnections()
-	// Add all deleted client connections
-	for _, cc := range m.clientConnections {
-		clientConnections = append(clientConnections, cc.clientConnection)
-	}
+	m.clientConnections.Range(func(k, v interface{}) bool {
+		if cc, ok := v.(*managedClientConnection); ok {
+			cc.Lock()
+			clientConnections = append(clientConnections, cc.clientConnection)
+			cc.Unlock()
+		}
+		return true
+	})
 	return clientConnections
 }
 
@@ -375,18 +381,26 @@ func (m *ClientConnectionManager) UpdateFromInitialState(xcons []*crossconnect.C
 
 // MarkConnectionDeleted - put connection into map of deleted connections.
 func (m *ClientConnectionManager) MarkConnectionDeleted(clientConnection *model.ClientConnection) {
-	if cc := m.clientConnections[clientConnection.GetID()]; cc != nil {
-		cc.deleteTime = time.Now()
-		cc.deleted = true
-		cc.clientConnection = clientConnection
+	if v, ok := m.clientConnections.Load(clientConnection.GetID()); ok {
+		if cc, ok := v.(*managedClientConnection); ok {
+			cc.Lock()
+			cc.deleteTime = time.Now()
+			cc.deleted = true
+			cc.clientConnection = clientConnection
+			cc.Unlock()
+		}
 	}
 	m.CleanupDeletedConnections()
 }
 
 // MarkConnectionUpdated - put connection into map of deleted connections.
 func (m *ClientConnectionManager) MarkConnectionUpdated(clientConnection *model.ClientConnection) {
-	if cc := m.clientConnections[clientConnection.GetID()]; cc != nil {
-		cc.clientConnection = clientConnection
+	if v, ok := m.clientConnections.Load(clientConnection.GetID()); ok {
+		if cc, ok := v.(*managedClientConnection); ok {
+			cc.Lock()
+			cc.clientConnection = clientConnection
+			cc.Unlock()
+		}
 	}
 	m.CleanupDeletedConnections()
 }
@@ -394,15 +408,23 @@ func (m *ClientConnectionManager) MarkConnectionUpdated(clientConnection *model.
 // CleanupDeletedConnections - cleanup deleted connections if timeout passed.
 func (m *ClientConnectionManager) CleanupDeletedConnections() {
 	// Iterate over connections to cleanup any orphaned.
-	for k, c := range m.clientConnections {
-		if c.deleted && time.Since(c.deleteTime) > deletedConnectionLifetime {
-			// remove connection if hold for a long time already.
-			delete(m.clientConnections, k)
+	idSlice := []string{}
+	m.clientConnections.Range(func(k, v interface{}) bool {
+		if c, ok := v.(*managedClientConnection); ok {
+			c.Lock()
+			if c.deleted && time.Since(c.deleteTime) > deletedConnectionLifetime {
+				idSlice = append(idSlice, k.(string))
+			}
+			c.Unlock()
 		}
+		return true
+	})
+	for _, id := range idSlice {
+		m.clientConnections.Delete(id)
 	}
 }
 
 // MarkConnectionAdded - remember we have connection to send events from.
 func (m *ClientConnectionManager) MarkConnectionAdded(clientConnection *model.ClientConnection) {
-	m.clientConnections[clientConnection.GetID()] = &managedClientConnection{clientConnection: clientConnection, deleted: false}
+	m.clientConnections.Store(clientConnection.GetID(), &managedClientConnection{clientConnection: clientConnection, deleted: false})
 }

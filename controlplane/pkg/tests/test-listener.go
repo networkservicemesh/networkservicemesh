@@ -120,9 +120,11 @@ func (impl *testConnectionModelListener) WaitEndpoints(count int, duration time.
 	st := time.Now()
 	for {
 		<-time.After(stepTimeout)
+		impl.Lock()
 		if impl.endpoints == count {
 			break
 		}
+		impl.Unlock()
 		if time.Since(st) > duration {
 			t.Fatalf("Failed to wait for add events.. %d timeout happened...", count)
 			break

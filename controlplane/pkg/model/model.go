@@ -90,12 +90,13 @@ func (m *model) AddListener(listener Listener) {
 			listener.ClientConnectionDeleted(ctx, del.(*ClientConnection))
 		},
 	})
-
+	m.mtx.Lock()
 	m.listeners[listener] = func() {
 		endpListenerDelete()
 		dpListenerDelete()
 		ccListenerDelete()
 	}
+	m.mtx.Unlock()
 }
 
 func (m *model) RemoveListener(listener Listener) {
@@ -108,7 +109,10 @@ func (m *model) RemoveListener(listener Listener) {
 }
 
 func (m *model) ListenerCount() int {
-	return len(m.listeners)
+	m.mtx.Lock()
+	l := len(m.listeners)
+	m.mtx.Unlock()
+	return l
 }
 
 // NewModel returns new instance of Model

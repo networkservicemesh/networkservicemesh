@@ -132,6 +132,7 @@ func TestFanoutTwoServersNotSuccessResponse(t *testing.T) {
 
 func TestFanoutTwoServers(t *testing.T) {
 	const expected = 1
+	var mutex sync.Mutex
 	answerCount1 := 0
 	answerCount2 := 0
 	s1 := newServer(func(w dns.ResponseWriter, r *dns.Msg) {
@@ -139,7 +140,9 @@ func TestFanoutTwoServers(t *testing.T) {
 			msg := dns.Msg{
 				Answer: []dns.RR{makeRecordA("example1 3600	IN	A 10.0.0.1")},
 			}
+			mutex.Lock()
 			answerCount1++
+			mutex.Unlock()
 			msg.SetReply(r)
 			w.WriteMsg(&msg)
 		}
@@ -149,7 +152,9 @@ func TestFanoutTwoServers(t *testing.T) {
 			msg := dns.Msg{
 				Answer: []dns.RR{makeRecordA("example2. 3600	IN	A 10.0.0.1")},
 			}
+			mutex.Lock()
 			answerCount2++
+			mutex.Unlock()
 			msg.SetReply(r)
 			w.WriteMsg(&msg)
 		}
@@ -171,7 +176,8 @@ func TestFanoutTwoServers(t *testing.T) {
 	req = new(dns.Msg)
 	req.SetQuestion("example2.", dns.TypeA)
 	f.ServeDNS(context.TODO(), &test.ResponseWriter{}, req)
-	<-time.After(time.Second)
+	mutex.Lock()
+	defer mutex.Unlock()
 	if answerCount2 != expected || answerCount1 != expected {
 		t.Errorf("Expected number of health checks to be %d, got s1: %d, s2: %d", expected, answerCount1, answerCount2)
 	}
