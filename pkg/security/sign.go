@@ -51,22 +51,6 @@ func WithLifetime(t time.Duration) SignOption {
 	})
 }
 
-func SignConnection(s Signable, oboToken string, provider Provider) error {
-	var opts []SignOption
-	if len(oboToken) != 0 {
-		opts = append(opts, WithObo(oboToken))
-	}
-
-	sign, err := GenerateSignature(s, ConnectionClaimSetter, provider, opts...)
-	if err != nil {
-		logrus.Errorf("Unable to sign response: %v", err)
-		return err
-	}
-
-	s.SetSignature(sign)
-	return nil
-}
-
 func GenerateSignature(msg interface{}, claimsSetter ClaimsSetter, p Provider, opts ...SignOption) (string, error) {
 	claims := &ChainClaims{}
 	if err := claimsSetter(claims, msg); err != nil {

@@ -17,8 +17,6 @@ package remote
 import (
 	"context"
 
-	"github.com/networkservicemesh/networkservicemesh/pkg/security"
-
 	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
@@ -127,9 +125,6 @@ func (cce *endpointService) Request(ctx context.Context, request *networkservice
 	cce.updateConnectionParameters(nseConn, endpoint)
 
 	ctx = common.WithEndpointConnection(ctx, nseConn)
-
-	logrus.Infof("remote.EndpointService: setting nseConn.ResponseJWT to SecurityContext - %v", nseConn.GetSignature())
-	security.SecurityContext(ctx).SetResponseOboToken(nseConn.GetSignature())
 
 	return ProcessNext(ctx, request)
 }

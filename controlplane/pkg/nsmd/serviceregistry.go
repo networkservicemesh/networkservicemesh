@@ -2,6 +2,7 @@ package nsmd
 
 import (
 	"context"
+	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"net"
 	"os"
 	"strings"
@@ -72,7 +73,7 @@ func (impl *nsmdServiceRegistry) RemoteNetworkServiceClient(ctx context.Context,
 		return nil, nil, err
 	}
 
-	conn, err := tools.DialContextTCP(ctx, nsm.GetUrl())
+	conn, err := tools.DialTCPWithToken(ctx, nsm.GetUrl(), &common.NSTokenConfig{})
 	if err != nil {
 		logrus.Errorf("Failed to dial Remote Network Service Manager %s at %s: %s", nsm.GetName(), nsm.Url, err)
 		return nil, nil, err
@@ -83,7 +84,7 @@ func (impl *nsmdServiceRegistry) RemoteNetworkServiceClient(ctx context.Context,
 }
 
 func (impl *nsmdServiceRegistry) EndpointConnection(ctx context.Context, endpoint *model.Endpoint) (networkservice.NetworkServiceClient, *grpc.ClientConn, error) {
-	nseConn, err := tools.DialContextUnix(ctx, endpoint.SocketLocation)
+	nseConn, err := tools.DialUnixWithToken(ctx, endpoint.SocketLocation, &common.NSTokenConfig{})
 	if err != nil {
 		logrus.Errorf("unable to connect to nse %v", endpoint)
 		return nil, nil, err
@@ -94,7 +95,7 @@ func (impl *nsmdServiceRegistry) EndpointConnection(ctx context.Context, endpoin
 }
 
 func (impl *nsmdServiceRegistry) ForwarderConnection(ctx context.Context, forwarder *model.Forwarder) (forwarderapi.ForwarderClient, *grpc.ClientConn, error) {
-	forwarderConn, err := tools.DialContextUnix(ctx, forwarder.SocketLocation)
+	forwarderConn, err := tools.DialUnix(ctx, forwarder.SocketLocation)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -108,7 +109,7 @@ func (impl *nsmdServiceRegistry) NSMDApiClient(ctx context.Context) (nsmdapi.NSM
 		return nil, nil, err
 	}
 
-	conn, err := tools.DialContextUnix(ctx, ServerSock)
+	conn, err := tools.DialUnix(ctx, ServerSock)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -177,7 +178,7 @@ func (impl *nsmdServiceRegistry) initRegistryClient(ctx context.Context) {
 		}
 		span.Logger().Println("Registry port now available, attempting to connect...")
 
-		conn, err := tools.DialContextTCP(span.Context(), impl.registryAddress)
+		conn, err := tools.DialTCP(span.Context(), impl.registryAddress)
 		if err != nil {
 			span.Logger().Errorf("Failed to dial Network Service Registry at %s: %s", impl.registryAddress, err)
 			continue

@@ -63,6 +63,11 @@ func NewServer(ctx context.Context, opts ...grpc.ServerOption) *grpc.Server {
 	return newServer(ctx, opts...)
 }
 
+func NewServerWithToken(ctx context.Context, cfg security.TokenConfig, opts ...grpc.ServerOption) *grpc.Server {
+	newServer := new(NewServerBuilder).TokenVerification(cfg).NewServerFunc()
+	return newServer(ctx, opts...)
+}
+
 // NewServerInsecure calls grpc.NewServer without security even if it specified in DialConfig
 func NewServerInsecure(ctx context.Context, opts ...grpc.ServerOption) *grpc.Server {
 	newServer := new(NewServerBuilder).Insecure().NewServerFunc()
@@ -75,16 +80,15 @@ func DialContext(ctx context.Context, addr net.Addr, opts ...grpc.DialOption) (*
 	return dialCtx(ctx, addr.String(), opts...)
 }
 
-// DialContextUnix establish connection with passed unix socket
-func DialContextUnix(ctx context.Context, path string, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
+// DialUnix establish connection with passed unix socket
+func DialUnix(ctx context.Context, path string, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
 	dialCtx := new(DialBuilder).Unix().DialContextFunc()
 	return dialCtx(ctx, path, opts...)
 }
 
-// DialUnix establish connection with passed unix socket and set default timeout
-func DialUnix(path string, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
-	dialCtx := new(DialBuilder).Unix().Timeout(dialTimeoutDefault).DialContextFunc()
-	return dialCtx(context.Background(), path, opts...)
+func DialUnixWithToken(ctx context.Context, address string, cfg security.TokenConfig, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
+	dialCtx := new(DialBuilder).Unix().TokenVerification(cfg).DialContextFunc()
+	return dialCtx(ctx, address, opts...)
 }
 
 // DialUnixInsecure establish connection with passed unix socket in insecure mode and set default timeout
@@ -93,16 +97,15 @@ func DialUnixInsecure(path string, opts ...grpc.DialOption) (*grpc.ClientConn, e
 	return dialCtx(context.Background(), path, opts...)
 }
 
-// DialContextTCP establish TCP connection with address
-func DialContextTCP(ctx context.Context, address string, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
+// DialTCP establish TCP connection with address
+func DialTCP(ctx context.Context, address string, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
 	dialCtx := new(DialBuilder).TCP().DialContextFunc()
 	return dialCtx(ctx, address, opts...)
 }
 
-// DialTCP establish TCP connection with address and set default timeout
-func DialTCP(address string, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
-	dialCtx := new(DialBuilder).TCP().Timeout(dialTimeoutDefault).DialContextFunc()
-	return dialCtx(context.Background(), address, opts...)
+func DialTCPWithToken(ctx context.Context, address string, cfg security.TokenConfig, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
+	dialCtx := new(DialBuilder).TCP().TokenVerification(cfg).DialContextFunc()
+	return dialCtx(ctx, address, opts...)
 }
 
 // DialTCPInsecure establish TCP connection with address in insecure mode and set default timeout
@@ -118,6 +121,7 @@ type DialBuilder struct {
 	t        time.Duration
 	insecure bool
 	cfg      *DialConfig
+	token    security.TokenConfig
 }
 
 func (b *DialBuilder) TCP() *DialBuilder {
@@ -130,6 +134,11 @@ func (b *DialBuilder) Unix() *DialBuilder {
 
 func (b *DialBuilder) Insecure() *DialBuilder {
 	b.insecure = true
+	return b
+}
+
+func (b *DialBuilder) TokenVerification(cfg security.TokenConfig) *DialBuilder {
+	b.token = cfg
 	return b
 }
 
@@ -176,9 +185,13 @@ func (b *DialBuilder) DialContextFunc() DialContextFunc {
 				RootCAs:            b.cfg.SecurityProvider.GetCABundle(),
 			})
 			b.opts = append(b.opts, grpc.WithTransportCredentials(cred))
-			unaryInts = append(unaryInts, security.ClientInterceptor(b.cfg.SecurityProvider))
+			//unaryInts = append(unaryInts, security.ClientInterceptor(b.cfg.SecurityProvider))
 		} else {
 			b.opts = append(b.opts, grpc.WithInsecure())
+		}
+
+		if !b.insecure && b.cfg.SecurityProvider != nil && b.token != nil {
+			unaryInts = append(unaryInts, security.ClientInterceptor(b.cfg.SecurityProvider, b.token))
 		}
 
 		b.opts = append(b.opts, grpc.WithBlock())
@@ -199,6 +212,7 @@ type NewServerFunc func(ctx context.Context, opts ...grpc.ServerOption) *grpc.Se
 type NewServerBuilder struct {
 	insecure bool
 	cfg      *DialConfig
+	token    security.TokenConfig
 }
 
 func (b *NewServerBuilder) Insecure() *NewServerBuilder {
@@ -208,6 +222,11 @@ func (b *NewServerBuilder) Insecure() *NewServerBuilder {
 
 func (b *NewServerBuilder) WithConfig(cfg *DialConfig) *NewServerBuilder {
 	b.cfg = cfg
+	return b
+}
+
+func (b *NewServerBuilder) TokenVerification(cfg security.TokenConfig) *NewServerBuilder {
+	b.token = cfg
 	return b
 }
 
@@ -231,8 +250,11 @@ func (b *NewServerBuilder) NewServerFunc() NewServerFunc {
 				ClientCAs:    b.cfg.SecurityProvider.GetCABundle(),
 			})
 			opts = append(opts, grpc.Creds(cred))
-			unaryInts = append(unaryInts, security.ServerInterceptor(b.cfg.SecurityProvider))
 			securitySpan.Finish()
+		}
+
+		if !b.insecure && b.cfg.SecurityProvider != nil && b.token != nil {
+			unaryInts = append(unaryInts, security.ServerInterceptor(b.cfg.SecurityProvider, b.token))
 		}
 
 		if b.cfg.OpenTracing {

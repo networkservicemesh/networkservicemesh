@@ -64,7 +64,7 @@ func NewNSMConnection(ctx context.Context, configuration *NSConfiguration) (*Nsm
 	}
 
 	var err error
-	conn.GrpcClient, err = tools.DialUnix(configuration.NsmServerSocket)
+	conn.GrpcClient, err = tools.DialUnixWithToken(ctx, configuration.NsmServerSocket, &NSTokenConfig{})
 	if err != nil {
 		logrus.Errorf("nse: failure to communicate with the registrySocket %s with error: %+v", configuration.NsmServerSocket, err)
 		return nil, err

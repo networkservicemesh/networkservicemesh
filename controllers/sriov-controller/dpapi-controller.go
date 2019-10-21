@@ -182,7 +182,7 @@ func (s *serviceInstanceController) startServer() error {
 	go s.server.Serve(sock)
 
 	// Wait for server to start by launching a blocking connection
-	conn, err := tools.DialUnix(s.socket)
+	conn, err := tools.DialUnix(context.Background(), s.socket)
 	if err != nil {
 		return err
 	}
@@ -201,7 +201,7 @@ func (s *serviceInstanceController) cleanup() error {
 
 // register registers service instance controller for the given network service with Kubelet.
 func (s *serviceInstanceController) register() error {
-	conn, err := tools.DialUnix(pluginapi.KubeletSocket)
+	conn, err := tools.DialUnix(context.Background(), pluginapi.KubeletSocket)
 	if err != nil {
 		return err
 	}

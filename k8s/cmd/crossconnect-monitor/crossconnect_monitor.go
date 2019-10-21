@@ -27,7 +27,7 @@ var managers = map[string]string{}
 func monitorCrossConnects(address string, continuousMonitor bool) {
 	var err error
 	logrus.Infof("Starting CrossConnections Monitor on %s", address)
-	conn, err := tools.DialTCP(address)
+	conn, err := tools.DialTCP(context.Background(), address)
 	if err != nil {
 		logrus.Errorf("failure to communicate with the socket %s with error: %+v", address, err)
 		return

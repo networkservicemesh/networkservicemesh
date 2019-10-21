@@ -32,6 +32,11 @@ const (
 	DefaultAgentAddress = "/run/spire/sockets/agent.sock"
 )
 
+type TokenConfig interface {
+	FillClaims(claims *ChainClaims, msg interface{}) error
+	RequestFilter(req interface{}) bool
+}
+
 type spireObtainer struct {
 	errCh             chan error
 	responseCh        <-chan *Response

@@ -31,7 +31,7 @@ type proxyMonitor struct {
 func (p *proxyMonitor) MonitorCrossConnects(empty *empty.Empty, src crossconnect.MonitorCrossConnect_MonitorCrossConnectsServer) error {
 	logrus.Infof("MonitorCrossConnects called, address - %v", p.address)
 
-	conn, err := tools.DialTCP(p.address)
+	conn, err := tools.DialTCP(context.Background(), p.address)
 	if err != nil {
 		logrus.Error(err)
 		return err

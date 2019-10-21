@@ -251,7 +251,7 @@ func getEventCh(mc MonitorClient, cf context.CancelFunc, stopCh <-chan struct{})
 func CreateCrossConnectClient(k8s *K8s, address string) (MonitorClient, func(), context.CancelFunc) {
 	var err error
 	logrus.Infof("Starting CrossConnections Monitor on %s", address)
-	conn, err := tools.DialTCP(address)
+	conn, err := tools.DialTCP(context.Background(), address)
 	if err != nil {
 		k8s.g.Expect(err).To(BeNil())
 		return nil, nil, nil

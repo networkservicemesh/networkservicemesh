@@ -14,7 +14,7 @@ type testCertificateObtainer struct {
 	certCh <-chan *security.Response
 }
 
-func newTestCertificateObtainerWithCA(spiffeID string, ca *tls.Certificate, frequency time.Duration) security.CertificateObtainer {
+func NewTestCertificateObtainerWithCA(spiffeID string, ca *tls.Certificate, frequency time.Duration) security.CertificateObtainer {
 	errCh := make(chan error)
 	certCh := newCertCh(spiffeID, ca, frequency, errCh)
 

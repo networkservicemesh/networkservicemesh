@@ -93,7 +93,7 @@ func registerPlugin(ctx context.Context, name, endpoint, registry string, capabi
 	span := spanhelper.FromContext(ctx, "register-plugin")
 	defer span.Finish()
 	_ = tools.WaitForPortAvailable(span.Context(), "unix", registry, 100*time.Millisecond)
-	conn, err := tools.DialContextUnix(span.Context(), registry)
+	conn, err := tools.DialUnix(span.Context(), registry)
 	if err != nil {
 		return errors.Wrap(err, "cannot connect to the Plugin Registry")
 	}

@@ -194,7 +194,7 @@ func createClusterInfoClient(ctx context.Context, address string) (clusterinfo.C
 		return nil, nil, err
 	}
 
-	conn, err := tools.DialContextTCP(ctx, address)
+	conn, err := tools.DialTCP(ctx, address)
 	if err != nil {
 		return nil, nil, err
 	}

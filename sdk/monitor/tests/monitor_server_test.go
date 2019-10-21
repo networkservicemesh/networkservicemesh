@@ -20,7 +20,7 @@ import (
 
 func startClient(g *WithT, target string) {
 	_ = os.Setenv(tools.InsecureEnv, "true")
-	conn, err := tools.DialTCP(target)
+	conn, err := tools.DialTCP(context.Background(), target)
 	defer conn.Close()
 
 	g.Expect(err).To(BeNil())

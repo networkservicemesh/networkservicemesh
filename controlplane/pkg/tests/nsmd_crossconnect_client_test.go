@@ -110,7 +110,7 @@ func TestCCServerEmpty(t *testing.T) {
 
 func readNMSDCrossConnectEvents(address string, count int) []*crossconnect.CrossConnectEvent {
 	var err error
-	conn, err := tools.DialTCP(address)
+	conn, err := tools.DialTCP(context.Background(), address)
 	if err != nil {
 		logrus.Errorf("failure to communicate with the socket %s with error: %+v", address, err)
 		return nil

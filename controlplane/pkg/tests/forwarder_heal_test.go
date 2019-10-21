@@ -1,11 +1,8 @@
 package tests
 
 import (
-	"os"
 	"testing"
 	"time"
-
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 
 	. "github.com/onsi/gomega"
 	"golang.org/x/net/context"
@@ -18,8 +15,8 @@ import (
 )
 
 func TestHealLocalForwarder(t *testing.T) {
-	_ = os.Setenv(tools.InsecureEnv, "true")
 	g := NewWithT(t)
+	Insecure()
 
 	storage := NewSharedStorage()
 	srv := NewNSMDFullServer(Master, storage)

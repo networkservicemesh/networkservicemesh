@@ -10,10 +10,10 @@ import (
 func TestCertificateObtainer(t *testing.T) {
 	g := NewWithT(t)
 
-	ca, err := generateCA()
+	ca, err := GenerateCA()
 	g.Expect(err).To(BeNil())
 
-	obt := newTestCertificateObtainerWithCA(spiffeID1, &ca, 500*time.Millisecond)
+	obt := NewTestCertificateObtainerWithCA(SpiffeID1, &ca, 500*time.Millisecond)
 	certCh := obt.CertificateCh()
 
 	for i := 0; i < 5; i++ {

@@ -301,7 +301,7 @@ func (client *NsmMonitorCrossConnectClient) connectToEndpoint(endpoint *model.En
 	var err error
 
 	for st := time.Now(); time.Since(st) < endpointConnectionTimeout; <-time.After(100 * time.Millisecond) {
-		if conn, err = tools.DialUnix(endpoint.SocketLocation); err == nil {
+		if conn, err = tools.DialUnix(context.Background(), endpoint.SocketLocation); err == nil {
 			break
 		}
 	}
@@ -348,7 +348,7 @@ func (client *NsmMonitorCrossConnectClient) forwarderCrossConnectMonitor(ctx con
 	span.Logger().Infof("Starting Forwarder crossconnect monitoring client...")
 	grpcConnectionSupplier := func() (*grpc.ClientConn, error) {
 		logrus.Infof(forwarderLogWithParamFormat, forwarder.RegisteredName, "Connecting to", forwarder.SocketLocation)
-		return tools.DialContextUnix(span.Context(), forwarder.SocketLocation)
+		return tools.DialUnix(span.Context(), forwarder.SocketLocation)
 	}
 
 	eventHandler := func(event monitor.Event, parameters map[string]string) error {
@@ -426,7 +426,7 @@ func (client *NsmMonitorCrossConnectClient) remotePeerConnectionMonitor(ctx cont
 	defer span.Finish()
 	grpcConnectionSupplier := func() (*grpc.ClientConn, error) {
 		span.Logger().Infof(peerLogWithParamFormat, remotePeer.Name, "Connecting to", remotePeer.Url)
-		return tools.DialContextTCP(span.Context(), remotePeer.GetUrl())
+		return tools.DialTCP(span.Context(), remotePeer.GetUrl())
 	}
 	monitorClientSupplier := func(conn *grpc.ClientConn) (monitor.Client, error) {
 		return monitor_remote.NewMonitorClient(conn, &remote.MonitorScopeSelector{

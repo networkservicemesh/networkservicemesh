@@ -113,7 +113,7 @@ func (pr *pluginRegistry) Register(ctx context.Context, info *plugins.PluginInfo
 }
 
 func (pr *pluginRegistry) createConnection(name, endpoint string) (*grpc.ClientConn, error) {
-	conn, err := tools.DialUnix(endpoint)
+	conn, err := tools.DialUnix(context.Background(), endpoint)
 	if err != nil {
 		return nil, err
 	}

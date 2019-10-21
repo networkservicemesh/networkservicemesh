@@ -30,7 +30,7 @@ func NewNsmDNSMonitorHandler() Handler {
 	if clientSock == "" {
 		logrus.Fatalf("unable to create Handler instance. Expect %v is not empty", UpdateAPIClientSock.Name())
 	}
-	conn, err := tools.DialUnix(clientSock)
+	conn, err := tools.DialUnix(context.Background(), clientSock)
 	if err != nil {
 		logrus.Fatalf("An error during dial unix socket by path %v, error: %v", clientSock, err.Error())
 	}

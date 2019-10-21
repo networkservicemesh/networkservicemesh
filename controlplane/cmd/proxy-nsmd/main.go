@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"net"
 	"os"
 	"strings"
@@ -82,7 +83,7 @@ func getProxyNSMDAPIAddress() string {
 
 // StartAPIServerAt starts GRPC API server at sock
 func startAPIServerAt(sock net.Listener, serviceRegistry serviceregistry.ServiceRegistry, probes probes.Probes) {
-	grpcServer := tools.NewServer(context.Background())
+	grpcServer := tools.NewServerWithToken(context.Background(), &common.NSTokenConfig{})
 	remoteConnectionMonitor := remote.NewProxyMonitorServer()
 	connection.RegisterMonitorConnectionServer(grpcServer, compat.NewMonitorConnectionServerAdapter(remoteConnectionMonitor, nil))
 	probes.Append(health.NewGrpcHealth(grpcServer, sock.Addr(), time.Minute))

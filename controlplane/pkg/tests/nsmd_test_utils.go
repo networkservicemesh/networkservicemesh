@@ -3,6 +3,7 @@ package tests
 import (
 	"context"
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"io/ioutil"
 	"net"
 	"os"
@@ -242,7 +243,7 @@ func (impl *nsmdTestServiceRegistry) RemoteNetworkServiceClient(ctx context.Cont
 	}
 
 	span.Logger().Info("Remote Network Service is available, attempting to connect...")
-	conn, err := tools.DialContextTCP(span.Context(), nsm.GetUrl())
+	conn, err := tools.DialTCPWithToken(span.Context(), nsm.GetUrl(), &common.NSTokenConfig{})
 	span.LogError(err)
 	if err != nil {
 		span.Logger().Errorf("Failed to dial Network Service Registry at %s: %s", nsm.Url, err)
@@ -351,7 +352,7 @@ func (impl *nsmdTestServiceRegistry) NSMDApiClient(ctx context.Context) (nsmdapi
 	if err != nil {
 		return nil, nil, err
 	}
-	conn, err := tools.DialContextTCP(span.Context(), addr)
+	conn, err := tools.DialTCP(span.Context(), addr)
 	if err != nil {
 		err = errors.Errorf("failed to dial Network Service Registry at %s: %s", addr, err)
 		span.LogError(err)
@@ -416,7 +417,7 @@ func newNetworkServiceClient(nsmServerSocket string) (local_networkservice.Netwo
 		return nil, nil, err
 	}
 
-	conn, err := tools.DialUnix(nsmServerSocket)
+	conn, err := tools.DialUnixWithToken(context.Background(), nsmServerSocket, &common.NSTokenConfig{})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -620,4 +621,8 @@ func CreateRequest() *local_networkservice.NetworkServiceRequest {
 	}
 
 	return request
+}
+
+func Insecure() {
+	tools.InitConfig(tools.DialConfig{})
 }

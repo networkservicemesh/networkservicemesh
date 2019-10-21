@@ -21,9 +21,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
-	unifiedns "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/networkservice"
-
 	"github.com/dgrijalva/jwt-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -49,7 +46,7 @@ func ParseJWTWithClaims(tokenString string) (*jwt.Token, []string, *ChainClaims,
 	return token, parts, claims, err
 }
 
-func ClientInterceptor(securityProvider Provider) grpc.UnaryClientInterceptor {
+func ClientInterceptor(securityProvider Provider, cfg TokenConfig) grpc.UnaryClientInterceptor {
 	return func(
 		ctx context.Context,
 		method string,
@@ -58,10 +55,11 @@ func ClientInterceptor(securityProvider Provider) grpc.UnaryClientInterceptor {
 		invoker grpc.UnaryInvoker,
 		opts ...grpc.CallOption) error {
 
-		claimSetter := check(req)
-		if claimSetter == nil {
+		if !cfg.RequestFilter(req) {
 			return invoker(ctx, method, req, reply, cc, opts...)
 		}
+
+		logrus.Infof("ClientInterceptor start working...")
 
 		var obo string
 		if SecurityContext(ctx) != nil && SecurityContext(ctx).GetRequestOboToken() != "" {
@@ -69,7 +67,7 @@ func ClientInterceptor(securityProvider Provider) grpc.UnaryClientInterceptor {
 			obo = SecurityContext(ctx).GetRequestOboToken()
 		}
 
-		token, err := GenerateSignature(req, claimSetter, securityProvider, WithObo(obo))
+		token, err := GenerateSignature(req, cfg.FillClaims, securityProvider, WithObo(obo))
 		if err != nil {
 			logrus.Error(err)
 			return err
@@ -95,30 +93,23 @@ func ClientInterceptor(securityProvider Provider) grpc.UnaryClientInterceptor {
 			return status.Errorf(codes.Unauthenticated, "response jwt is not valid: %v", err)
 		}
 
+		if SecurityContext(ctx) != nil {
+			logrus.Infof("Setting nsReply.GetSignature() to SecurityContext - %v", nsReply.GetSignature())
+			SecurityContext(ctx).SetResponseOboToken(nsReply.GetSignature())
+		}
+
 		return nil
 	}
 }
 
-func check(req interface{}) ClaimsSetter {
-	if _, ok := req.(*networkservice.NetworkServiceRequest); ok {
-		return NewAPIRequestClaimSetter
-	}
-
-	if _, ok := req.(unifiedns.Request); ok {
-		return RequestClaimSetter
-	}
-
-	return nil
-}
-
-func ServerInterceptor(securityProvider Provider) grpc.UnaryServerInterceptor {
+func ServerInterceptor(securityProvider Provider, cfg TokenConfig) grpc.UnaryServerInterceptor {
 	return func(
 		ctx context.Context,
 		req interface{},
 		info *grpc.UnaryServerInfo,
 		handler grpc.UnaryHandler) (resp interface{}, err error) {
 
-		if check(req) == nil {
+		if !cfg.RequestFilter(req) {
 			return handler(ctx, req)
 		}
 

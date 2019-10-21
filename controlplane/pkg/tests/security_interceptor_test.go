@@ -1,20 +1,20 @@
-package testsec
+package tests
 
 import (
 	"context"
 	"crypto/tls"
-	"net"
-	"testing"
-	"time"
-
 	"github.com/golang/protobuf/ptypes/empty"
-	. "github.com/onsi/gomega"
-	"github.com/sirupsen/logrus"
-
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/pkg/security"
+	testsec "github.com/networkservicemesh/networkservicemesh/pkg/security/test"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"github.com/networkservicemesh/networkservicemesh/sdk/common"
+	. "github.com/onsi/gomega"
+	"github.com/sirupsen/logrus"
+	"net"
+	"testing"
+	"time"
 )
 
 func testNewServerFunc(provider security.Provider) tools.NewServerFunc {
@@ -61,7 +61,7 @@ func (d *dummyNetworkService) start() (closeFunc func(), err error) {
 
 func (d *dummyNetworkService) Request(context.Context, *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 	rv := &connection.Connection{Id: "1"}
-	sign, err := security.GenerateSignature(rv, security.ConnectionClaimSetter, d.provider)
+	sign, err := security.GenerateSignature(rv, common.ConnectionFillClaimsFunc, d.provider)
 	if err != nil {
 		return nil, err
 	}
@@ -74,22 +74,22 @@ func (d *dummyNetworkService) Close(context.Context, *connection.Connection) (*e
 }
 
 func newTestSecurityProvider(ca *tls.Certificate, spiffeID string) security.Provider {
-	obt := newTestCertificateObtainerWithCA(spiffeID, ca, 1*time.Second)
+	obt := testsec.NewTestCertificateObtainerWithCA(spiffeID, ca, 1*time.Second)
 	return security.NewProviderWithCertObtainer(obt)
 }
 
 func TestSecurityInterceptor(t *testing.T) {
 	g := NewWithT(t)
 
-	ca, err := generateCA()
+	ca, err := testsec.GenerateCA()
 	g.Expect(err).To(BeNil())
 
-	srv := newDummyNetworkService(newTestSecurityProvider(&ca, spiffeID2))
+	srv := newDummyNetworkService(newTestSecurityProvider(&ca, testsec.SpiffeID2))
 	closeFunc, err := srv.start()
 	g.Expect(err).To(BeNil())
 	defer closeFunc()
 
-	clientProvider := newTestSecurityProvider(&ca, spiffeID1)
+	clientProvider := newTestSecurityProvider(&ca, testsec.SpiffeID1)
 	dialContextFunc := testDialFunc(clientProvider)
 	conn, err := dialContextFunc(context.Background(), "localhost:5252")
 
@@ -101,6 +101,6 @@ func TestSecurityInterceptor(t *testing.T) {
 	g.Expect(err).To(BeNil())
 
 	logrus.Info("validating responseJWT")
-	err = security.VerifySignature(reply.ResponseJWT, clientProvider.GetCABundle(), spiffeID2)
+	err = security.VerifySignature(reply.ResponseJWT, clientProvider.GetCABundle(), testsec.SpiffeID2)
 	g.Expect(err).To(BeNil())
 }

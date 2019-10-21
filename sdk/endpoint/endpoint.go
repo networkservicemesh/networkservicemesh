@@ -82,7 +82,7 @@ func (nsme *nsmEndpoint) serve(listener net.Listener) {
 func (nsme *nsmEndpoint) Start() error {
 	nsme.tracerCloser = jaeger.InitJaeger(nsme.Configuration.AdvertiseNseName)
 
-	nsme.grpcServer = tools.NewServer(nsme.Context)
+	nsme.grpcServer = tools.NewServerWithToken(nsme.Context, &common.NSTokenConfig{})
 	unified.RegisterNetworkServiceServer(nsme.grpcServer, nsme)
 
 	listener, err := nsme.setupNSEServerConnection()
@@ -174,9 +174,16 @@ func (nsme *nsmEndpoint) Request(ctx context.Context, request *networkservice.Ne
 		return incomingConnection, nil
 	}
 
-	if err := security.SignConnection(incomingConnection, "", tools.GetConfig().SecurityProvider); err != nil {
+	//if err := security.SignConnection(incomingConnection, "", tools.GetConfig().SecurityProvider); err != nil {
+	//	return nil, err
+	//}
+
+	sign, err := security.GenerateSignature(incomingConnection, common.ConnectionFillClaimsFunc, tools.GetConfig().SecurityProvider)
+	if err != nil {
+		logrus.Errorf("Unable to sign response: %v", err)
 		return nil, err
 	}
+	incomingConnection.SetSignature(sign)
 	span.LogObject("response", incomingConnection)
 	return incomingConnection, nil
 }

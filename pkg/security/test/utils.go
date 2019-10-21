@@ -24,9 +24,9 @@ const (
 )
 
 var (
-	spiffeID1 = fmt.Sprintf(spiffeIDFormat, testDomain, 1)
-	spiffeID2 = fmt.Sprintf(spiffeIDFormat, testDomain, 2)
-	spiffeID3 = fmt.Sprintf(spiffeIDFormat, testDomain, 3)
+	SpiffeID1 = fmt.Sprintf(spiffeIDFormat, testDomain, 1)
+	SpiffeID2 = fmt.Sprintf(spiffeIDFormat, testDomain, 2)
+	SpiffeID3 = fmt.Sprintf(spiffeIDFormat, testDomain, 3)
 )
 
 type testMsg struct {
@@ -58,7 +58,7 @@ func (sc *testSecurityProvider) SetChecker(func(interface{}) bool) {
 }
 
 func newTestSecurityContext(spiffeID string) (*testSecurityProvider, error) {
-	ca, err := generateCA()
+	ca, err := GenerateCA()
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +98,7 @@ func (sc *testSecurityProvider) GetSpiffeID() string {
 	return sc.spiffeID
 }
 
-func generateCA() (tls.Certificate, error) {
+func GenerateCA() (tls.Certificate, error) {
 	ca := &x509.Certificate{
 		SerialNumber: big.NewInt(1653),
 		Subject: pkix.Name{

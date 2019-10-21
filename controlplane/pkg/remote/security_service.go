@@ -16,6 +16,7 @@ package remote
 
 import (
 	"context"
+	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/sirupsen/logrus"
@@ -50,11 +51,13 @@ func (s *securityService) Request(ctx context.Context, request *networkservice.N
 		return conn, nil
 	}
 
-	if err := security.SignConnection(conn, security.SecurityContext(ctx).GetResponseOboToken(), s.provider); err != nil {
+	sign, err := security.GenerateSignature(conn, common.ConnectionFillClaimsFunc, s.provider, security.WithObo(security.SecurityContext(ctx).GetResponseOboToken()))
+	if err != nil {
 		span.LogError(err)
 		return nil, err
 	}
 
+	conn.SetSignature(sign)
 	return conn, nil
 }
 

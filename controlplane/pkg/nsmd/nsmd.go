@@ -2,6 +2,7 @@ package nsmd
 
 import (
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"net"
 	"os"
 	"sync"
@@ -558,7 +559,7 @@ func (nsm *nsmServer) StartAPIServerAt(ctx context.Context, sock net.Listener, p
 	span := spanhelper.FromContext(ctx, "start-public-api-server")
 	defer span.Finish()
 
-	grpcServer := tools.NewServer(span.Context())
+	grpcServer := tools.NewServerWithToken(span.Context(), &common.NSTokenConfig{})
 
 	crossconnect.RegisterMonitorCrossConnectServer(grpcServer, nsm.crossConnectMonitor)
 	connection.RegisterMonitorConnectionServer(grpcServer, compat.NewMonitorConnectionServerAdapter(nsm.remoteConnectionMonitor, nil))

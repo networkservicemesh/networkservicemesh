@@ -14,11 +14,11 @@ import (
 func TestSecurityManager(t *testing.T) {
 	g := NewWithT(t)
 
-	ca, err := generateCA()
+	ca, err := GenerateCA()
 	g.Expect(err).To(BeNil())
 
 	exchangeTimeout := 500 * time.Millisecond
-	mgr := security.NewProviderWithCertObtainer(newTestCertificateObtainerWithCA(spiffeID1, &ca, exchangeTimeout))
+	mgr := security.NewProviderWithCertObtainer(NewTestCertificateObtainerWithCA(SpiffeID1, &ca, exchangeTimeout))
 
 	var prevCrt *tls.Certificate
 	var prevCa *x509.CertPool

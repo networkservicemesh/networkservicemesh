@@ -17,6 +17,7 @@ package nsmd
 import (
 	"context"
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"net"
 	"os"
 	"sync"
@@ -103,7 +104,7 @@ func NewWorkSpace(ctx context.Context, nsm *nsmServer, name string, restore bool
 		}
 	}()
 
-	conn, err := tools.DialUnix(socket)
+	conn, err := tools.DialUnix(context.Background(), socket)
 	if err != nil {
 		span.Logger().Errorf("failure to communicate with the socket %s with error: %+v", socket, err)
 		return nil, err
@@ -125,7 +126,7 @@ func registerWorkspaceServices(span spanhelper.SpanHelper, w *Workspace, nsm *ns
 	w.networkServiceServer = NewNetworkServiceServer(nsm.model, w, nsm.manager)
 
 	span.Logger().Infof("Creating new GRPC MonitorServer")
-	w.grpcServer = tools.NewServer(span.Context())
+	w.grpcServer = tools.NewServerWithToken(span.Context(), &common.NSTokenConfig{})
 
 	span.Logger().Infof("Registering NetworkServiceRegistryServer with registerServer")
 	registry.RegisterNetworkServiceRegistryServer(w.grpcServer, w.registryServer)
@@ -182,7 +183,7 @@ func (w *Workspace) isConnectionAlive(ctx context.Context, timeout time.Duration
 	span := spanhelper.CopySpan(timeoutCtx, spanhelper.GetSpanHelper(ctx), "check-nse-alive")
 	defer span.Finish()
 
-	nseConn, err := tools.DialContextUnix(timeoutCtx, w.NsmClientSocket())
+	nseConn, err := tools.DialUnix(timeoutCtx, w.NsmClientSocket())
 	if err != nil {
 		span.LogObject("alive", false)
 		return false
