@@ -17,8 +17,8 @@ func NewGrpcHealth(s *grpc.Server, addr net.Addr, timeout time.Duration, opts ..
 	grpc_health_v1.RegisterHealthServer(s, &healhServiceImpl{})
 	return NewApplicationHealthFunc(
 		func() error {
-			ctx, close := context.WithTimeout(context.Background(), timeout)
-			defer close()
+			ctx, closeFn := context.WithTimeout(context.Background(), timeout)
+			defer closeFn()
 			conn, err := tools.DialContext(ctx, addr, opts...)
 			if err != nil {
 				return err

@@ -19,12 +19,12 @@ type connect struct {
 }
 
 func (c *connect) Request(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error) {
-	nextCtx, close, err := WithConfiguratorClient(ctx, c.endpoint)
+	nextCtx, closeFn, err := WithConfiguratorClient(ctx, c.endpoint)
 	if err != nil {
 		return nil, err
 	}
 	defer func() {
-		err := close()
+		err := closeFn()
 		if err != nil {
 			Logger(ctx).Errorf("An error during closing configuration client: %v", err)
 		}
@@ -36,12 +36,12 @@ func (c *connect) Request(ctx context.Context, crossConnect *crossconnect.CrossC
 }
 
 func (c *connect) Close(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*empty.Empty, error) {
-	nextCtx, close, err := WithConfiguratorClient(ctx, c.endpoint)
+	nextCtx, closeFn, err := WithConfiguratorClient(ctx, c.endpoint)
 	if err != nil {
 		return nil, err
 	}
 	defer func() {
-		err := close()
+		err := closeFn()
 		if err != nil {
 			Logger(ctx).Errorf("An error during closing configuration client: %v", err)
 		}

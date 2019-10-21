@@ -911,9 +911,9 @@ func (k8s *K8s) GetFullLogs(pod *v1.Pod, container string, previous bool) (strin
 		getLogsOpt.Container = container
 	}
 	response := k8s.clientset.CoreV1().Pods(k8s.namespace).GetLogs(pod.Name, getLogsOpt)
-	result, error := response.DoRaw()
-	if error != nil {
-		return "", error
+	result, err := response.DoRaw()
+	if err != nil {
+		return "", err
 	}
 	return fmt.Sprintf("%s", result), nil
 }
@@ -1002,8 +1002,8 @@ func (k8s *K8s) waitLogsMatch(ctx context.Context, pod *v1.Pod, container string
 
 // UpdatePod updates a pod
 func (k8s *K8s) UpdatePod(pod *v1.Pod) *v1.Pod {
-	pod, error := k8s.clientset.CoreV1().Pods(pod.Namespace).Get(pod.Name, metaV1.GetOptions{})
-	k8s.g.Expect(error).To(BeNil())
+	pod, err := k8s.clientset.CoreV1().Pods(pod.Namespace).Get(pod.Name, metaV1.GetOptions{})
+	k8s.g.Expect(err).To(BeNil())
 	return pod
 }
 
