@@ -26,18 +26,27 @@ func TestNSMDDeploy(t *testing.T) {
 	g.Expect(err).To(BeNil())
 
 	// Warmup
-	st := time.Now()
 	k8s, err = kubetest.NewK8s(g, true)
 	defer k8s.Cleanup()
 	defer kubetest.MakeLogsSnapshot(k8s, t)
-	_, err = kubetest.SetupNodes(k8s, 1, defaultTimeout)
+	var node *kubetest.NodeConf
+	deploy := measureTime(func() {
+		nodes, setupErr := kubetest.SetupNodes(k8s, 1, defaultTimeout)
+		node, err = nodes[0], setupErr
+	})
 	g.Expect(err).To(BeNil())
-	deploy := time.Now()
-	k8s.Cleanup()
-	destroy := time.Now()
+	k8s.DescribePod(node.Nsmd)
+	k8s.DescribePod(node.Forwarder)
+	destroy := measureTime(k8s.Cleanup)
 
-	logrus.Infof("Pods Start time: %v", deploy.Sub(st))
-	g.Expect(deploy.Sub(st) < time.Second*60).To(Equal(true))
-	logrus.Infof("Pods Cleanup time: %v", destroy.Sub(deploy))
-	g.Expect(destroy.Sub(deploy) < time.Second*60).To(Equal(true))
+	logrus.Infof("Pods deploy time: %v", deploy)
+	g.Expect(deploy < time.Second*60).To(Equal(true))
+	logrus.Infof("Pods Cleanup time: %v", destroy)
+	g.Expect(destroy < time.Second*60).To(Equal(true))
+}
+
+func measureTime(f func()) time.Duration {
+	t := time.Now()
+	f()
+	return time.Now().Sub(t)
 }
