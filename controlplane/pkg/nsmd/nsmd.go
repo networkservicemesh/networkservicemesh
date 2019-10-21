@@ -2,11 +2,12 @@ package nsmd
 
 import (
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"net"
 	"os"
 	"sync"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 
 	remoteApi "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"

@@ -2,11 +2,12 @@ package main
 
 import (
 	"context"
-	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"net"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
 	"github.com/networkservicemesh/networkservicemesh/sdk/compat"

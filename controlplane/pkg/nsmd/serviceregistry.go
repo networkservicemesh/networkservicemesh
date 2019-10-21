@@ -2,12 +2,13 @@ package nsmd
 
 import (
 	"context"
-	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"net"
 	"os"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 
 	"github.com/pkg/errors"
 

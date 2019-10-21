@@ -16,6 +16,7 @@ package local
 
 import (
 	"context"
+
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 
 	"github.com/golang/protobuf/ptypes/empty"

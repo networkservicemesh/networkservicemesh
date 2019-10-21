@@ -1,11 +1,12 @@
 package common
 
 import (
+	"github.com/pkg/errors"
+
 	unifiedns "github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/pkg/security"
-	"github.com/pkg/errors"
 )
 
 type NSTokenConfig struct {
