@@ -1,7 +1,7 @@
 # Configuring Network Service Mesh with Environment Variables
 
 ## Any container, which supports opentracing
-* *TRACER_ENABLED* - Represents boolean. Disables opentracing if false. True by default.
+* *TRACER_ENABLED* - Represents boolean. Disables opentracing if false. False by default.
 
 ## NSMgr
 

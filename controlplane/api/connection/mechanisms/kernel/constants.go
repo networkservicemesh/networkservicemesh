@@ -1,7 +1,7 @@
 package kernel
 
 const (
-	Mechanism = "KERNEL_INTERFACE"
+	MECHANISM = "KERNEL_INTERFACE"
 
 	// Parameters
 

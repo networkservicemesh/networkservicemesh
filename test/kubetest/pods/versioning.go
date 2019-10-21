@@ -50,7 +50,7 @@ func init() {
 	}
 
 	pull := os.Getenv(containerForcePullEnv)
-	containerForcePull = (pull == "true")
+	containerForcePull = pull == "true"
 }
 
 func containerMod(c *v1.Container) v1.Container {

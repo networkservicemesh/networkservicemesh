@@ -23,9 +23,9 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	unified "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/local"
 )

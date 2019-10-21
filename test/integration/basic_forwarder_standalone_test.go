@@ -21,7 +21,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	forwarderapi "github.com/networkservicemesh/networkservicemesh/forwarder/api/forwarder"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 )
@@ -217,7 +216,7 @@ func (fixture *standaloneForwarderFixture) createCrossConnectRequest(id, srcMech
 
 func (fixture *standaloneForwarderFixture) createConnection(id, mech, iface, srcIp, dstIp string, pod *v1.Pod) *connection.Connection {
 	mechanism := &connection.Mechanism{
-		Type: common.MechanismFromString(mech),
+		Type: MechanismFromString(mech),
 		Parameters: map[string]string{
 			connection.InterfaceNameKey:        iface,
 			connection.InterfaceDescriptionKey: "Some description",
@@ -387,4 +386,14 @@ func exposePorts(forwarder *v1.Pod, ports ...v1.ContainerPort) {
 
 func firstContainer(pod *v1.Pod) string {
 	return pod.Spec.Containers[0].Name
+}
+
+// MechanismFromString creates a Mechanism from string
+func MechanismFromString(mechanismName string) connection.MechanismType {
+	mechanismName = strings.ToUpper(mechanismName) + "_INTERFACE"
+	if mechanism, ok := connection.MechanismType_value[mechanismName]; ok {
+		return connection.MechanismType(mechanism)
+	}
+	logrus.Infof("%s is not a valid MechanismType. Using Kernel Interface.", mechanismName)
+	return connection.MechanismType_KERNEL_INTERFACE
 }

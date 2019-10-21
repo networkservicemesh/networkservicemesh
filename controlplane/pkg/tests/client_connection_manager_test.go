@@ -5,6 +5,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
+	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
+
 	"github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 
@@ -105,4 +108,127 @@ func TestWaitClientConnectionDelete(t *testing.T) {
 	dstCon := dst.connection
 	g.Expect(dst.err).To(gomega.BeNil())
 	g.Expect(dstCon).To(gomega.BeNil())
+}
+
+func TestGetClientConnectionBySource(t *testing.T) {
+	g := gomega.NewGomegaWithT(t)
+	mdl := model.NewModel()
+	createConnections(mdl)
+	clientConnectionManager := services.NewClientConnectionManager(mdl, nil, nil)
+
+	c1 := clientConnectionManager.GetClientConnectionBySource("nsm1")
+	g.Expect(len(c1)).To(gomega.Equal(1))
+	g.Expect(c1[0].ConnectionID).To(gomega.Equal("3"))
+}
+
+func TestGetClientConnectionByRemoteDst(t *testing.T) {
+	g := gomega.NewGomegaWithT(t)
+	mdl := model.NewModel()
+	createConnections(mdl)
+	clientConnectionManager := services.NewClientConnectionManager(mdl, nil, nil)
+
+	c1 := clientConnectionManager.GetClientConnectionByRemoteDst("3", "remote_nsm")
+	g.Expect(c1).ToNot(gomega.BeNil())
+	g.Expect(c1.ConnectionID).To(gomega.Equal("2"))
+}
+
+func TestGetClientConnectionByLocalDst(t *testing.T) {
+	g := gomega.NewGomegaWithT(t)
+	mdl := model.NewModel()
+	createConnections(mdl)
+	clientConnectionManager := services.NewClientConnectionManager(mdl, nil, nil)
+
+	c1 := clientConnectionManager.GetClientConnectionByLocalDst("4")
+	g.Expect(c1).ToNot(gomega.BeNil())
+	g.Expect(c1.ConnectionID).To(gomega.Equal("3"))
+}
+
+func TestGetClientConnectionByRemote(t *testing.T) {
+	g := gomega.NewGomegaWithT(t)
+	mdl := model.NewModel()
+	createConnections(mdl)
+	clientConnectionManager := services.NewClientConnectionManager(mdl, nil, nil)
+
+	c1 := clientConnectionManager.GetClientConnectionByRemote(&registry.NetworkServiceManager{
+		Name: "rnsm",
+	})
+	g.Expect(len(c1)).To(gomega.Equal(1))
+	g.Expect(c1[0].ConnectionID).To(gomega.Equal("6"))
+}
+
+func TestGetClientConnectionByXCon(t *testing.T) {
+	g := gomega.NewGomegaWithT(t)
+	mdl := model.NewModel()
+	createConnections(mdl)
+	clientConnectionManager := services.NewClientConnectionManager(mdl, nil, nil)
+	cc := &model.ClientConnection{
+		ConnectionID:    "5",
+		ConnectionState: model.ClientConnectionHealing,
+		Xcon: crossconnect.NewCrossConnect("5", "IP",
+			&local_connection.Connection{
+				Id:             "2",
+				NetworkService: "s2",
+			},
+			&remote_connection.Connection{
+				Id:                                   "3",
+				DestinationNetworkServiceManagerName: "remote_nsm",
+			}),
+	}
+	clientConnectionManager.MarkConnectionAdded(cc)
+	clientConnectionManager.MarkConnectionDeleted(cc)
+
+	c1 := clientConnectionManager.GetClientConnectionByXcon(cc.Xcon)
+	g.Expect(c1).ToNot(gomega.BeNil())
+	g.Expect(c1.ConnectionID).To(gomega.Equal("5"))
+}
+
+func createConnections(mdl model.Model) {
+	mdl.AddClientConnection(context.Background(), &model.ClientConnection{
+		ConnectionID:    "1",
+		ConnectionState: model.ClientConnectionHealing,
+		Xcon:            nil,
+	})
+
+	mdl.AddClientConnection(context.Background(), &model.ClientConnection{
+		ConnectionID:    "2",
+		ConnectionState: model.ClientConnectionHealing,
+		Request: &remote_networkservice.NetworkServiceRequest{
+			Connection:           nil,
+			MechanismPreferences: nil,
+		},
+		Xcon: crossconnect.NewCrossConnect("2", "ip",
+			&local_connection.Connection{
+				Id:             "2",
+				NetworkService: "s2",
+			},
+			&remote_connection.Connection{
+				Id:                                   "3",
+				DestinationNetworkServiceManagerName: "remote_nsm",
+			}),
+	})
+	mdl.AddClientConnection(context.Background(), &model.ClientConnection{
+		ConnectionID:    "3",
+		ConnectionState: model.ClientConnectionHealing,
+		Request: &remote_networkservice.NetworkServiceRequest{
+			Connection:           nil,
+			MechanismPreferences: nil,
+		},
+		Xcon: crossconnect.NewCrossConnect("3", "ip",
+			&remote_connection.Connection{
+				Id:                              "3",
+				NetworkService:                  "s2",
+				SourceNetworkServiceManagerName: "nsm1",
+			},
+			&local_connection.Connection{
+				Id: "4",
+			}),
+	})
+	mdl.AddClientConnection(context.Background(), &model.ClientConnection{
+		ConnectionID:    "6",
+		ConnectionState: model.ClientConnectionHealing,
+		Xcon:            nil,
+		RemoteNsm: &registry.NetworkServiceManager{
+			Name: "rnsm",
+		},
+	})
 }

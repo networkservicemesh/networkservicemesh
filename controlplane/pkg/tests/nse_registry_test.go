@@ -65,7 +65,7 @@ func TestNSEDeleteClientTest(t *testing.T) {
 	clients, nses, err := reg.LoadRegistry()
 	g.Expect(err).To(BeNil())
 	g.Expect(clients).To(Equal([]string{"nsm-2", "nsm-3"}))
-	g.Expect(nses).To(Equal(map[string]nseregistry.NSEEntry{"endpoint2": nseregistry.NSEEntry{
+	g.Expect(nses).To(Equal(map[string]nseregistry.NSEEntry{"endpoint2": {
 		Workspace: "nsm-2",
 		NseReg:    createNSEReg("endpoint2"),
 	}}))

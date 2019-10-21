@@ -28,7 +28,7 @@ func TestPrefixPoolSubnet1(t *testing.T) {
 	g.Expect(addressCount(sn1.String())).To(Equal(uint64(128)))
 
 	lastIp := s
-	for i := uint64(0); i < addressCount((sn1.String()))-1; i++ {
+	for i := uint64(0); i < addressCount(sn1.String())-1; i++ {
 		ip, err := IncrementIP(lastIp, sn1)
 		g.Expect(err).To(BeNil())
 		lastIp = ip

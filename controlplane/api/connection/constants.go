@@ -1,5 +1,6 @@
-// Copyright 2018 Red Hat, Inc.
-// Copyright (c) 2018 Cisco and/or its affiliates.
+// Copyright (c) 2019 Cisco Systems, Inc.
+//
+// SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,9 +14,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package core manages the lifecycle of all plugins (start, graceful
-// shutdown) and defines the core lifecycle SPI. The core lifecycle SPI
-// must be implemented by each plugin.
+package connection
 
-// Package idempotent is the root NSM package
-package idempotent
+const (
+	// Workspace - NSM workspace location mechanism property key
+	Workspace = "workspace"
+	// PodNameKey - pod name a container is running in
+	PodNameKey = "podName"
+	// NamespaceKey - namespace a container is running in
+	NamespaceKey = "namespace"
+)

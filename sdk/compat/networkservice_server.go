@@ -65,8 +65,8 @@ func (s networkServiceServerAdapter) Close(ctx context.Context, conn *connection
 }
 
 func NewUnifiedNetworkServiceServerAdapter(remoteServer remote.NetworkServiceServer, localServer local.NetworkServiceServer) networkservice.NetworkServiceServer {
-	return &networkServiceServerAdapter{
-		remoteServer: remoteServer,
-		localServer:  localServer,
-	}
+	return NewJaegerWrappedNetworkServiceServer("UnifiedNetworkServiceServerAdapter", &networkServiceServerAdapter{
+		remoteServer: NewJaegerWrappedRemoteNetworkServiceServer("UnifiedNetworkServiceServerAdapter->Remote", remoteServer),
+		localServer:  NewJaegerWrappedLocalNetworkServiceServer("UnifiedNetworkServiceServerAdapter->Local", localServer),
+	})
 }

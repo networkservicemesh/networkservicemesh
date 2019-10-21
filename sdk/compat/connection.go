@@ -11,8 +11,8 @@ import (
 )
 
 var mapMechanismTypeLocalToUnified = map[local.MechanismType]string{
-	local.MechanismType_KERNEL_INTERFACE: kernel.Mechanism,
-	local.MechanismType_MEM_INTERFACE:    memif.Mechanism,
+	local.MechanismType_KERNEL_INTERFACE: kernel.MECHANISM,
+	local.MechanismType_MEM_INTERFACE:    memif.MECHANISM,
 }
 
 func MechanismLocalToUnified(mechanism *local.Mechanism) *unified.Mechanism {
@@ -35,8 +35,8 @@ func MechanismListLocalToUnified(mechanism []*local.Mechanism) []*unified.Mechan
 }
 
 var mapMechanismTypeUnifiedToLocal = map[string]local.MechanismType{
-	kernel.Mechanism: local.MechanismType_KERNEL_INTERFACE,
-	memif.Mechanism:  local.MechanismType_MEM_INTERFACE,
+	kernel.MECHANISM: local.MechanismType_KERNEL_INTERFACE,
+	memif.MECHANISM:  local.MechanismType_MEM_INTERFACE,
 }
 
 func MechanismUnifiedToLocal(mechanism *unified.Mechanism) *local.Mechanism {

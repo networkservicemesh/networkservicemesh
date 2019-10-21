@@ -25,6 +25,8 @@ spec:
               value: "false"
 {{- end }}
 {{- if .Values.global.JaegerTracing }}
+            - name: TRACER_ENABLED
+              value: "true"
             - name: JAEGER_AGENT_HOST
               value: jaeger.nsm-system
             - name: JAEGER_AGENT_PORT
@@ -49,6 +51,8 @@ spec:
               value: "false"
 {{- end }}
 {{- if .Values.global.JaegerTracing }}
+            - name: TRACER_ENABLED
+              value: "true"
             - name: JAEGER_AGENT_HOST
               value: jaeger.nsm-system
             - name: JAEGER_AGENT_PORT
@@ -97,6 +101,8 @@ spec:
                 fieldRef:
                   fieldPath: spec.nodeName
 {{- if .Values.global.JaegerTracing }}
+            - name: TRACER_ENABLED
+              value: "true"
             - name: JAEGER_AGENT_HOST
               value: jaeger.nsm-system
             - name: JAEGER_AGENT_PORT

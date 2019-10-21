@@ -100,7 +100,7 @@ func (c *Connection) MatchesMonitorScopeSelector(selector *MonitorScopeSelector)
 	// Iterate through the Connection.NetworkServiceManagers array looking for a subarray that matches
 	// the selector.NetworkServiceManagers array, treating "" in the selector.NetworkServiceManagers array
 	// as a wildcard
-	for i, _ := range c.NetworkServiceManagers {
+	for i := range c.NetworkServiceManagers {
 		// If there aren't enough elements left in the Connection.NetworkServiceManagers array to match
 		// all of the elements in the select.NetworkServiceManager array...clearly we can't match
 		if i+len(selector.NetworkServiceManagers) > len(c.NetworkServiceManagers) {
@@ -108,7 +108,7 @@ func (c *Connection) MatchesMonitorScopeSelector(selector *MonitorScopeSelector)
 		}
 		// Iterate through the selector.NetworkServiceManagers array to see is the subarray starting at
 		// Connection.NetworkServiceManagers[i] matches selector.NetworkServiceManagers
-		for j, _ := range selector.NetworkServiceManagers {
+		for j := range selector.NetworkServiceManagers {
 			// "" matches as a wildcard... failure to match either as wildcard or exact match means the subarray
 			// starting at Connection.NetworkServiceManagers[i] doesn't match selectors.NetworkServiceManagers
 			if selector.NetworkServiceManagers[j] != "" && c.NetworkServiceManagers[i+j] != selector.NetworkServiceManagers[j] {

@@ -29,8 +29,14 @@ spec:
               value: "secure-intranet-connectivity"
             - name: OUTGOING_NSC_LABELS
               value: "app=passthrough-1"
+{{- if .Values.global.JaegerTracing }}
             - name: TRACER_ENABLED
               value: "true"
+            - name: JAEGER_AGENT_HOST
+              value: jaeger.nsm-system
+            - name: JAEGER_AGENT_PORT
+              value: "6831"
+{{- end }}
           resources:
             limits:
               networkservicemesh.io/socket: 1

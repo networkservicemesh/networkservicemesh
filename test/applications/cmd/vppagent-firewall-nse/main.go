@@ -21,6 +21,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/memif"
+
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
@@ -41,7 +43,7 @@ func main() {
 	initConfig()
 
 	configuration := (&common.NSConfiguration{
-		MechanismType: "mem",
+		MechanismType: memif.MECHANISM,
 	}).FromEnv()
 
 	composite := endpoint.NewCompositeEndpoint(

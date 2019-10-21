@@ -61,7 +61,7 @@ func (impl *nseWithOptions) Request(ctx context2.Context, in *networkservice.Net
 
 	if impl.need_ip_neighbors {
 		conn.GetContext().GetIpContext().IpNeighbors = []*connectioncontext.IpNeighbor{
-			&connectioncontext.IpNeighbor{
+			{
 				Ip:              "127.0.0.1",
 				HardwareAddress: "ff-ee-ff-ee-ff",
 			},

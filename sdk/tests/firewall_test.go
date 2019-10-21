@@ -9,9 +9,12 @@ import (
 	"github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/cls"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/memif"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
 	"github.com/networkservicemesh/networkservicemesh/sdk/vppagent"
@@ -25,14 +28,14 @@ func TestFirewallMemif(t *testing.T) {
 	defer ClearFolder(rootDir, false)
 
 	configuration := (&common.NSConfiguration{
-		MechanismType:    "mem",
+		MechanismType:    memif.MECHANISM,
 		NsmServerSocket:  rootDir + "/server.sock",
 		NsmClientSocket:  rootDir + "/client.sock",
 		Workspace:        rootDir,
 		AdvertiseNseName: "my_network_sercice",
 	}).FromEnv()
 
-	mechanism, err := connection.NewMechanism(common.MechanismFromString("mem"), "memif_outgoing", "")
+	mechanism, err := common.NewMechanism(cls.LOCAL, memif.MECHANISM, "memif_outgoing", "")
 	g.Expect(err).To(gomega.BeNil())
 
 	outgoingConnection := &connection.Connection{
@@ -66,7 +69,7 @@ func TestFirewallMemif(t *testing.T) {
 		d2,
 	)
 
-	inMechanism, err := connection.NewMechanism(common.MechanismFromString("mem"), "memif_incoming", "")
+	inMechanism, err := common.NewMechanism(cls.LOCAL, memif.MECHANISM, "memif_incoming", "")
 	g.Expect(err).To(gomega.BeNil())
 
 	req := networkservice.NetworkServiceRequest{

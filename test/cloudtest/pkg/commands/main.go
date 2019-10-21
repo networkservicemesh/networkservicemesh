@@ -1040,7 +1040,7 @@ func (ctx *executionContext) findTests() error {
 
 func (ctx *executionContext) findShellTest(exec *config.ExecutionConfig) []*model.TestEntry {
 	return []*model.TestEntry{
-		&model.TestEntry{
+		{
 			Name:            exec.Name,
 			Kind:            model.TestEntryKindShellTest,
 			Tags:            "",

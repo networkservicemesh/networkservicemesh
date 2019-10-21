@@ -3,7 +3,7 @@ version: 1.0
 providers:
   - name: "aws"
     kind: "shell"
-    instances: 2
+    instances: 6
     retry: 2
     node-count: 2
     enabled: true

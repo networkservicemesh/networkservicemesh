@@ -19,11 +19,15 @@ import (
 	"encoding/binary"
 	"net"
 	"os"
+	"path"
 	"strings"
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/memif"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
 func getEnv(key, description string, mandatory bool) string {
@@ -51,17 +55,30 @@ func Ip2int(ip net.IP) uint32 {
 	return binary.BigEndian.Uint32(ip)
 }
 
-// MechanismFromString creates a Mechanism from string
-func MechanismFromString(mechanismName string) connection.MechanismType {
-	mechanismName = strings.ToUpper(mechanismName) + "_INTERFACE"
-	if mechanism, ok := connection.MechanismType_value[mechanismName]; ok {
-		return connection.MechanismType(mechanism)
-	}
-	logrus.Infof("%s is not a valid MechanismType. Using Kernel Interface.", mechanismName)
-	return connection.MechanismType_KERNEL_INTERFACE
-}
-
 // IsIPv6 function to check whether an IP is IPv6 or IPv4
 func IsIPv6(address string) bool {
 	return strings.Count(address, ":") >= 2
+}
+
+// NewMechanism creates a new mechanism with passed type and description.
+func NewMechanism(cls string, t string, name, description string) (*connection.Mechanism, error) {
+	inodeNum, err := tools.GetCurrentNS()
+	if err != nil {
+		return nil, err
+	}
+	rv := &connection.Mechanism{
+		Cls:  cls,
+		Type: t,
+		Parameters: map[string]string{
+			kernel.InterfaceNameKey:        name,
+			kernel.InterfaceDescriptionKey: description,
+			kernel.SocketFilename:          path.Join(name, memif.MemifSocket),
+			kernel.NetNsInodeKey:           inodeNum,
+		},
+	}
+	err = rv.IsValid()
+	if err != nil {
+		return nil, err
+	}
+	return rv, nil
 }

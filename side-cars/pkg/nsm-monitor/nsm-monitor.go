@@ -25,12 +25,10 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/sdk/client"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
-	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
-	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/local"
 )
 
 const (
@@ -50,8 +48,6 @@ type Handler interface {
 	Closed(conn *connection.Connection)
 	//ProcessHealing occurs when the restore failed, the error pass as the second parameter
 	ProcessHealing(newConn *connection.Connection, e error)
-	//Stopped occurs when the invoked App.Stop()
-	Stopped()
 }
 
 // App - application to perform monitoring.
@@ -78,13 +74,10 @@ func (h *EmptyNSMMonitorHandler) Closed(conn *connection.Connection) {}
 //ProcessHealing occurs when the restore failed, the error pass as the second parameter
 func (h *EmptyNSMMonitorHandler) ProcessHealing(newConn *connection.Connection, e error) {}
 
-//Stopped occurs when the invoked App.Stop()
-func (h *EmptyNSMMonitorHandler) Stopped() {}
-
 type nsmMonitorApp struct {
 	connections map[string]*connection.Connection
 	helper      Handler
-	stop        chan struct{}
+	cancelFunc  context.CancelFunc
 
 	initRecieved  bool
 	recovery      bool
@@ -92,7 +85,9 @@ type nsmMonitorApp struct {
 }
 
 func (c *nsmMonitorApp) Stop() {
-	close(c.stop)
+	if c.cancelFunc != nil {
+		c.cancelFunc()
+	}
 }
 
 func (c *nsmMonitorApp) SetHandler(listener Handler) {
@@ -111,7 +106,6 @@ func (c *nsmMonitorApp) Run() {
 func NewNSMMonitorApp(configuration *common.NSConfiguration) App {
 	return &nsmMonitorApp{
 		connections:   map[string]*connection.Connection{},
-		stop:          make(chan struct{}),
 		configuration: configuration,
 	}
 }
@@ -128,7 +122,9 @@ func (c *nsmMonitorApp) beginMonitoring() {
 
 		logrus.Infof(nsmMonitorLogFormat, "connection to NSM established")
 
-		monitorClient, err := local.NewMonitorClient(nsmClient.NsmConnection.GrpcClient)
+		//		monitorClient, err := local.NewMonitorClient(nsmClient.NsmConnection.GrpcClient)
+		ctx, cancelFunc := context.WithCancel(context.Background())
+		monitorClient, err := connection.NewMonitorConnectionClient(nsmClient.NsmConnection.GrpcClient).MonitorConnections(ctx, &connection.MonitorScopeSelector{})
 		if err != nil {
 			logrus.Errorf(nsmMonitorLogWithParamFormat, "failed to start monitor client", err)
 
@@ -138,7 +134,8 @@ func (c *nsmMonitorApp) beginMonitoring() {
 			}
 			continue
 		}
-		defer monitorClient.Close()
+		c.cancelFunc = cancelFunc
+		defer cancelFunc()
 
 		for {
 			if c.initRecieved && !c.recovery {
@@ -167,57 +164,41 @@ func (c *nsmMonitorApp) beginMonitoring() {
 	}
 }
 
-func (c *nsmMonitorApp) readEvents(monitorClient monitor.Client) bool {
-	select {
-	case err := <-monitorClient.ErrorChannel():
+func (c *nsmMonitorApp) readEvents(monitorClient connection.MonitorConnection_MonitorConnectionsClient) bool {
+	event, err := monitorClient.Recv()
+	if err != nil {
 		logrus.Errorf(nsmMonitorLogWithParamFormat, "NSM die, re-connecting", err)
 		for _, c := range c.connections {
 			c.State = connection.State_DOWN // Mark all as down.
 		}
 		return false
-	case event := <-monitorClient.EventChannel():
-		if event.EventType() == monitor.EventTypeInitialStateTransfer {
-			logrus.Infof(nsmMonitorLogFormat, "Monitor started")
-			c.initRecieved = true
-		}
+	}
+	if event.Type == connection.ConnectionEventType_INITIAL_STATE_TRANSFER {
+		logrus.Infof(nsmMonitorLogFormat, "Monitor started")
+		c.initRecieved = true
+	}
 
-		for _, entity := range event.Entities() {
-			switch event.EventType() {
-			case monitor.EventTypeInitialStateTransfer, monitor.EventTypeUpdate:
-				c.updateConnection(entity)
-			case monitor.EventTypeDelete:
-				logrus.Infof(nsmMonitorLogFormat, "Connection closed")
-				if c.helper != nil {
-					conn, ok := entity.(*connection.Connection)
-					if ok {
-						c.helper.Closed(conn)
-					}
-				}
+	for _, conn := range event.GetConnections() {
+		switch event.Type {
+		case connection.ConnectionEventType_INITIAL_STATE_TRANSFER, connection.ConnectionEventType_UPDATE:
+			c.updateConnection(conn)
+		case connection.ConnectionEventType_DELETE:
+			logrus.Infof(nsmMonitorLogFormat, "Connection closed")
+			if c.helper != nil {
+				c.helper.Closed(conn)
 			}
 		}
-		return true
-	case <-c.stop:
-		if c.helper != nil {
-			c.helper.Stopped()
-			logrus.Infof(nsmMonitorLogFormat, "Processing stop")
-			break
-		}
-		return false
 	}
 	return true
 }
 
-func (c *nsmMonitorApp) updateConnection(entity monitor.Entity) {
-	conn, ok := entity.(*connection.Connection)
-	// update connections
-	if ok {
-		if existingConn, exists := c.connections[conn.Id]; exists {
-			logrus.Infof(nsmMonitorLogWithParamFormat, "Connection updated", fmt.Sprintf("%v %v", existingConn, conn))
-		} else {
-			logrus.Infof(nsmMonitorLogWithParamFormat, "Initial connection accepted", conn)
-		}
-		c.connections[conn.Id] = conn
+func (c *nsmMonitorApp) updateConnection(conn *connection.Connection) {
+	if existingConn, exists := c.connections[conn.GetId()]; exists {
+		logrus.Infof(nsmMonitorLogWithParamFormat, "Connection updated", fmt.Sprintf("%v %v", existingConn, conn))
+	} else {
+		logrus.Infof(nsmMonitorLogWithParamFormat, "Initial connection accepted", conn)
 	}
+	c.connections[conn.GetId()] = conn
 }
 
 func (c *nsmMonitorApp) waitRetry() {
@@ -233,7 +214,7 @@ func (c *nsmMonitorApp) performRecovery(nsmClient *client.NsmClient) bool {
 		if conn.State == connection.State_UP {
 			continue
 		}
-		cClone := (conn.Clone()).(*connection.Connection)
+		cClone := conn.Clone()
 
 		ipCtx := cClone.Context.IpContext
 		if ipCtx != nil {
