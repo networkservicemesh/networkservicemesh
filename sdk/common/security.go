@@ -1,9 +1,10 @@
 package common
 
 import (
+	"github.com/pkg/errors"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	connection2 "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
-	"github.com/pkg/errors"
 
 	unifiedns "github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/networkservice"
