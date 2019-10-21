@@ -47,7 +47,7 @@ func (s *securityService) Request(ctx context.Context, request *networkservice.N
 		return nil, err
 	}
 
-	if s.provider == nil {
+	if security.SecurityContext(ctx) == nil {
 		logrus.Warn("insecure: provider is not set, return Connection without signature")
 		return conn, nil
 	}
