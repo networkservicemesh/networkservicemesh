@@ -5,7 +5,8 @@ const (
 	MECHANISM = "MEMIF"
 
 	// Mechanism parameters
-
+	// MemifSocket - memif socket filename
+	MemifSocket = "memif.sock"
 	// NetNsInodeKey - netns inode mechanism property key
 	NetNsInodeKey = "netnsInode"
 	// InterfaceNameKey - interface name mechanism property key
