@@ -3,6 +3,7 @@ package model
 import (
 	"context"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -62,6 +63,7 @@ type TestEntry struct {
 
 	Kind   TestEntryKind
 	Status Status
+	sync.Mutex
 }
 
 // GetTestConfiguration - Return list of available tests by calling of gotest --list .* $root -tag "" and parsing of output.
