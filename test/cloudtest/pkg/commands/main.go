@@ -366,7 +366,7 @@ func (ctx *executionContext) processTaskUpdate(event operationEvent) {
 		})
 	}
 	if event.task.test.Status == model.StatusSuccess || event.task.test.Status == model.StatusFailed {
-		utils.DefaultExecutor().AsyncExec(func() {
+		utils.DefaultExecutor().SyncExec(func() {
 			ctx.completed = append(ctx.completed, event.task)
 		})
 		elapsed := time.Since(ctx.startTime)
