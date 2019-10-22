@@ -117,9 +117,9 @@ func TestFanoutTwoServersNotSuccessResponse(t *testing.T) {
 	f.addClient(c1)
 	f.addClient(c2)
 	defer f.Close()
-	req := new(dns.Msg)
 	writer := &cachedDNSWriter{ResponseWriter: new(test.ResponseWriter)}
 	for i := 0; i < 10; i++ {
+		req := new(dns.Msg)
 		req.SetQuestion("example1.", dns.TypeA)
 		f.ServeDNS(context.TODO(), writer, req)
 	}

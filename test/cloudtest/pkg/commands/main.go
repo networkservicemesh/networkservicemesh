@@ -366,8 +366,9 @@ func (ctx *executionContext) processTaskUpdate(event operationEvent) {
 		})
 	}
 	if event.task.test.Status == model.StatusSuccess || event.task.test.Status == model.StatusFailed {
-		ctx.completed = append(ctx.completed, event.task)
-
+		utils.DefaultExecutor().AsyncExec(func() {
+			ctx.completed = append(ctx.completed, event.task)
+		})
 		elapsed := time.Since(ctx.startTime)
 		oneTask := elapsed / time.Duration(len(ctx.completed))
 		logrus.Infof("Complete task: %s Status: %v on cluster: %s, Elapsed: %v (%d) Remaining: %v (%d)",
@@ -656,12 +657,14 @@ func (ctx *executionContext) executeTask(task *testTask, clusterConfigs []string
 	go func() {
 		testDelay := func() int {
 			first := true
-			for _, tt := range ctx.completed {
-				if tt.clusterTaskID == task.clusterTaskID {
-					first = false
-					break
+			utils.DefaultExecutor().SyncExec(func() {
+				for _, tt := range ctx.completed {
+					if tt.clusterTaskID == task.clusterTaskID {
+						first = false
+						break
+					}
 				}
-			}
+			})
 			delay := 0
 			if !first {
 				for _, cl := range task.clusters {

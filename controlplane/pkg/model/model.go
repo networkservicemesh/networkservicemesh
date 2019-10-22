@@ -100,6 +100,8 @@ func (m *model) AddListener(listener Listener) {
 }
 
 func (m *model) RemoveListener(listener Listener) {
+	m.mtx.Lock()
+	defer m.mtx.Unlock()
 	deleter, ok := m.listeners[listener]
 	if !ok {
 		logrus.Info("No such listener")
