@@ -49,8 +49,8 @@ func archiveLogs(testName string) {
 			continue
 		}
 		filePath := filepath.Join(logsDir(), testName, file.Name())
-		var bytes []byte
-		bytes, err = ioutil.ReadFile(filePath)
+		var byteSlice []byte
+		byteSlice, err = ioutil.ReadFile(filePath)
 		if err != nil {
 			logrus.Errorf("Can not read file %v, err: %v", filePath, err)
 			continue
@@ -68,7 +68,7 @@ func archiveLogs(testName string) {
 			logrus.Errorf("Can not create writer, err: %v", err)
 			continue
 		}
-		_, err = w.Write(bytes)
+		_, err = w.Write(byteSlice)
 		if err != nil {
 			logrus.Errorf("Can not zip write, err: %v", err)
 		}

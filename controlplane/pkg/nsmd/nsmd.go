@@ -450,25 +450,25 @@ func StartNSMServer(ctx context.Context, model model.Model, manager nsm.NetworkS
 
 	locationProvider := manager.ServiceRegistry().NewWorkspaceProvider()
 
-	nsm := createNsmServer(model, manager, locationProvider)
+	nsmServer := createNsmServer(model, manager, locationProvider)
 
 	span.Logger().Infof("Starting NSM server")
 
-	nsm.registerServer = tools.NewServer(span.Context())
-	nsmdapi.RegisterNSMDServer(nsm.registerServer, nsm)
+	nsmServer.registerServer = tools.NewServer(span.Context())
+	nsmdapi.RegisterNSMDServer(nsmServer.registerServer, nsmServer)
 
-	nsm.registerSock, err = apiRegistry.NewNSMServerListener()
+	nsmServer.registerSock, err = apiRegistry.NewNSMServerListener()
 	if err != nil {
 		span.LogError(errors.Wrap(err, "failed to start device plugin grpc server"))
-		nsm.Stop()
+		nsmServer.Stop()
 		return nil, err
 	}
 	go func() {
-		if err := nsm.registerServer.Serve(nsm.registerSock); err != nil {
+		if err := nsmServer.registerServer.Serve(nsmServer.registerSock); err != nil {
 			span.Logger().Fatalf("failed to start NSM grpc server")
 		}
 	}()
-	endpoints, err := setLocalNSM(span.Context(), model, nsm.serviceRegistry)
+	endpoints, err := setLocalNSM(span.Context(), model, nsmServer.serviceRegistry)
 	span.LogObject("registered-endpoints", endpoints)
 	if err != nil {
 		span.LogError(errors.Wrap(err, "failed to set local NSM"))
@@ -476,29 +476,29 @@ func StartNSMServer(ctx context.Context, model model.Model, manager nsm.NetworkS
 	}
 
 	// Check if the socket of NSM server is operation
-	_, conn, err := nsm.serviceRegistry.NSMDApiClient(span.Context())
+	_, conn, err := nsmServer.serviceRegistry.NSMDApiClient(span.Context())
 	if err != nil {
-		nsm.Stop()
+		nsmServer.Stop()
 		return nil, err
 	}
 	_ = conn.Close()
-	span.Logger().Infof("NSM gRPC socket: %s is operational", nsm.registerSock.Addr().String())
+	span.Logger().Infof("NSM gRPC socket: %s is operational", nsmServer.registerSock.Addr().String())
 
 	// Restore monitors
 	span.Logger().Infof("create monitor servers")
-	nsm.initMonitorServers()
+	nsmServer.initMonitorServers()
 
-	nsm.remoteServer = remote.NewRemoteNetworkServiceServer(nsm.manager, nsm.remoteConnectionMonitor)
-	nsm.manager.SetRemoteServer(nsm.remoteServer)
+	nsmServer.remoteServer = remote.NewRemoteNetworkServiceServer(nsmServer.manager, nsmServer.remoteConnectionMonitor)
+	nsmServer.manager.SetRemoteServer(nsmServer.remoteServer)
 
 	// Restore existing clients in case of NSMd restart.
-	nsm.restore(span.Context(), endpoints)
+	nsmServer.restore(span.Context(), endpoints)
 
-	return nsm, nil
+	return nsmServer, nil
 }
 
 func createNsmServer(model model.Model, manager nsm.NetworkServiceManager, locationProvider serviceregistry.WorkspaceLocationProvider) *nsmServer {
-	nsm := &nsmServer{
+	server := &nsmServer{
 		workspaces:       make(map[string]*Workspace),
 		model:            model,
 		serviceRegistry:  manager.ServiceRegistry(),
@@ -506,7 +506,7 @@ func createNsmServer(model model.Model, manager nsm.NetworkServiceManager, locat
 		locationProvider: locationProvider,
 		localRegistry:    nseregistry.NewNSERegistry(locationProvider.NsmNSERegistryFile()),
 	}
-	return nsm
+	return server
 }
 
 func (nsm *nsmServer) initMonitorServers() {
@@ -533,7 +533,7 @@ func setLocalNSM(ctx context.Context, model model.Model, serviceRegistry service
 	}
 	span.LogValue("url", serviceRegistry.GetPublicAPI())
 
-	nsm, err := client.RegisterNSM(span.Context(), &registry.NetworkServiceManager{
+	registeredNsm, err := client.RegisterNSM(span.Context(), &registry.NetworkServiceManager{
 		Url: serviceRegistry.GetPublicAPI(),
 	})
 	if err != nil {
@@ -547,8 +547,8 @@ func setLocalNSM(ctx context.Context, model model.Model, serviceRegistry service
 		return nil, err
 	}
 
-	logrus.Infof("Setting local NSM %v", nsm)
-	model.SetNsm(nsm)
+	logrus.Infof("Setting local NSM %v", registeredNsm)
+	model.SetNsm(registeredNsm)
 
 	return endpoints, nil
 }

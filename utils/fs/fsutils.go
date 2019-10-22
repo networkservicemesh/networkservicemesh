@@ -102,10 +102,10 @@ func GetNsHandleFromInode(inode string) (netns.NsHandle, error) {
 		return -1, errors.Errorf("failed parsing inode, must be an unsigned int, instead was: %s", inode)
 	}
 	/* Get filepath from inode */
-	path, err := ResolvePodNsByInode(inodeNum)
+	pathFromInode, err := ResolvePodNsByInode(inodeNum)
 	if err != nil {
 		return -1, errors.Wrapf(err, "failed to find file in /proc/*/ns/net with inode %d", inodeNum)
 	}
-	/* Get namespace handler from path */
-	return netns.GetFromPath(path)
+	/* Get namespace handler from pathFromInode */
+	return netns.GetFromPath(pathFromInode)
 }

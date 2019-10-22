@@ -97,14 +97,14 @@ func collectMetrics(devices *RegisteredDevices) (map[string]*crossconnect.Metric
 	/* Loop through each registered device */
 	for namespace, listOfDevices := range devices.devices {
 		for _, device := range listOfDevices {
-			metrics, err := getDeviceMetrics(device.Name, namespace)
+			deviceMetrics, err := getDeviceMetrics(device.Name, namespace)
 			if err != nil {
 				logrus.Warnf("metrics: failed to extract metrics for device %s in namespace %s: %v", device.Name, namespace, err)
 				logrus.Warnf("metrics: removing device %s from device list", device.Name)
 				failedDevices[namespace] = append(failedDevices[namespace], device)
 			} else {
-				logrus.Infof("metrics: device %s@%s, metrics - %v", device.Name, namespace, metrics)
-				stats[generateMetricsName(device)] = &crossconnect.Metrics{Metrics: metrics}
+				logrus.Infof("metrics: device %s@%s, metrics - %v", device.Name, namespace, deviceMetrics)
+				stats[generateMetricsName(device)] = &crossconnect.Metrics{Metrics: deviceMetrics}
 			}
 		}
 	}
@@ -179,15 +179,15 @@ func getDeviceMetrics(device, nsInode string) (map[string]string, error) {
 		return nil, err
 	}
 	/* 6. Save statistics in metrics map */
-	metrics := make(map[string]string)
-	metrics["rx_bytes"] = fmt.Sprint(link.Attrs().Statistics.RxBytes)
-	metrics["tx_bytes"] = fmt.Sprint(link.Attrs().Statistics.TxBytes)
-	metrics["rx_packets"] = fmt.Sprint(link.Attrs().Statistics.RxPackets)
-	metrics["tx_packets"] = fmt.Sprint(link.Attrs().Statistics.TxPackets)
-	metrics["rx_error_packets"] = fmt.Sprint(link.Attrs().Statistics.RxErrors)
-	metrics["tx_error_packets"] = fmt.Sprint(link.Attrs().Statistics.TxErrors)
+	metricsMap := make(map[string]string)
+	metricsMap["rx_bytes"] = fmt.Sprint(link.Attrs().Statistics.RxBytes)
+	metricsMap["tx_bytes"] = fmt.Sprint(link.Attrs().Statistics.TxBytes)
+	metricsMap["rx_packets"] = fmt.Sprint(link.Attrs().Statistics.RxPackets)
+	metricsMap["tx_packets"] = fmt.Sprint(link.Attrs().Statistics.TxPackets)
+	metricsMap["rx_error_packets"] = fmt.Sprint(link.Attrs().Statistics.RxErrors)
+	metricsMap["tx_error_packets"] = fmt.Sprint(link.Attrs().Statistics.TxErrors)
 
-	return metrics, nil
+	return metricsMap, nil
 }
 
 // UpdateDeviceList keeps track of the devices being handled by the Kernel forwarding plane

@@ -21,15 +21,15 @@ func TestResolvConfFileReadProperties(t *testing.T) {
 search default.svc.cluster.local svc.cluster.local cluster.local
 options ndots:5
 `
-	path, err := createSample("resolv.conf.tmp.test.file", sampleSource)
+	samplePath, err := createSample("resolv.conf.tmp.test.file", sampleSource)
 	if err != nil {
 		println(err.Error())
 		t.FailNow()
 	}
 	defer func() {
-		_ = os.Remove(path)
+		_ = os.Remove(samplePath)
 	}()
-	conf := resolvConfFile{path: path}
+	conf := resolvConfFile{path: samplePath}
 	result := conf.Nameservers()
 	if len(result) != 1 {
 		t.FailNow()
@@ -64,15 +64,15 @@ func TestResolvConfFileWriteProperties(t *testing.T) {
 search default.svc.cluster.local svc.cluster.local cluster.local
 options ndots:5
 `
-	path, err := createSample("resolv.conf.tmp.test.file", "")
+	samplePath, err := createSample("resolv.conf.tmp.test.file", "")
 	if err != nil {
 		println(err.Error())
 		t.FailNow()
 	}
 	defer func() {
-		_ = os.Remove(path)
+		_ = os.Remove(samplePath)
 	}()
-	conf := resolvConfFile{path: path}
+	conf := resolvConfFile{path: samplePath}
 	properties := []resolvConfProperty{
 		{nameserverProperty, []string{"127.0.0.1"}},
 		{searchProperty, []string{"default.svc.cluster.local", "svc.cluster.local", "cluster.local"}},
@@ -80,7 +80,7 @@ options ndots:5
 	}
 	conf.ReplaceProperties(properties)
 
-	bytes, err := ioutil.ReadFile(path)
+	bytes, err := ioutil.ReadFile(samplePath)
 	if err != nil {
 		println(err.Error())
 		t.FailNow()

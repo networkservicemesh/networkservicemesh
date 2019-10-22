@@ -589,9 +589,9 @@ func newNSMDFullServerAt(ctx context.Context, nsmgrName string, storage *sharedS
 
 	monitorCrossConnectClient := nsmd.NewMonitorCrossConnectClient(srv.TestModel, nsmServer, nsmServer.XconManager(), srv.nsmServer)
 	srv.TestModel.AddListener(monitorCrossConnectClient)
-	probes := probes.New("Test probes", nil)
+	testProbes := probes.New("Test probes", nil)
 
-	nsmServer.StartAPIServerAt(ctx, sock, probes)
+	nsmServer.StartAPIServerAt(ctx, sock, testProbes)
 
 	return srv
 }

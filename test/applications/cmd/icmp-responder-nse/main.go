@@ -45,7 +45,7 @@ func main() {
 	logrus.Info("Starting icmp-responder-nse...")
 	logrus.Infof("Version: %v", version)
 
-	flags := flags.ParseFlags()
+	parsedFlags := flags.ParseFlags()
 
 	configuration := common.FromEnv()
 
@@ -54,7 +54,7 @@ func main() {
 		endpoint.NewConnectionEndpoint(configuration),
 	}
 
-	if flags.Neighbors {
+	if parsedFlags.Neighbors {
 		logrus.Infof("Adding neighbors endpoint to chain")
 		endpoints = append(endpoints,
 			endpoint.NewCustomFuncEndpoint("neighbor", ipNeighborMutator))
@@ -67,12 +67,12 @@ func main() {
 	if common.IsIPv6(ipamEndpoint.PrefixPool.GetPrefixes()[0]) {
 		routeAddr = endpoint.CreateRouteMutator([]string{"2001:4860:4860::8888/126"})
 	}
-	if flags.Routes {
+	if parsedFlags.Routes {
 		logrus.Infof("Adding routes endpoint to chain")
 		endpoints = append(endpoints, endpoint.NewCustomFuncEndpoint("route", routeAddr))
 	}
 
-	if flags.DNS {
+	if parsedFlags.DNS {
 		logrus.Info("Adding dns endpoint to chain")
 		endpoints = append(endpoints, endpoint.NewCustomFuncEndpoint("dns", dnsMutator))
 	}
@@ -80,7 +80,7 @@ func main() {
 	podName := endpoint.CreatePodNameMutator()
 	endpoints = append(endpoints, endpoint.NewCustomFuncEndpoint("podName", podName))
 
-	if flags.Update {
+	if parsedFlags.Update {
 		logrus.Infof("Adding updating endpoint to chain")
 		endpoints = append(endpoints,
 			endpoint.NewCustomFuncEndpoint("update", func(ctx context.Context, conn *connection.Connection) error {
@@ -105,7 +105,7 @@ func main() {
 	}
 
 	_ = nsmEndpoint.Start()
-	if !flags.Dirty {
+	if !parsedFlags.Dirty {
 		defer func() { _ = nsmEndpoint.Delete() }()
 	}
 

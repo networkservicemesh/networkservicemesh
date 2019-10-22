@@ -309,17 +309,17 @@ func (k8s *K8s) reportSpans() {
 	}
 	logrus.Infof("Finding spans")
 	// We need to find all Reporting span and print uniq to console for analysis.
-	pods := k8s.ListPods()
+	podList := k8s.ListPods()
 	spans := map[string]*spanRecord{}
-	for i := 0; i < len(pods); i++ {
-		pod := pods[i]
+	for i := 0; i < len(podList); i++ {
+		pod := podList[i]
 		for ci := 0; ci < len(pod.Spec.Containers); ci++ {
 			c := pod.Spec.Containers[ci]
-			k8s.findSpans(&pods[i], c, spans)
+			k8s.findSpans(&podList[i], c, spans)
 		}
 		for ci := 0; ci < len(pod.Spec.InitContainers); ci++ {
 			c := pod.Spec.Containers[ci]
-			k8s.findSpans(&pods[i], c, spans)
+			k8s.findSpans(&podList[i], c, spans)
 		}
 	}
 	for spanID, span := range spans {
@@ -710,11 +710,11 @@ func (k8s *K8s) cleanups() {
 
 // Prepare prepares the pods
 func (k8s *K8s) Prepare(noPods ...string) {
-	pods := k8s.ListPods()
+	podList := k8s.ListPods()
 	podsList := []*v1.Pod{}
 	for _, podName := range noPods {
-		for i := range pods {
-			lpod := &pods[i]
+		for i := range podList {
+			lpod := &podList[i]
 			if strings.Contains(lpod.Name, podName) {
 				podsList = append(podsList, lpod)
 			}
@@ -725,14 +725,14 @@ func (k8s *K8s) Prepare(noPods ...string) {
 
 // CreatePods create pods
 func (k8s *K8s) CreatePods(templates ...*v1.Pod) []*v1.Pod {
-	pods, _ := k8s.CreatePodsRaw(PodStartTimeout, true, templates...)
-	return pods
+	podList, _ := k8s.CreatePodsRaw(PodStartTimeout, true, templates...)
+	return podList
 }
 
 // CreatePodsRaw create raw pods
 func (k8s *K8s) CreatePodsRaw(timeout time.Duration, failTest bool, templates ...*v1.Pod) ([]*v1.Pod, error) {
 	results := k8s.createAndBlock(k8s.clientset, k8s.namespace, timeout, templates...)
-	pods := []*v1.Pod{}
+	podList := []*v1.Pod{}
 
 	// Add pods into managed list of created pods, do not matter about errors, since we still need to remove them.
 	errs := []error{}
@@ -741,7 +741,7 @@ func (k8s *K8s) CreatePodsRaw(timeout time.Duration, failTest bool, templates ..
 			logrus.Errorf("Error - Pod should have been created, but is nil: %v", podResult)
 		} else {
 			if podResult.pod != nil {
-				pods = append(pods, podResult.pod)
+				podList = append(podList, podResult.pod)
 			}
 			if podResult.err != nil {
 				logrus.Errorf("Error Creating Pod: %s %v", podResult.pod.Name, podResult.err)
@@ -751,7 +751,7 @@ func (k8s *K8s) CreatePodsRaw(timeout time.Duration, failTest bool, templates ..
 	}
 	k8s.podLock.Lock()
 	defer k8s.podLock.Unlock()
-	k8s.pods = append(k8s.pods, pods...)
+	k8s.pods = append(k8s.pods, podList...)
 
 	// Make sure unit test is failed
 	var err error = nil
@@ -762,7 +762,7 @@ func (k8s *K8s) CreatePodsRaw(timeout time.Duration, failTest bool, templates ..
 		err = errors.Errorf("Errors %v", errs)
 	}
 
-	return pods, err
+	return podList, err
 }
 
 // GetPod gets a pod
