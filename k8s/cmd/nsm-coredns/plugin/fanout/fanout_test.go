@@ -87,12 +87,15 @@ func TestFanoutCanReturnUnsuccessRespnse(t *testing.T) {
 }
 func TestFanoutTwoServersNotSuccessResponse(t *testing.T) {
 	rcode := 1
+	rcodeMutex := sync.Mutex{}
 	s1 := newServer(func(w dns.ResponseWriter, r *dns.Msg) {
 		if r.Question[0].Name == "example1." {
 			msg := testNxdomainMsg()
+			rcodeMutex.Lock()
 			msg.SetRcode(r, rcode)
 			rcode++
 			rcode %= dns.RcodeNotZone
+			rcodeMutex.Unlock()
 			w.WriteMsg(msg)
 			//let another server answer
 			<-time.After(time.Millisecond * 100)
