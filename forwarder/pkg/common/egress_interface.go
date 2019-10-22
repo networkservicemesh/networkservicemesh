@@ -97,29 +97,15 @@ func parseGatewayIP(defaultGateway string) (net.IP, error) {
 	if len(defaultGateway) != 8 {
 		return nil, errors.New("failed to parse IP from string")
 	}
-	iv0, err := strconv.ParseInt(defaultGateway[0:2], 16, 32)
-	if err != nil {
-		return nil, errors.New("string does not represent a valid IP address")
-	}
-	iv1, err := strconv.ParseInt(defaultGateway[2:4], 16, 32)
-	if err != nil {
-		return nil, errors.New("string does not represent a valid IP address")
-	}
-	iv2, err := strconv.ParseInt(defaultGateway[4:6], 16, 32)
-	if err != nil {
-		return nil, errors.New("string does not represent a valid IP address")
-	}
-	iv3, err := strconv.ParseInt(defaultGateway[6:], 16, 32)
-	if err != nil {
-		return nil, errors.New("string does not represent a valid IP address")
-	}
 	ip := net.IP{0, 0, 0, 0}
-	ip[0] = byte(iv3)
-	ip[1] = byte(iv2)
-	ip[2] = byte(iv1)
-	ip[3] = byte(iv0)
+	for i := 0; i < len(defaultGateway)/2; i++ {
+		iv, err := strconv.ParseInt(defaultGateway[i*2:i*2+2], 16, 32)
+		if err != nil {
+			return nil, errors.Wrapf(err, "string does not represent a valid IP address")
+		}
+		ip[3-i] = byte(iv)
+	}
 	return ip, nil
-
 }
 
 func getArpEntries() ([]*ARPEntry, error) {

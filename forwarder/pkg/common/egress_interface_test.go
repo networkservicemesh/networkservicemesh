@@ -39,7 +39,7 @@ func TestParseDefaultGatewayInValidString(t *testing.T) {
 	g := gomega.NewWithT(t)
 
 	gw, err := parseGatewayIP("????11AC")
-	g.Expect(err.Error()).To(gomega.Equal("string does not represent a valid IP address"))
+	g.Expect(err.Error()).To(gomega.Equal("string does not represent a valid IP address: strconv.ParseInt: parsing \"??\": invalid syntax"))
 	logrus.Printf("Value %v", gw.String())
 	g.Expect(gw).To(gomega.BeNil())
 }
@@ -48,7 +48,7 @@ func TestParseDefaultGatewayInvalidStartingString(t *testing.T) {
 	g := gomega.NewWithT(t)
 
 	gw, err := parseGatewayIP("010011AS")
-	g.Expect(err.Error()).To(gomega.Equal("string does not represent a valid IP address"))
+	g.Expect(err.Error()).To(gomega.Equal("string does not represent a valid IP address: strconv.ParseInt: parsing \"AS\": invalid syntax"))
 	logrus.Printf("Value %v", gw.String())
 	g.Expect(gw).To(gomega.BeNil())
 }
