@@ -87,7 +87,6 @@ func (c *restClient) request(verb string) *rest.Request {
 	ns := c.NegotiatedSerializer
 	info, _ := runtime.SerializerInfoForMediaType(ns.SupportedMediaTypes(), runtime.ContentTypeJSON)
 	serializers := rest.Serializers{
-		// TODO this was hardcoded before, but it doesn't look right
 		Encoder: ns.EncoderForVersion(info.Serializer, c.GroupVersion),
 		Decoder: ns.DecoderToVersion(info.Serializer, c.GroupVersion),
 	}

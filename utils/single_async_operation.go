@@ -15,6 +15,7 @@ const (
 type Operation interface {
 	//Run executes operation
 	Run()
+	//Wait waits for operation completed
 	Wait()
 }
 
@@ -25,7 +26,7 @@ type singleAsyncOperation struct {
 
 func (s *singleAsyncOperation) Wait() {
 	for atomic.AddInt32(&s.state, 0) != notScheduled {
-		<-time.After(time.Millisecond * 5)
+		<-time.After(time.Millisecond * 25)
 	}
 }
 
