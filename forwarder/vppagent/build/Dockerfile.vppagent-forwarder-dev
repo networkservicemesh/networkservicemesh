@@ -47,3 +47,4 @@ RUN CGO_ENABLED=0 GOOS=linux go build ${VENDORING} -ldflags "-extldflags '-stati
 
 FROM vpp_agent
 COPY --from=build_vpp /go/bin/vppagent-forwarder /bin/vppagent-forwarder
+

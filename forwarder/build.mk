@@ -34,7 +34,8 @@ docker-vppagent-forwarder-prepare: docker-%-prepare: go-%-build
 	$(info Preparing files for docker...)
 	$(call docker_prepare, $(BIN_DIR)/$*, \
 		forwarder/vppagent/conf/vpp/startup.conf \
-		forwarder/vppagent/conf/supervisord/supervisord.conf)
+		forwarder/vppagent/conf/supervisord/supervisord.conf \
+		forwarder/vppagent/conf/supervisord/telemetry.conf)
 
 .PHONY: docker-forwarder-build
 docker-forwarder-build: docker-vppagent-forwarder-build docker-kernel-forwarder-build

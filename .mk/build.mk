@@ -18,7 +18,7 @@ include $(foreach module, $(modules), ./$(module)/build.mk)
 
 BIN_DIR = $(PWD)/build/dist
 VERSION = $(shell git describe --tags --always)
-VPP_AGENT=ligato/vpp-agent:v2.3.0
+VPP_AGENT=ligato/vpp-agent:latest
 CGO_ENABLED=0
 GOOS=linux
 DOCKER=./build
