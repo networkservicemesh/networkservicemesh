@@ -49,14 +49,6 @@ type testSecurityProvider struct {
 	spiffeID string
 }
 
-func (sc *testSecurityProvider) GetChecker() func(interface{}) bool {
-	panic("implement me")
-}
-
-func (sc *testSecurityProvider) SetChecker(func(interface{}) bool) {
-	panic("implement me")
-}
-
 func newTestSecurityContext(spiffeID string) (*testSecurityProvider, error) {
 	ca, err := GenerateCA()
 	if err != nil {

@@ -27,8 +27,6 @@ type Provider interface {
 	GetCertificate() *tls.Certificate
 	GetCABundle() *x509.CertPool
 	GetSpiffeID() string
-	GetChecker() func(interface{}) bool
-	SetChecker(func(interface{}) bool)
 }
 
 // CertificateObtainer abstracts certificates obtaining
@@ -50,14 +48,6 @@ type certificateManager struct {
 	cert        *tls.Certificate
 	readyCh     chan struct{}
 	checkerFunc func(interface{}) bool
-}
-
-func (cm *certificateManager) GetChecker() func(interface{}) bool {
-	return cm.checkerFunc
-}
-
-func (cm *certificateManager) SetChecker(f func(interface{}) bool) {
-	cm.checkerFunc = f
 }
 
 // NewProvider creates new security.Manager using SpireCertObtainer
