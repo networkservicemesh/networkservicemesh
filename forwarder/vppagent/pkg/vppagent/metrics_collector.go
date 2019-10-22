@@ -8,9 +8,10 @@ import (
 
 	"github.com/ligato/vpp-agent/api/configurator"
 	vpp_interfaces "github.com/ligato/vpp-agent/api/models/vpp/interfaces"
+	"google.golang.org/grpc"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/metrics"
-	"google.golang.org/grpc"
 
 	"github.com/sirupsen/logrus"
 )
