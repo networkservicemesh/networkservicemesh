@@ -155,6 +155,16 @@ func CloudTestRun(cmd *cloudTestCmd) {
 		os.Exit(1)
 	}
 
+	if len(testConfig.OnlyRun) > 0 {
+		logrus.Infof("Imposing top-level 'only-run' tests to all executions: %v", testConfig.OnlyRun)
+		for _, e := range testConfig.Executions {
+			if len(e.OnlyRun) > 0 {
+				logrus.Warningf("Overwriting non-empty 'only-run' on execution '%s'", e.Name)
+			}
+			e.OnlyRun = testConfig.OnlyRun
+		}
+	}
+
 	// Process config imports
 	err = performImport(testConfig)
 	if err != nil {

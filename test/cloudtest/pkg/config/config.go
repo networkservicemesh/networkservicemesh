@@ -85,7 +85,8 @@ type CloudTestConfig struct {
 		Enabled  bool  `yaml:"enabled"`  // A way to disable printing of statistics
 	} `yaml:"statistics"` // Statistics options
 
-	ShuffleTests bool `yaml:"shuffle-enabled"` // Shuffle tests before assignement
+	ShuffleTests bool     `yaml:"shuffle-enabled"` // Shuffle tests before assignement
+	OnlyRun      []string `yaml:"only-run"`        // If non-empty, only run the listed tests
 }
 
 // NewCloudTestConfig - creates a test config with some default values specified.
