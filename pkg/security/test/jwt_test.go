@@ -17,8 +17,9 @@
 package testsec
 
 import (
-	. "github.com/onsi/gomega"
 	"testing"
+
+	. "github.com/onsi/gomega"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/security"
 )
