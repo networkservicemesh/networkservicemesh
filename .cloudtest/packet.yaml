@@ -45,6 +45,7 @@ providers:
       prepare: |
         make k8s-config helm-init
         make spire-install
+        grep -q "spire-entries successfully registered" <(timeout 120 kubectl logs -n spire -f spire-server-0)
         kubectl get pods -n spire -o wide
         kubectl get nodes
         kubectl logs --selector app=spire-server -n spire --all-containers

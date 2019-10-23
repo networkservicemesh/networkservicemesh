@@ -32,3 +32,4 @@ providers:
       prepare: |
         make k8s-config helm-init
         make spire-install-azure
+        grep -q "spire-entries successfully registered" <(timeout 120 kubectl logs -n spire -f spire-server-0)

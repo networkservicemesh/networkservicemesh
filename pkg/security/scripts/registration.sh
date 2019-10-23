@@ -38,5 +38,5 @@ while ! register; do
 done
 
 /opt/spire/bin/spire-server entry show
-
+echo "spire-entries successfully registered"
 wait
