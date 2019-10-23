@@ -38,60 +38,63 @@ type Signed interface {
 type ClaimsSetter func(claims *ChainClaims, msg interface{}) error
 
 type SignOption interface {
-	apply(*ChainClaims)
+	apply(*signConfig)
+}
+
+type signConfig struct {
+	obo       *TokenAndClaims
+	expiresAt time.Duration
 }
 
 type funcSignOption struct {
-	f func(*ChainClaims)
+	f func(config *signConfig)
 }
 
-func (fso *funcSignOption) apply(cc *ChainClaims) {
-	fso.f(cc)
+func (fso *funcSignOption) apply(cfg *signConfig) {
+	fso.f(cfg)
 }
 
-func newFuncSignOption(f func(*ChainClaims)) SignOption {
+func newFuncSignOption(f func(*signConfig)) SignOption {
 	return &funcSignOption{
 		f: f,
 	}
 }
 
-func WithObo(obo string) SignOption {
-	return newFuncSignOption(func(claims *ChainClaims) {
-		claims.Obo = obo
+func WithObo(obo *TokenAndClaims) SignOption {
+	return newFuncSignOption(func(cfg *signConfig) {
+		cfg.obo = obo
 	})
 }
 
 func WithLifetime(t time.Duration) SignOption {
-	return newFuncSignOption(func(claims *ChainClaims) {
-		claims.ExpiresAt = time.Now().Add(t).Unix()
+	return newFuncSignOption(func(cfg *signConfig) {
+		cfg.expiresAt = t
 	})
 }
 
 func GenerateSignature(msg interface{}, claimsSetter ClaimsSetter, p Provider, opts ...SignOption) (string, error) {
+	cfg := &signConfig{}
+	for _, o := range opts {
+		o.apply(cfg)
+	}
+
 	claims := &ChainClaims{}
 	if err := claimsSetter(claims, msg); err != nil {
 		return "", err
 	}
 
-	for _, o := range opts {
-		o.apply(claims)
+	if cfg.obo != nil && cfg.obo.claims != nil && cfg.obo.claims.Subject == p.GetSpiffeID() {
+		logrus.Info("GeneratingSignature: claims.Obo.Subject equals current SpiffeID")
+		return cfg.obo.Token, nil
 	}
 
-	if claims.Obo != "" {
+	if cfg.obo != nil && cfg.obo.Token != "" {
 		logrus.Info("GeneratingSignature: claims.Obo is not empty")
-		token, parts, oboClaims, err := ParseJWTWithClaims(claims.Obo)
-		if err != nil {
-			return "", err
-		}
+		claims.Obo = cfg.obo.Token
+	}
 
-		if err := verifyJWTChain(token, parts, oboClaims, p.GetCABundle()); err != nil {
-			return "", errors.Wrap(err, "obo token validation error: %s")
-		}
-
-		if oboClaims.Subject == p.GetSpiffeID() {
-			logrus.Info("GeneratingSignature: claims.Obo.Subject equals current SpiffeID")
-			return claims.Obo, nil
-		}
+	if cfg.expiresAt != 0 {
+		claims.ExpiresAt = time.Now().Add(cfg.expiresAt).Unix()
 	}
 
 	var certs []string
@@ -111,6 +114,10 @@ func VerifySignature(signature string, ca *x509.CertPool, spiffeID string) error
 		return err
 	}
 
+	return verifySignatureParsed(token, parts, claims, ca, spiffeID)
+}
+
+func verifySignatureParsed(token *jwt.Token, parts []string, claims *ChainClaims, ca *x509.CertPool, spiffeID string) error {
 	if claims.Subject != spiffeID {
 		return errors.New("wrong spiffeID")
 	}

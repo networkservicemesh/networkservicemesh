@@ -19,48 +19,41 @@ package security
 import "context"
 
 type Context interface {
-	GetRequestOboToken() string
-	SetRequestOboToken(token string)
+	GetRequestOboToken() *TokenAndClaims
+	SetRequestOboToken(token *TokenAndClaims)
 
-	GetResponseOboToken() string
-	SetResponseOboToken(token string)
-
-	GetClaims() *ChainClaims
-	SetClaims(claims *ChainClaims)
+	GetResponseOboToken() *TokenAndClaims
+	SetResponseOboToken(token *TokenAndClaims)
 }
 
 type contextImpl struct {
-	requestOboToken  string
-	responseOboToken string
-	claims           *ChainClaims
+	requestOboToken  *TokenAndClaims
+	responseOboToken *TokenAndClaims
+}
+
+type TokenAndClaims struct {
+	Token  string
+	claims *ChainClaims
 }
 
 func NewContext() Context {
 	return &contextImpl{}
 }
 
-func (c *contextImpl) GetRequestOboToken() string {
+func (c *contextImpl) GetRequestOboToken() *TokenAndClaims {
 	return c.requestOboToken
 }
 
-func (c *contextImpl) SetRequestOboToken(token string) {
+func (c *contextImpl) SetRequestOboToken(token *TokenAndClaims) {
 	c.requestOboToken = token
 }
 
-func (c *contextImpl) GetResponseOboToken() string {
+func (c *contextImpl) GetResponseOboToken() *TokenAndClaims {
 	return c.responseOboToken
 }
 
-func (c *contextImpl) SetResponseOboToken(token string) {
+func (c *contextImpl) SetResponseOboToken(token *TokenAndClaims) {
 	c.responseOboToken = token
-}
-
-func (c *contextImpl) GetClaims() *ChainClaims {
-	return c.claims
-}
-
-func (c *contextImpl) SetClaims(claims *ChainClaims) {
-	c.claims = claims
 }
 
 func WithSecurityContext(parent context.Context, sc Context) context.Context {

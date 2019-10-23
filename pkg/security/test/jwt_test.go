@@ -17,9 +17,8 @@
 package testsec
 
 import (
-	"testing"
-
 	. "github.com/onsi/gomega"
+	"testing"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/security"
 )
@@ -64,13 +63,15 @@ func TestChain(t *testing.T) {
 	sc2, err := newTestSecurityContextWithCA(SpiffeID2, &ca)
 	Expect(err).To(BeNil())
 
-	signature2, err := security.GenerateSignature(msg, testClaimsSetter, sc2, security.WithObo(signature))
+	signature2, err := security.GenerateSignature(msg, testClaimsSetter, sc2,
+		security.WithObo(&security.TokenAndClaims{Token: signature}))
 	Expect(err).To(BeNil())
 
 	sc3, err := newTestSecurityContextWithCA(SpiffeID3, &ca)
 	Expect(err).To(BeNil())
 
-	signature3, err := security.GenerateSignature(msg, testClaimsSetter, sc3, security.WithObo(signature2))
+	signature3, err := security.GenerateSignature(msg, testClaimsSetter, sc3,
+		security.WithObo(&security.TokenAndClaims{Token: signature2}))
 	msg.token = signature3
 	Expect(err).To(BeNil())
 
