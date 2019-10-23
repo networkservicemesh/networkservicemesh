@@ -40,7 +40,7 @@ func TestSimpleMetrics(t *testing.T) {
 			Variables: pods.DefaultNSMD(),
 		},
 	}, k8s.GetK8sNamespace())
-	k8s.WaitLogsContains(nodes[0].Forwarder, nodes[0].Forwarder.Spec.Containers[0].Name, "Metrics collector: creating notificaiton client", time.Minute)
+	k8s.WaitLogsContains(nodes[0].Forwarder, nodes[0].Forwarder.Spec.Containers[0].Name, "Metrics collector: creating notification client", time.Minute)
 	g.Expect(err).To(BeNil())
 	kubetest.DeployICMP(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
 	defer kubetest.MakeLogsSnapshot(k8s, t)
@@ -50,10 +50,11 @@ func TestSimpleMetrics(t *testing.T) {
 
 	metricsCh := metricsFromEventCh(eventCh)
 	nsc := kubetest.DeployNSC(k8s, nodes[0].Node, "nsc1", defaultTimeout)
-
-	response, _, err := k8s.Exec(nsc, nsc.Spec.Containers[0].Name, "ping", "172.16.1.2", "-A", "-c", "4")
-	logrus.Infof("response = %v", response)
-	g.Expect(err).To(BeNil())
+	for i := 0; i < 10; i++ {
+		response, _, err := k8s.Exec(nsc, nsc.Spec.Containers[0].Name, "ping", "172.16.1.2", "-A", "-c", "4")
+		logrus.Infof("response = %v", response)
+		g.Expect(err).To(BeNil())
+	}
 	<-time.After(requestPeriod * 5)
 	k8s.DeletePods(nsc)
 	select {
