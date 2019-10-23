@@ -11,6 +11,7 @@ require (
 	github.com/sirupsen/logrus v1.4.2
 	github.com/spiffe/spire v0.0.0-20190515205011-c8123525fba8
 	github.com/uber/jaeger-client-go v2.17.0+incompatible
+	github.com/uber/jaeger-lib v2.2.0+incompatible // indirect
 	google.golang.org/grpc v1.23.1
 )
 
