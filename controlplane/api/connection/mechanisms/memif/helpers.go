@@ -22,6 +22,7 @@ import (
 
 type Mechanism interface {
 	GetSocketFilename() string
+	GetWorkspace() string
 }
 
 type mechanism struct {
@@ -35,6 +36,13 @@ func ToMechanism(m *connection.Mechanism) Mechanism {
 		}
 	}
 	return nil
+}
+
+func (m *mechanism) GetWorkspace() string {
+	if m == nil || m.GetParameters() == nil {
+		return ""
+	}
+	return m.GetParameters()[Workspace]
 }
 
 // GetSocketFilename returns memif mechanism socket filename

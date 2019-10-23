@@ -18,6 +18,8 @@ package kernelforwarder
 import (
 	"context"
 
+	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
+
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/status"
@@ -97,8 +99,8 @@ func (k *KernelForwarder) connectOrDisconnect(crossConnect *crossconnect.CrossCo
 	}
 
 	/* 1. Handle local connection */
-	if crossConnect.GetLocalSource().GetMechanism().GetType() == local.MechanismType_KERNEL_INTERFACE &&
-		crossConnect.GetLocalDestination().GetMechanism().GetType() == local.MechanismType_KERNEL_INTERFACE {
+	if compat.ConnectionUnifiedToLocal(crossConnect.GetLocalSource()).GetMechanism().GetType() == local.MechanismType_KERNEL_INTERFACE &&
+		compat.ConnectionUnifiedToLocal(crossConnect.GetLocalDestination()).GetMechanism().GetType() == local.MechanismType_KERNEL_INTERFACE {
 		devices, err = handleLocalConnection(crossConnect, connect)
 	} else {
 		/* 2. Handle remote connection */

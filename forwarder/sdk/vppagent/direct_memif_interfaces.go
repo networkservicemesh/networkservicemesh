@@ -3,6 +3,8 @@ package forwarder
 import (
 	"context"
 
+	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
+
 	"github.com/golang/protobuf/ptypes/empty"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
@@ -46,6 +48,6 @@ func (c *directMemifInterface) Close(ctx context.Context, crossConnect *crosscon
 }
 
 func isDirectMemif(crossConnect *crossconnect.CrossConnect) bool {
-	return crossConnect.GetLocalSource().GetMechanism().GetType() == local.MechanismType_MEM_INTERFACE &&
-		crossConnect.GetLocalDestination().GetMechanism().GetType() == local.MechanismType_MEM_INTERFACE
+	return compat.ConnectionUnifiedToLocal(crossConnect.GetLocalSource()).GetMechanism().GetType() == local.MechanismType_MEM_INTERFACE &&
+		compat.ConnectionUnifiedToLocal(crossConnect.GetLocalDestination()).GetMechanism().GetType() == local.MechanismType_MEM_INTERFACE
 }

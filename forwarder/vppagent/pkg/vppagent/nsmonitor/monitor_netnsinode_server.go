@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
+
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
@@ -84,12 +86,12 @@ func (m *MonitorNetNsInodeServer) checkCrossConnectLiveness() error {
 	inodesSet := NewInodeSet(liveInodes)
 
 	for _, xcon := range m.crossConnects {
-		if conn := xcon.GetLocalSource(); conn != nil {
+		if conn := compat.ConnectionUnifiedToLocal(xcon.GetLocalSource()); conn != nil {
 			if err := m.checkConnectionLiveness(xcon, conn, inodesSet); err != nil {
 				return err
 			}
 		}
-		if conn := xcon.GetLocalDestination(); conn != nil {
+		if conn := compat.ConnectionUnifiedToLocal(xcon.GetLocalDestination()); conn != nil {
 			if err := m.checkConnectionLiveness(xcon, conn, inodesSet); err != nil {
 				return err
 			}

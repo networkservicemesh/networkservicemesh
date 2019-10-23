@@ -3,6 +3,8 @@ package converter
 import (
 	"path"
 
+	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
+
 	"github.com/pkg/errors"
 
 	"github.com/ligato/vpp-agent/api/configurator"
@@ -46,29 +48,31 @@ func (c *CrossConnectConverter) ToDataRequest(rv *configurator.Config, connect b
 	srcName := srcPrefix + c.GetId()
 	dstName := dstPrefix + c.GetId()
 
-	if c.GetLocalSource() != nil {
-		baseDir := path.Join(c.conversionParameters.BaseDir, c.GetLocalSource().GetMechanism().GetWorkspace())
+	if src := compat.ConnectionUnifiedToLocal(c.GetLocalSource()); src != nil {
+		baseDir := path.Join(c.conversionParameters.BaseDir, src.GetMechanism().GetWorkspace())
 		conversionParameters := &ConnectionConversionParameters{
 			Name:      srcName,
 			Terminate: false,
 			Side:      SOURCE,
 			BaseDir:   baseDir,
 		}
-		rv, err := NewLocalConnectionConverter(c.GetLocalSource(), conversionParameters).ToDataRequest(rv, connect)
+		var err error
+		rv, err = NewLocalConnectionConverter(src, conversionParameters).ToDataRequest(rv, connect)
 		if err != nil {
 			return rv, errors.Wrapf(err, "Error Converting CrossConnect %v", c)
 		}
 	}
 
-	if c.GetLocalDestination() != nil {
-		baseDir := path.Join(c.conversionParameters.BaseDir, c.GetLocalDestination().GetMechanism().GetWorkspace())
+	if dst := compat.ConnectionUnifiedToLocal(c.GetLocalDestination()); dst != nil {
+		baseDir := path.Join(c.conversionParameters.BaseDir, dst.GetMechanism().GetWorkspace())
 		conversionParameters := &ConnectionConversionParameters{
 			Name:      dstName,
 			Terminate: false,
 			Side:      DESTINATION,
 			BaseDir:   baseDir,
 		}
-		rv, err := NewLocalConnectionConverter(c.GetLocalDestination(), conversionParameters).ToDataRequest(rv, connect)
+		var err error
+		rv, err = NewLocalConnectionConverter(dst, conversionParameters).ToDataRequest(rv, connect)
 		if err != nil {
 			return rv, errors.Wrapf(err, "Error Converting CrossConnect %v", c)
 		}
@@ -107,15 +111,15 @@ func (c *CrossConnectConverter) MechanismsToDataRequest(rv *configurator.Config,
 	srcName := srcPrefix + c.GetId()
 
 	var err error
-	if c.GetRemoteSource() != nil {
-		rv, err = NewRemoteConnectionConverter(c.GetRemoteSource(), srcName, SOURCE).ToDataRequest(rv, connect)
+	if src := compat.ConnectionUnifiedToRemote(c.GetRemoteSource()); src != nil {
+		rv, err = NewRemoteConnectionConverter(src, srcName, SOURCE).ToDataRequest(rv, connect)
 		if err != nil {
 			return rv, errors.Wrapf(err, "error Converting CrossConnect %v", c)
 		}
 	}
 
-	if c.GetRemoteDestination() != nil {
-		rv, err = NewRemoteConnectionConverter(c.GetRemoteDestination(), "DST-"+c.GetId(), DESTINATION).ToDataRequest(rv, connect)
+	if dst := compat.ConnectionUnifiedToRemote(c.GetRemoteDestination()); dst != nil {
+		rv, err = NewRemoteConnectionConverter(dst, "DST-"+c.GetId(), DESTINATION).ToDataRequest(rv, connect)
 		if err != nil {
 			return rv, errors.Wrapf(err, "error Converting CrossConnect %v", c)
 		}

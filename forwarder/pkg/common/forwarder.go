@@ -22,6 +22,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
+
 	"github.com/pkg/errors"
 
 	"github.com/sirupsen/logrus"
@@ -247,14 +249,16 @@ func SanityCheckConnectionType(mechanisms *Mechanisms, crossConnect *crossconnec
 	localFound, remoteFound := false, false
 	/* Verify local mechanisms */
 	for _, mech := range mechanisms.LocalMechanisms {
-		if crossConnect.GetLocalSource().GetMechanism().GetType() == mech.GetType() || crossConnect.GetLocalDestination().GetMechanism().GetType() == mech.GetType() {
+		if compat.ConnectionUnifiedToLocal(crossConnect.GetLocalSource()).GetMechanism().GetType() == mech.GetType() ||
+			compat.ConnectionUnifiedToLocal(crossConnect.GetLocalDestination()).GetMechanism().GetType() == mech.GetType() {
 			localFound = true
 			break
 		}
 	}
 	/* Verify remote mechanisms */
 	for _, mech := range mechanisms.RemoteMechanisms {
-		if crossConnect.GetRemoteSource().GetMechanism().GetType() == mech.GetType() || crossConnect.GetRemoteDestination().GetMechanism().GetType() == mech.GetType() {
+		if compat.ConnectionUnifiedToRemote(crossConnect.GetRemoteSource()).GetMechanism().GetType() == mech.GetType() ||
+			compat.ConnectionUnifiedToRemote(crossConnect.GetRemoteDestination()).GetMechanism().GetType() == mech.GetType() {
 			remoteFound = true
 			break
 		}

@@ -18,6 +18,8 @@ package kernelforwarder
 import (
 	"runtime"
 
+	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
+
 	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
@@ -37,13 +39,13 @@ import (
 
 // handleRemoteConnection handles remote connect/disconnect requests for either incoming or outgoing connections
 func handleRemoteConnection(egress common.EgressInterfaceType, crossConnect *crossconnect.CrossConnect, connect bool) (map[string]monitoring.Device, error) {
-	if crossConnect.GetRemoteSource().GetMechanism().GetType() == remote.MechanismType_VXLAN &&
-		crossConnect.GetLocalDestination().GetMechanism().GetType() == local.MechanismType_KERNEL_INTERFACE {
+	if compat.ConnectionUnifiedToRemote(crossConnect.GetRemoteSource()).GetMechanism().GetType() == remote.MechanismType_VXLAN &&
+		compat.ConnectionUnifiedToLocal(crossConnect.GetLocalDestination()).GetMechanism().GetType() == local.MechanismType_KERNEL_INTERFACE {
 		/* 1. Incoming remote connection */
 		logrus.Info("remote: connection type - remote source/local destination - incoming")
 		return handleConnection(egress, crossConnect, connect, cINCOMING)
-	} else if crossConnect.GetLocalSource().GetMechanism().GetType() == local.MechanismType_KERNEL_INTERFACE &&
-		crossConnect.GetRemoteDestination().GetMechanism().GetType() == remote.MechanismType_VXLAN {
+	} else if compat.ConnectionUnifiedToLocal(crossConnect.GetLocalSource()).GetMechanism().GetType() == local.MechanismType_KERNEL_INTERFACE &&
+		compat.ConnectionUnifiedToRemote(crossConnect.GetRemoteDestination()).GetMechanism().GetType() == remote.MechanismType_VXLAN {
 		/* 2. Outgoing remote connection */
 		logrus.Info("remote: connection type - local source/remote destination - outgoing")
 		return handleConnection(egress, crossConnect, connect, cOUTGOING)

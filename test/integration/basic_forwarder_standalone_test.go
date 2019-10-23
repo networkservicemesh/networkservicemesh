@@ -12,13 +12,16 @@ import (
 	"testing"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/memif"
+
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	forwarderapi "github.com/networkservicemesh/networkservicemesh/forwarder/api/forwarder"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
@@ -203,25 +206,21 @@ func (fixture *standaloneForwarderFixture) createCrossConnectRequest(id, srcMech
 		Payload: "IP",
 	}
 
-	conn.Source = &crossconnect.CrossConnect_LocalSource{
-		LocalSource: fixture.createConnection(id+"-src", srcMech, iface+"_src", srcIp, dstIp, fixture.sourcePod),
-	}
+	conn.Source = fixture.createConnection(id+"-src", srcMech, iface+"_src", srcIp, dstIp, fixture.sourcePod)
 
-	conn.Destination = &crossconnect.CrossConnect_LocalDestination{
-		LocalDestination: fixture.createConnection(id+"-dst", dstMech, iface+"_dst", srcIp, dstIp, fixture.destPod),
-	}
+	conn.Destination = fixture.createConnection(id+"-dst", dstMech, iface+"_dst", srcIp, dstIp, fixture.destPod)
 
 	return conn
 }
 
 func (fixture *standaloneForwarderFixture) createConnection(id, mech, iface, srcIp, dstIp string, pod *v1.Pod) *connection.Connection {
 	mechanism := &connection.Mechanism{
-		Type: MechanismFromString(mech),
+		Type: mech,
 		Parameters: map[string]string{
-			connection.InterfaceNameKey:        iface,
-			connection.InterfaceDescriptionKey: "Some description",
-			connection.SocketFilename:          path.Join(iface, connection.MemifSocket),
-			connection.NetNsInodeKey:           fixture.getNetNS(pod),
+			memif.InterfaceNameKey:         iface,
+			kernel.InterfaceDescriptionKey: "Some description",
+			memif.SocketFilename:           path.Join(iface, memif.MemifSocket),
+			kernel.NetNsInodeKey:           fixture.getNetNS(pod),
 		},
 	}
 	err := mechanism.IsValid()
@@ -333,7 +332,7 @@ func maskIp(ip, mask string) string {
 }
 
 func getIface(conn *connection.Connection) string {
-	return conn.Mechanism.Parameters[connection.InterfaceNameKey]
+	return conn.Mechanism.Parameters[kernel.InterfaceNameKey]
 }
 
 func localPort(network string, port int) net.Addr {
@@ -386,14 +385,4 @@ func exposePorts(forwarder *v1.Pod, ports ...v1.ContainerPort) {
 
 func firstContainer(pod *v1.Pod) string {
 	return pod.Spec.Containers[0].Name
-}
-
-// MechanismFromString creates a Mechanism from string
-func MechanismFromString(mechanismName string) connection.MechanismType {
-	mechanismName = strings.ToUpper(mechanismName) + "_INTERFACE"
-	if mechanism, ok := connection.MechanismType_value[mechanismName]; ok {
-		return connection.MechanismType(mechanism)
-	}
-	logrus.Infof("%s is not a valid MechanismType. Using Kernel Interface.", mechanismName)
-	return connection.MechanismType_KERNEL_INTERFACE
 }
