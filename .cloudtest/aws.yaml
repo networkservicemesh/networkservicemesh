@@ -30,3 +30,4 @@ providers:
       prepare: |
         make k8s-config helm-init
         make spire-install
+        make spire-wait-registration
