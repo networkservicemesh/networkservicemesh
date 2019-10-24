@@ -30,7 +30,7 @@ const (
 )
 
 type managedClientConnection struct {
-	sync.Mutex
+	sync.RWMutex
 	deleteTime       time.Time
 	deleted          bool
 	clientConnection *model.ClientConnection
@@ -411,11 +411,12 @@ func (m *ClientConnectionManager) CleanupDeletedConnections() {
 	idSlice := []string{}
 	m.clientConnections.Range(func(k, v interface{}) bool {
 		if c, ok := v.(*managedClientConnection); ok {
-			c.Lock()
-			if c.deleted && time.Since(c.deleteTime) > deletedConnectionLifetime {
+			c.RLock()
+			deleted := c.deleted
+			c.RUnlock()
+			if deleted && time.Since(c.deleteTime) > deletedConnectionLifetime {
 				idSlice = append(idSlice, k.(string))
 			}
-			c.Unlock()
 		}
 		return true
 	})

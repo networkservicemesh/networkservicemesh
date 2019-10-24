@@ -16,8 +16,6 @@
 
 package utils
 
-import "sync"
-
 //Executor synchronously exectues functions
 type Executor interface {
 	//AsyncExec pushes function into the queue and not wait for function completed
@@ -26,19 +24,16 @@ type Executor interface {
 	SyncExec(func())
 }
 
-var once sync.Once
-var instance Executor
-
-//DefaultExecutor return default executer
-func DefaultExecutor() Executor {
-	once.Do(
-		func() {
-			e := &executor{executables: make(chan operation, 100)}
-			go e.run()
-			instance = e
-		},
-	)
-	return instance
+// NewExecutor creates new executor with specific queue length
+func NewExecutor(maxQueueLen int) Executor {
+	if maxQueueLen < 0 {
+		panic("maxQueueLen should be more ore equals 0")
+	}
+	ex := &executor{
+		executables: make(chan operation, maxQueueLen),
+	}
+	go ex.run()
+	return ex
 }
 
 type executor struct {

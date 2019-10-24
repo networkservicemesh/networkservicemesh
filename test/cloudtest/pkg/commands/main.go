@@ -109,6 +109,7 @@ type operationEvent struct {
 }
 
 type executionContext struct {
+	executor         utils.Executor
 	manager          execmanager.ExecutionManager
 	clusters         []*clustersGroup
 	operationChannel chan operationEvent
@@ -186,6 +187,7 @@ func performImport(testConfig *config.CloudTestConfig) error {
 // PerformTesting - PerformTesting
 func PerformTesting(config *config.CloudTestConfig, factory k8s.ValidationFactory, arguments *Arguments) (*reporting.JUnitFile, error) {
 	ctx := &executionContext{
+		executor:         utils.NewExecutor(100),
 		cloudTestConfig:  config,
 		operationChannel: make(chan operationEvent, 100),
 		tasks:            []*testTask{},
@@ -338,7 +340,7 @@ func (ctx *executionContext) assignTasks() {
 }
 
 func (ctx *executionContext) performClusterUpdate(event operationEvent) {
-	utils.DefaultExecutor().AsyncExec(func() {
+	ctx.executor.AsyncExec(func() {
 		logrus.Infof("Instance for cluster %s is updated %v", event.clusterInstance.group.config.Name, event.clusterInstance)
 		if event.clusterInstance.taskCancel != nil && event.clusterInstance.state == clusterCrashed {
 			// We have task running on cluster
@@ -346,9 +348,8 @@ func (ctx *executionContext) performClusterUpdate(event operationEvent) {
 		}
 		if event.clusterInstance.state == clusterReady {
 			if ctx.clusterReadyTime == ctx.startTime {
-				utils.DefaultExecutor().AsyncExec(func() {
-					ctx.clusterReadyTime = time.Now()
-				})
+				ctx.clusterReadyTime = time.Now()
+
 			}
 		}
 	})
@@ -358,7 +359,7 @@ func (ctx *executionContext) processTaskUpdate(event operationEvent) {
 	delete(ctx.running, event.task.taskID)
 	// Make cluster as ready
 	for _, inst := range event.task.clusterInstances {
-		utils.DefaultExecutor().SyncExec(func() {
+		ctx.executor.SyncExec(func() {
 			if inst.state == clusterBusy {
 				inst.state = clusterReady
 			}
@@ -366,7 +367,7 @@ func (ctx *executionContext) processTaskUpdate(event operationEvent) {
 		})
 	}
 	if event.task.test.Status == model.StatusSuccess || event.task.test.Status == model.StatusFailed {
-		utils.DefaultExecutor().SyncExec(func() {
+		ctx.executor.SyncExec(func() {
 			ctx.completed = append(ctx.completed, event.task)
 		})
 		elapsed := time.Since(ctx.startTime)
@@ -417,7 +418,7 @@ func (ctx *executionContext) selectClusterForTask(task *testTask) (int, []*clust
 		groupAvailable := false
 		for _, ci := range cluster.instances {
 			var state clusterState
-			utils.DefaultExecutor().SyncExec(func() {
+			ctx.executor.SyncExec(func() {
 				state = ci.state
 			})
 			// No task is assigned for cluster.
@@ -449,10 +450,13 @@ func (ctx *executionContext) selectClusterForTask(task *testTask) (int, []*clust
 
 func (ctx *executionContext) printStatistics() {
 	elapsed := time.Since(ctx.startTime)
-	elapsedRunning := time.Since(ctx.clusterReadyTime)
+	var elapsedRunning time.Duration
+	ctx.executor.SyncExec(func() {
+		elapsedRunning = time.Since(ctx.clusterReadyTime)
+	})
 	running := ""
 	for _, r := range ctx.running {
-		utils.DefaultExecutor().SyncExec(func() {
+		ctx.executor.SyncExec(func() {
 			running += fmt.Sprintf("\t\t%s on cluster %v elapsed: %v\n", r.test.Name, r.clusterTaskID, time.Since(r.test.Started))
 		})
 	}
@@ -465,7 +469,7 @@ func (ctx *executionContext) printStatistics() {
 	}
 	for _, cl := range ctx.clusters {
 		_, _ = clustersMsg.WriteString(fmt.Sprintf("\t\tCluster: %v Tasks left: %v\n", cl.config.Name, len(cl.tasks)))
-		utils.DefaultExecutor().SyncExec(func() {
+		ctx.executor.SyncExec(func() {
 			for _, inst := range cl.instances {
 				_, _ = clustersMsg.WriteString(fmt.Sprintf("\t\t\t%s %v uptime: %v\n", inst.id, fromClusterState(inst.state),
 					time.Since(inst.startTime)))
@@ -614,7 +618,7 @@ func (ctx *executionContext) startTask(task *testTask, instances []*clusterInsta
 			ids += "_"
 		}
 		ids += ci.id
-		utils.DefaultExecutor().SyncExec(func() {
+		ctx.executor.SyncExec(func() {
 			ci.state = clusterBusy
 		})
 	}
@@ -657,7 +661,7 @@ func (ctx *executionContext) executeTask(task *testTask, clusterConfigs []string
 	go func() {
 		testDelay := func() int {
 			first := true
-			utils.DefaultExecutor().SyncExec(func() {
+			ctx.executor.SyncExec(func() {
 				for _, tt := range ctx.completed {
 					if tt.clusterTaskID == task.clusterTaskID {
 						first = false
@@ -708,7 +712,7 @@ func (ctx *executionContext) executeTask(task *testTask, clusterConfigs []string
 		timeoutCtx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
 
-		utils.DefaultExecutor().AsyncExec(func() {
+		ctx.executor.AsyncExec(func() {
 			for _, inst := range instances {
 				inst.taskCancel = cancel
 			}
@@ -735,7 +739,7 @@ func (ctx *executionContext) executeTask(task *testTask, clusterConfigs []string
 					clusterNotAvailable = true
 					ctx.destroyCluster(inst, true, false)
 				}
-				utils.DefaultExecutor().SyncExec(func() {
+				ctx.executor.SyncExec(func() {
 					inst.taskCancel = nil
 				})
 			}
@@ -834,7 +838,7 @@ func (ctx *executionContext) startCluster(ci *clusterInstance) {
 	ci.executions = append(ci.executions, execution)
 	go func() {
 		timeout := ctx.getClusterTimeout(ci.group)
-		utils.DefaultExecutor().AsyncExec(func() {
+		ctx.executor.AsyncExec(func() {
 			ci.startCount++
 			execution.attempt = ci.startCount
 		})
@@ -855,7 +859,7 @@ func (ctx *executionContext) startCluster(ci *clusterInstance) {
 		execution.duration = time.Since(execution.time)
 		// Starting cloud monitoring thread
 		var state clusterState
-		utils.DefaultExecutor().SyncExec(func() {
+		ctx.executor.SyncExec(func() {
 			state = ci.state
 		})
 		if state != clusterCrashed {
@@ -892,7 +896,7 @@ func (ctx *executionContext) monitorCluster(context context.Context, ci *cluster
 
 		if checks == 0 {
 			// Initial check performed, we need to make cluster ready.
-			utils.DefaultExecutor().SyncExec(func() {
+			ctx.executor.SyncExec(func() {
 				ci.state = clusterReady
 				ci.startTime = time.Now()
 			})
@@ -919,7 +923,7 @@ func (ctx *executionContext) destroyCluster(ci *clusterInstance, sendUpdate, for
 		// It is already destroyed or not available.
 		return nil
 	}
-	utils.DefaultExecutor().AsyncExec(func() {
+	ctx.executor.AsyncExec(func() {
 		ci.state = clusterBusy
 		if ci.cancelMonitor != nil {
 			ci.cancelMonitor()
@@ -946,7 +950,7 @@ func (ctx *executionContext) destroyCluster(ci *clusterInstance, sendUpdate, for
 		logrus.Infof("Cluster stop warm-up timeout specified %v", ci.group.config.StopDelay)
 		<-time.After(time.Duration(ci.group.config.StopDelay) * time.Second)
 	}
-	utils.DefaultExecutor().AsyncExec(func() {
+	ctx.executor.AsyncExec(func() {
 		ci.state = clusterCrashed
 	})
 	if sendUpdate {
@@ -1236,7 +1240,7 @@ func (ctx *executionContext) checkClustersUsage() {
 				for _, inst := range ci.instances {
 					if !ctx.isClusterDown(inst) && inst.state != clusterBusy {
 						ctx.destroyCluster(inst, false, true)
-						utils.DefaultExecutor().SyncExec(func() {
+						ctx.executor.SyncExec(func() {
 							inst.state = clusterShutdown
 						})
 					}
