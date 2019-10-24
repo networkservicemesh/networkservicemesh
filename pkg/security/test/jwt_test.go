@@ -17,7 +17,10 @@
 package testsec
 
 import (
+	"fmt"
+	"github.com/sirupsen/logrus"
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
 
@@ -82,4 +85,46 @@ func TestChain(t *testing.T) {
 	Expect(claims.Audience).To(Equal(aud))
 
 	Expect(security.VerifySignature(signature3, sc3.GetCABundle(), SpiffeID3)).To(BeNil())
+}
+
+func TestJWTPerformance(t *testing.T) {
+	g := NewWithT(t)
+
+	msg := &testMsg{
+		testAud: aud,
+	}
+
+	ca, err := GenerateCA()
+	g.Expect(err).To(BeNil())
+
+	const n = 20
+	providers := make([]security.Provider, 0, n)
+
+	for i := 0; i < n; i++ {
+		sc, err := newTestSecurityContextWithCA(fmt.Sprintf("spiffe://test.com/%d", i), &ca)
+		g.Expect(err).To(BeNil())
+
+		providers = append(providers, sc)
+	}
+
+	previousToken := ""
+
+	for i, provider := range providers {
+		logrus.Infof("Provider %d, spiffeID = %s", i, provider.GetSpiffeID())
+
+		if previousToken != "" {
+			t := time.Now()
+			g.Expect(security.VerifySignature(previousToken, provider.GetCABundle(), fmt.Sprintf("spiffe://test.com/%d", i-1))).To(BeNil())
+			logrus.Infof("Perf: Validate on %d iteration: %v", i-1, time.Since(t))
+		}
+
+		t := time.Now()
+		signature, err := security.GenerateSignature(msg, testClaimsSetter, provider,
+			security.WithObo(&security.TokenAndClaims{Token: previousToken}))
+		g.Expect(err).To(BeNil())
+		logrus.Infof("Perf: Generate on %d iteration: %v, length = %d", i, time.Since(t), len(signature))
+
+		msg.token = signature
+		previousToken = signature
+	}
 }

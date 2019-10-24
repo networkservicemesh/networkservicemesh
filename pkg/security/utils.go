@@ -63,7 +63,7 @@ func ClientInterceptor(securityProvider Provider, cfg TokenConfig) grpc.UnaryCli
 
 		var obo *TokenAndClaims
 		if SecurityContext(ctx) != nil && SecurityContext(ctx).GetRequestOboToken() != nil {
-			logrus.Infof("ClientInterceptor discovered obo-token: %v", SecurityContext(ctx).GetRequestOboToken().Token)
+			logrus.Info("ClientInterceptor discovered obo-token")
 			obo = SecurityContext(ctx).GetRequestOboToken()
 		}
 
