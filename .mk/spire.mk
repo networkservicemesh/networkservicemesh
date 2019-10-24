@@ -47,4 +47,4 @@ spire-delete:
 
 .PHONY: spire-wait-registration
 spire-wait-registration:
-	grep -q 'spire-entries successfully registered' <(kubectl logs -n spire -f spire-server-0)
+	grep -q 'spire-entries successfully registered' <(timeout 120 kubectl logs -n spire -f spire-server-0)
