@@ -87,12 +87,15 @@ func TestFanoutCanReturnUnsuccessRespnse(t *testing.T) {
 }
 func TestFanoutTwoServersNotSuccessResponse(t *testing.T) {
 	rcode := 1
+	rcodeMutex := sync.Mutex{}
 	s1 := newServer(func(w dns.ResponseWriter, r *dns.Msg) {
 		if r.Question[0].Name == "example1." {
 			msg := testNxdomainMsg()
+			rcodeMutex.Lock()
 			msg.SetRcode(r, rcode)
 			rcode++
 			rcode %= dns.RcodeNotZone
+			rcodeMutex.Unlock()
 			w.WriteMsg(msg)
 			//let another server answer
 			<-time.After(time.Millisecond * 100)
@@ -117,9 +120,9 @@ func TestFanoutTwoServersNotSuccessResponse(t *testing.T) {
 	f.addClient(c1)
 	f.addClient(c2)
 	defer f.Close()
-	req := new(dns.Msg)
 	writer := &cachedDNSWriter{ResponseWriter: new(test.ResponseWriter)}
 	for i := 0; i < 10; i++ {
+		req := new(dns.Msg)
 		req.SetQuestion("example1.", dns.TypeA)
 		f.ServeDNS(context.TODO(), writer, req)
 	}
@@ -132,6 +135,7 @@ func TestFanoutTwoServersNotSuccessResponse(t *testing.T) {
 
 func TestFanoutTwoServers(t *testing.T) {
 	const expected = 1
+	var mutex sync.Mutex
 	answerCount1 := 0
 	answerCount2 := 0
 	s1 := newServer(func(w dns.ResponseWriter, r *dns.Msg) {
@@ -139,7 +143,9 @@ func TestFanoutTwoServers(t *testing.T) {
 			msg := dns.Msg{
 				Answer: []dns.RR{makeRecordA("example1 3600	IN	A 10.0.0.1")},
 			}
+			mutex.Lock()
 			answerCount1++
+			mutex.Unlock()
 			msg.SetReply(r)
 			w.WriteMsg(&msg)
 		}
@@ -149,7 +155,9 @@ func TestFanoutTwoServers(t *testing.T) {
 			msg := dns.Msg{
 				Answer: []dns.RR{makeRecordA("example2. 3600	IN	A 10.0.0.1")},
 			}
+			mutex.Lock()
 			answerCount2++
+			mutex.Unlock()
 			msg.SetReply(r)
 			w.WriteMsg(&msg)
 		}
@@ -171,7 +179,8 @@ func TestFanoutTwoServers(t *testing.T) {
 	req = new(dns.Msg)
 	req.SetQuestion("example2.", dns.TypeA)
 	f.ServeDNS(context.TODO(), &test.ResponseWriter{}, req)
-	<-time.After(time.Second)
+	mutex.Lock()
+	defer mutex.Unlock()
 	if answerCount2 != expected || answerCount1 != expected {
 		t.Errorf("Expected number of health checks to be %d, got s1: %d, s2: %d", expected, answerCount1, answerCount2)
 	}

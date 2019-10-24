@@ -208,7 +208,7 @@ func TestRequireEnvVars_DEPS(t *testing.T) {
 
 	testConfig.Executions = append(testConfig.Executions, &config.ExecutionConfig{
 		Name:        "simple",
-		Timeout:     1,
+		Timeout:     2,
 		PackageRoot: "./sample",
 	})
 
