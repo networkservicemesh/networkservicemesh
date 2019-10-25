@@ -278,3 +278,14 @@ func ConnectionNSMToUnified(c nsm.Connection) *unified.Connection {
 	}
 	return ConnectionLocalToUnified(c.(*local.Connection))
 }
+
+// MechanismNSMToUnified - convert nsm unified connection to unified.
+func MechanismNSMToUnified(c nsm.Mechanism) *unified.Mechanism {
+	if c == nil {
+		return nil
+	}
+	if c.IsRemote() {
+		return MechanismRemoteToUnified(c.(*remote.Mechanism))
+	}
+	return MechanismLocalToUnified(c.(*local.Mechanism))
+}

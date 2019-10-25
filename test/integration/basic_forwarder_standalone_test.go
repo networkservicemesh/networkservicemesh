@@ -252,7 +252,7 @@ func (fixture *standaloneForwarderFixture) getNetNS(pod *v1.Pod) string {
 }
 
 func (fixture *standaloneForwarderFixture) requestKernelConnection(id, iface, srcIp, dstIp string) *crossconnect.CrossConnect {
-	return fixture.requestCrossConnect(id, "kernel", "kernel", iface, srcIp, dstIp)
+	return fixture.requestCrossConnect(id, kernel.MECHANISM, kernel.MECHANISM, iface, srcIp, dstIp)
 }
 
 func (fixture *standaloneForwarderFixture) requestDefaultKernelConnection() *crossconnect.CrossConnect {
