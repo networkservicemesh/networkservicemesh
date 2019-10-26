@@ -7,6 +7,8 @@ import (
 
 	"github.com/pkg/errors"
 
+	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
+
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	local_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
@@ -111,7 +113,7 @@ func (p *healProcessor) Heal(ctx context.Context, clientConnection nsm.ClientCon
 func (p *healProcessor) CloseConnection(ctx context.Context, conn nsm.ClientConnection) error {
 	var err error
 	if conn.GetConnectionSource().IsRemote() {
-		_, err = p.manager.RemoteManager().Close(ctx, conn.GetConnectionSource().(*remote_connection.Connection))
+		_, err = p.manager.RemoteManager().Close(ctx, compat.ConnectionRemoteToUnified(conn.GetConnectionSource().(*remote_connection.Connection)))
 	} else {
 		_, err = p.manager.LocalManager(conn).Close(ctx, conn.GetConnectionSource().(*local_connection.Connection))
 	}
@@ -298,7 +300,7 @@ func (p *healProcessor) performRequest(ctx context.Context, request networkservi
 	span := spanhelper.FromContext(ctx, "performRequest")
 	defer span.Finish()
 	if request.IsRemote() {
-		resp, err := p.manager.RemoteManager().Request(span.Context(), request.(*remote_networkservice.NetworkServiceRequest))
+		resp, err := p.manager.RemoteManager().Request(span.Context(), compat.NetworkServiceRequestRemoteToUnified(request.(*remote_networkservice.NetworkServiceRequest)))
 		span.LogObject("response", resp)
 		return err
 	}

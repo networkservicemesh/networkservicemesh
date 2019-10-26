@@ -19,12 +19,15 @@ import (
 
 	"github.com/pkg/errors"
 
+	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
+
 	"github.com/golang/protobuf/ptypes/empty"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
+	ep "github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
 )
 
 // сrossConnectService - makes basic Mechanism selection for the incoming connection
@@ -47,16 +50,16 @@ func (cce *сrossConnectService) Request(ctx context.Context, request *networkse
 	dpAPIConnection := crossconnect.NewCrossConnect(
 		request.Connection.GetId(),
 		endpoint.GetNetworkService().GetPayload(),
-		request.Connection,
+		compat.ConnectionUnifiedToRemote(request.Connection),
 		endpointConnection,
 	)
 	clientConnection.Xcon = dpAPIConnection
 
-	return ProcessNext(ctx, request)
+	return ep.NextRequest(ctx, request)
 }
 
 func (cce *сrossConnectService) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
-	return ProcessClose(ctx, connection)
+	return ep.NextClose(ctx, connection)
 }
 
 // NewCrossConnectService -  creates a service to create a cross connect

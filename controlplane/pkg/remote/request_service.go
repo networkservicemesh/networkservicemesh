@@ -19,8 +19,10 @@ import (
 
 	"github.com/golang/protobuf/ptypes/empty"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 )
 
@@ -35,11 +37,11 @@ func (cce *requestValidator) Request(ctx context.Context, request *networkservic
 		common.Log(ctx).Error(err)
 		return nil, err
 	}
-	return ProcessNext(ctx, request)
+	return endpoint.NextRequest(ctx, request)
 }
 
 func (cce *requestValidator) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
-	return ProcessClose(ctx, connection)
+	return endpoint.NextClose(ctx, connection)
 }
 
 // NewRequestValidator -  creates a request validator service

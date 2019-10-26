@@ -20,14 +20,18 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
+	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
+	ep "github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
+
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/empty"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	unifiedconnection "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
 	pluginapi "github.com/networkservicemesh/networkservicemesh/controlplane/api/plugins"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
+	remote "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
 	unifiednsm "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
@@ -44,16 +48,16 @@ type endpointSelectorService struct {
 func (cce *endpointSelectorService) updateConnection(ctx context.Context, conn *connection.Connection) (*connection.Connection, error) {
 	if conn.GetContext() == nil {
 		c := &connectioncontext.ConnectionContext{}
-		conn.SetContext(c)
+		conn.Context = c
 	}
 
-	wrapper := pluginapi.NewConnectionWrapper(conn)
+	wrapper := pluginapi.NewConnectionWrapper(compat.ConnectionUnifiedToRemote(conn))
 	wrapper, err := cce.pluginRegistry.GetConnectionPluginManager().UpdateConnection(ctx, wrapper)
 	if err != nil {
 		return conn, err
 	}
 
-	return wrapper.GetConnection().(*connection.Connection), nil
+	return compat.ConnectionRemoteToUnified(wrapper.GetConnection().(*remote.Connection)), nil
 }
 
 func (cce *endpointSelectorService) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
@@ -78,7 +82,7 @@ func (cce *endpointSelectorService) Request(ctx context.Context, request *networ
 	var endpoint *model.Endpoint
 
 	// 7.1.1 Clone Connection to support iteration via EndPoints
-	newRequest := request.Clone().(*networkservice.NetworkServiceRequest)
+	newRequest := request.Clone()
 	nseConn := newRequest.Connection
 
 	targetEndpoint := request.Connection.GetNetworkServiceEndpointName()
@@ -99,7 +103,7 @@ func (cce *endpointSelectorService) Request(ctx context.Context, request *networ
 	ctx = common.WithEndpoint(ctx, endpoint.Endpoint)
 
 	newRequest.Connection = nseConn
-	conn, err := ProcessNext(ctx, newRequest)
+	conn, err := ep.NextRequest(ctx, newRequest)
 
 	// 7.1.8 in case of error we put NSE into ignored list to check another one.
 	if err != nil {
@@ -122,7 +126,7 @@ func (cce *endpointSelectorService) checkNSERequestIsRequired(ctx context.Contex
 
 			// Just close, since client connection already passed with context.
 			// Network service is closing, we need to close remote NSM and re-program local one.
-			if _, err := ProcessClose(ctx, request.GetConnection()); err != nil {
+			if _, err := ep.NextClose(ctx, request.GetConnection()); err != nil {
 				logger.Errorf("NSM:(4.1) Error during close of NSE during Request.Upgrade %v Existing connection: %v error %v", request, clientConnection, err)
 			}
 		} else if !proto.Equal(request.Connection.GetContext(), clientConnection.GetConnectionSource().GetContext()) {
@@ -175,14 +179,14 @@ func (cce *endpointSelectorService) findMechanism(mechanismPreferences []unified
 }
 
 func (cce *endpointSelectorService) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
-	return ProcessClose(ctx, connection)
+	return ep.NextClose(ctx, connection)
 }
 
 func (cce *endpointSelectorService) checkUpdateConnectionContext(ctx context.Context, request *networkservice.NetworkServiceRequest, clientConnection *model.ClientConnection) (*connection.Connection, error) {
 	// We do not need to do request to endpoint and just need to update all stuff.
 	// 7.2 We do not need to access NSE, since all parameters are same.
 	logger := common.Log(ctx)
-	clientConnection.GetConnectionSource().SetConnectionMechanism(request.Connection.GetConnectionMechanism())
+	clientConnection.GetConnectionSource().SetConnectionMechanism(compat.ConnectionUnifiedToRemote(request.GetConnection()).GetConnectionMechanism())
 	clientConnection.GetConnectionSource().SetConnectionState(unifiedconnection.StateUp)
 
 	// 7.3 Destination context probably has been changed, so we need to update source context.
@@ -190,7 +194,7 @@ func (cce *endpointSelectorService) checkUpdateConnectionContext(ctx context.Con
 		err = errors.Errorf("NSM:(7.3) Failed to update source connection context: %v", err)
 
 		// Just close since client connection is already passed with context
-		if _, closeErr := ProcessClose(ctx, request.GetConnection()); closeErr != nil {
+		if _, closeErr := ep.NextClose(ctx, request.GetConnection()); closeErr != nil {
 			logger.Errorf("Failed to perform close: %v", closeErr)
 		}
 		return nil, err

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	nsm_api "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
+	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
 
 	"github.com/golang/protobuf/ptypes/empty"
 
@@ -20,6 +21,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	local_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	local_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
+	unified "github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
@@ -330,10 +332,10 @@ func (stub *connectionManagerStub) LocalManager(cc nsm.ClientConnection) local_n
 	}
 }
 
-func (stub *connectionManagerStub) RemoteManager() remote_networkservice.NetworkServiceServer {
-	return &remoteManagerManagerStub{
+func (stub *connectionManagerStub) RemoteManager() unified.NetworkServiceServer {
+	return compat.NewUnifiedNetworkServiceServerAdapter(&remoteManagerManagerStub{
 		connectionManager: stub,
-	}
+	}, nil)
 }
 
 func (stub *connectionManagerStub) request(ctx context.Context, request networkservice.Request, existingConnection *model.ClientConnection) (connection.Connection, error) {

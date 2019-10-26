@@ -15,19 +15,21 @@
 package remote
 
 import (
+	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
+	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
 	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/remote"
 
-	remotenetworkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
 )
 
 // NewRemoteNetworkServiceServer -  creates a new remote.NetworkServiceServer
-func NewRemoteNetworkServiceServer(manager nsm.NetworkServiceManager, connectionMonitor remote.MonitorServer) remotenetworkservice.NetworkServiceServer {
-	return NewCompositeService(
+func NewRemoteNetworkServiceServer(manager nsm.NetworkServiceManager, connectionMonitor remote.MonitorServer) networkservice.NetworkServiceServer {
+	return endpoint.NewCompositeEndpoint(
 		NewRequestValidator(),
 		NewMonitorService(connectionMonitor),
 		NewConnectionService(manager.Model()),
-		NewForwarderService(manager.Model(), manager.ServiceRegistry()),
+		compat.NewUnifiedNetworkServiceServerAdapter(NewForwarderService(manager.Model(), manager.ServiceRegistry()), nil),
 		NewEndpointSelectorService(manager.NseManager(), manager.PluginRegistry(), manager.Model()),
 		NewEndpointService(manager.NseManager(), manager.GetHealProperties(), manager.Model(), manager.PluginRegistry()),
 		NewCrossConnectService(),

@@ -17,6 +17,9 @@ package remote
 import (
 	"github.com/pkg/errors"
 
+	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
+	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
+
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	"github.com/golang/protobuf/ptypes/empty"
@@ -25,8 +28,8 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 )
 
 type connectionService struct {
@@ -57,7 +60,7 @@ func (cce *connectionService) Request(ctx context.Context, request *networkservi
 			return nil, err
 		}
 
-		request.Connection.SetID(clientConnection.GetID())
+		request.Connection.Id = clientConnection.GetID()
 		logger.Infof("NSM:(%v) Called with existing connection passed: %v", id, clientConnection)
 
 		// Update model connection status
@@ -67,7 +70,7 @@ func (cce *connectionService) Request(ctx context.Context, request *networkservi
 		})
 	} else {
 		// Assign ID to connection
-		request.Connection.SetID(cce.model.ConnectionID())
+		request.Connection.Id = cce.model.ConnectionID()
 
 		clientConnection = &model.ClientConnection{
 			ConnectionID:    request.Connection.GetId(),
@@ -79,10 +82,10 @@ func (cce *connectionService) Request(ctx context.Context, request *networkservi
 	}
 
 	// 8. Remember original Request for Heal cases.
-	clientConnection.Request = request
+	clientConnection.Request = compat.NetworkServiceRequestUnifiedToRemote(request)
 	ctx = common.WithModelConnection(ctx, clientConnection)
 
-	conn, err := ProcessNext(ctx, request)
+	conn, err := endpoint.NextRequest(ctx, request)
 	if err != nil {
 		// In case of error we need to remove it from model
 		cce.model.DeleteClientConnection(ctx, clientConnection.GetID())
@@ -112,7 +115,7 @@ func (cce *connectionService) Close(ctx context.Context, connection *connection.
 	// Pass model connection with context
 	ctx = common.WithModelConnection(ctx, clientConnection)
 
-	_, err := ProcessClose(ctx, connection)
+	_, err := endpoint.NextClose(ctx, connection)
 
 	if err != nil {
 		logger.Error(err)

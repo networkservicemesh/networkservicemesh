@@ -68,3 +68,19 @@ func (n *nextEndpoint) Close(ctx context.Context, connection *connection.Connect
 	span.LogObject("response", rv)
 	return rv, err
 }
+
+// ProcessNext - performs a next operation on chain if defined.
+func NextRequest(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+	if Next(ctx) != nil {
+		return Next(ctx).Request(ctx, request)
+	}
+	return request.Connection, nil
+}
+
+// NextClose - perform a next close operation if defined.
+func NextClose(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
+	if Next(ctx) != nil {
+		return Next(ctx).Close(ctx, connection)
+	}
+	return &empty.Empty{}, nil
+}

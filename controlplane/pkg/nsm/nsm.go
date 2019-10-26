@@ -27,7 +27,6 @@ import (
 
 	unified_nsm "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
 
-	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/local"
 
 	"github.com/sirupsen/logrus"
@@ -36,6 +35,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	local_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	local_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
+	unified "github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
@@ -65,7 +65,7 @@ type networkServiceManager struct {
 	renamedEndpoints map[string]string
 	nseManager       nsm.NetworkServiceEndpointManager
 
-	remoteService remote_networkservice.NetworkServiceServer
+	remoteService unified.NetworkServiceServer
 	ctx           context.Context
 }
 
@@ -85,11 +85,11 @@ func (srv *networkServiceManager) LocalManager(clientConnection nsm.ClientConnec
 	)
 }
 
-func (srv *networkServiceManager) RemoteManager() remote_networkservice.NetworkServiceServer {
+func (srv *networkServiceManager) RemoteManager() unified.NetworkServiceServer {
 	return srv.remoteService
 }
 
-func (srv *networkServiceManager) SetRemoteServer(server remote_networkservice.NetworkServiceServer) {
+func (srv *networkServiceManager) SetRemoteServer(server unified.NetworkServiceServer) {
 	srv.remoteService = server
 }
 

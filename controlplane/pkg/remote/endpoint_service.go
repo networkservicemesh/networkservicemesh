@@ -20,21 +20,22 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
+	ep "github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/sirupsen/logrus"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	localconnection "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	localnetworkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	unifiedconnection "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
 	unifiednetworkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/networkservice"
 	pluginapi "github.com/networkservicemesh/networkservicemesh/controlplane/api/plugins"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
 	remoteconnection "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
 	remotenetworkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
 	unifiednsm "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
@@ -126,7 +127,7 @@ func (cce *endpointService) Request(ctx context.Context, request *networkservice
 
 	ctx = common.WithEndpointConnection(ctx, nseConn)
 
-	return ProcessNext(ctx, request)
+	return ep.NextRequest(ctx, request)
 }
 
 func (cce *endpointService) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
@@ -137,7 +138,7 @@ func (cce *endpointService) Close(ctx context.Context, connection *connection.Co
 		}
 	}
 
-	return ProcessClose(ctx, connection)
+	return ep.NextClose(ctx, connection)
 }
 
 func (cce *endpointService) createLocalNSERequest(endpoint *registry.NSERegistration, dp *model.Forwarder, requestConn *connection.Connection, clientConnection *model.ClientConnection) unifiednetworkservice.Request {
