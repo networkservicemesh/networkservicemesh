@@ -49,10 +49,10 @@ func main() {
 
 	agent := vppagent.CreateVPPAgent()
 
-	registration := common.CreateForwarder(agent, forwarderGoals)
+	registration := common.CreateForwarder(span.Context(), agent, forwarderGoals)
 
-	for range c {
-		logrus.Info("Closing Forwarder Registration")
-		registration.Close()
-	}
+	span.Finish()
+	<-c
+	logrus.Info("Closing Forwarder Registration")
+	registration.Close()
 }

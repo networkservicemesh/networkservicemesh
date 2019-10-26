@@ -92,7 +92,7 @@ func openTracingOpts() []grpc.ServerOption {
 	return []grpc.ServerOption{
 		grpc.UnaryInterceptor(
 			CloneArgsServerInterceptor(
-				otgrpc.OpenTracingServerInterceptor(opentracing.GlobalTracer(), otgrpc.LogPayloads()))),
+				otgrpc.OpenTracingServerInterceptor(opentracing.GlobalTracer()))),
 		grpc.StreamInterceptor(
 			otgrpc.OpenTracingStreamServerInterceptor(opentracing.GlobalTracer())),
 	}
@@ -207,7 +207,7 @@ func OpenTracingDialOptions() []grpc.DialOption {
 	return []grpc.DialOption{
 		grpc.WithUnaryInterceptor(
 			CloneArgsClientInterceptor(
-				otgrpc.OpenTracingClientInterceptor(opentracing.GlobalTracer(), otgrpc.LogPayloads()))),
+				otgrpc.OpenTracingClientInterceptor(opentracing.GlobalTracer()))),
 		grpc.WithStreamInterceptor(
 			otgrpc.OpenTracingStreamClientInterceptor(opentracing.GlobalTracer())),
 	}

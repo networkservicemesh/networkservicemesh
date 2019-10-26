@@ -18,6 +18,9 @@ package kernelforwarder
 import (
 	"context"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
 	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
 
 	"github.com/golang/protobuf/ptypes/empty"
@@ -25,12 +28,9 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
-	local "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
-	remote "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/forwarder/api/forwarder"
 	"github.com/networkservicemesh/networkservicemesh/forwarder/kernel-forwarder/pkg/monitoring"
 	"github.com/networkservicemesh/networkservicemesh/forwarder/pkg/common"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
 )
 
 // KernelForwarder instance
@@ -48,10 +48,6 @@ func CreateKernelForwarder() *KernelForwarder {
 func (k *KernelForwarder) Init(common *common.ForwarderConfig) error {
 	k.common = common
 	k.common.Name = "kernel-forwarder"
-
-	closer := jaeger.InitJaeger(k.common.Name)
-	defer func() { _ = closer.Close() }()
-
 	k.configureKernelForwarder()
 	return nil
 }
@@ -99,8 +95,7 @@ func (k *KernelForwarder) connectOrDisconnect(crossConnect *crossconnect.CrossCo
 	}
 
 	/* 1. Handle local connection */
-	if compat.ConnectionUnifiedToLocal(crossConnect.GetLocalSource()).GetMechanism().GetType() == local.MechanismType_KERNEL_INTERFACE &&
-		compat.ConnectionUnifiedToLocal(crossConnect.GetLocalDestination()).GetMechanism().GetType() == local.MechanismType_KERNEL_INTERFACE {
+	if crossConnect.GetSource().GetMechanism().GetType() == kernel.MECHANISM && crossConnect.GetDestination().GetMechanism().GetType() == kernel.MECHANISM {
 		devices, err = handleLocalConnection(crossConnect, connect)
 	} else {
 		/* 2. Handle remote connection */
@@ -124,16 +119,16 @@ func (k *KernelForwarder) connectOrDisconnect(crossConnect *crossconnect.CrossCo
 func (k *KernelForwarder) configureKernelForwarder() {
 	k.common.MechanismsUpdateChannel = make(chan *common.Mechanisms, 1)
 	k.common.Mechanisms = &common.Mechanisms{
-		LocalMechanisms: []*local.Mechanism{
+		LocalMechanisms: []*connection.Mechanism{
 			{
-				Type: local.MechanismType_KERNEL_INTERFACE,
+				Type: kernel.MECHANISM,
 			},
 		},
-		RemoteMechanisms: []*remote.Mechanism{
+		RemoteMechanisms: []*connection.Mechanism{
 			{
-				Type: remote.MechanismType_VXLAN,
+				Type: vxlan.MECHANISM,
 				Parameters: map[string]string{
-					remote.VXLANSrcIP: k.common.EgressInterface.SrcIPNet().IP.String(),
+					vxlan.SrcIP: k.common.EgressInterface.SrcIPNet().IP.String(),
 				},
 			},
 		},
@@ -148,9 +143,10 @@ func (k *KernelForwarder) configureKernelForwarder() {
 // MonitorMechanisms handler
 func (k *KernelForwarder) MonitorMechanisms(empty *empty.Empty, updateSrv forwarder.MechanismsMonitor_MonitorMechanismsServer) error {
 	initialUpdate := &forwarder.MechanismUpdate{
-		RemoteMechanisms: k.common.Mechanisms.RemoteMechanisms,
-		LocalMechanisms:  k.common.Mechanisms.LocalMechanisms,
+		RemoteMechanisms: compat.MechanismListUnifiedToRemote(k.common.Mechanisms.RemoteMechanisms),
+		LocalMechanisms:  compat.MechanismListUnifiedToLocal(k.common.Mechanisms.LocalMechanisms),
 	}
+
 	logrus.Infof("kernel-forwarder: sending MonitorMechanisms update: %v", initialUpdate)
 	if err := updateSrv.Send(initialUpdate); err != nil {
 		logrus.Errorf("kernel-forwarder: detected server error %s, gRPC code: %+v on gRPC channel", err.Error(), status.Convert(err).Code())
@@ -161,10 +157,12 @@ func (k *KernelForwarder) MonitorMechanisms(empty *empty.Empty, updateSrv forwar
 	for update := range k.common.MechanismsUpdateChannel {
 		k.common.Mechanisms = update
 		logrus.Infof("kernel-forwarder: sending MonitorMechanisms update: %v", update)
-		if err := updateSrv.Send(&forwarder.MechanismUpdate{
-			RemoteMechanisms: update.RemoteMechanisms,
-			LocalMechanisms:  update.LocalMechanisms,
-		}); err != nil {
+
+		updateMsg := &forwarder.MechanismUpdate{
+			RemoteMechanisms: compat.MechanismListUnifiedToRemote(update.RemoteMechanisms),
+			LocalMechanisms:  compat.MechanismListUnifiedToLocal(update.LocalMechanisms),
+		}
+		if err := updateSrv.Send(updateMsg); err != nil {
 			logrus.Errorf("kernel-forwarder: detected server error %s, gRPC code: %+v on gRPC channel", err.Error(), status.Convert(err).Code())
 			return nil
 		}

@@ -5,7 +5,7 @@ import (
 	"path"
 	"sync"
 
-	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/memif"
 
 	"github.com/sirupsen/logrus"
 
@@ -29,8 +29,8 @@ func NewDirectMemifConnector(baseDir string) *DirectMemifConnector {
 func (d *DirectMemifConnector) Connect(crossConnect *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error) {
 	logrus.Infof("Direct memif cross connect request: %v", crossConnect)
 
-	src := compat.ConnectionUnifiedToLocal(crossConnect.GetLocalSource()).GetMechanism()
-	dst := compat.ConnectionUnifiedToLocal(crossConnect.GetLocalDestination()).GetMechanism()
+	src := memif.ToMechanism(crossConnect.GetSource().GetMechanism())
+	dst := memif.ToMechanism(crossConnect.GetDestination().GetMechanism())
 
 	fullyQualifiedDstSocketFilename := path.Join(d.baseDir, dst.GetWorkspace(), dst.GetSocketFilename())
 	fullyQualifiedSrcSocketFilename := path.Join(d.baseDir, src.GetWorkspace(), src.GetSocketFilename())

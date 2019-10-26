@@ -134,7 +134,8 @@ func (client *NsmMonitorCrossConnectClient) ForwarderAdded(_ context.Context, dp
 func (client *NsmMonitorCrossConnectClient) ForwarderDeleted(_ context.Context, dp *model.Forwarder) {
 	span := spanhelper.FromContext(context.Background(), "ForwarderDeleted")
 	defer span.Finish()
-	client.xconManager.ForwarderDown(span.Context(), dp)
+	span.LogObject("deleted", dp)
+	client.xconManager.ForwarderDown(context.Background(), dp)
 	if cancel, ok := client.forwarders.Load(dp.RegisteredName); ok {
 		cancel.(context.CancelFunc)()
 		client.forwarders.Delete(dp.RegisteredName)

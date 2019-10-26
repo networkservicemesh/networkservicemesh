@@ -3,6 +3,8 @@ package forwarder
 import (
 	"context"
 
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
+
 	"github.com/pkg/errors"
 
 	"github.com/gogo/protobuf/proto"
@@ -21,11 +23,15 @@ func (c *commit) Request(ctx context.Context, crossConnect *crossconnect.CrossCo
 	if err != nil {
 		return nil, err
 	}
-	_, err = client.Update(ctx, &configurator.UpdateRequest{Update: dataChange})
+	updateSpan := spanhelper.FromContext(ctx, "VppAgent.UpdateRequest")
+	updateSpan.LogObject("dataChange", dataChange)
+	_, err = client.Update(updateSpan.Context(), &configurator.UpdateRequest{Update: dataChange})
+	updateSpan.LogError(err)
 	if err != nil {
 		return nil, err
 	}
-	printVppAgentConfiguration(ctx, client)
+	printVppAgentConfiguration(updateSpan.Context(), client)
+	updateSpan.Finish()
 	next := Next(ctx)
 	if next == nil {
 		return crossConnect, nil

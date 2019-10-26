@@ -513,6 +513,9 @@ func (k8s *K8s) deletePods(pods ...*v1.Pod) error {
 			logrus.Infof("Deleting %v", pod.Name)
 			deleteErr = k8s.clientset.CoreV1().Pods(pod.Namespace).Delete(pod.Name, delOpt)
 			if deleteErr != nil {
+				if strings.Contains(deleteErr.Error(), "not found") {
+					deleteErr = nil
+				}
 				logrus.Warnf(`The POD "%s" may continue to run on the cluster, %v`, pod.Name, deleteErr)
 				return
 			}
@@ -994,7 +997,7 @@ func (k8s *K8s) waitLogsMatch(ctx context.Context, pod *v1.Pod, container string
 			k8s.DescribePod(pod)
 
 			logrus.Errorf("%v Last logs: %v", description, builder.String())
-			k8s.g.Expect(false).To(BeTrue())
+			k8s.g.Expect(false).To(BeTrue(), string(debug.Stack()))
 			return
 		}
 	}

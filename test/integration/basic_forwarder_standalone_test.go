@@ -12,6 +12,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/memif"
 
@@ -217,10 +219,10 @@ func (fixture *standaloneForwarderFixture) createConnection(id, mech, iface, src
 	mechanism := &connection.Mechanism{
 		Type: mech,
 		Parameters: map[string]string{
-			memif.InterfaceNameKey:         iface,
-			kernel.InterfaceDescriptionKey: "Some description",
+			common.InterfaceNameKey:        iface,
+			common.InterfaceDescriptionKey: "Some description",
 			memif.SocketFilename:           path.Join(iface, memif.MemifSocket),
-			kernel.NetNsInodeKey:           fixture.getNetNS(pod),
+			common.NetNsInodeKey:           fixture.getNetNS(pod),
 		},
 	}
 	err := mechanism.IsValid()
@@ -260,10 +262,10 @@ func (fixture *standaloneForwarderFixture) requestDefaultKernelConnection() *cro
 }
 
 func (fixture *standaloneForwarderFixture) verifyKernelConnection(xcon *crossconnect.CrossConnect) {
-	srcIface := getIface(xcon.GetLocalSource())
-	dstIface := getIface(xcon.GetLocalDestination())
-	srcIp := unmaskIp(xcon.GetLocalSource().Context.IpContext.SrcIpAddr)
-	dstIp := unmaskIp(xcon.GetLocalDestination().Context.IpContext.DstIpAddr)
+	srcIface := getIface(xcon.GetSource())
+	dstIface := getIface(xcon.GetDestination())
+	srcIp := unmaskIp(xcon.GetSource().GetContext().GetIpContext().GetSrcIpAddr())
+	dstIp := unmaskIp(xcon.GetDestination().GetContext().GetIpContext().GetDstIpAddr())
 
 	out, _, err := fixture.k8s.Exec(fixture.sourcePod, fixture.sourcePod.Spec.Containers[0].Name, "ifconfig", srcIface)
 	wt.Expect(err).To(BeNil())
@@ -301,8 +303,8 @@ func (fixture *standaloneForwarderFixture) printLogs(pod *v1.Pod) {
 }
 
 func (fixture *standaloneForwarderFixture) verifyKernelConnectionClosed(xcon *crossconnect.CrossConnect) {
-	srcIface := getIface(xcon.GetLocalSource())
-	dstIface := getIface(xcon.GetLocalDestination())
+	srcIface := getIface(xcon.GetSource())
+	dstIface := getIface(xcon.GetDestination())
 
 	out, _, err := fixture.k8s.Exec(fixture.sourcePod, fixture.sourcePod.Spec.Containers[0].Name, "ip", "a")
 	wt.Expect(err).To(BeNil())
@@ -332,7 +334,7 @@ func maskIp(ip, mask string) string {
 }
 
 func getIface(conn *connection.Connection) string {
-	return conn.Mechanism.Parameters[kernel.InterfaceNameKey]
+	return conn.Mechanism.Parameters[common.InterfaceNameKey]
 }
 
 func localPort(network string, port int) net.Addr {

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	unified "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+
 	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
@@ -19,7 +21,6 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
@@ -243,7 +244,7 @@ func (p *healProcessor) healForwarderDown(ctx context.Context, cc *model.ClientC
 
 	// 3.3. Set source connection down
 	p.model.ApplyClientConnectionChanges(span.Context(), cc.GetID(), func(modelCC *model.ClientConnection) {
-		modelCC.GetConnectionSource().SetConnectionState(connection.StateDown)
+		modelCC.Xcon.Source.State = unified.State_DOWN
 	})
 
 	if cc.Xcon.GetRemoteSource() != nil {

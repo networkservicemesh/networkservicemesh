@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"time"
 
@@ -109,14 +108,13 @@ func (m *ClientConnectionManager) DestinationDown(ctx context.Context, cc nsm.Cl
 
 // ForwarderDown handles case of local dp down
 func (m *ClientConnectionManager) ForwarderDown(ctx context.Context, forwarder *model.Forwarder) {
-	span := spanhelper.GetSpanHelper(ctx)
 	ccs := m.model.GetAllClientConnections()
 	for _, cc := range ccs {
-		span.LogObject(fmt.Sprintf("ForwarderDeleted-%v", cc.GetID()), cc)
 		if cc.ForwarderRegisteredName == forwarder.RegisteredName {
 			span := common.SpanHelperFromConnection(ctx, cc, "ForwarderDown")
-			defer span.Finish()
+			span.LogObject("connection", cc)
 			span.LogObject("forwarder", forwarder)
+			defer span.Finish()
 
 			m.manager.Heal(span.Context(), cc, nsm.HealStateForwarderDown)
 		}

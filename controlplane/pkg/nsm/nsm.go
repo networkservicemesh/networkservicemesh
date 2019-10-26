@@ -19,8 +19,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
+
 	unified_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
 	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
 
 	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
@@ -222,7 +223,7 @@ func (srv *networkServiceManager) restoreXconnection(ctx context.Context, xcon *
 				compat.ConnectionUnifiedToLocal(src),
 				[]connection.Mechanism{compat.MechanismUnifiedToLocal(src.Mechanism)},
 			)
-			workspaceName = src.GetMechanism().GetParameters()[kernel.Workspace]
+			workspaceName = src.GetMechanism().GetParameters()[common.Workspace]
 		}
 
 		monitor := manager.LocalConnectionMonitor(workspaceName)

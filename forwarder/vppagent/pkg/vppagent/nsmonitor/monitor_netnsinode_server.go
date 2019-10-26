@@ -5,13 +5,14 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/memif"
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	monitor_crossconnect "github.com/networkservicemesh/networkservicemesh/sdk/monitor/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/utils/fs"
 )
@@ -86,12 +87,12 @@ func (m *MonitorNetNsInodeServer) checkCrossConnectLiveness() error {
 	inodesSet := NewInodeSet(liveInodes)
 
 	for _, xcon := range m.crossConnects {
-		if conn := compat.ConnectionUnifiedToLocal(xcon.GetLocalSource()); conn != nil {
+		if conn := xcon.GetLocalSource(); conn != nil {
 			if err := m.checkConnectionLiveness(xcon, conn, inodesSet); err != nil {
 				return err
 			}
 		}
-		if conn := compat.ConnectionUnifiedToLocal(xcon.GetLocalDestination()); conn != nil {
+		if conn := xcon.GetLocalDestination(); conn != nil {
 			if err := m.checkConnectionLiveness(xcon, conn, inodesSet); err != nil {
 				return err
 			}
@@ -101,11 +102,25 @@ func (m *MonitorNetNsInodeServer) checkCrossConnectLiveness() error {
 	return nil
 }
 
+// Accept cross connection and one of connections from it,
 func (m *MonitorNetNsInodeServer) checkConnectionLiveness(xcon *crossconnect.CrossConnect, conn *connection.Connection,
 	inodeSet *InodeSet) error {
-	inode, err := strconv.ParseUint(conn.GetMechanism().GetNetNsInode(), 10, 64)
-	if err != nil {
-		return err
+	var inode uint64
+	var err error
+
+	switch conn.GetMechanism().GetType() {
+	case kernel.MECHANISM:
+		inode, err = strconv.ParseUint(kernel.ToMechanism(conn.GetMechanism()).GetNetNsInode(), 10, 64)
+		if err != nil {
+			return err
+		}
+	case memif.MECHANISM:
+		inode, err = strconv.ParseUint(memif.ToMechanism(conn.GetMechanism()).GetNetNsInode(), 10, 64)
+		if err != nil {
+			return err
+		}
+	default:
+		return errors.New("Wrong mechanism type passed")
 	}
 
 	if !inodeSet.Contains(inode) && conn.State == connection.State_UP {

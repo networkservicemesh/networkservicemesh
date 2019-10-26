@@ -18,11 +18,13 @@ package memif
 
 import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
 )
 
 type Mechanism interface {
 	GetSocketFilename() string
 	GetWorkspace() string
+	GetNetNsInode() string
 }
 
 type mechanism struct {
@@ -42,7 +44,7 @@ func (m *mechanism) GetWorkspace() string {
 	if m == nil || m.GetParameters() == nil {
 		return ""
 	}
-	return m.GetParameters()[Workspace]
+	return m.GetParameters()[common.Workspace]
 }
 
 // GetSocketFilename returns memif mechanism socket filename
@@ -51,4 +53,10 @@ func (m *mechanism) GetSocketFilename() string {
 		return ""
 	}
 	return m.GetParameters()[SocketFilename]
+}
+func (m *mechanism) GetNetNsInode() string {
+	if m == nil || m.GetParameters() == nil {
+		return ""
+	}
+	return m.GetParameters()[common.NetNsInodeKey]
 }
