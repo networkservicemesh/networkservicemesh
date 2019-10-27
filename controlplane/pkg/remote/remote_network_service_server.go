@@ -24,13 +24,13 @@ import (
 
 // NewRemoteNetworkServiceServer -  creates a new remote.NetworkServiceServer
 func NewRemoteNetworkServiceServer(manager nsm.NetworkServiceManager, connectionMonitor remote.MonitorServer) remotenetworkservice.NetworkServiceServer {
-	return compat.NewUnifiedNetworkServiceServerAdapter(NewCompositeService(
-		NewRequestValidator(),
-		NewMonitorService(connectionMonitor),
-		NewConnectionService(manager.Model()),
-		NewForwarderService(manager.Model(), manager.ServiceRegistry()),
-		NewEndpointSelectorService(manager.NseManager(), manager.PluginRegistry(), manager.Model()),
-		NewEndpointService(manager.NseManager(), manager.GetHealProperties(), manager.Model(), manager.PluginRegistry()),
-		NewCrossConnectService(),
-	), nil)
+	return NewCompositeService(
+		compat.NewUnifiedNetworkServiceServerAdapter(NewRequestValidator(), nil),
+		compat.NewUnifiedNetworkServiceServerAdapter(NewMonitorService(connectionMonitor), nil),
+		compat.NewUnifiedNetworkServiceServerAdapter(NewConnectionService(manager.Model()), nil),
+		compat.NewUnifiedNetworkServiceServerAdapter(NewForwarderService(manager.Model(), manager.ServiceRegistry()), nil),
+		compat.NewUnifiedNetworkServiceServerAdapter(NewEndpointSelectorService(manager.NseManager(), manager.PluginRegistry(), manager.Model()), nil),
+		compat.NewUnifiedNetworkServiceServerAdapter(NewEndpointService(manager.NseManager(), manager.GetHealProperties(), manager.Model(), manager.PluginRegistry()), nil),
+		compat.NewUnifiedNetworkServiceServerAdapter(NewCrossConnectService(), nil),
+	)
 }

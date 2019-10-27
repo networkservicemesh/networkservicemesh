@@ -1,12 +1,16 @@
 package tests
 
 import (
+	"fmt"
+	"os"
 	"testing"
 	"time"
 
 	unified "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	. "github.com/onsi/gomega"
 	"golang.org/x/net/context"
@@ -19,6 +23,17 @@ import (
 
 func TestHealRemoteNSE(t *testing.T) {
 	g := NewWithT(t)
+	os.Setenv("INSECURE", "true")
+	start := time.Now()
+	os.Setenv("TRACER_ENABLED", "true")
+	os.Setenv("JAEGER_AGENT_HOST", "localhost")
+	os.Setenv("JAEGER_AGENT_PORT", "6831")
+	closer := jaeger.InitJaeger("TestHealRemoteNSE-part2")
+	defer func() { _ = closer.Close() }()
+	// Global NSMgr server span holder
+	span := spanhelper.FromContext(context.Background(), "nsmd.server")
+	span.LogValue("tracing.init-complete", fmt.Sprintf("%v", time.Since(start)))
+	defer span.Finish() // Mark it as finished, since it will be used as root.
 
 	storage := NewSharedStorage()
 	srv := NewNSMDFullServer(Master, storage)
@@ -34,8 +49,8 @@ func TestHealRemoteNSE(t *testing.T) {
 	nseReg2 := srv2.registerFakeEndpointWithName("golden_network", "test", Worker, "ep2")
 
 	// Add to local endpoints for Server2
-	srv2.TestModel.AddEndpoint(context.Background(), nseReg)
-	srv2.TestModel.AddEndpoint(context.Background(), nseReg2)
+	srv2.TestModel.AddEndpoint(span.Context(), nseReg)
+	srv2.TestModel.AddEndpoint(span.Context(), nseReg2)
 
 	l1 := newTestConnectionModelListener()
 	l2 := newTestConnectionModelListener()
@@ -71,7 +86,7 @@ func TestHealRemoteNSE(t *testing.T) {
 
 	timeout := time.Second * 10
 
-	nsmResponse, err := nsmClient.Request(context.Background(), request)
+	nsmResponse, err := nsmClient.Request(span.Context(), request)
 	g.Expect(err).To(BeNil())
 	g.Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
 
@@ -93,12 +108,12 @@ func TestHealRemoteNSE(t *testing.T) {
 		t.Fatal("Err must be nil")
 	}
 
-	srv2.TestModel.DeleteEndpoint(context.Background(), epName)
+	srv2.TestModel.DeleteEndpoint(span.Context(), epName)
 
 	// Simlate delete
 	clientConnection2.Xcon.GetLocalDestination().State = unified.State_DOWN
 	srv.manager.GetHealProperties().HealDSTNSEWaitTimeout = time.Second * 1
-	srv2.manager.Heal(context.Background(), clientConnection2, nsm.HealStateDstDown)
+	srv2.manager.Heal(span.Context(), clientConnection2, nsm.HealStateDstDown)
 
 	// First update, is delete
 	// Second update is update

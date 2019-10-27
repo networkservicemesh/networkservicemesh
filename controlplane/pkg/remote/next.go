@@ -19,6 +19,7 @@ import (
 	"fmt"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
+	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
 
 	"github.com/golang/protobuf/ptypes/empty"
 
@@ -87,14 +88,14 @@ func (n *nextEndpoint) Request(ctx context.Context, request *networkservice.Netw
 	span.LogObject("request", request)
 
 	// Actually call the next
-	rv, err := n.composite.services[n.index].Request(ctx, request)
+	rv, err := n.composite.services[n.index].Request(ctx, compat.NetworkServiceRequestRemoteToUnified(request))
 
 	if err != nil {
 		span.LogError(err)
 		return nil, err
 	}
 	span.LogObject("response", rv)
-	return rv, err
+	return compat.ConnectionUnifiedToRemote(rv), err
 }
 
 func (n *nextEndpoint) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
@@ -113,7 +114,7 @@ func (n *nextEndpoint) Close(ctx context.Context, connection *connection.Connect
 	ctx = common.WithLog(ctx, logger)
 	span.LogObject("request", connection)
 
-	rv, err := n.composite.services[n.index].Close(ctx, connection)
+	rv, err := n.composite.services[n.index].Close(ctx, compat.ConnectionRemoteToUnified(connection))
 
 	span.LogError(err)
 	span.LogObject("response", rv)
