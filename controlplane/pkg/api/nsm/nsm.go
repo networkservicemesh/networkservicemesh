@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
 	unified_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
 	unified_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/networkservice"
@@ -31,7 +32,6 @@ import (
 
 	local_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
-	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
 )
 
 // ClientConnection is an interface for client connection
@@ -69,7 +69,7 @@ const (
 // NetworkServiceRequestManager - allow to provide local and remote service interfaces.
 type NetworkServiceRequestManager interface {
 	LocalManager(clientConnection ClientConnection) local_networkservice.NetworkServiceServer
-	RemoteManager() remote_networkservice.NetworkServiceServer
+	RemoteManager() networkservice.NetworkServiceServer
 }
 
 // NetworkServiceHealProcessor - perform Healing operations
@@ -92,7 +92,7 @@ type NetworkServiceManager interface {
 	NotifyRenamedEndpoint(nseOldName, nseNewName string)
 	// Getters
 	NseManager() NetworkServiceEndpointManager
-	SetRemoteServer(server remote_networkservice.NetworkServiceServer)
+	SetRemoteServer(server networkservice.NetworkServiceServer)
 
 	Model() model.Model
 
