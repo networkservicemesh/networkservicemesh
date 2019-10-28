@@ -218,7 +218,7 @@ func (cce *endpointSelectorService) checkNeedNSERequest(logger logrus.FieldLogge
 	if dst := existingCC.GetConnectionDestination(); dst.IsRemote() {
 		dstM := dst.GetConnectionMechanism()
 
-		// 4.2.2 Let's check if remote destination is matchs our forwarder destination.
+		// 4.2.2 Let's check if remote destination is matches our forwarder destination.
 		if dpM := cce.findMechanism(dp.RemoteMechanisms, dstM.GetMechanismType()); dpM != nil {
 			// 4.2.3 We need to check if source mechanism type and source parameters are different
 			for k, v := range dpM.GetParameters() {
@@ -241,8 +241,9 @@ func (cce *endpointSelectorService) checkNeedNSERequest(logger logrus.FieldLogge
 	return false
 }
 
-func (cce *endpointSelectorService) findMechanism(mechanismPreferences []unifiedconnection.Mechanism, mechanismType unifiedconnection.MechanismType) unifiedconnection.Mechanism {
-	for _, m := range mechanismPreferences {
+func (cce *endpointSelectorService) findMechanism(mechanismPreferences []*unified.Mechanism, mechanismType unifiedconnection.MechanismType) unifiedconnection.Mechanism {
+	for _, me := range mechanismPreferences {
+		m := compat.MechanismUnifiedToRemote(me)
 		if m.GetMechanismType() == mechanismType {
 			return m
 		}

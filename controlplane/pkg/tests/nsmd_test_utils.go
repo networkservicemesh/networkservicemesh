@@ -11,6 +11,9 @@ import (
 	"sync"
 	"time"
 
+	unified "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
+
 	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
@@ -26,7 +29,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	local_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	local_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsmdapi"
 	pluginsapi "github.com/networkservicemesh/networkservicemesh/controlplane/api/plugins"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
@@ -462,9 +464,9 @@ func (impl *nsmdFullServerImpl) AddFakeForwarder(dp_name string, dp_addr string)
 	impl.TestModel.AddForwarder(context.Background(), &model.Forwarder{
 		RegisteredName: dp_name,
 		SocketLocation: dp_addr,
-		LocalMechanisms: []connection.Mechanism{
-			&local_connection.Mechanism{
-				Type: local_connection.MechanismType_KERNEL_INTERFACE,
+		LocalMechanisms: []*unified.Mechanism{
+			&unified.Mechanism{
+				Type: kernel.MECHANISM,
 			},
 		},
 		MechanismsConfigured: true,

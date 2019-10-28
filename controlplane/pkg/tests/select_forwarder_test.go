@@ -4,17 +4,21 @@ import (
 	"context"
 	"testing"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/memif"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
+	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
+
 	. "github.com/onsi/gomega"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
-	local "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
-	remote "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 )
 
-func createTestForwarder(name string, localMechanisms, remoteMechanisms []connection.Mechanism) *model.Forwarder {
+func createTestForwarder(name string, localMechanisms, remoteMechanisms []*connection.Mechanism) *model.Forwarder {
 	return &model.Forwarder{
 		RegisteredName:       name,
 		SocketLocation:       "tcp:some_addr",
@@ -28,25 +32,25 @@ func TestSelectForwarder(t *testing.T) {
 	g := NewWithT(t)
 
 	testForwarder1_1 := createTestForwarder("test_data_plane_2",
-		[]connection.Mechanism{
-			&local.Mechanism{
-				Type: local.MechanismType_VHOST_INTERFACE,
+		[]*connection.Mechanism{
+			{
+				Type: "VHOST_INTERFACE",
 			},
-			&local.Mechanism{
-				Type: local.MechanismType_MEM_INTERFACE,
+			{
+				Type: memif.MECHANISM,
 			},
 		},
-		[]connection.Mechanism{
-			&remote.Mechanism{
-				Type: remote.MechanismType_VXLAN,
+		[]*connection.Mechanism{
+			{
+				Type: vxlan.MECHANISM,
 				Parameters: map[string]string{
-					remote.VXLANSrcIP: "127.0.0.1",
+					vxlan.SrcIP: "127.0.0.1",
 				},
 			},
-			&remote.Mechanism{
-				Type: remote.MechanismType_GRE,
+			{
+				Type: "GRE",
 				Parameters: map[string]string{
-					remote.VXLANSrcIP: "127.0.0.1",
+					"dst-ip": "127.0.0.1",
 				},
 			},
 		})
@@ -75,81 +79,87 @@ func TestSelectForwarder(t *testing.T) {
 	nsmClient, conn := srv.requestNSMConnection("nsm-1")
 	defer conn.Close()
 
-	request := &networkservice.NetworkServiceRequest{
-		Connection: &local.Connection{
-			NetworkService: "golden_network",
-			Context: &connectioncontext.ConnectionContext{
-				IpContext: &connectioncontext.IPContext{
-					DstIpRequired: true,
-					SrcIpRequired: true,
+	t.Run("Check-kernel", func(t *testing.T) {
+		request := &networkservice.NetworkServiceRequest{
+			Connection: &connection.Connection{
+				NetworkService: "golden_network",
+				Context: &connectioncontext.ConnectionContext{
+					IpContext: &connectioncontext.IPContext{
+						DstIpRequired: true,
+						SrcIpRequired: true,
+					},
+				},
+				Labels: make(map[string]string),
+			},
+			MechanismPreferences: []*connection.Mechanism{
+				{
+					Type: kernel.MECHANISM,
+					Parameters: map[string]string{
+						common.NetNsInodeKey:    "10",
+						common.InterfaceNameKey: "icmp-responder1",
+					},
 				},
 			},
-			Labels: make(map[string]string),
-		},
-		MechanismPreferences: []*local.Mechanism{
-			{
-				Type: local.MechanismType_KERNEL_INTERFACE,
-				Parameters: map[string]string{
-					local.NetNsInodeKey:    "10",
-					local.InterfaceNameKey: "icmp-responder1",
-				},
-			},
-		},
-	}
+		}
+		nsmResponse, err := nsmClient.Request(context.Background(), compat.NetworkServiceRequestUnifiedToLocal(request))
+		g.Expect(err).To(BeNil())
+		g.Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
+	})
 
-	nsmResponse, err := nsmClient.Request(context.Background(), request)
-	g.Expect(err).To(BeNil())
-	g.Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
-
-	request = &networkservice.NetworkServiceRequest{
-		Connection: &local.Connection{
-			NetworkService: "golden_network",
-			Context: &connectioncontext.ConnectionContext{
-				IpContext: &connectioncontext.IPContext{
-					DstIpRequired: true,
-					SrcIpRequired: true,
+	t.Run("Check-memif", func(t *testing.T) {
+		request := &networkservice.NetworkServiceRequest{
+			Connection: &connection.Connection{
+				NetworkService: "golden_network",
+				Context: &connectioncontext.ConnectionContext{
+					IpContext: &connectioncontext.IPContext{
+						DstIpRequired: true,
+						SrcIpRequired: true,
+					},
+				},
+				Labels: make(map[string]string),
+			},
+			MechanismPreferences: []*connection.Mechanism{
+				{
+					Type: memif.MECHANISM,
+					Parameters: map[string]string{
+						common.NetNsInodeKey:    "10",
+						common.InterfaceNameKey: "icmp-responder1",
+					},
 				},
 			},
-			Labels: make(map[string]string),
-		},
-		MechanismPreferences: []*local.Mechanism{
-			{
-				Type: local.MechanismType_MEM_INTERFACE,
-				Parameters: map[string]string{
-					local.NetNsInodeKey:    "10",
-					local.InterfaceNameKey: "icmp-responder1",
+		}
+
+		nsmResponse, err := nsmClient.Request(context.Background(), compat.NetworkServiceRequestUnifiedToLocal(request))
+		g.Expect(err).To(BeNil())
+		g.Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
+	})
+
+	t.Run("Check-sriov", func(t *testing.T) {
+		request := &networkservice.NetworkServiceRequest{
+			Connection: &connection.Connection{
+				NetworkService: "golden_network",
+				Context: &connectioncontext.ConnectionContext{
+					IpContext: &connectioncontext.IPContext{
+						DstIpRequired: true,
+						SrcIpRequired: true,
+					},
+				},
+				Labels: make(map[string]string),
+			},
+			MechanismPreferences: []*connection.Mechanism{
+				{
+					Type: "SRIOV_INTERFACE",
+					Parameters: map[string]string{
+						common.NetNsInodeKey:    "10",
+						common.InterfaceNameKey: "icmp-responder1",
+					},
 				},
 			},
-		},
-	}
+		}
 
-	nsmResponse, err = nsmClient.Request(context.Background(), request)
-	g.Expect(err).To(BeNil())
-	g.Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
-
-	request = &networkservice.NetworkServiceRequest{
-		Connection: &local.Connection{
-			NetworkService: "golden_network",
-			Context: &connectioncontext.ConnectionContext{
-				IpContext: &connectioncontext.IPContext{
-					DstIpRequired: true,
-					SrcIpRequired: true,
-				},
-			},
-			Labels: make(map[string]string),
-		},
-		MechanismPreferences: []*local.Mechanism{
-			{
-				Type: local.MechanismType_SRIOV_INTERFACE,
-				Parameters: map[string]string{
-					local.NetNsInodeKey:    "10",
-					local.InterfaceNameKey: "icmp-responder1",
-				},
-			},
-		},
-	}
-
-	nsmResponse, err = nsmClient.Request(context.Background(), request)
-	g.Expect(err).NotTo(BeNil())
-	g.Expect(err.Error()).To(ContainSubstring("no appropriate forwarders found"))
+		nsmResponse, err := nsmClient.Request(context.Background(), compat.NetworkServiceRequestUnifiedToLocal(request))
+		g.Expect(err).NotTo(BeNil())
+		g.Expect(nsmResponse).To(BeNil())
+		g.Expect(err.Error()).To(ContainSubstring("no appropriate forwarders found"))
+	})
 }

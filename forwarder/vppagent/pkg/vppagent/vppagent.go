@@ -22,8 +22,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/memif"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
-	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
-
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	"github.com/gogo/protobuf/proto"
@@ -78,8 +76,8 @@ func (v *VPPAgent) MonitorMechanisms(empty *empty.Empty, updateSrv forwarder.Mec
 	defer span.Finish()
 	span.Logger().Infof("MonitorMechanisms was called")
 	initialUpdate := &forwarder.MechanismUpdate{
-		RemoteMechanisms: compat.MechanismListUnifiedToRemote(v.common.Mechanisms.RemoteMechanisms),
-		LocalMechanisms:  compat.MechanismListUnifiedToLocal(v.common.Mechanisms.LocalMechanisms),
+		RemoteMechanisms: v.common.Mechanisms.RemoteMechanisms,
+		LocalMechanisms:  v.common.Mechanisms.LocalMechanisms,
 	}
 	span.Logger().Infof("Sending MonitorMechanisms update: %v", initialUpdate)
 	if err := updateSrv.Send(initialUpdate); err != nil {
@@ -97,8 +95,8 @@ func (v *VPPAgent) MonitorMechanisms(empty *empty.Empty, updateSrv forwarder.Mec
 			updateSpan.Logger().Infof("Sending MonitorMechanisms update")
 			updateSpan.LogObject("update", update)
 			if err := updateSrv.Send(&forwarder.MechanismUpdate{
-				RemoteMechanisms: compat.MechanismListUnifiedToRemote(update.RemoteMechanisms),
-				LocalMechanisms:  compat.MechanismListUnifiedToLocal(update.LocalMechanisms),
+				RemoteMechanisms: update.RemoteMechanisms,
+				LocalMechanisms:  update.LocalMechanisms,
 			}); err != nil {
 				updateSpan.Finish()
 				updateSpan.Logger().Errorf("vpp forwarder server: Detected error %s, grpc code: %+v on grpc channel", err.Error(), status.Convert(err).Code())

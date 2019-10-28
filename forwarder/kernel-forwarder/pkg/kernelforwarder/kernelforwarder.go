@@ -18,14 +18,13 @@ package kernelforwarder
 import (
 	"context"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
-	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
-
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/status"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/forwarder/api/forwarder"
@@ -143,8 +142,8 @@ func (k *KernelForwarder) configureKernelForwarder() {
 // MonitorMechanisms handler
 func (k *KernelForwarder) MonitorMechanisms(empty *empty.Empty, updateSrv forwarder.MechanismsMonitor_MonitorMechanismsServer) error {
 	initialUpdate := &forwarder.MechanismUpdate{
-		RemoteMechanisms: compat.MechanismListUnifiedToRemote(k.common.Mechanisms.RemoteMechanisms),
-		LocalMechanisms:  compat.MechanismListUnifiedToLocal(k.common.Mechanisms.LocalMechanisms),
+		RemoteMechanisms: k.common.Mechanisms.RemoteMechanisms,
+		LocalMechanisms:  k.common.Mechanisms.LocalMechanisms,
 	}
 
 	logrus.Infof("kernel-forwarder: sending MonitorMechanisms update: %v", initialUpdate)
@@ -159,8 +158,8 @@ func (k *KernelForwarder) MonitorMechanisms(empty *empty.Empty, updateSrv forwar
 		logrus.Infof("kernel-forwarder: sending MonitorMechanisms update: %v", update)
 
 		updateMsg := &forwarder.MechanismUpdate{
-			RemoteMechanisms: compat.MechanismListUnifiedToRemote(update.RemoteMechanisms),
-			LocalMechanisms:  compat.MechanismListUnifiedToLocal(update.LocalMechanisms),
+			RemoteMechanisms: update.RemoteMechanisms,
+			LocalMechanisms:  update.LocalMechanisms,
 		}
 		if err := updateSrv.Send(updateMsg); err != nil {
 			logrus.Errorf("kernel-forwarder: detected server error %s, gRPC code: %+v on gRPC channel", err.Error(), status.Convert(err).Code())

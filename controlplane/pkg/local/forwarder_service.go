@@ -19,6 +19,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
+
 	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
@@ -27,10 +29,11 @@ import (
 
 	"github.com/golang/protobuf/ptypes/empty"
 
+	unified "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
-	unified "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
+	unifiedNsm "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
@@ -64,10 +67,11 @@ func (cce *forwarderService) selectForwarder(request *networkservice.NetworkServ
 	})
 	return dp, err
 }
-func (cce *forwarderService) findMechanism(mechanismPreferences []unified.Mechanism, mechanismType unified.MechanismType) unified.Mechanism {
+func (cce *forwarderService) findMechanism(mechanismPreferences []*unified.Mechanism, mechanismType unifiedNsm.MechanismType) unifiedNsm.Mechanism {
 	for _, m := range mechanismPreferences {
-		if m.GetMechanismType() == mechanismType {
-			return m
+		um := compat.MechanismUnifiedToLocal(m)
+		if um.GetMechanismType() == mechanismType {
+			return um
 		}
 	}
 	return nil
