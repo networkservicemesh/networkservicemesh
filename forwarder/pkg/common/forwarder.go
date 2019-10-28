@@ -103,15 +103,16 @@ func getEnvWithDefault(span spanhelper.SpanHelper, env, defaultValue string) str
 func getEnvWithDefaultBool(span spanhelper.SpanHelper, env string, defaultValue bool) bool {
 	result := defaultValue
 	resultVal, ok := os.LookupEnv(env)
+	var err error
 	if !ok {
 		span.LogObject(env, fmt.Sprintf("%v (default value)", defaultValue))
 		result = defaultValue
 	} else {
 		span.LogObject(env, result)
-		res, err := strconv.ParseBool(resultVal)
+		result, err = strconv.ParseBool(resultVal)
 		span.LogError(err)
 		if err != nil {
-			result = res
+			result = defaultValue
 		}
 	}
 	return result
