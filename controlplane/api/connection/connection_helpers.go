@@ -24,7 +24,33 @@ import (
 
 // IsRemote returns if connection is remote
 func (c *Connection) IsRemote() bool {
-	return true
+	if c == nil {
+		return false
+	}
+	// If we have two or more, it is remote
+	return len(c.NetworkServiceManagers) > 1
+}
+
+// GetSourceNetworkServiceManagerName - return source network service manager name
+func (c *Connection) GetSourceNetworkServiceManagerName() string {
+	if c == nil {
+		return ""
+	}
+	if len(c.NetworkServiceManagers) > 0 {
+		return c.NetworkServiceManagers[0]
+	}
+	return ""
+}
+
+// GetDestinationNetworkServiceManagerName - return destination network service manager name
+func (c *Connection) GetDestinationNetworkServiceManagerName() string {
+	if c == nil {
+		return ""
+	}
+	if len(c.NetworkServiceManagers) >= 2 {
+		return c.NetworkServiceManagers[1]
+	}
+	return ""
 }
 
 // Equals returns if connection equals given connection

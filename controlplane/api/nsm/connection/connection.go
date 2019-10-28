@@ -20,23 +20,11 @@ type Connection interface {
 	Clone() Connection
 
 	GetId() string
-	SetID(id string)
-
 	GetNetworkService() string
-	SetNetworkService(networkService string)
-
 	GetConnectionMechanism() Mechanism
-	SetConnectionMechanism(mechanism Mechanism)
-
 	GetContext() *connectioncontext.ConnectionContext
-	SetContext(context *connectioncontext.ConnectionContext)
-	UpdateContext(connectionContext *connectioncontext.ConnectionContext) error
-
 	GetLabels() map[string]string
-
 	GetConnectionState() State
-	SetConnectionState(state State)
-
 	GetNetworkServiceEndpointName() string
 
 	IsValid() error

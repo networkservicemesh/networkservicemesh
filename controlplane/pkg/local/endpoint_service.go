@@ -17,6 +17,8 @@ package local
 import (
 	"context"
 
+	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
+
 	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
@@ -63,11 +65,8 @@ func (cce *endpointService) closeEndpoint(ctx context.Context, cc *model.ClientC
 	client, nseClientError := cce.nseManager.CreateNSEClient(closeCtx, cc.Endpoint)
 
 	if client != nil {
-		if ld := cc.Xcon.GetLocalDestination(); ld != nil {
-			return client.Close(ctx, ld)
-		}
-		if rd := cc.Xcon.GetRemoteDestination(); rd != nil {
-			return client.Close(ctx, rd)
+		if ld := cc.Xcon.GetDestination(); ld != nil {
+			return client.Close(ctx, compat.ConnectionUnifiedToNSM(ld))
 		}
 		err := client.Cleanup()
 		span.LogError(err)

@@ -2,8 +2,7 @@ syntax = "proto3";
 
 package crossconnect;
 
-import "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection/connection.proto";
-import "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection/connection.proto";
+import "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/connection.proto";
 import "ptypes/empty/empty.proto";
 
 enum CrossConnectEventType {
@@ -22,14 +21,8 @@ message CrossConnect {
   string id = 1;
   string payload = 2;
 
-  oneof source {
-    local.connection.Connection local_source = 4;
-    remote.connection.Connection remote_source = 5;
-  }
-  oneof destination {
-    local.connection.Connection local_destination = 6;
-    remote.connection.Connection remote_destination = 7;
-  }
+  connection.Connection source = 4;
+  connection.Connection destination = 7;
 }
 
 service MonitorCrossConnect {

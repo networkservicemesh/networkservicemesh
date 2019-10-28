@@ -17,6 +17,8 @@ package remote
 import (
 	"context"
 
+	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
+
 	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
@@ -68,7 +70,7 @@ func (cce *endpointService) closeEndpoint(ctx context.Context, cc *model.ClientC
 
 	if client != nil {
 		if ld := cc.Xcon.GetLocalDestination(); ld != nil {
-			return client.Close(ctx, ld)
+			return client.Close(ctx, compat.ConnectionUnifiedToNSM(ld))
 		}
 		err := client.Cleanup()
 		span.LogError(err)

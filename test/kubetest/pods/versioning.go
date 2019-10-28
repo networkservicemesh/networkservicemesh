@@ -67,8 +67,9 @@ func containerMod(c *v1.Container) v1.Container {
 
 	// Update Jaeger
 	if os.Getenv("TRACER_ENABLED") == "true" {
-		logrus.Infof("TRACER_ENABLED %v", c.Name)
-		c.Env = append(c.Env, newJaegerEnvVar()...)
+		env := newJaegerEnvVar()
+		logrus.Infof("TRACER_ENABLED %v: env: %v", c.Name, env)
+		c.Env = append(c.Env, env...)
 	}
 
 	return *c
