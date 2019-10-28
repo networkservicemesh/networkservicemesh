@@ -28,6 +28,9 @@ func MechanismLocalToUnified(mechanism *local.Mechanism) *unified.Mechanism {
 }
 
 func MechanismListLocalToUnified(mechanism []*local.Mechanism) []*unified.Mechanism {
+	if mechanism == nil {
+		return nil
+	}
 	rv := make([]*unified.Mechanism, len(mechanism))
 	for i, value := range mechanism {
 		rv[i] = MechanismLocalToUnified(value)
@@ -51,6 +54,9 @@ func MechanismUnifiedToLocal(mechanism *unified.Mechanism) *local.Mechanism {
 }
 
 func MechanismListUnifiedToLocal(mechanism []*unified.Mechanism) []*local.Mechanism {
+	if mechanism == nil {
+		return nil
+	}
 	rv := make([]*local.Mechanism, len(mechanism))
 	for i, value := range mechanism {
 		rv[i] = MechanismUnifiedToLocal(value)
@@ -74,6 +80,9 @@ func MechanismRemoteToUnified(mechanism *remote.Mechanism) *unified.Mechanism {
 }
 
 func MechanismListRemoteToUnified(mechanism []*remote.Mechanism) []*unified.Mechanism {
+	if mechanism == nil {
+		return nil
+	}
 	rv := make([]*unified.Mechanism, len(mechanism))
 	for i, value := range mechanism {
 		rv[i] = MechanismRemoteToUnified(value)
@@ -96,6 +105,9 @@ func MechanismUnifiedToRemote(mechanism *unified.Mechanism) *remote.Mechanism {
 }
 
 func MechanismListUnifiedToRemote(mechanism []*unified.Mechanism) []*remote.Mechanism {
+	if mechanism == nil {
+		return nil
+	}
 	rv := make([]*remote.Mechanism, len(mechanism))
 	for i, value := range mechanism {
 		rv[i] = MechanismUnifiedToRemote(value)
@@ -150,6 +162,10 @@ func ConnectionRemoteToUnified(c *remote.Connection) *unified.Connection {
 		NetworkServiceEndpointName: c.GetNetworkServiceEndpointName(),
 		State:                      unified.State(c.GetState()),
 	}
+	if c.GetSourceNetworkServiceManagerName() == "" && c.GetDestinationNetworkServiceManagerName() == "" {
+		rv.NetworkServiceManagers = nil
+	}
+
 	return rv
 }
 
