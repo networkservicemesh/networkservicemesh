@@ -429,14 +429,15 @@ type nsmdFullServer interface {
 	Stop()
 }
 type nsmdFullServerImpl struct {
-	apiRegistry     *testApiRegistry
-	nseRegistry     *nsmdTestServiceDiscovery
-	pluginRegistry  *testPluginRegistry
-	serviceRegistry *nsmdTestServiceRegistry
-	TestModel       model.Model
-	manager         nsm2.NetworkServiceManager
-	nsmServer       nsmd.NSMServer
-	rootDir         string
+	apiRegistry               *testApiRegistry
+	nseRegistry               *nsmdTestServiceDiscovery
+	pluginRegistry            *testPluginRegistry
+	serviceRegistry           *nsmdTestServiceRegistry
+	TestModel                 model.Model
+	manager                   nsm2.NetworkServiceManager
+	nsmServer                 nsmd.NSMServer
+	rootDir                   string
+	monitorCrossConnectClient *nsmd.NsmMonitorCrossConnectClient
 }
 
 func (srv *nsmdFullServerImpl) Stop() {
@@ -587,8 +588,8 @@ func newNSMDFullServerAt(ctx context.Context, nsmgrName string, storage *sharedS
 		panic(err)
 	}
 
-	monitorCrossConnectClient := nsmd.NewMonitorCrossConnectClient(srv.TestModel, nsmServer, nsmServer.XconManager(), srv.nsmServer)
-	srv.TestModel.AddListener(monitorCrossConnectClient)
+	srv.monitorCrossConnectClient = nsmd.NewMonitorCrossConnectClient(srv.TestModel, nsmServer, nsmServer.XconManager(), srv.nsmServer)
+	srv.TestModel.AddListener(srv.monitorCrossConnectClient)
 	probes := probes.New("Test probes", nil)
 
 	nsmServer.StartAPIServerAt(ctx, sock, probes)

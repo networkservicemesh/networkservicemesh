@@ -22,6 +22,8 @@ import (
 	"path"
 	"strings"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
+
 	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
@@ -70,10 +72,10 @@ func NewMechanism(cls string, t string, name, description string) (*connection.M
 		Cls:  cls,
 		Type: t,
 		Parameters: map[string]string{
-			kernel.InterfaceNameKey:        name,
-			kernel.InterfaceDescriptionKey: description,
+			common.InterfaceNameKey:        name,
+			common.InterfaceDescriptionKey: description,
 			kernel.SocketFilename:          path.Join(name, memif.MemifSocket),
-			kernel.NetNsInodeKey:           inodeNum,
+			common.NetNsInodeKey:           inodeNum,
 		},
 	}
 	err = rv.IsValid()

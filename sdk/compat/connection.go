@@ -7,6 +7,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/memif"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
+	nsm "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
 	remote "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
 )
 
@@ -137,20 +138,17 @@ func ConnectionRemoteToUnified(c *remote.Connection) *unified.Connection {
 		return nil
 	}
 	rv := &unified.Connection{
-		Id:                         c.GetId(),
-		NetworkService:             c.GetNetworkService(),
-		Mechanism:                  MechanismRemoteToUnified(c.GetMechanism()),
-		Context:                    c.GetContext(),
-		Labels:                     c.GetLabels(),
-		NetworkServiceManagers:     make([]string, 2),
+		Id:             c.GetId(),
+		NetworkService: c.GetNetworkService(),
+		Mechanism:      MechanismRemoteToUnified(c.GetMechanism()),
+		Context:        c.GetContext(),
+		Labels:         c.GetLabels(),
+		NetworkServiceManagers: []string{
+			c.GetSourceNetworkServiceManagerName(),
+			c.GetDestinationNetworkServiceManagerName(),
+		},
 		NetworkServiceEndpointName: c.GetNetworkServiceEndpointName(),
 		State:                      unified.State(c.GetState()),
-	}
-	if c.GetSourceNetworkServiceManagerName() != "" {
-		rv.GetNetworkServiceManagers()[0] = c.GetSourceNetworkServiceManagerName()
-	}
-	if c.GetDestinationNetworkServiceManagerName() != "" {
-		rv.GetNetworkServiceManagers()[1] = c.GetDestinationNetworkServiceManagerName()
 	}
 	return rv
 }
@@ -160,19 +158,15 @@ func ConnectionUnifiedToRemote(c *unified.Connection) *remote.Connection {
 		return nil
 	}
 	rv := &remote.Connection{
-		Id:                         c.GetId(),
-		NetworkService:             c.GetNetworkService(),
-		Mechanism:                  MechanismUnifiedToRemote(c.GetMechanism()),
-		Context:                    c.GetContext(),
-		Labels:                     c.GetLabels(),
-		NetworkServiceEndpointName: c.GetNetworkServiceEndpointName(),
-		State:                      remote.State(c.GetState()),
-	}
-	if len(c.GetNetworkServiceManagers()) >= 1 {
-		rv.SourceNetworkServiceManagerName = c.GetNetworkServiceManagers()[0]
-		if len(c.GetNetworkServiceManagers()) >= 2 {
-			rv.DestinationNetworkServiceManagerName = c.GetNetworkServiceManagers()[1]
-		}
+		Id:                                   c.GetId(),
+		NetworkService:                       c.GetNetworkService(),
+		Mechanism:                            MechanismUnifiedToRemote(c.GetMechanism()),
+		Context:                              c.GetContext(),
+		Labels:                               c.GetLabels(),
+		NetworkServiceEndpointName:           c.GetNetworkServiceEndpointName(),
+		SourceNetworkServiceManagerName:      c.GetSourceNetworkServiceManagerName(),
+		DestinationNetworkServiceManagerName: c.GetDestinationNetworkServiceManagerName(),
+		State:                                remote.State(c.GetState()),
 	}
 	return rv
 }
@@ -261,4 +255,37 @@ func ConnectionEventUnifiedToRemote(c *unified.ConnectionEvent) *remote.Connecti
 		rv.GetConnections()[k] = ConnectionUnifiedToRemote(v)
 	}
 	return rv
+}
+
+// ConnectionUnifiedToNSM - convert unified connection to NSM
+func ConnectionUnifiedToNSM(c *unified.Connection) nsm.Connection {
+	if c == nil {
+		return nil
+	}
+	if c.IsRemote() {
+		return ConnectionUnifiedToRemote(c)
+	}
+	return ConnectionUnifiedToLocal(c)
+}
+
+// ConnectionNSMToUnified - convert nsm unified connection to unified.
+func ConnectionNSMToUnified(c nsm.Connection) *unified.Connection {
+	if c == nil {
+		return nil
+	}
+	if c.IsRemote() {
+		return ConnectionRemoteToUnified(c.(*remote.Connection))
+	}
+	return ConnectionLocalToUnified(c.(*local.Connection))
+}
+
+// MechanismNSMToUnified - convert nsm unified connection to unified.
+func MechanismNSMToUnified(c nsm.Mechanism) *unified.Mechanism {
+	if c == nil {
+		return nil
+	}
+	if c.IsRemote() {
+		return MechanismRemoteToUnified(c.(*remote.Mechanism))
+	}
+	return MechanismLocalToUnified(c.(*local.Mechanism))
 }

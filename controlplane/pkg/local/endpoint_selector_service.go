@@ -18,6 +18,9 @@ import (
 	"context"
 	"fmt"
 
+	unified "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
+
 	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
@@ -61,6 +64,7 @@ func (cce *endpointSelectorService) updateConnection(ctx context.Context, conn *
 
 func (cce *endpointSelectorService) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 	logger := common.Log(ctx)
+	span := spanhelper.GetSpanHelper(ctx)
 	clientConnection := common.ModelConnection(ctx)
 	dp := common.Forwarder(ctx)
 
@@ -72,6 +76,8 @@ func (cce *endpointSelectorService) Request(ctx context.Context, request *networ
 	// true if we detect we need to request NSE to upgrade/update connection.
 	// 4.1 New Network service is requested, we need to close current connection and do re-request of NSE.
 	requestNSEOnUpdate := cce.checkNSEUpdateIsRequired(ctx, clientConnection, request, logger, dp)
+	span.LogObject("requestNSEOnUpdate", requestNSEOnUpdate)
+
 	// 7. do a Request() on NSE and select it.
 	if clientConnection.ConnectionState == model.ClientConnectionHealing && !requestNSEOnUpdate {
 		return cce.checkUpdateConnectionContext(ctx, request, clientConnection)
@@ -136,7 +142,7 @@ func (cce *endpointSelectorService) selectEndpoint(ctx context.Context, clientCo
 			endpoint = clientConnection.Endpoint
 		} else {
 			// Ignored, we need to update DSTid.
-			clientConnection.GetConnectionDestination().SetID("-")
+			clientConnection.Xcon.Destination.Id = "-"
 		}
 		//TODO: Add check if endpoint are in registry or not.
 	}
@@ -252,8 +258,8 @@ func (cce *endpointSelectorService) checkUpdateConnectionContext(ctx context.Con
 	logger := common.Log(ctx)
 	// We do not need to do request to endpoint and just need to update all stuff.
 	// 7.2 We do not need to access NSE, since all parameters are same.
-	clientConnection.GetConnectionSource().SetConnectionMechanism(request.Connection.GetConnectionMechanism())
-	clientConnection.GetConnectionSource().SetConnectionState(unifiedconnection.StateUp)
+	clientConnection.Xcon.Source.Mechanism = compat.MechanismNSMToUnified(request.Connection.GetConnectionMechanism())
+	clientConnection.Xcon.Source.State = unified.State_UP
 
 	// 7.3 Destination context probably has been changed, so we need to update source context.
 	if err := cce.updateConnectionContext(ctx, request.GetConnection(), clientConnection.GetConnectionDestination()); err != nil {

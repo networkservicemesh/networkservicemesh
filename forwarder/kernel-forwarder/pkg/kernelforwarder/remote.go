@@ -18,12 +18,13 @@ package kernelforwarder
 import (
 	"runtime"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
+
 	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
-	local "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
-	remote "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/utils/fs"
 
 	"net"
@@ -37,13 +38,13 @@ import (
 
 // handleRemoteConnection handles remote connect/disconnect requests for either incoming or outgoing connections
 func handleRemoteConnection(egress common.EgressInterfaceType, crossConnect *crossconnect.CrossConnect, connect bool) (map[string]monitoring.Device, error) {
-	if crossConnect.GetRemoteSource().GetMechanism().GetType() == remote.MechanismType_VXLAN &&
-		crossConnect.GetLocalDestination().GetMechanism().GetType() == local.MechanismType_KERNEL_INTERFACE {
+	if crossConnect.GetSource().GetMechanism().GetType() == vxlan.MECHANISM &&
+		crossConnect.GetLocalDestination().GetMechanism().GetType() == kernel.MECHANISM {
 		/* 1. Incoming remote connection */
 		logrus.Info("remote: connection type - remote source/local destination - incoming")
 		return handleConnection(egress, crossConnect, connect, cINCOMING)
-	} else if crossConnect.GetLocalSource().GetMechanism().GetType() == local.MechanismType_KERNEL_INTERFACE &&
-		crossConnect.GetRemoteDestination().GetMechanism().GetType() == remote.MechanismType_VXLAN {
+	} else if crossConnect.GetSource().GetMechanism().GetType() == kernel.MECHANISM &&
+		crossConnect.GetDestination().GetMechanism().GetType() == vxlan.MECHANISM {
 		/* 2. Outgoing remote connection */
 		logrus.Info("remote: connection type - local source/remote destination - outgoing")
 		return handleConnection(egress, crossConnect, connect, cOUTGOING)

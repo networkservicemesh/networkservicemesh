@@ -17,6 +17,9 @@ package remote
 import (
 	"context"
 
+	unified "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
+
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
@@ -182,8 +185,8 @@ func (cce *endpointSelectorService) checkUpdateConnectionContext(ctx context.Con
 	// We do not need to do request to endpoint and just need to update all stuff.
 	// 7.2 We do not need to access NSE, since all parameters are same.
 	logger := common.Log(ctx)
-	clientConnection.GetConnectionSource().SetConnectionMechanism(request.Connection.GetConnectionMechanism())
-	clientConnection.GetConnectionSource().SetConnectionState(unifiedconnection.StateUp)
+	clientConnection.Xcon.Source.Mechanism = compat.MechanismNSMToUnified(request.Connection.GetConnectionMechanism())
+	clientConnection.Xcon.Source.State = unified.State_UP
 
 	// 7.3 Destination context probably has been changed, so we need to update source context.
 	if err := cce.updateConnectionContext(ctx, request.GetConnection(), clientConnection.GetConnectionDestination()); err != nil {

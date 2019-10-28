@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	unified "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+
 	nsm_api "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
 
 	"github.com/golang/protobuf/ptypes/empty"
@@ -458,16 +460,17 @@ func (data *healTestData) createEndpoint(nse, nsm string) *registry.NSERegistrat
 func (data *healTestData) createCrossConnection(isRemoteSrc, isRemoteDst bool, srcID, dstID string) *crossconnect.CrossConnect {
 	xcon := &crossconnect.CrossConnect{}
 
+	xcon.Source = &unified.Connection{Id: srcID}
 	if isRemoteSrc {
-		xcon.SetSourceConnection(&remote_connection.Connection{Id: srcID})
+		xcon.Source.NetworkServiceManagers = []string{"src", "dst"}
 	} else {
-		xcon.SetSourceConnection(&local_connection.Connection{Id: srcID})
+		xcon.Source.NetworkServiceManagers = []string{"src"}
 	}
-
+	xcon.Destination = &unified.Connection{Id: dstID}
 	if isRemoteDst {
-		xcon.SetDestinationConnection(&remote_connection.Connection{Id: dstID})
+		xcon.Destination.NetworkServiceManagers = []string{"src", "dst"}
 	} else {
-		xcon.SetDestinationConnection(&local_connection.Connection{Id: dstID})
+		xcon.Destination.NetworkServiceManagers = []string{"src"}
 	}
 
 	return xcon

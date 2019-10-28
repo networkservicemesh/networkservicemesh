@@ -5,10 +5,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
+
 	. "github.com/onsi/gomega"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 )
 
 func TestRestoreConnectionState(t *testing.T) {
@@ -47,27 +49,25 @@ func TestRestoreConnectionStateWrongDst(t *testing.T) {
 				connection.Workspace: nsmClient.Workspace,
 			},
 		},
+		NetworkServiceManagers: []string{"src"},
 	}
 
 	dstConnection := &connection.Connection{
 		Id: "2",
 		Mechanism: &connection.Mechanism{
-			Type: connection.MechanismType_KERNEL_INTERFACE,
+			Type: kernel.MECHANISM,
 			Parameters: map[string]string{
-				connection.WorkspaceNSEName: "nse1",
+				kernel.WorkspaceNSEName: "nse1",
 			},
 		},
-		NetworkService: "ns1",
+		NetworkService:         "ns1",
+		NetworkServiceManagers: []string{"src"},
 	}
 	xcons := []*crossconnect.CrossConnect{
 		{
-			Source: &crossconnect.CrossConnect_LocalSource{
-				LocalSource: requestConnection,
-			},
-			Destination: &crossconnect.CrossConnect_LocalDestination{
-				LocalDestination: dstConnection,
-			},
-			Id: "1",
+			Source:      requestConnection,
+			Destination: dstConnection,
+			Id:          "1",
 		},
 	}
 	srv.nsmServer.Manager().RestoreConnections(xcons, "dp1", srv.nsmServer)

@@ -36,9 +36,11 @@ func CloneArgsClientInterceptor(uci grpc.UnaryClientInterceptor) grpc.UnaryClien
 		span := spanhelper.GetSpanHelper(ctx)
 		replyPtr := allocate(dereferenceType(reply))
 		reqCopy := proto.Clone(req.(proto.Message))
-		span.LogObject(fmt.Sprintf("%v()", method), reqCopy)
+		span.LogObject(fmt.Sprintf("%v()", method), "")
+		span.LogObject("request", reqCopy)
 		err := uci(ctx, method, reqCopy, replyPtr, cc, invoker, opts...)
 		memset(reply, replyPtr.(proto.Message))
+		span.LogObject("response", reply)
 		return err
 	}
 }
@@ -50,6 +52,15 @@ func CloneArgsServerInterceptor(usi grpc.UnaryServerInterceptor) grpc.UnaryServe
 		info *grpc.UnaryServerInfo,
 		handler grpc.UnaryHandler,
 	) (resp interface{}, err error) {
-		return usi(ctx, proto.Clone(req.(proto.Message)), info, handler)
+		reqCopy := proto.Clone(req.(proto.Message))
+		myHandler := func(ctx context.Context, req interface{}) (interface{}, error) {
+			span := spanhelper.GetSpanHelper(ctx)
+			span.LogObject(fmt.Sprintf("GRPC->%v()", info.FullMethod), "")
+			span.LogObject("request", reqCopy)
+			response, err := handler(ctx, req)
+			span.LogObject("response", response)
+			return response, err
+		}
+		return usi(ctx, reqCopy, info, myHandler)
 	}
 }

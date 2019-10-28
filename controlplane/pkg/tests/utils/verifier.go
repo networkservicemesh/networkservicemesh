@@ -185,17 +185,13 @@ func (v *clientConnectionVerifier) Verify(t *testing.T) {
 func (v *clientConnectionVerifier) verifyXcon(xcon *crossconnect.CrossConnect, t *testing.T) {
 	g := NewWithT(t)
 
-	if source := xcon.GetLocalSource(); source != nil {
-		g.Expect(source.GetId()).To(Equal(v.srcID))
-	} else if source := xcon.GetRemoteSource(); source != nil {
+	if source := xcon.GetSource(); source != nil {
 		g.Expect(source.GetId()).To(Equal(v.srcID))
 	} else {
 		t.Fatalf("Expected xcon.Source not to be nil")
 	}
 
-	if destination := xcon.GetLocalDestination(); destination != nil {
-		g.Expect(destination.GetId()).To(Equal(v.dstID))
-	} else if destination := xcon.GetRemoteDestination(); destination != nil {
+	if destination := xcon.GetDestination(); destination != nil {
 		g.Expect(destination.GetId()).To(Equal(v.dstID))
 	} else {
 		t.Fatalf("Expected xcon.Destination not to be nil")

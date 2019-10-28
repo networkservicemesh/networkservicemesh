@@ -2,9 +2,11 @@ package services
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"time"
+
+	unified_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
 
 	"github.com/pkg/errors"
 
@@ -77,14 +79,14 @@ func (m *ClientConnectionManager) UpdateXcon(ctx context.Context, cc nsm.ClientC
 		return
 	}
 
-	if src := newXcon.GetLocalSource(); src != nil && src.State == local.State_DOWN {
+	if src := newXcon.GetLocalSource(); src != nil && src.State == unified_connection.State_DOWN {
 		logger.Info("ClientConnection src state is down. Closing.")
 		err := m.manager.CloseConnection(ctx, cc)
 		span.LogError(err)
 		return
 	}
 
-	if dst := newXcon.GetLocalDestination(); dst != nil && dst.State == local.State_DOWN {
+	if dst := newXcon.GetLocalDestination(); dst != nil && dst.State == unified_connection.State_DOWN {
 		logger.Info("ClientConnection dst state is down. calling Heal.")
 		m.manager.Heal(ctx, cc, nsm.HealStateDstDown)
 		return
@@ -106,14 +108,13 @@ func (m *ClientConnectionManager) DestinationDown(ctx context.Context, cc nsm.Cl
 
 // ForwarderDown handles case of local dp down
 func (m *ClientConnectionManager) ForwarderDown(ctx context.Context, forwarder *model.Forwarder) {
-	span := spanhelper.GetSpanHelper(ctx)
 	ccs := m.model.GetAllClientConnections()
 	for _, cc := range ccs {
-		span.LogObject(fmt.Sprintf("ForwarderDeleted-%v", cc.GetID()), cc)
 		if cc.ForwarderRegisteredName == forwarder.RegisteredName {
 			span := common.SpanHelperFromConnection(ctx, cc, "ForwarderDown")
-			defer span.Finish()
+			span.LogObject("connection", cc)
 			span.LogObject("forwarder", forwarder)
+			defer span.Finish()
 
 			m.manager.Heal(span.Context(), cc, nsm.HealStateForwarderDown)
 		}
@@ -182,7 +183,7 @@ func (m *ClientConnectionManager) destinationUpdated(ctx context.Context, cc nsm
 	}
 
 	if upd := m.model.ApplyClientConnectionChanges(ctx, cc.GetID(), func(cc *model.ClientConnection) {
-		cc.Xcon.SetDestinationConnection(dst)
+		cc.Xcon.Destination = compat.ConnectionNSMToUnified(dst)
 	}); upd != nil {
 		cc = upd
 	} else {
@@ -358,7 +359,7 @@ func (m *ClientConnectionManager) GetClientConnectionBySource(networkServiceMana
 	for _, clientConnection := range clientConnections {
 		if clientConnection.Request != nil && clientConnection.Xcon != nil && clientConnection.Request.IsRemote() {
 			nsmConnection := clientConnection.Xcon.GetRemoteSource()
-			if nsmConnection != nil && nsmConnection.SourceNetworkServiceManagerName == networkServiceManagerName {
+			if nsmConnection != nil && nsmConnection.GetSourceNetworkServiceManagerName() == networkServiceManagerName {
 				rv = append(rv, clientConnection)
 			}
 		}
