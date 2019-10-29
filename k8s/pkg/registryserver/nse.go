@@ -105,6 +105,50 @@ func (rs *nseRegistryService) RegisterNSE(ctx context.Context, request *registry
 	return request, nil
 }
 
+func (rs *nseRegistryService) BulkRegisterNSE(srv registry.NetworkServiceRegistry_BulkRegisterNSEServer) error {
+	logrus.Infof("Forwarding Bulk Register NSE stream...")
+
+	nsrURL := os.Getenv(ProxyNsmdK8sAddressEnv)
+	if strings.TrimSpace(nsrURL) == "" {
+		nsrURL = ProxyNsmdK8sAddressDefaults
+	}
+
+	ctx, cancel := context.WithCancel(srv.Context())
+	defer cancel()
+
+	remoteRegistry := nsmd.NewServiceRegistryAt(nsrURL)
+	defer remoteRegistry.Stop()
+
+	nseRegistryClient, err := remoteRegistry.NseRegistryClient(ctx)
+	if err != nil {
+		err = fmt.Errorf("error forwarding BulkRegisterNSE request to %s : %v", nsrURL, err)
+		return err
+	}
+
+	stream, err := nseRegistryClient.BulkRegisterNSE(ctx)
+	if err != nil {
+		err = fmt.Errorf("error forwarding BulkRegisterNSE request to %s : %v", nsrURL, err)
+		return err
+	}
+
+	for {
+		request, err := srv.Recv()
+		if err != nil {
+			err = fmt.Errorf("error receiving BulkRegisterNSE request : %v", err)
+			return err
+		}
+
+		logrus.Infof("Forward BulkRegisterNSE request: %v", request)
+		err = stream.Send(request)
+		if err != nil {
+			err = fmt.Errorf("error forwarding BulkRegisterNSE request to %s : %v", nsrURL, err)
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (rs *nseRegistryService) RemoveNSE(ctx context.Context, request *registry.RemoveNSERequest) (*empty.Empty, error) {
 	st := time.Now()
 

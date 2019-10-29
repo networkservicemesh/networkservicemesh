@@ -15,10 +15,11 @@
 package nsmd
 
 import (
+	"fmt"
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/pkg/errors"
-
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
+	"github.com/pkg/errors"
+	"time"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 
@@ -103,7 +104,17 @@ func (es *registryServer) RegisterNSEWithClient(ctx context.Context, request *re
 	}
 	logrus.Infof("Received upstream NSERegitration: %v", registration)
 
+	err = es.startNSETracking(registration)
+	if err != nil {
+		logrus.Infof("Error starting NSE tracking requests : %v", err)
+	}
+
 	return registration, nil
+}
+
+func (es *registryServer) BulkRegisterNSE(srv registry.NetworkServiceRegistry_BulkRegisterNSEServer) error {
+	<-srv.Context().Done()
+	return nil
 }
 
 func (es *registryServer) RemoveNSE(ctx context.Context, request *registry.RemoveNSERequest) (*empty.Empty, error) {
@@ -133,4 +144,35 @@ func (es *registryServer) RemoveNSE(ctx context.Context, request *registry.Remov
 
 func (es *registryServer) Close() {
 
+}
+
+func (es *registryServer) startNSETracking(request *registry.NSERegistration) error {
+	ctx, cancel := context.WithCancel(context.Background())
+
+	client, err := es.nsm.serviceRegistry.NseRegistryClient(ctx)
+	if err != nil {
+		cancel()
+		return fmt.Errorf("cannot start NSE tracking : %v", err)
+	}
+
+	stream, err := client.BulkRegisterNSE(ctx)
+	if err != nil {
+		cancel()
+		return fmt.Errorf("cannot start NSE tracking : %v", err)
+	}
+
+	go func() {
+		defer cancel()
+
+		for {
+			select {
+				case <-ctx.Done():
+					return
+				case <-time.After(2 * time.Minute):
+					stream.Send(request)
+			}
+		}
+	} ()
+
+	return nil
 }

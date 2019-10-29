@@ -14,6 +14,7 @@ import (
 // NSERegistryService - service registering Network Service Endpoints
 type NSERegistryService interface {
 	RegisterNSE(ctx context.Context, request *registry.NSERegistration) (*registry.NSERegistration, error)
+	BulkRegisterNSE(registry.NetworkServiceRegistry_BulkRegisterNSEServer) error
 	RemoveNSE(ctx context.Context, request *registry.RemoveNSERequest) (*empty.Empty, error)
 }
 
@@ -70,6 +71,19 @@ func (rs *nseRegistryService) RegisterNSE(ctx context.Context, request *registry
 
 	logrus.Infof("Returned from RegisterNSE: request: %v", request)
 	return request, err
+}
+
+func (rs *nseRegistryService) BulkRegisterNSE(srv registry.NetworkServiceRegistry_BulkRegisterNSEServer) error {
+	for {
+		request, err := srv.Recv()
+		if err != nil {
+			err = fmt.Errorf("error receiving BulkRegisterNSE request : %v", err)
+			return err
+		}
+
+		logrus.Infof("Received BulkRegisterNSE request: %v", request)
+	}
+	return nil
 }
 
 // RemoveNSE - Removes NSE from cache and stops NSMgr monitor

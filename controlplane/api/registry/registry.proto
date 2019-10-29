@@ -60,6 +60,7 @@ message RemoveNSERequest {
 
 service NetworkServiceRegistry {
     rpc RegisterNSE (NSERegistration) returns (NSERegistration);
+    rpc BulkRegisterNSE (stream NSERegistration) returns (stream NSERegistration);
     rpc RemoveNSE (RemoveNSERequest) returns (google.protobuf.Empty);
 }
 
