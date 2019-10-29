@@ -19,5 +19,5 @@ providers:
       config: make kind-config-location
       prepare: |
         make k8s-load-images
-        make spire-start
+        make spire-install
         make k8s-config
