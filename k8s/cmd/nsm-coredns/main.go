@@ -6,7 +6,9 @@ import (
 	"os"
 	"strings"
 
+	"github.com/networkservicemesh/networkservicemesh/utils"
 	"github.com/networkservicemesh/networkservicemesh/utils/caddyfile"
+	"github.com/sirupsen/logrus"
 
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/coremain"
@@ -28,6 +30,7 @@ func init() {
 func main() {
 	log.Println("Starting nsm-coredns")
 	log.Printf("Version: %v\n", version)
+	utils.PrintAllEnv(logrus.StandardLogger())
 	defaultConfig := defaultBasicDNSConfig()
 	log.Printf("Default dns config: %v", defaultConfig)
 	updateResolvConfFile()

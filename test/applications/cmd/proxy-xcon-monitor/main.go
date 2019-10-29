@@ -11,6 +11,7 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"github.com/networkservicemesh/networkservicemesh/utils"
 )
 
 const (
@@ -79,6 +80,7 @@ func (p *proxyMonitor) MonitorCrossConnects(empty *empty.Empty, src crossconnect
 
 func main() {
 	logrus.Info("Starting Xcon Monitor Proxy")
+	utils.PrintAllEnv(logrus.StandardLogger())
 	address := parseFlags()
 
 	logrus.Infof("address=%v", address)

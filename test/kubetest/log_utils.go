@@ -12,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest/jaeger"
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 )
@@ -30,8 +31,27 @@ func makeLogsSnapshot(k8s *K8s, t *testing.T) {
 	for i := 0; i < len(pods); i++ {
 		showPodLogs(k8s, t, &pods[i])
 	}
+	if jaeger.ShouldStoreJaegerTraces() {
+		jaegerPod := FindJaegerPod(k8s)
+		if jaegerPod != nil {
+			dir := filepath.Join(logsDir(), t.Name())
+			traces := GetJaegerTraces(k8s, jaegerPod)
+			for k, v := range traces {
+				logFile(k, dir, v)
+			}
+		}
+	}
 	if shouldStoreLogsInFiles() && t != nil {
 		archiveLogs(t.Name())
+	}
+}
+
+func saveJagerLogs(testName, service, content string) {
+	dir := filepath.Join(logsDir(), testName)
+	err := ioutil.WriteFile(fmt.Sprintf("%v.json", service), []byte(content), os.ModePerm)
+	if err != nil {
+		logrus.Errorf("Can not read dir %v", dir)
+		return
 	}
 }
 
@@ -137,7 +157,7 @@ func savePodContainerLog(k8s *K8s, pod *v1.Pod, c *v1.Container, t *testing.T) {
 
 	if shouldStoreLogsInFiles() && t != nil {
 		writeLogFunc = func(name string, content string) {
-			logErr := logFile(name, filepath.Join(logsDir(), t.Name()), content)
+			logErr := logFileExt(name, filepath.Join(logsDir(), t.Name()), content, "json")
 			if logErr != nil {
 				logrus.Errorf("Can't log in file, reason %v", logErr)
 				logTransaction(name, content)
@@ -167,8 +187,10 @@ func shouldStoreLogsInFiles() bool {
 func shouldShowLogs() bool {
 	return StoreLogsInAnyCases.GetBooleanOrDefault(false)
 }
-
-func logFile(name, dir, content string) error {
+func logFile(name, dir, content, ext string) error {
+	return logFileExt(name, dir, content, "log")
+}
+func logFileExt(name, dir, content, ext string) error {
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
 		err = os.MkdirAll(dir, os.ModePerm)
 		if err != nil {
@@ -183,7 +205,7 @@ func logFile(name, dir, content string) error {
 			return err
 		}
 	}
-	file, err := os.Create(path + ".log")
+	file, err := os.Create(fmt.Sprintf("%v.%v", path, ext))
 	if err != nil {
 		return err
 	}

@@ -17,6 +17,7 @@ import (
 	"flag"
 	"os"
 
+	"github.com/networkservicemesh/networkservicemesh/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -25,6 +26,7 @@ var version string
 func main() {
 	logrus.Info("Starting nsm-generate-sriov-configmap...")
 	logrus.Infof("Version: %v", version)
+	utils.PrintAllEnv(logrus.StandardLogger())
 	flag.Set("logtostderr", "true")
 	flag.Parse()
 	discoveredVFs := newVFs()

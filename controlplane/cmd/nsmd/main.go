@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
+	"github.com/networkservicemesh/networkservicemesh/utils"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
@@ -36,6 +37,7 @@ const (
 func main() {
 	logrus.Info("Starting nsmd...")
 	logrus.Infof("Version: %v", version)
+	utils.PrintAllEnv(logrus.StandardLogger())
 	start := time.Now()
 
 	// Capture signals to cleanup before exiting

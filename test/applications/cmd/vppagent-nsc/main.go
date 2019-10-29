@@ -20,6 +20,7 @@ import (
 	"sync"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
+	"github.com/networkservicemesh/networkservicemesh/utils"
 
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 
@@ -60,10 +61,11 @@ func (nscb *nsClientBackend) Connect(connection *connection.Connection) error {
 var version string
 
 func main() {
-	// Capture signals to cleanup before exiting
-	c := tools.NewOSSignalChannel()
 	logrus.Info("Starting vppagent-nsc...")
 	logrus.Infof("Version: %v", version)
+	utils.PrintAllEnv(logrus.StandardLogger())
+	// Capture signals to cleanup before exiting
+	c := tools.NewOSSignalChannel()
 	closer := jaeger.InitJaeger("vppagent-nsc")
 	defer func() { _ = closer.Close() }()
 	workspace, ok := os.LookupEnv(common.WorkspaceEnv)

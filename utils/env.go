@@ -10,6 +10,14 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+//PrintAllEnv prints all envs
+func PrintAllEnv(logger logrus.FieldLogger) {
+	logger.Info("All env variables:")
+	for _, env := range os.Environ() {
+		logger.Info(env)
+	}
+}
+
 //EnvVar provides API for access to env variable
 type EnvVar string
 
@@ -20,6 +28,11 @@ func (v EnvVar) String() string {
 //StringValue returns value of env variable as string
 func (v EnvVar) StringValue() string {
 	return os.Getenv(v.Name())
+}
+
+//Set sets value for env variable
+func (v EnvVar) Set(value interface{}) {
+	os.Setenv(v.Name(), fmt.Sprint(value))
 }
 
 //GetStringListValueOrDefault returns list of string separated by space or if env variable have not a value returns default value
@@ -44,6 +57,15 @@ func (v EnvVar) GetStringOrDefault(defaultValue string) string {
 func (v EnvVar) GetBooleanOrDefault(defaultValue bool) bool {
 	str := v.StringValue()
 	if v, err := strconv.ParseBool(str); err == nil {
+		return v
+	}
+	return defaultValue
+}
+
+//GetIntOrDefault returns env value as string or if env variable have not a value returns default value
+func (v EnvVar) GetIntOrDefault(defaultValue int) int {
+	str := v.StringValue()
+	if v, err := strconv.Atoi(str); err == nil {
 		return v
 	}
 	return defaultValue

@@ -68,6 +68,17 @@ func SetupNodes(k8s *K8s, nodesCount int, timeout time.Duration) ([]*NodeConf, e
 	return SetupNodesConfig(k8s, nodesCount, timeout, []*pods.NSMgrPodConfig{}, k8s.GetK8sNamespace())
 }
 
+//FindJaegerPod returns jaeger pod or nil
+func FindJaegerPod(k8s *K8s) *v1.Pod {
+	pods := k8s.ListPods()
+	for _, p := range pods {
+		if strings.Contains(p.Name, "jaeger") {
+			return &p
+		}
+	}
+	return nil
+}
+
 //DeployCorefile - Creates configmap with Corefile content
 func DeployCorefile(k8s *K8s, name, content string) error {
 	_, err := k8s.CreateConfigMap(&v1.ConfigMap{
@@ -119,7 +130,9 @@ func SetupNodesConfig(k8s *K8s, nodesCount int, timeout time.Duration, conf []*p
 				corePod = pods.NSMgrPodWithConfig(nsmdName, node, conf[i])
 				forwarderPod = pods.ForwardingPlaneWithConfig(forwarderName, node, conf[i].ForwarderVariables, k8s.GetForwardingPlane())
 			}
-			corePods, err := k8s.CreatePodsRaw(PodStartTimeout, true, corePod, forwarderPod)
+			jaeger := pods.Jaeger()
+			corePods, err := k8s.CreatePodsRaw(PodStartTimeout, true, corePod, forwarderPod, jaeger)
+
 			if err != nil {
 				logrus.Errorf("Failed to Started NSMgr/Forwarder: %v on node %s %v", time.Since(startTime), node.Name, err)
 				resultError = err
