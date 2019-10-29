@@ -12,9 +12,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/networkservicemesh/networkservicemesh/test/kubetest/jaeger"
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
+
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest/jaeger"
 )
 
 // MakeLogsSnapshot prints logs from containers in case of fail/panic or enabled logging in file
@@ -37,21 +38,12 @@ func makeLogsSnapshot(k8s *K8s, t *testing.T) {
 			dir := filepath.Join(logsDir(), t.Name())
 			traces := GetJaegerTraces(k8s, jaegerPod)
 			for k, v := range traces {
-				logFile(k, dir, v)
+				logFileExt(k, dir, v, "json")
 			}
 		}
 	}
 	if shouldStoreLogsInFiles() && t != nil {
 		archiveLogs(t.Name())
-	}
-}
-
-func saveJagerLogs(testName, service, content string) {
-	dir := filepath.Join(logsDir(), testName)
-	err := ioutil.WriteFile(fmt.Sprintf("%v.json", service), []byte(content), os.ModePerm)
-	if err != nil {
-		logrus.Errorf("Can not read dir %v", dir)
-		return
 	}
 }
 
@@ -187,9 +179,11 @@ func shouldStoreLogsInFiles() bool {
 func shouldShowLogs() bool {
 	return StoreLogsInAnyCases.GetBooleanOrDefault(false)
 }
-func logFile(name, dir, content, ext string) error {
+
+func logFile(name, dir, content string) error {
 	return logFileExt(name, dir, content, "log")
 }
+
 func logFileExt(name, dir, content, ext string) error {
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
 		err = os.MkdirAll(dir, os.ModePerm)

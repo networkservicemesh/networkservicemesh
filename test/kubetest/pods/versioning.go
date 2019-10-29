@@ -19,9 +19,10 @@ import (
 	"os"
 	"strings"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/jaeger"
 	"github.com/networkservicemesh/networkservicemesh/utils"
-	"github.com/sirupsen/logrus"
 
 	v1 "k8s.io/api/core/v1"
 )

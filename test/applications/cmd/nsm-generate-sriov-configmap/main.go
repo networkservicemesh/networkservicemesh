@@ -17,8 +17,9 @@ import (
 	"flag"
 	"os"
 
-	"github.com/networkservicemesh/networkservicemesh/utils"
 	"github.com/sirupsen/logrus"
+
+	"github.com/networkservicemesh/networkservicemesh/utils"
 )
 
 var version string

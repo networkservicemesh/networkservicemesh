@@ -11,8 +11,9 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/proxyregistryserver"
 	k8s_utils "github.com/networkservicemesh/networkservicemesh/k8s/pkg/utils"
 
-	"github.com/networkservicemesh/networkservicemesh/utils"
 	"github.com/sirupsen/logrus"
+
+	"github.com/networkservicemesh/networkservicemesh/utils"
 )
 
 var version string

@@ -4,8 +4,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/networkservicemesh/networkservicemesh/utils"
 	v1 "k8s.io/api/core/v1"
+
+	"github.com/networkservicemesh/networkservicemesh/utils"
 )
 
 const (

@@ -12,6 +12,8 @@ import (
 	"github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
+
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest/jaeger"
 )
 
 const (
@@ -27,7 +29,7 @@ type jaegerAPIClient struct {
 
 //GetJaegerTraces rerturns map of service and traces
 func GetJaegerTraces(k8s *K8s, jaegerPod *v1.Pod) map[string]string {
-	fwd, err := k8s.NewPortForwarder(jaegerPod, 16686)
+	fwd, err := k8s.NewPortForwarder(jaegerPod, jaeger.GetJaegerRestAPIPort())
 	k8s.g.Expect(err).To(gomega.BeNil())
 	err = fwd.Start()
 	k8s.g.Expect(err).To(gomega.BeNil())

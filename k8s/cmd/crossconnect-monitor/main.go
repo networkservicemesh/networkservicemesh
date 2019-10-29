@@ -3,9 +3,10 @@ package main
 import (
 	"sync"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/utils"
-	"github.com/sirupsen/logrus"
 )
 
 func main() {

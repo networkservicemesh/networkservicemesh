@@ -6,9 +6,10 @@ import (
 	"os"
 	"strings"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/networkservicemesh/networkservicemesh/utils"
 	"github.com/networkservicemesh/networkservicemesh/utils/caddyfile"
-	"github.com/sirupsen/logrus"
 
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/coremain"
