@@ -26,7 +26,7 @@ func JaegerService(pod *v1.Pod) *v1.Service {
 		},
 	}
 }
-func Jaeger() *v1.Pod {
+func Jaeger(node *v1.Node) *v1.Pod {
 	pod := &v1.Pod{
 		ObjectMeta: v12.ObjectMeta{
 			Name: "jaeger",
@@ -50,6 +50,9 @@ func Jaeger() *v1.Pod {
 				},
 			},
 		},
+	}
+	pod.Spec.NodeSelector = map[string]string{
+		"kubernetes.io/hostname": node.Labels["kubernetes.io/hostname"],
 	}
 	return pod
 }

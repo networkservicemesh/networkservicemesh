@@ -33,8 +33,7 @@ func makeLogsSnapshot(k8s *K8s, t *testing.T) {
 		showPodLogs(k8s, t, &pods[i])
 	}
 	if jaeger.ShouldStoreJaegerTraces() {
-		jaegerPod := FindJaegerPod(k8s)
-		if jaegerPod != nil {
+		for _, jaegerPod := range FindJaegerPods(k8s) {
 			dir := filepath.Join(logsDir(), t.Name())
 			traces := GetJaegerTraces(k8s, jaegerPod)
 			for k, v := range traces {
@@ -149,7 +148,7 @@ func savePodContainerLog(k8s *K8s, pod *v1.Pod, c *v1.Container, t *testing.T) {
 
 	if shouldStoreLogsInFiles() && t != nil {
 		writeLogFunc = func(name string, content string) {
-			logErr := logFileExt(name, filepath.Join(logsDir(), t.Name()), content, "json")
+			logErr := logFile(name, filepath.Join(logsDir(), t.Name()), content)
 			if logErr != nil {
 				logrus.Errorf("Can't log in file, reason %v", logErr)
 				logTransaction(name, content)
