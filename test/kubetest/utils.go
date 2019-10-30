@@ -69,17 +69,16 @@ func SetupNodes(k8s *K8s, nodesCount int, timeout time.Duration) ([]*NodeConf, e
 	return SetupNodesConfig(k8s, nodesCount, timeout, []*pods.NSMgrPodConfig{}, k8s.GetK8sNamespace())
 }
 
-//FindJaegerPods returns jaeger pod or nil
-func FindJaegerPods(k8s *K8s) []*v1.Pod {
+//FindJaegerPod returns jaeger pod or nil
+func FindJaegerPod(k8s *K8s) *v1.Pod {
 	pods := k8s.ListPods()
-	result := []*v1.Pod{}
 	for i := range pods {
-		p := pods[i]
+		p := &pods[i]
 		if strings.Contains(p.Name, "jaeger") {
-			result = append(result, &p)
+			return p
 		}
 	}
-	return result
+	return nil
 }
 
 //DeployCorefile - Creates configmap with Corefile content
@@ -104,9 +103,12 @@ func DeployCorefile(k8s *K8s, name, content string) error {
 // SetupNodesConfig - Setup NSMgr and Forwarder for particular number of nodes in cluster
 func SetupNodesConfig(k8s *K8s, nodesCount int, timeout time.Duration, conf []*pods.NSMgrPodConfig, namespace string) ([]*NodeConf, error) {
 	nodes := k8s.GetNodesWait(nodesCount, timeout)
+	var jaegerPod *v1.Pod
 	k8s.g.Expect(len(nodes) >= nodesCount).To(Equal(true),
 		"At least one Kubernetes node is required for this test")
-
+	if jaeger.ShouldStoreJaegerTraces() {
+		jaegerPod = k8s.CreatePod(pods.Jaeger())
+	}
 	var wg sync.WaitGroup
 	confs := make([]*NodeConf, nodesCount)
 	var resultError error
@@ -133,11 +135,12 @@ func SetupNodesConfig(k8s *K8s, nodesCount int, timeout time.Duration, conf []*p
 				corePod = pods.NSMgrPodWithConfig(nsmdName, node, conf[i])
 				forwarderPod = pods.ForwardingPlaneWithConfig(forwarderName, node, conf[i].ForwarderVariables, k8s.GetForwardingPlane())
 			}
-			if jaeger.ShouldStoreJaegerTraces() {
-				jaegerPod := k8s.CreatePod(pods.Jaeger(node))
+			if jaegerPod != nil {
 				//TODO: remove this env injection when dns problems with vpp-ageent forwarder will be solved
 				putOrUpdateEnvVar(&forwarderPod.Spec.Containers[0], jaeger.JaegerAgentHost.Name(), jaegerPod.Status.PodIP)
+				putOrUpdateEnvVar(&corePod.Spec.Containers[1], jaeger.JaegerAgentHost.Name(), jaegerPod.Status.PodIP)
 			}
+
 			corePods, err := k8s.CreatePodsRaw(PodStartTimeout, true, corePod, forwarderPod)
 
 			if err != nil {

@@ -33,12 +33,15 @@ func makeLogsSnapshot(k8s *K8s, t *testing.T) {
 		showPodLogs(k8s, t, &pods[i])
 	}
 	if jaeger.ShouldStoreJaegerTraces() {
-		for _, jaegerPod := range FindJaegerPods(k8s) {
+		jaegerPod := FindJaegerPod(k8s)
+		if jaegerPod != nil {
 			dir := filepath.Join(logsDir(), t.Name())
 			traces := GetJaegerTraces(k8s, jaegerPod)
 			for k, v := range traces {
 				logFileExt(k, dir, v, "json")
 			}
+		} else {
+			logrus.Info("Can not find jaeger pod. Traces not saved.")
 		}
 	}
 	if shouldStoreLogsInFiles() && t != nil {

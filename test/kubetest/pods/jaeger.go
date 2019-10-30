@@ -1,8 +1,6 @@
 package pods
 
 import (
-	"fmt"
-
 	v1 "k8s.io/api/core/v1"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -29,14 +27,10 @@ func JaegerService(pod *v1.Pod) *v1.Service {
 	}
 }
 
-func Jaeger(node *v1.Node) *v1.Pod {
-	nodeName := ""
-	if node != nil {
-		nodeName = fmt.Sprintf("-%v", node.Name)
-	}
+func Jaeger() *v1.Pod {
 	pod := &v1.Pod{
 		ObjectMeta: v12.ObjectMeta{
-			Name: fmt.Sprintf("jaeger%v", nodeName),
+			Name: "jaeger",
 			Labels: map[string]string{
 				"run": "jaeger",
 			},
@@ -57,9 +51,6 @@ func Jaeger(node *v1.Node) *v1.Pod {
 				},
 			},
 		},
-	}
-	pod.Spec.NodeSelector = map[string]string{
-		"kubernetes.io/hostname": node.Labels["kubernetes.io/hostname"],
 	}
 	return pod
 }

@@ -197,7 +197,6 @@ jobs:
             export GOPROXY=https://proxy.golang.org,direct
             # resource_class xlarge has 8 core, multiple by 1.5 for hyperthreading for -j factor
             make -j 12 -O docker-push
-            docker pull jaegertracing/all-in-one:1.14.0
 
 # docker push
   docker-push-tag:
