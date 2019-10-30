@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/local"
+	"github.com/networkservicemesh/networkservicemesh/utils"
 
 	"github.com/networkservicemesh/networkservicemesh/test/applications/cmd/icmp-responder-nse/flags"
 
@@ -39,12 +40,11 @@ import (
 var version string
 
 func main() {
-	// Capture signals to cleanup before exiting
-	c := tools.NewOSSignalChannel()
-
 	logrus.Info("Starting icmp-responder-nse...")
 	logrus.Infof("Version: %v", version)
-
+	utils.PrintAllEnv(logrus.StandardLogger())
+	// Capture signals to cleanup before exiting
+	c := tools.NewOSSignalChannel()
 	flags := flags.ParseFlags()
 
 	configuration := common.FromEnv()

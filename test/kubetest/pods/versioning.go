@@ -21,6 +21,9 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest/jaeger"
+	"github.com/networkservicemesh/networkservicemesh/utils"
+
 	v1 "k8s.io/api/core/v1"
 )
 
@@ -66,10 +69,9 @@ func containerMod(c *v1.Container) v1.Container {
 	}
 
 	// Update Jaeger
-	if os.Getenv("TRACER_ENABLED") == "true" {
-		env := newJaegerEnvVar()
-		logrus.Infof("TRACER_ENABLED %v: env: %v", c.Name, env)
-		c.Env = append(c.Env, env...)
+	if utils.EnvVar("TRACER_ENABLED").GetBooleanOrDefault(true) {
+		logrus.Infof("Added jaeger env for container %v", c.Name)
+		c.Env = append(c.Env, jaeger.Env()...)
 	}
 
 	return *c

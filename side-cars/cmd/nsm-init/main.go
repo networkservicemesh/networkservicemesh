@@ -18,6 +18,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
+	"github.com/networkservicemesh/networkservicemesh/utils"
 
 	nsm_init "github.com/networkservicemesh/networkservicemesh/side-cars/pkg/nsm-init"
 )
@@ -27,6 +28,7 @@ var version string
 func main() {
 	logrus.Info("Starting nsm-init...")
 	logrus.Infof("Version: %v", version)
+	utils.PrintAllEnv(logrus.StandardLogger())
 	clientApp := nsm_init.NewNSMClientApp(common.FromEnv())
 	clientApp.Run()
 }

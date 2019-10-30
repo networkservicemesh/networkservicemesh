@@ -162,6 +162,7 @@ jobs:
             if [ "${CIRCLE_BRANCH}" == "master" ]; then
               export STORE_LOGS_IN_ANY_CASES=true
             fi
+            export STORE_JAEGER_TRACES=true
             pushd test
             CGO_ENABLED=0 GOOS=linux go build -o ../cloudtest ./cloudtest/cmd/cloudtest
             popd
