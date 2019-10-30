@@ -45,6 +45,7 @@ type Arguments struct {
 	providerConfig  string   // A folder to start scaning for tests inside
 	count           int      // Limit number of tests to be run per every cloud
 	instanceOptions providers.InstanceOptions
+	onlyRun         []string // A list of tests to run.
 }
 
 type clusterState byte
@@ -154,6 +155,10 @@ func CloudTestRun(cmd *cloudTestCmd) {
 	if err != nil {
 		logrus.Errorf("Failed to parse config %v", err)
 		os.Exit(1)
+	}
+
+	if len(cmd.cmdArguments.onlyRun) > 0 {
+		testConfig.OnlyRun = cmd.cmdArguments.onlyRun
 	}
 
 	if len(testConfig.OnlyRun) > 0 {
@@ -1333,17 +1338,12 @@ func (ctx *executionContext) findGoTest(executionConfig *config.ExecutionConfig)
 	for _, t := range execTests {
 		t.Kind = model.TestEntryKindGoTest
 		t.ExecutionConfig = executionConfig
-		match := true
-		for _, v := range executionConfig.OnlyRun {
-			match = false
-			if v == t.Name {
-				match = true
-				break
-			}
-		}
-		if match {
+		if len(executionConfig.OnlyRun) == 0 || utils.Contains(executionConfig.OnlyRun, t.Name) {
 			result = append(result, t)
 		}
+	}
+	if len(result) != len(execTests) {
+		logrus.Infof("Tests after filtering: %v", len(result))
 	}
 	return result, nil
 }
@@ -1572,6 +1572,7 @@ func ExecuteCloudTest() {
 	rootCmd.Short = "NSM Cloud Test is cloud helper continuous integration testing tool"
 	rootCmd.Long = `Allow to execute all set of individual tests across all clouds provided.`
 	rootCmd.Run = func(cmd *cobra.Command, args []string) {
+		rootCmd.cmdArguments.onlyRun = args
 		CloudTestRun(rootCmd)
 	}
 	rootCmd.Args = func(cmd *cobra.Command, args []string) error {
