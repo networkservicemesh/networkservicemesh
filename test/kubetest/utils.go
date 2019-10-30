@@ -108,6 +108,7 @@ func SetupNodesConfig(k8s *K8s, nodesCount int, timeout time.Duration, conf []*p
 		"At least one Kubernetes node is required for this test")
 	if jaeger.ShouldStoreJaegerTraces() {
 		jaegerPod = k8s.CreatePod(pods.Jaeger())
+		k8s.WaitLogsContains(jaegerPod, jaegerPod.Spec.Containers[0].Name, "Starting HTTP server", timeout)
 	}
 	var wg sync.WaitGroup
 	confs := make([]*NodeConf, nodesCount)
@@ -138,7 +139,6 @@ func SetupNodesConfig(k8s *K8s, nodesCount int, timeout time.Duration, conf []*p
 			if jaegerPod != nil {
 				//TODO: remove this env injection when dns problems with vpp-ageent forwarder will be solved
 				putOrUpdateEnvVar(&forwarderPod.Spec.Containers[0], jaeger.JaegerAgentHost.Name(), jaegerPod.Status.PodIP)
-				putOrUpdateEnvVar(&corePod.Spec.Containers[1], jaeger.JaegerAgentHost.Name(), jaegerPod.Status.PodIP)
 			}
 
 			corePods, err := k8s.CreatePodsRaw(PodStartTimeout, true, corePod, forwarderPod)
