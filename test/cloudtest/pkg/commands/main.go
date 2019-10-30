@@ -691,9 +691,13 @@ func (ctx *executionContext) executeTask(task *testTask, clusterConfigs []string
 		}
 
 		st := time.Now()
-		env := []string{}
-		// Fill Kubernetes environment variables.
 
+		logrus.Infof(fmt.Sprintf("Running test %s on cluster's %v \n", task.test.Name, ids))
+		writer := bufio.NewWriter(file)
+		_, _ = writer.WriteString(fmt.Sprintf("Running test %s on cluster's %v \n", task.test.Name, ids))
+
+		// Fill Kubernetes environment variables.
+		env := []string{}
 		if len(task.test.ExecutionConfig.KubernetesEnv) > 0 {
 			for ind, envV := range task.test.ExecutionConfig.KubernetesEnv {
 				env = append(env, fmt.Sprintf("%s=%s", envV, clusterConfigs[ind]))
@@ -707,13 +711,9 @@ func (ctx *executionContext) executeTask(task *testTask, clusterConfigs []string
 				}
 			}
 		}
-
-		writer := bufio.NewWriter(file)
-
-		logrus.Infof(fmt.Sprintf("Running test %s on cluster's %v \n", task.test.Name, ids))
-		_, _ = writer.WriteString(fmt.Sprintf("Running test %s on cluster's %v \n", task.test.Name, ids))
 		_, _ = writer.WriteString(fmt.Sprintf("Command line %v\nenv==%v \n\n", runner.GetCmdLine(), env))
 		_ = writer.Flush()
+
 		timeoutCtx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
 
