@@ -20,6 +20,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
+
 	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
@@ -28,6 +30,7 @@ import (
 
 	"github.com/golang/protobuf/ptypes/empty"
 
+	unified "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	unifiedconnection "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
@@ -65,8 +68,9 @@ func (cce *forwarderService) selectForwarder(request *networkservice.NetworkServ
 	})
 	return dp, err
 }
-func (cce *forwarderService) findMechanism(mechanismPreferences []unifiedconnection.Mechanism, mechanismType unifiedconnection.MechanismType) unifiedconnection.Mechanism {
-	for _, m := range mechanismPreferences {
+func (cce *forwarderService) findMechanism(mechanismPreferences []*unified.Mechanism, mechanismType unifiedconnection.MechanismType) unifiedconnection.Mechanism {
+	for _, me := range mechanismPreferences {
+		m := compat.MechanismUnifiedToRemote(me)
 		if m.GetMechanismType() == mechanismType {
 			return m
 		}

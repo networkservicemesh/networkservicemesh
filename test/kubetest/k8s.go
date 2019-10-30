@@ -973,8 +973,8 @@ func (k8s *K8s) waitLogsMatch(ctx context.Context, pod *v1.Pod, container string
 					if matcher(fullLogs) {
 						return
 					}
+					logrus.Errorf("Stack: %v", string(debug.Stack()))
 					logrus.Errorf("%v Last logs: %v\n Full Logs: %v", description, builder.String(), fullLogs)
-					logrus.Errorf("Stack: %v", debug.Stack())
 					k8s.g.Expect(false).To(BeTrue())
 				}
 			}

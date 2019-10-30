@@ -1,6 +1,8 @@
 package compat
 
 import (
+	"github.com/sirupsen/logrus"
+
 	unified "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/cls"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
@@ -20,9 +22,13 @@ func MechanismLocalToUnified(mechanism *local.Mechanism) *unified.Mechanism {
 	if mechanism == nil {
 		return nil
 	}
+	typeValue, ok := mapMechanismTypeLocalToUnified[mechanism.GetType()]
+	if !ok {
+		typeValue = mechanism.GetType().String()
+	}
 	return &unified.Mechanism{
 		Cls:        cls.LOCAL,
-		Type:       mapMechanismTypeLocalToUnified[mechanism.GetType()],
+		Type:       typeValue,
 		Parameters: mechanism.GetParameters(),
 	}
 }
@@ -47,8 +53,17 @@ func MechanismUnifiedToLocal(mechanism *unified.Mechanism) *local.Mechanism {
 	if mechanism == nil {
 		return nil
 	}
+	typeValue, ok := mapMechanismTypeUnifiedToLocal[mechanism.GetType()]
+	if !ok {
+		mval, ok2 := local.MechanismType_value[mechanism.GetType()]
+		if !ok2 {
+			logrus.Errorf("Fatal, conversion to local mechanism is not possible %v", mechanism)
+			return nil
+		}
+		typeValue = local.MechanismType(mval)
+	}
 	return &local.Mechanism{
-		Type:       mapMechanismTypeUnifiedToLocal[mechanism.GetType()],
+		Type:       typeValue,
 		Parameters: mechanism.GetParameters(),
 	}
 }
@@ -72,9 +87,13 @@ func MechanismRemoteToUnified(mechanism *remote.Mechanism) *unified.Mechanism {
 	if mechanism == nil {
 		return nil
 	}
+	mechanismType, ok := mapMechanismTypeRemoteToUnified[mechanism.GetType()]
+	if !ok {
+		mechanismType = mechanism.GetType().String()
+	}
 	return &unified.Mechanism{
 		Cls:        cls.REMOTE,
-		Type:       mapMechanismTypeRemoteToUnified[mechanism.GetType()],
+		Type:       mechanismType,
 		Parameters: mechanism.GetParameters(),
 	}
 }
@@ -98,8 +117,17 @@ func MechanismUnifiedToRemote(mechanism *unified.Mechanism) *remote.Mechanism {
 	if mechanism == nil {
 		return nil
 	}
+	typeValue, ok := mapMechanismTypeUnifiedToRemote[mechanism.GetType()]
+	if !ok {
+		mval, ok2 := remote.MechanismType_value[mechanism.GetType()]
+		if !ok2 {
+			logrus.Errorf("Fatal, conversion to remote mechanism is not possible %v", mechanism)
+			return nil
+		}
+		typeValue = remote.MechanismType(mval)
+	}
 	return &remote.Mechanism{
-		Type:       mapMechanismTypeUnifiedToRemote[mechanism.GetType()],
+		Type:       typeValue,
 		Parameters: mechanism.GetParameters(),
 	}
 }
