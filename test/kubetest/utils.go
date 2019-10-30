@@ -36,6 +36,7 @@ import (
 	nsmd2 "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/networkservicemesh/networkservicemesh/sdk/prefix_pool"
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest/jaeger"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 )
 
@@ -120,7 +121,6 @@ func SetupNodesConfig(k8s *K8s, nodesCount int, timeout time.Duration, conf []*p
 			forwarderName := fmt.Sprintf("nsmd-forwarder-%s", node.Name)
 			var corePod *v1.Pod
 			var forwarderPod *v1.Pod
-			k8s.CreatePod(pods.Jaeger(node))
 			debug := false
 			if i >= len(conf) {
 				corePod = pods.NSMgrPod(nsmdName, node, k8s.GetK8sNamespace())
@@ -132,6 +132,11 @@ func SetupNodesConfig(k8s *K8s, nodesCount int, timeout time.Duration, conf []*p
 				}
 				corePod = pods.NSMgrPodWithConfig(nsmdName, node, conf[i])
 				forwarderPod = pods.ForwardingPlaneWithConfig(forwarderName, node, conf[i].ForwarderVariables, k8s.GetForwardingPlane())
+			}
+			if jaeger.ShouldStoreJaegerTraces() {
+				jaegerPod := k8s.CreatePod(pods.Jaeger(node))
+				//TODO: remove this env injection when dns problems with vpp-ageent forwarder will be solved
+				putOrUpdateEnvVar(&forwarderPod.Spec.Containers[0], jaeger.JaegerAgentHost.Name(), jaegerPod.Status.PodIP)
 			}
 			corePods, err := k8s.CreatePodsRaw(PodStartTimeout, true, corePod, forwarderPod)
 
@@ -167,6 +172,22 @@ func SetupNodesConfig(k8s *K8s, nodesCount int, timeout time.Duration, conf []*p
 	}
 	wg.Wait()
 	return confs, resultError
+}
+
+func putOrUpdateEnvVar(container *v1.Container, envName string, envValue string) {
+	for i := range container.Env {
+		env := &container.Env[i]
+		if env.Name == envName {
+			env.Value = envValue
+
+			return
+		}
+	}
+	container.Env = append(container.Env, v1.EnvVar{
+		Name:  envName,
+		Value: envValue,
+	})
+
 }
 
 func deployNSMgrAndForwarder(k8s *K8s, corePods []*v1.Pod, timeout time.Duration) (nsmd, forwarder *v1.Pod, err error) {

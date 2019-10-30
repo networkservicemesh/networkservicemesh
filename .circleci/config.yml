@@ -162,6 +162,7 @@ jobs:
             if [ "${CIRCLE_BRANCH}" == "master" ]; then
               export STORE_LOGS_IN_ANY_CASES=true
             fi
+            export STORE_JAEGER_TRACES=true
             pushd test
             CGO_ENABLED=0 GOOS=linux go build -o ../cloudtest ./cloudtest/cmd/cloudtest
             popd
@@ -196,6 +197,7 @@ jobs:
             export GOPROXY=https://proxy.golang.org,direct
             # resource_class xlarge has 8 core, multiple by 1.5 for hyperthreading for -j factor
             make -j 12 -O docker-push
+            docker pull jaegertracing/all-in-one:1.14.0
 
 # docker push
   docker-push-tag:

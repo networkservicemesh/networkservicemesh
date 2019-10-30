@@ -16,7 +16,6 @@ executions:
   - name: "Single cluster tests"
     env:
       - STORE_POD_LOGS_IN_FILES=true
-      - STORE_JAEGER_TRACES=true
       - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)
     tags:
       - basic
