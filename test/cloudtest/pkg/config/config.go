@@ -49,6 +49,7 @@ type ExecutionConfig struct {
 	OnFail          string   `yaml:"on_fail"`          // A script to execute against required cluster, called if task failed
 
 	ConcurrencyRetry int64 `yaml:"test-retry-count"` // A count of times, same test will be executed to find concurrency issues
+	TestsFound       int   `yaml:"-"`                // Number of tests found for the config
 }
 
 type RetestConfig struct {

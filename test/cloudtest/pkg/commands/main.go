@@ -229,16 +229,16 @@ func PerformTesting(config *config.CloudTestConfig, factory k8s.ValidationFactor
 }
 
 func performTestingContext(ctx *executionContext) (*reporting.JUnitFile, error) {
-	// Create cluster instance handles
-	if err := ctx.createClusters(); err != nil {
-		return nil, err
-	}
 	cleanupCtx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	go ctx.cleanupClusters(cleanupCtx)
 	// Collect tests
 	if err := ctx.findTests(); err != nil {
 		logrus.Errorf("Error finding tests %v", err)
+		return nil, err
+	}
+	// Create cluster instance handles
+	if err := ctx.createClusters(); err != nil {
 		return nil, err
 	}
 	// We need to be sure all clusters will be deleted on end of execution.
@@ -1276,7 +1276,21 @@ func (ctx *executionContext) shouldEnableCluster(cl *config.ClusterProviderConfi
 		return false, 0
 	}
 
+	// find out if the cluster is required for found tests
+	cl.Enabled = false
 	testCount := 0
+	for _, ex := range ctx.cloudTestConfig.Executions {
+		// accept empty Kind to make unit tests work
+		kindMatches := ex.Kind == "" || ex.Kind == cl.Kind
+		mightBeUsed := len(ex.ClusterSelector) == 0 || utils.Contains(ex.ClusterSelector, cl.Name)
+		if kindMatches && mightBeUsed && ex.TestsFound > 0 {
+			cl.Enabled = true
+			testCount = testCount + ex.TestsFound
+		}
+	}
+	if !cl.Enabled {
+		logrus.Infof("No tests found for cluster config '%v', skipping", cl.Name)
+	}
 
 	return cl.Enabled, testCount
 }
@@ -1284,6 +1298,7 @@ func (ctx *executionContext) shouldEnableCluster(cl *config.ClusterProviderConfi
 func (ctx *executionContext) findTests() error {
 	logrus.Infof("Finding tests")
 	for _, exec := range ctx.cloudTestConfig.Executions {
+		testCount := len(ctx.tests)
 		if exec.Name == "" {
 			return errors.New("execution name should be specified")
 		}
@@ -1303,6 +1318,7 @@ func (ctx *executionContext) findTests() error {
 		} else {
 			return errors.Errorf("unknown executon kind %v", exec.Kind)
 		}
+		exec.TestsFound = len(ctx.tests) - testCount
 	}
 	// If we have execution without tags, we need to remove all tests from it from tagged executions.
 	logrus.Infof("Total tests found: %v", len(ctx.tests))
