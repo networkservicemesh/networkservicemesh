@@ -109,6 +109,7 @@ func SetupNodesConfig(k8s *K8s, nodesCount int, timeout time.Duration, conf []*p
 	if jaeger.ShouldStoreJaegerTraces() {
 		jaegerPod = k8s.CreatePod(pods.Jaeger())
 		k8s.WaitLogsContains(jaegerPod, jaegerPod.Spec.Containers[0].Name, "Starting HTTP server", timeout)
+		jaeger.JaegerAgentHost.Set(jaegerPod.Status.PodIP)
 	}
 	var wg sync.WaitGroup
 	confs := make([]*NodeConf, nodesCount)
@@ -136,11 +137,6 @@ func SetupNodesConfig(k8s *K8s, nodesCount int, timeout time.Duration, conf []*p
 				corePod = pods.NSMgrPodWithConfig(nsmdName, node, conf[i])
 				forwarderPod = pods.ForwardingPlaneWithConfig(forwarderName, node, conf[i].ForwarderVariables, k8s.GetForwardingPlane())
 			}
-			if jaegerPod != nil {
-				//TODO: remove this env injection when dns problems with vpp-ageent forwarder will be solved
-				putOrUpdateEnvVar(&forwarderPod.Spec.Containers[0], jaeger.JaegerAgentHost.Name(), jaegerPod.Status.PodIP)
-			}
-
 			corePods, err := k8s.CreatePodsRaw(PodStartTimeout, true, corePod, forwarderPod)
 
 			if err != nil {
@@ -175,22 +171,6 @@ func SetupNodesConfig(k8s *K8s, nodesCount int, timeout time.Duration, conf []*p
 	}
 	wg.Wait()
 	return confs, resultError
-}
-
-func putOrUpdateEnvVar(container *v1.Container, envName string, envValue string) {
-	for i := range container.Env {
-		env := &container.Env[i]
-		if env.Name == envName {
-			env.Value = envValue
-
-			return
-		}
-	}
-	container.Env = append(container.Env, v1.EnvVar{
-		Name:  envName,
-		Value: envValue,
-	})
-
 }
 
 func deployNSMgrAndForwarder(k8s *K8s, corePods []*v1.Pod, timeout time.Duration) (nsmd, forwarder *v1.Pod, err error) {

@@ -35,12 +35,6 @@ const (
 	JaegerAgentHost utils.EnvVar = "JAEGER_AGENT_HOST"
 )
 
-var jaegerEnv []v1.EnvVar
-
-func init() {
-	jaegerEnv = processUserEnv()
-}
-
 //ShouldStoreJaegerTraces means store jaeger traces as files
 func ShouldStoreJaegerTraces() bool {
 	return StoreJaegerTraces.GetBooleanOrDefault(false) &&
@@ -63,10 +57,6 @@ func DefaultEnvValues() map[string]string {
 
 //Env converts user's jaeger env to []v1.EnvVar
 func Env() []v1.EnvVar {
-	return jaegerEnv
-}
-
-func processUserEnv() []v1.EnvVar {
 	envs := os.Environ()
 	envMap := map[string]string{}
 	defaultEnvs := DefaultEnvValues()
