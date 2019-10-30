@@ -29,3 +29,9 @@ brew cask install virtualbox
 ```bash
 brew cask install vagrant
 ```
+
+## Protobuf code generation tools.
+
+```bash
+./scripts/prepare_generate.sh
+```

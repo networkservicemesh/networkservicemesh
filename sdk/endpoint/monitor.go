@@ -18,33 +18,32 @@ package endpoint
 import (
 	"context"
 
+	connectionMonitor "github.com/networkservicemesh/networkservicemesh/sdk/monitor/connectionmonitor"
+
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/pkg/errors"
-
-	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	unified "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
-	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/local"
 )
 
 // MonitorEndpoint is a monitoring composite
 type MonitorEndpoint struct {
-	monitorConnectionServer local.MonitorServer
+	monitorConnectionServer connectionMonitor.MonitorServer
 }
 
 // Init will be called upon NSM Endpoint instantiation with the proper context
 func (mce *MonitorEndpoint) Init(context *InitContext) error {
 	grpcServer := context.GrpcServer
-	unified.RegisterMonitorConnectionServer(grpcServer, compat.NewMonitorConnectionServerAdapter(nil, mce.monitorConnectionServer))
+	unified.RegisterMonitorConnectionServer(grpcServer, mce.monitorConnectionServer)
 	return nil
 }
 
 // Request implements the request handler
 // Consumes from ctx context.Context:
-//     MonitorServer
+//     ConnectionMonitor
 //	   Next
 func (mce *MonitorEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 	if Next(ctx) != nil {
@@ -68,7 +67,7 @@ func (mce *MonitorEndpoint) Request(ctx context.Context, request *networkservice
 // Close implements the close handler
 // Request implements the request handler
 // Consumes from ctx context.Context:
-//     MonitorServer
+//     ConnectionMonitor
 //	   Next
 func (mce *MonitorEndpoint) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
 	Log(ctx).Infof("Monitor DeleteConnection: %v", connection)
@@ -97,7 +96,7 @@ func NewMonitorEndpoint(configuration *common.NSConfiguration) *MonitorEndpoint 
 	}
 
 	self := &MonitorEndpoint{
-		monitorConnectionServer: local.NewMonitorServer(),
+		monitorConnectionServer: connectionMonitor.NewMonitorServer("EndpointConnection"),
 	}
 
 	return self

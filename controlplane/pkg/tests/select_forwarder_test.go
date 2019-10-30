@@ -4,13 +4,13 @@ import (
 	"context"
 	"testing"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/memif"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
-	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
 
 	. "github.com/onsi/gomega"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
@@ -101,7 +101,7 @@ func TestSelectForwarder(t *testing.T) {
 				},
 			},
 		}
-		nsmResponse, err := nsmClient.Request(context.Background(), compat.NetworkServiceRequestUnifiedToLocal(request))
+		nsmResponse, err := nsmClient.Request(context.Background(), request)
 		g.Expect(err).To(BeNil())
 		g.Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
 	})
@@ -129,7 +129,7 @@ func TestSelectForwarder(t *testing.T) {
 			},
 		}
 
-		nsmResponse, err := nsmClient.Request(context.Background(), compat.NetworkServiceRequestUnifiedToLocal(request))
+		nsmResponse, err := nsmClient.Request(context.Background(), request)
 		g.Expect(err).To(BeNil())
 		g.Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
 	})
@@ -157,7 +157,7 @@ func TestSelectForwarder(t *testing.T) {
 			},
 		}
 
-		nsmResponse, err := nsmClient.Request(context.Background(), compat.NetworkServiceRequestUnifiedToLocal(request))
+		nsmResponse, err := nsmClient.Request(context.Background(), request)
 		g.Expect(err).NotTo(BeNil())
 		g.Expect(nsmResponse).To(BeNil())
 		g.Expect(err.Error()).To(ContainSubstring("no appropriate forwarders found"))

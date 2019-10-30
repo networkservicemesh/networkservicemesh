@@ -11,8 +11,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	local "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
@@ -25,7 +24,7 @@ type nseManager struct {
 	properties      *nsm_properties.Properties
 }
 
-func (nsem *nseManager) GetEndpoint(ctx context.Context, requestConnection connection.Connection, ignoreEndpoints map[registry.EndpointNSMName]*registry.NSERegistration) (*registry.NSERegistration, error) {
+func (nsem *nseManager) GetEndpoint(ctx context.Context, requestConnection *connection.Connection, ignoreEndpoints map[registry.EndpointNSMName]*registry.NSERegistration) (*registry.NSERegistration, error) {
 	span := spanhelper.FromContext(ctx, "GetEndpoint")
 	defer span.Finish()
 	span.LogObject("request", requestConnection)
@@ -67,7 +66,7 @@ func (nsem *nseManager) GetEndpoint(ctx context.Context, requestConnection conne
 		return nil, err
 	}
 
-	endpoint := nsem.model.GetSelector().SelectEndpoint(requestConnection.(*local.Connection), endpointResponse.GetNetworkService(), endpoints)
+	endpoint := nsem.model.GetSelector().SelectEndpoint(requestConnection, endpointResponse.GetNetworkService(), endpoints)
 	if endpoint == nil {
 		err = errors.Errorf("failed to find NSE for NetworkService %s. Checked: %d of total NSEs: %d",
 			requestConnection.GetNetworkService(), len(ignoreEndpoints), len(endpoints))

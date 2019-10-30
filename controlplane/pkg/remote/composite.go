@@ -17,11 +17,13 @@ package remote
 import (
 	"context"
 
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
+
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/opentracing/opentracing-go"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 )
 
@@ -36,8 +38,9 @@ func (cns *CompositeNetworkService) Request(ctx context.Context, request *networ
 		return request.Connection, nil
 	}
 	ctx = WithNext(ctx, &nextEndpoint{composite: cns, index: 0})
+
 	if opentracing.IsGlobalTracerRegistered() {
-		ctx = common.WithOriginalSpan(ctx, opentracing.SpanFromContext(ctx))
+		ctx = common.WithOriginalSpan(ctx, spanhelper.GetSpanHelper(ctx))
 	}
 	return cns.services[0].Request(ctx, request)
 }

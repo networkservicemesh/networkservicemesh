@@ -17,28 +17,22 @@ package remote
 import (
 	"context"
 
-	unified_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
-
-	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
-
 	"github.com/pkg/errors"
 
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
+	mechanismCommon "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
+	nsmProperties "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/sirupsen/logrus"
 
-	unified "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	localconnection "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
-	unifiedconnection "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
-	unifiednetworkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	pluginapi "github.com/networkservicemesh/networkservicemesh/controlplane/api/plugins"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
-	unifiednsm "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/plugins"
@@ -46,8 +40,8 @@ import (
 
 // ConnectionService makes basic Mechanism selection for the incoming connection
 type endpointService struct {
-	nseManager     unifiednsm.NetworkServiceEndpointManager
-	properties     *nsm.Properties
+	nseManager     nsm.NetworkServiceEndpointManager
+	properties     *nsmProperties.Properties
 	pluginRegistry plugins.PluginRegistry
 	model          model.Model
 }
@@ -70,7 +64,7 @@ func (cce *endpointService) closeEndpoint(ctx context.Context, cc *model.ClientC
 
 	if client != nil {
 		if ld := cc.Xcon.GetLocalDestination(); ld != nil {
-			return client.Close(ctx, compat.ConnectionUnifiedToNSM(ld))
+			return client.Close(ctx, ld)
 		}
 		err := client.Cleanup()
 		span.LogError(err)
@@ -142,82 +136,43 @@ func (cce *endpointService) Close(ctx context.Context, connection *connection.Co
 	return ProcessClose(ctx, connection)
 }
 
-func (cce *endpointService) createLocalNSERequest(endpoint *registry.NSERegistration, dp *model.Forwarder, requestConn *connection.Connection, clientConnection *model.ClientConnection) unifiednetworkservice.Request {
+func (cce *endpointService) createLocalNSERequest(endpoint *registry.NSERegistration, dp *model.Forwarder, requestConn *connection.Connection, clientConnection *model.ClientConnection) *networkservice.NetworkServiceRequest {
 	// We need to obtain parameters for local mechanism
-	localM := append([]*unified.Mechanism{}, dp.LocalMechanisms...)
+	localM := append([]*connection.Mechanism{}, dp.LocalMechanisms...)
 
 	if clientConnection.ConnectionState == model.ClientConnectionHealing && endpoint == clientConnection.Endpoint {
 		if localDst := clientConnection.Xcon.GetLocalDestination(); localDst != nil {
-			return compat.NetworkServiceRequestUnifiedToLocal(&unified_networkservice.NetworkServiceRequest{
-				Connection: &unified.Connection{
-					Id:             localDst.GetId(),
-					NetworkService: localDst.NetworkService,
-					Context:        localDst.GetContext(),
-					Labels:         localDst.GetLabels(),
+			return &networkservice.NetworkServiceRequest{
+				Connection: &connection.Connection{
+					Id:                     localDst.GetId(),
+					NetworkService:         localDst.NetworkService,
+					Context:                localDst.GetContext(),
+					Labels:                 localDst.GetLabels(),
+					NetworkServiceManagers: []string{cce.model.GetNsm().GetName()},
 				},
 				MechanismPreferences: localM,
-			})
+			}
 		}
 	}
 
-	return compat.NetworkServiceRequestUnifiedToLocal(&unified_networkservice.NetworkServiceRequest{
-		Connection: &unified.Connection{
-			Id:             cce.model.ConnectionID(), //TODO: NSE should assign this ID.
-			NetworkService: endpoint.GetNetworkService().GetName(),
-			Context:        requestConn.GetContext(),
-			Labels:         requestConn.GetLabels(),
+	return &networkservice.NetworkServiceRequest{
+		Connection: &connection.Connection{
+			Id:                     cce.model.ConnectionID(), //NSMgr assign ID for local Endpoint connections
+			NetworkService:         endpoint.GetNetworkService().GetName(),
+			NetworkServiceManagers: []string{cce.model.GetNsm().GetName()},
+			Context:                requestConn.GetContext(),
+			Labels:                 requestConn.GetLabels(),
 		},
 		MechanismPreferences: localM,
-	})
-}
-
-func (cce *endpointService) createRemoteNSMRequest(endpoint *registry.NSERegistration, requestConn *connection.Connection, dp *model.Forwarder, clientConnection *model.ClientConnection) unifiednetworkservice.Request {
-	// We need to obtain parameters for remote mechanism
-	remoteM := append([]*unified.Mechanism{}, dp.RemoteMechanisms...)
-
-	// Try Heal only if endpoint are same as for existing connection.
-	if clientConnection.ConnectionState == model.ClientConnectionHealing && endpoint == clientConnection.Endpoint {
-		if remoteDst := clientConnection.Xcon.GetRemoteDestination(); remoteDst != nil {
-			return compat.NetworkServiceRequestUnifiedToLocal(&unified_networkservice.NetworkServiceRequest{
-				Connection: &unified.Connection{
-					Id:             remoteDst.GetId(),
-					NetworkService: remoteDst.NetworkService,
-					Context:        remoteDst.GetContext(),
-					Labels:         remoteDst.GetLabels(),
-					NetworkServiceManagers: []string{
-						cce.model.GetNsm().GetName(),                  // src
-						endpoint.GetNetworkServiceManager().GetName(), // dst
-					},
-					NetworkServiceEndpointName: endpoint.GetNetworkServiceEndpoint().GetName(),
-				},
-				MechanismPreferences: remoteM,
-			})
-		}
 	}
-
-	return compat.NetworkServiceRequestUnifiedToLocal(&unified_networkservice.NetworkServiceRequest{
-		Connection: &unified.Connection{
-			Id:             cce.model.ConnectionID(),
-			NetworkService: requestConn.GetNetworkService(),
-			Context:        requestConn.GetContext(),
-			Labels:         requestConn.GetLabels(),
-			NetworkServiceManagers: []string{
-				cce.model.GetNsm().GetName(),                  //src
-				endpoint.GetNetworkServiceManager().GetName(), // dst
-			},
-			NetworkServiceEndpointName: endpoint.GetNetworkServiceEndpoint().GetName(),
-		},
-		MechanismPreferences: remoteM,
-	})
 }
 
-func (cce *endpointService) validateConnection(ctx context.Context, conn unifiedconnection.Connection) error {
+func (cce *endpointService) validateConnection(ctx context.Context, conn *connection.Connection) error {
 	if err := conn.IsComplete(); err != nil {
 		return err
 	}
 
-	wrapper := pluginapi.NewConnectionWrapper(conn)
-	result, err := cce.pluginRegistry.GetConnectionPluginManager().ValidateConnection(ctx, wrapper)
+	result, err := cce.pluginRegistry.GetConnectionPluginManager().ValidateConnection(ctx, conn)
 	if err != nil {
 		return err
 	}
@@ -229,7 +184,7 @@ func (cce *endpointService) validateConnection(ctx context.Context, conn unified
 	return nil
 }
 
-func (cce *endpointService) updateConnectionContext(ctx context.Context, source *connection.Connection, destination unifiedconnection.Connection) error {
+func (cce *endpointService) updateConnectionContext(ctx context.Context, source, destination *connection.Connection) error {
 	if err := cce.validateConnection(ctx, destination); err != nil {
 		return err
 	}
@@ -241,19 +196,19 @@ func (cce *endpointService) updateConnectionContext(ctx context.Context, source 
 	return nil
 }
 
-func (cce *endpointService) updateConnectionParameters(nseConn unifiedconnection.Connection, endpoint *registry.NSERegistration) {
+func (cce *endpointService) updateConnectionParameters(nseConn *connection.Connection, endpoint *registry.NSERegistration) {
 	if cce.nseManager.IsLocalEndpoint(endpoint) {
 		modelEp := cce.model.GetEndpoint(endpoint.GetNetworkServiceEndpoint().GetName())
 		if modelEp != nil { // In case of tests this could be empty
-			nseConn.GetConnectionMechanism().GetParameters()[localconnection.Workspace] = modelEp.Workspace
-			nseConn.GetConnectionMechanism().GetParameters()[localconnection.WorkspaceNSEName] = modelEp.Endpoint.GetNetworkServiceEndpoint().GetName()
+			nseConn.Mechanism.GetParameters()[mechanismCommon.Workspace] = modelEp.Workspace
+			nseConn.Mechanism.GetParameters()[kernel.WorkspaceNSEName] = modelEp.Endpoint.GetNetworkServiceEndpoint().GetName()
 		}
-		logrus.Infof("NSM:(7.2.6.2.4) Update Local NSE connection parameters: %v", nseConn.GetConnectionMechanism())
+		logrus.Infof("NSM:(7.2.6.2.4) Update Local NSE connection parameters: %v", nseConn.Mechanism)
 	}
 }
 
 // NewEndpointService -  creates a service to connect to endpoint
-func NewEndpointService(nseManager unifiednsm.NetworkServiceEndpointManager, properties *nsm.Properties, mdl model.Model, pluginRegistry plugins.PluginRegistry) networkservice.NetworkServiceServer {
+func NewEndpointService(nseManager nsm.NetworkServiceEndpointManager, properties *nsmProperties.Properties, mdl model.Model, pluginRegistry plugins.PluginRegistry) networkservice.NetworkServiceServer {
 	return &endpointService{
 		nseManager:     nseManager,
 		properties:     properties,

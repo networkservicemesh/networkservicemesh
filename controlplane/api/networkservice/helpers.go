@@ -7,21 +7,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 )
 
-// NewRequest creates a new remote.NetworkServiceRequest
-func NewRequest(conn *connection.Connection, mechanismPreferences []*connection.Mechanism) *NetworkServiceRequest {
-	ns := &NetworkServiceRequest{}
-
-	ns.SetRequestConnection(conn)
-	ns.SetRequestMechanismPreferences(mechanismPreferences)
-
-	return ns
-}
-
-// IsRemote returns if request is remote
-func (ns *NetworkServiceRequest) IsRemote() bool {
-	return true
-}
-
 // Clone clones request
 func (ns *NetworkServiceRequest) Clone() *NetworkServiceRequest {
 	return proto.Clone(ns).(*NetworkServiceRequest)

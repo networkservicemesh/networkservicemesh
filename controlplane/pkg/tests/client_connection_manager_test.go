@@ -5,13 +5,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
-	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
 
 	"github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 
-	unified "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/services"
@@ -22,17 +23,15 @@ func newConnection() *model.ClientConnection {
 		ConnectionID:    "1",
 		ConnectionState: model.ClientConnectionHealing,
 		Xcon: crossconnect.NewCrossConnect("1", "ip",
-			&unified.Connection{
+			&connection.Connection{
 				Id: "1",
 				NetworkServiceManagers: []string{
 					"local_nsm",
 				},
 			},
-			&unified.Connection{
-				Id: "-",
-				NetworkServiceManagers: []string{
-					"local_nsm", "remote_nsm",
-				},
+			&connection.Connection{
+				Id:                     "-",
+				NetworkServiceManagers: []string{"local_nsm", "remote_nsm"},
 			}),
 	}
 }
@@ -169,14 +168,14 @@ func TestGetClientConnectionByXCon(t *testing.T) {
 		ConnectionID:    "5",
 		ConnectionState: model.ClientConnectionHealing,
 		Xcon: crossconnect.NewCrossConnect("5", "IP",
-			&unified.Connection{
+			&connection.Connection{
 				Id:             "2",
 				NetworkService: "s2",
 				NetworkServiceManagers: []string{
 					"local_nsm",
 				},
 			},
-			&unified.Connection{
+			&connection.Connection{
 				Id: "3",
 				NetworkServiceManagers: []string{
 					"local_nsm", "remote_nsm",
@@ -201,19 +200,19 @@ func createConnections(mdl model.Model) {
 	mdl.AddClientConnection(context.Background(), &model.ClientConnection{
 		ConnectionID:    "2",
 		ConnectionState: model.ClientConnectionHealing,
-		Request: &remote_networkservice.NetworkServiceRequest{
+		Request: &networkservice.NetworkServiceRequest{
 			Connection:           nil,
 			MechanismPreferences: nil,
 		},
 		Xcon: crossconnect.NewCrossConnect("2", "ip",
-			&unified.Connection{
+			&connection.Connection{
 				Id:             "2",
 				NetworkService: "s2",
 				NetworkServiceManagers: []string{
 					"local_nsm",
 				},
 			},
-			&unified.Connection{
+			&connection.Connection{
 				Id: "3",
 				NetworkServiceManagers: []string{
 					"local_nsm", "remote_nsm",
@@ -223,19 +222,19 @@ func createConnections(mdl model.Model) {
 	mdl.AddClientConnection(context.Background(), &model.ClientConnection{
 		ConnectionID:    "3",
 		ConnectionState: model.ClientConnectionHealing,
-		Request: &remote_networkservice.NetworkServiceRequest{
+		Request: &networkservice.NetworkServiceRequest{
 			Connection:           nil,
 			MechanismPreferences: nil,
 		},
 		Xcon: crossconnect.NewCrossConnect("3", "ip",
-			&unified.Connection{
+			&connection.Connection{
 				Id:             "3",
 				NetworkService: "s2",
 				NetworkServiceManagers: []string{
 					"nsm1", "remote_nsm",
 				},
 			},
-			&unified.Connection{
+			&connection.Connection{
 				Id: "4",
 				NetworkServiceManagers: []string{
 					"local_nsm",

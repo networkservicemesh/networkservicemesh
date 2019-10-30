@@ -3,6 +3,9 @@ package converter
 import (
 	"os"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
+
 	"github.com/ligato/vpp-agent/api/configurator"
 	"github.com/ligato/vpp-agent/api/models/linux"
 	linux_interfaces "github.com/ligato/vpp-agent/api/models/linux/interfaces"
@@ -13,8 +16,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 )
 
 const ForwarderAllowVHost = "FORWARDER_ALLOW_VHOST" // To disallow VHOST please pass "false" into this env variable.
@@ -38,7 +41,7 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 	if err := c.IsComplete(); err != nil {
 		return rv, err
 	}
-	if c.GetMechanism().GetType() != connection.MechanismType_KERNEL_INTERFACE {
+	if c.GetMechanism().GetType() != kernel.MECHANISM {
 		return rv, errors.Errorf("KernelConnectionConverter cannot be used on Connection.Mechanism.Type %s", c.GetMechanism().GetType())
 	}
 	if rv == nil {
@@ -53,7 +56,7 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 		rv.LinuxConfig = &linux.ConfigData{}
 	}
 
-	m := c.GetMechanism()
+	m := kernel.ToMechanism(c.GetMechanism())
 	filepath, err := m.NetNsFileName()
 	if err != nil && connect {
 		return nil, err
@@ -66,7 +69,7 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 		ipAddresses = []string{c.Connection.GetContext().GetIpContext().GetSrcIpAddr()}
 	}
 
-	logrus.Infof("m.GetParameters()[%s]: %s", connection.InterfaceNameKey, m.GetParameters()[connection.InterfaceNameKey])
+	logrus.Infof("m.GetParameters()[%s]: %s", common.InterfaceNameKey, m.GetParameters()[common.InterfaceNameKey])
 
 	// If we have access to /dev/vhost-net, we can use tapv2.  Otherwise fall back to
 	// veth pairs
@@ -93,7 +96,7 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 			Type:        linux_interfaces.Interface_TAP_TO_VPP,
 			Enabled:     true,
 			IpAddresses: ipAddresses,
-			HostIfName:  m.GetParameters()[connection.InterfaceNameKey],
+			HostIfName:  m.GetParameters()[common.InterfaceNameKey],
 			Namespace: &linux_namespace.NetNamespace{
 				Type:      linux_namespace.NetNamespace_FD,
 				Reference: filepath,
@@ -122,7 +125,7 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 			Type:        linux_interfaces.Interface_VETH,
 			Enabled:     true,
 			IpAddresses: ipAddresses,
-			HostIfName:  m.GetParameters()[connection.InterfaceNameKey],
+			HostIfName:  m.GetParameters()[common.InterfaceNameKey],
 			Namespace: &linux_namespace.NetNamespace{
 				Type:      linux_namespace.NetNamespace_FD,
 				Reference: filepath,

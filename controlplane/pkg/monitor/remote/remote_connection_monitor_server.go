@@ -1,10 +1,10 @@
 package remote
 
 import (
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/services"
 	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
-	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/remote"
+	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/connectionmonitor"
 )
 
 // MonitorServer is a monitor.Server for remote/connection GRPC API
@@ -14,14 +14,14 @@ type MonitorServer interface {
 }
 
 type monitorServer struct {
-	remote.MonitorServer
+	connectionmonitor.MonitorServer
 	manager *services.ClientConnectionManager
 }
 
 // NewMonitorServer creates a new MonitorServer
 func NewMonitorServer(manager *services.ClientConnectionManager) MonitorServer {
 	rv := &monitorServer{
-		MonitorServer: remote.NewMonitorServer(),
+		MonitorServer: connectionmonitor.NewMonitorServer("RemoteConnection"),
 		manager:       manager,
 	}
 	return rv
@@ -31,7 +31,7 @@ func NewMonitorServer(manager *services.ClientConnectionManager) MonitorServer {
 func (s *monitorServer) MonitorConnections(selector *connection.MonitorScopeSelector, recipient connection.MonitorConnection_MonitorConnectionsServer) error {
 	err := s.MonitorServer.MonitorConnections(selector, recipient)
 	if s.manager != nil {
-		s.manager.UpdateRemoteMonitorDone(selector.NetworkServiceManagerName)
+		s.manager.UpdateRemoteMonitorDone(selector.GetNetworkServiceManagers())
 	}
 	return err
 }

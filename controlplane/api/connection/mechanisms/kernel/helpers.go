@@ -34,6 +34,7 @@ type Mechanism interface {
 	NetNsFileName() (string, error)
 	// GetNetNsInode - return net ns inode
 	GetNetNsInode() string
+	GetParameters() map[string]string
 }
 
 type mechanism struct {
@@ -48,6 +49,13 @@ func ToMechanism(m *connection.Mechanism) Mechanism {
 		}
 	}
 	return nil
+}
+
+func (m *mechanism) GetParameters() map[string]string {
+	if m == nil {
+		return nil
+	}
+	return m.Parameters
 }
 
 func (m *mechanism) GetNetNsInode() string {

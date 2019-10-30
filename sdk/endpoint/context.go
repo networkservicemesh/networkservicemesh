@@ -3,7 +3,7 @@ package endpoint
 import (
 	"context"
 
-	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/local"
+	connectionMonitor "github.com/networkservicemesh/networkservicemesh/sdk/monitor/connectionmonitor"
 
 	"github.com/sirupsen/logrus"
 
@@ -93,7 +93,7 @@ func Log(ctx context.Context) logrus.FieldLogger {
 //   using Context.Value(...) and returns the result.
 //   Note: any previously existing MonitorServer will be overwritten.
 //
-func WithMonitorServer(parent context.Context, monitorServer local.MonitorServer) context.Context {
+func WithMonitorServer(parent context.Context, monitorServer connectionMonitor.MonitorServer) context.Context {
 	if parent == nil {
 		parent = context.Background()
 	}
@@ -104,10 +104,10 @@ func WithMonitorServer(parent context.Context, monitorServer local.MonitorServer
 //    Returns a MonitorServer from:
 //      ctx context.Context
 //    If any is present, otherwise nil
-func MonitorServer(ctx context.Context) local.MonitorServer {
+func MonitorServer(ctx context.Context) connectionMonitor.MonitorServer {
 	value := ctx.Value(monitorServerKey)
 	if value == nil {
 		return nil
 	}
-	return value.(local.MonitorServer)
+	return value.(connectionMonitor.MonitorServer)
 }
