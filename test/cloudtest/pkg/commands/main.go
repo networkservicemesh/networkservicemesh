@@ -40,6 +40,8 @@ const (
 // Arguments - command line arguments
 type Arguments struct {
 	clusters        []string // A list of enabled clusters from configuration.
+	kinds           []string // A list of enabled cluster kinds from configuration.
+	tags            []string // Run tests with given tag(s) only
 	providerConfig  string   // A folder to start scaning for tests inside
 	count           int      // Limit number of tests to be run per every cloud
 	instanceOptions providers.InstanceOptions
@@ -161,6 +163,13 @@ func CloudTestRun(cmd *cloudTestCmd) {
 				logrus.Warningf("Overwriting non-empty 'only-run' on execution '%s'", e.Name)
 			}
 			e.OnlyRun = testConfig.OnlyRun
+		}
+	}
+
+	if len(cmd.cmdArguments.tags) > 0 {
+		logrus.Infof("Imposing top-level 'tags' to all executions: %v", cmd.cmdArguments.tags)
+		for _, e := range testConfig.Executions {
+			e.Tags = cmd.cmdArguments.tags
 		}
 	}
 
@@ -1256,6 +1265,12 @@ func (ctx *executionContext) shouldEnableCluster(cl *config.ClusterProviderConfi
 		logrus.Infof("Disabling cluster config by cluster filter: %v", cl.Name)
 		return false, 0
 	}
+	cl.Enabled = len(ctx.arguments.kinds) == 0 || utils.Contains(ctx.arguments.kinds, cl.Kind)
+	if !cl.Enabled {
+		logrus.Infof("Disabling cluster config by kind filter: %v", cl.Name)
+		return false, 0
+	}
+
 	testCount := 0
 
 	return cl.Enabled, testCount
@@ -1307,7 +1322,7 @@ func (ctx *executionContext) findShellTest(exec *config.ExecutionConfig) []*mode
 
 func (ctx *executionContext) findGoTest(executionConfig *config.ExecutionConfig) ([]*model.TestEntry, error) {
 	st := time.Now()
-	logrus.Infof("Starting finding tests by tags %v", executionConfig.Tags)
+	logrus.Infof("Finding Go tests by tags %v for '%s'...", executionConfig.Tags, executionConfig.Name)
 	execTests, err := model.GetTestConfiguration(ctx.manager, executionConfig.PackageRoot, executionConfig.Tags)
 	if err != nil {
 		logrus.Errorf("Failed during test lookup %v", err)
@@ -1577,6 +1592,10 @@ func initCmd(rootCmd *cloudTestCmd) {
 		"config", "", "", "Config file, default="+defaultConfigFile)
 	rootCmd.Flags().StringSliceVarP(&rootCmd.cmdArguments.clusters,
 		"cluster", "c", []string{}, "Enable only specified cluster config(s)")
+	rootCmd.Flags().StringSliceVarP(&rootCmd.cmdArguments.kinds,
+		"kind", "k", []string{}, "Enable only specified cluster kind(s)")
+	rootCmd.Flags().StringSliceVarP(&rootCmd.cmdArguments.tags,
+		"tags", "t", []string{}, "Run tests with given tag(s) only")
 	rootCmd.Flags().IntVarP(&rootCmd.cmdArguments.count,
 		"count", "", -1, "Execute only count of tests")
 
