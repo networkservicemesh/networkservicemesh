@@ -36,6 +36,7 @@ type ARPEntry struct {
 // EgressInterfaceType describes the info about the egress interface used for tunneling
 type EgressInterfaceType interface {
 	SrcIPNet() *net.IPNet
+	SrcIPV6Net() *net.IPNet
 	DefaultGateway() *net.IP
 	Interface() *net.Interface
 	Name() string
@@ -47,6 +48,7 @@ type EgressInterfaceType interface {
 type egressInterface struct {
 	EgressInterfaceType
 	srcNet            *net.IPNet
+	srcV6Net          *net.IPNet
 	iface             *net.Interface
 	defaultGateway    net.IP
 	outgoingInterface string
@@ -169,12 +171,32 @@ func NewEgressInterface(srcIP net.IP) (EgressInterfaceType, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		var v6 *net.IPNet
+		for _, addr := range addrs {
+			switch v := addr.(type) {
+			case *net.IPNet:
+				if strings.Contains(v.String(), ":") {
+					v6 = v
+				}
+			}
+		}
+
 		for _, addr := range addrs {
 			switch v := addr.(type) {
 			case *net.IPNet:
 				if v.IP.Equal(srcIP) {
+					if v6 == nil {
+						v6 = &net.IPNet{}
+						v6.IP = v.IP.To16()
+					}
+
+					v6.IP[0] = 0xfd
+					v6.IP[1] = 0x25
+
 					return &egressInterface{
 						srcNet:            v,
+						srcV6Net:          v6,
 						iface:             &iface,
 						defaultGateway:    gw,
 						outgoingInterface: outgoingInterface,
@@ -194,6 +216,13 @@ func (e *egressInterface) SrcIPNet() *net.IPNet {
 		return nil
 	}
 	return e.srcNet
+}
+
+func (e *egressInterface) SrcIPV6Net() *net.IPNet {
+	if e == nil {
+		return nil
+	}
+	return e.srcV6Net
 }
 
 func (e *egressInterface) Interface() *net.Interface {

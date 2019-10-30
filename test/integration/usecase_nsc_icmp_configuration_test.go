@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
+
 	. "github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
 
@@ -19,16 +21,25 @@ func TestNSCAndICMPLocal(t *testing.T) {
 		return
 	}
 
-	testNSCAndICMP(t, 1, false, false)
+	testNSCAndICMP(t, 1, false, false, "")
 }
 
-func TestNSCAndICMPRemote(t *testing.T) {
+func TestNSCAndICMPRemoteVXLAN(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
 	}
 
-	testNSCAndICMP(t, 2, false, false)
+	testNSCAndICMP(t, 2, false, false, "VXLAN")
+}
+
+func TestNSCAndICMPRemoteSRv6(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+
+	testNSCAndICMP(t, 2, false, false, "SRV6")
 }
 
 func TestNSCAndICMPWebhookLocal(t *testing.T) {
@@ -37,16 +48,25 @@ func TestNSCAndICMPWebhookLocal(t *testing.T) {
 		return
 	}
 
-	testNSCAndICMP(t, 1, true, false)
+	testNSCAndICMP(t, 1, true, false, "")
 }
 
-func TestNSCAndICMPWebhookRemote(t *testing.T) {
+func TestNSCAndICMPWebhookRemoteVXLAN(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
 	}
 
-	testNSCAndICMP(t, 2, true, false)
+	testNSCAndICMP(t, 2, true, false, "SRV6")
+}
+
+func TestNSCAndICMPWebhookRemoteSRv6(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+
+	testNSCAndICMP(t, 2, true, false, "SRV6")
 }
 
 func TestNSCAndICMPLocalVeth(t *testing.T) {
@@ -55,16 +75,25 @@ func TestNSCAndICMPLocalVeth(t *testing.T) {
 		return
 	}
 
-	testNSCAndICMP(t, 1, false, true)
+	testNSCAndICMP(t, 1, false, true, "")
 }
 
-func TestNSCAndICMPRemoteVeth(t *testing.T) {
+func TestNSCAndICMPRemoteVethVXLAN(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
 	}
 
-	testNSCAndICMP(t, 2, false, true)
+	testNSCAndICMP(t, 2, false, true, "VXLAN")
+}
+
+func TestNSCAndICMPRemoteVethSRv6(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+
+	testNSCAndICMP(t, 2, false, true, "SRV6")
 }
 
 func TestNSCAndICMPNeighbors(t *testing.T) {
@@ -108,7 +137,7 @@ func TestNSCAndICMPNeighbors(t *testing.T) {
 /**
 If passed 1 both will be on same node, if not on different.
 */
-func testNSCAndICMP(t *testing.T, nodesCount int, useWebhook bool, disableVHost bool) {
+func testNSCAndICMP(t *testing.T, nodesCount int, useWebhook bool, disableVHost bool, remoteMechanism string) {
 	g := NewWithT(t)
 
 	k8s, err := kubetest.NewK8s(g, true)
@@ -126,6 +155,7 @@ func testNSCAndICMP(t *testing.T, nodesCount int, useWebhook bool, disableVHost 
 		cfg := &pods.NSMgrPodConfig{
 			Variables: pods.DefaultNSMD(),
 		}
+		cfg.Variables[nsmd.NsmdPreferredRemoteMechanism] = remoteMechanism
 		cfg.Namespace = k8s.GetK8sNamespace()
 		cfg.ForwarderVariables = kubetest.DefaultForwarderVariables(k8s.GetForwardingPlane())
 		if disableVHost {

@@ -42,6 +42,7 @@ const (
 	originalSpan          ContextKeyType = "OriginalSpan"
 	ignoredEndpoints      ContextKeyType = "IgnoredEndpoints"
 	workspaceName         ContextKeyType = "WorkspaceName"
+	remoteMechanisms      ContextKeyType = "RemoteMechanisms"
 )
 
 // WithClientConnection -
@@ -139,6 +140,21 @@ func ModelConnection(ctx context.Context) *model.ClientConnection {
 		return nil
 	}
 	return conn.(*model.ClientConnection)
+}
+
+func WithRemoteMechanisms(parent context.Context, mechanisms []*connection.Mechanism) context.Context {
+	if parent == nil {
+		parent = context.Background()
+	}
+	return context.WithValue(parent, remoteMechanisms, mechanisms)
+}
+
+func RemoteMechanisms(ctx context.Context) []*connection.Mechanism {
+	value := ctx.Value(remoteMechanisms)
+	if value == nil {
+		return nil
+	}
+	return value.([]*connection.Mechanism)
 }
 
 // WithForwarder -

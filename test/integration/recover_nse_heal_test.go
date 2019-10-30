@@ -6,6 +6,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
+
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 
@@ -23,7 +26,7 @@ func TestNSEHealLocal(t *testing.T) {
 	testNSEHeal(t, 1, map[string]int{
 		"icmp-responder-nse-1": 0,
 		"icmp-responder-nse-2": 0,
-	}, kubetest.DefaultTestingPodFixture(g))
+	}, kubetest.DefaultTestingPodFixture(g), "")
 }
 
 func TestNSEHealLocalToRemote(t *testing.T) {
@@ -37,10 +40,24 @@ func TestNSEHealLocalToRemote(t *testing.T) {
 	testNSEHeal(t, 2, map[string]int{
 		"icmp-responder-nse-1": 0,
 		"icmp-responder-nse-2": 1,
-	}, kubetest.DefaultTestingPodFixture(g))
+	}, kubetest.DefaultTestingPodFixture(g), "")
 }
 
-func TestNSEHealRemoteToLocal(t *testing.T) {
+func TestNSEHealRemoteVXLANToLocal(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+
+	g := NewWithT(t)
+
+	testNSEHeal(t, 2, map[string]int{
+		"icmp-responder-nse-1": 1,
+		"icmp-responder-nse-2": 0,
+	}, kubetest.HealTestingPodFixture(g), "VXLAN")
+}
+
+func TestNSEHealRemoteSRv6ToLocal(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
@@ -50,10 +67,10 @@ func TestNSEHealRemoteToLocal(t *testing.T) {
 	testNSEHeal(t, 2, map[string]int{
 		"icmp-responder-nse-1": 1,
 		"icmp-responder-nse-2": 0,
-	}, kubetest.DefaultTestingPodFixture(g))
+	}, kubetest.DefaultTestingPodFixture(g), "SRV6")
 }
 
-func TestNSEHealRemote(t *testing.T) {
+func TestNSEHealRemoteVXLAN(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
@@ -64,7 +81,21 @@ func TestNSEHealRemote(t *testing.T) {
 	testNSEHeal(t, 2, map[string]int{
 		"icmp-responder-nse-1": 1,
 		"icmp-responder-nse-2": 1,
-	}, kubetest.DefaultTestingPodFixture(g))
+	}, kubetest.DefaultTestingPodFixture(g), "")
+}
+
+func TestNSEHealRemoteSRv6(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+
+	g := NewWithT(t)
+
+	testNSEHeal(t, 2, map[string]int{
+		"icmp-responder-nse-1": 1,
+		"icmp-responder-nse-2": 1,
+	}, kubetest.HealTestingPodFixture(g), "SRV6")
 }
 
 func TestNSEHealLocalMemif(t *testing.T) {
@@ -78,13 +109,13 @@ func TestNSEHealLocalMemif(t *testing.T) {
 	testNSEHeal(t, 1, map[string]int{
 		"icmp-responder-nse-1": 0,
 		"icmp-responder-nse-2": 0,
-	}, kubetest.VppAgentTestingPodFixture(g))
+	}, kubetest.VppAgentTestingPodFixture(g), "")
 }
 
 /**
 If passed 1 both will be on same node, if not on different.
 */
-func testNSEHeal(t *testing.T, nodesCount int, affinity map[string]int, fixture kubetest.TestingPodFixture) {
+func testNSEHeal(t *testing.T, nodesCount int, affinity map[string]int, fixture kubetest.TestingPodFixture, remoteMechanism string) {
 	g := NewWithT(t)
 
 	k8s, err := kubetest.NewK8s(g, true)
@@ -92,7 +123,17 @@ func testNSEHeal(t *testing.T, nodesCount int, affinity map[string]int, fixture 
 	g.Expect(err).To(BeNil())
 
 	// Deploy open tracing to see what happening.
-	nodesSetup, err := kubetest.SetupNodes(k8s, nodesCount, defaultTimeout)
+	config := []*pods.NSMgrPodConfig{}
+	for i := 0; i < nodesCount; i++ {
+		cfg := &pods.NSMgrPodConfig{
+			Namespace:          k8s.GetK8sNamespace(),
+			Variables:          pods.DefaultNSMD(),
+			ForwarderVariables: kubetest.DefaultForwarderVariables(k8s.GetForwardingPlane()),
+		}
+		cfg.Variables[nsmd.NsmdPreferredRemoteMechanism] = remoteMechanism
+		config = append(config, cfg)
+	}
+	nodesSetup, err := kubetest.SetupNodesConfig(k8s, nodesCount, defaultTimeout, config, k8s.GetK8sNamespace())
 	g.Expect(err).To(BeNil())
 	defer kubetest.MakeLogsSnapshot(k8s, t)
 

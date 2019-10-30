@@ -138,8 +138,6 @@ func (ac *AWSCluster) createEksCluster(eksClient *eks.EKS, clusterName, eksRoleA
 	for i := range subnetIdsTemp {
 		subnetIds = append(subnetIds, &subnetIdsTemp[i])
 	}
-	endpointPrivateAccess := false
-	endpointPublicAccess := true
 
 	_, err := eksClient.CreateCluster(&eks.CreateClusterInput{
 		Name:    clusterName,
@@ -149,8 +147,8 @@ func (ac *AWSCluster) createEksCluster(eksClient *eks.EKS, clusterName, eksRoleA
 			SecurityGroupIds: []*string{
 				clusterStackOutputs.SecurityGroups,
 			},
-			EndpointPrivateAccess: &endpointPrivateAccess,
-			EndpointPublicAccess:  &endpointPublicAccess,
+			EndpointPrivateAccess: aws.Bool(true),
+			EndpointPublicAccess:  aws.Bool(true),
 		},
 		Version: aws.String("1.14"),
 	})

@@ -17,6 +17,7 @@ package remote
 import (
 	"context"
 	"fmt"
+	"os"
 	"strconv"
 	"time"
 
@@ -47,6 +48,8 @@ const (
 	ForwarderTimeout = 15 * time.Second
 	// ErrorCloseTimeout - timeout to close all stuff in case of error
 	ErrorCloseTimeout = 15 * time.Second
+	// PreferredRemoteMechanism - mechanism name will be chosen by default if supported
+	PreferredRemoteMechanism = "PREFERRED_REMOTE_MECHANISM"
 )
 
 // forwarderService -
@@ -75,55 +78,84 @@ func (cce *forwarderService) findMechanism(mechanismPreferences []*connection.Me
 	return nil
 }
 
-func (cce *forwarderService) selectRemoteMechanism(request *networkservice.NetworkServiceRequest, dp *model.Forwarder) (*connection.Mechanism, error) {
-	for _, mechanism := range request.GetRequestMechanismPreferences() {
-		dpMechanism := cce.findMechanism(dp.RemoteMechanisms, vxlan.MECHANISM)
-		if dpMechanism == nil {
-			continue
+func (cce *forwarderService) selectRemoteMechanism(conn *connection.Connection, request *networkservice.NetworkServiceRequest, dp *model.Forwarder) (*connection.Mechanism, error) {
+	var mechanism unifiedconnection.Mechanism
+	var dpMechanism unifiedconnection.Mechanism
+
+	if preferredMechanismName := os.Getenv(PreferredRemoteMechanism); len(preferredMechanismName) > 0 {
+		for _, m := range request.GetRequestMechanismPreferences() {
+			if m.GetMechanismType() == preferredMechanismName {
+				if dpm := cce.findMechanism(dp.RemoteMechanisms, m.GetMechanismType()); dpm != nil {
+					mechanism = m
+					dpMechanism = dpm
+				}
+			}
 		}
-
-		// TODO: Add other mechanisms support
-
-		if mechanism.GetType() == vxlan.MECHANISM {
-			parameters := mechanism.GetParameters()
-			dpParameters := dpMechanism.GetParameters()
-
-			parameters[vxlan.DstIP] = dpParameters[vxlan.SrcIP]
-			var vni uint32
-
-			extSrcIP := parameters[vxlan.SrcIP]
-			extDstIP := dpParameters[vxlan.SrcIP]
-			srcIP := parameters[vxlan.SrcIP]
-			dstIP := dpParameters[vxlan.SrcIP]
-
-			if ip, ok := parameters[vxlan.SrcOriginalIP]; ok {
-				srcIP = ip
-			}
-
-			if ip, ok := parameters[vxlan.DstExternalIP]; ok {
-				extDstIP = ip
-			}
-
-			if extDstIP != extSrcIP {
-				vni = cce.serviceRegistry.VniAllocator().Vni(extDstIP, extSrcIP)
-			} else {
-				vni = cce.serviceRegistry.VniAllocator().Vni(dstIP, srcIP)
-			}
-
-			parameters[vxlan.VNI] = strconv.FormatUint(uint64(vni), 10)
-		}
-
-		logrus.Infof("NSM:(5.1) Remote mechanism selected %v", mechanism)
-		return mechanism, nil
 	}
 
-	return nil, errors.New("failed to select mechanism, no matched mechanisms found")
+	if mechanism == nil {
+		for _, m := range request.GetRequestMechanismPreferences() {
+			dpm := cce.findMechanism(dp.RemoteMechanisms, m.GetMechanismType())
+			if dpm != nil {
+				mechanism = m
+				dpMechanism = dpm
+				break
+			}
+		}
+	}
+
+	if mechanism == nil || dpMechanism == nil {
+		return nil, fmt.Errorf("failed to select mechanism, no matched mechanisms found")
+	}
+
+	switch mechanism.GetType() {
+	case vxlan.MECHANISM:
+		parameters := mechanism.GetParameters()
+		dpParameters := dpMechanism.GetParameters()
+
+		parameters[vxlan.DstIP] = dpParameters[vxlan.SrcIP]
+		var vni uint32
+
+		extSrcIP := parameters[vxlan.SrcIP]
+		extDstIP := dpParameters[vxlan.SrcIP]
+		srcIP := parameters[vxlan.SrcIP]
+		dstIP := dpParameters[vxlan.SrcIP]
+
+		if ip, ok := parameters[vxlan.SrcOriginalIP]; ok {
+			srcIP = ip
+		}
+
+		if ip, ok := parameters[vxlan.DstExternalIP]; ok {
+			extDstIP = ip
+		}
+
+		if extDstIP != extSrcIP {
+			vni = cce.serviceRegistry.VniAllocator().Vni(extDstIP, extSrcIP)
+		} else {
+			vni = cce.serviceRegistry.VniAllocator().Vni(dstIP, srcIP)
+		}
+
+		parameters[connection.VXLANVNI] = strconv.FormatUint(uint64(vni), 10)
+
+	case connection.MechanismType_SRV6:
+		parameters := mechanism.GetParameters()
+		dpParameters := dpMechanism.GetParameters()
+
+		parameters[connection.SRv6DstHardwareAddress] = dpParameters[connection.SRv6SrcHardwareAddress]
+		parameters[connection.SRv6DstHostIP] = dpParameters[connection.SRv6SrcHostIP]
+		parameters[connection.SRv6DstBSID] = cce.serviceRegistry.SIDAllocator().SID(conn.GetId())
+		parameters[connection.SRv6DstLocalSID] = cce.serviceRegistry.SIDAllocator().SID(conn.GetId())
+	}
+
+	logrus.Infof("NSM:(5.1) Remote mechanism selected %v", mechanism)
+	return mechanism.(*connection.Mechanism), nil
+
 }
 
 func (cce *forwarderService) updateMechanism(request *networkservice.NetworkServiceRequest, dp *model.Forwarder) error {
 	conn := request.GetConnection()
 	// 5.x
-	if m, err := cce.selectRemoteMechanism(request, dp); err == nil {
+	if m, err := cce.selectRemoteMechanism(conn, request, dp); err == nil {
 		conn.Mechanism = m.Clone()
 	} else {
 		return err
@@ -160,7 +192,7 @@ func (cce *forwarderService) Request(ctx context.Context, request *networkservic
 	// 5. Select a local forwarder and put it into conn object
 	err = cce.updateMechanism(request, dp)
 	if err != nil {
-		// 5.1 Close Datplane connection, if had existing one and NSE is closed.
+		// 5.1 Close forwarder connection, if had existing one and NSE is closed.
 		cce.doFailureClose(ctx)
 		return nil, errors.Errorf("NSM:(5.1) %v", err)
 	}

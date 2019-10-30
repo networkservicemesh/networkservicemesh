@@ -18,6 +18,10 @@ import (
 	"context"
 	"time"
 
+	vpp_srv6 "github.com/ligato/vpp-agent/api/models/vpp/srv6"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/srv6"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/memif"
@@ -174,15 +178,28 @@ func (v *VPPAgent) programMgmtInterface() error {
 			VppConfig: &vpp.ConfigData{
 				Interfaces: []*vpp.Interface{
 					{
-						Name:        ManagementInterface,
-						Type:        vpp_interfaces.Interface_AF_PACKET,
-						Enabled:     true,
-						IpAddresses: []string{v.common.EgressInterface.SrcIPNet().String()},
+						Name:    ManagementInterface,
+						Type:    vpp_interfaces.Interface_AF_PACKET,
+						Enabled: true,
+						IpAddresses: []string{
+							v.common.EgressInterface.SrcIPNet().String(),
+							// v.common.EgressInterface.SrcIPV6Net().IP.String() + "/128", // Required for SRv6 remote mechanism
+							"fd24::1/128", // Required for SRv6 remote mechanism
+						},
 						PhysAddress: v.common.EgressInterface.HardwareAddr().String(),
 						Link: &vpp_interfaces.Interface_Afpacket{
 							Afpacket: &vpp_interfaces.AfpacketLink{
 								HostIfName: v.common.EgressInterface.Name(),
 							},
+						},
+					},
+				},
+				// Add main local SID for SRv6 to reach pod from other nodes
+				Srv6Localsids: []*vpp_srv6.LocalSID{
+					{
+						Sid: v.common.EgressInterface.SrcIPV6Net().IP.String(),
+						EndFunction: &vpp_srv6.LocalSID_BaseEndFunction{
+							BaseEndFunction: &vpp_srv6.LocalSID_End{},
 						},
 					},
 				},
@@ -233,6 +250,15 @@ func (v *VPPAgent) programMgmtInterface() error {
 								LowerPort: 0,
 								UpperPort: 65535,
 							},
+						},
+					},
+				},
+				{
+					Action: vpp_acl.ACL_Rule_PERMIT,
+					IpRule: &vpp_acl.ACL_Rule_IpRule{
+						Ip: &vpp_acl.ACL_Rule_IpRule_Ip{
+							DestinationNetwork: "::/0",
+							SourceNetwork:      "::/0",
 						},
 					},
 				},
@@ -298,6 +324,13 @@ func (v *VPPAgent) configureVPPAgent() error {
 				Type: vxlan.MECHANISM,
 				Parameters: map[string]string{
 					vxlan.SrcIP: v.common.EgressInterface.SrcIPNet().IP.String(),
+				},
+			},
+			{
+				Type: "SRV6",
+				Parameters: map[string]string{
+					srv6.SrcHostIP:          v.common.EgressInterface.SrcIPV6Net().IP.String(),
+					srv6.SrcHardwareAddress: v.common.EgressInterface.HardwareAddr().String(),
 				},
 			},
 		},

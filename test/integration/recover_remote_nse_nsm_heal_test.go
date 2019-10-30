@@ -20,13 +20,26 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 )
 
-func TestNSMHealRemoteDieNSMD_NSE(t *testing.T) {
-	g := NewWithT(t)
-
+func TestNSMHealRemoteDieNSMD_NSE_VXLAN(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
 	}
+
+	testNSMHealRemoteDieNSMD_NSE(t, "VXLAN")
+}
+
+func TestNSMHealRemoteDieNSMD_NSE_SRv6(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+
+	testNSMHealRemoteDieNSMD_NSE(t, "SRV6")
+}
+
+func testNSMHealRemoteDieNSMD_NSE(t *testing.T, remoteMechanism string) {
+	g := NewWithT(t)
 
 	k8s, err := kubetest.NewK8s(g, true)
 	defer k8s.Cleanup()
@@ -34,7 +47,7 @@ func TestNSMHealRemoteDieNSMD_NSE(t *testing.T) {
 	g.Expect(err).To(BeNil())
 	defer kubetest.MakeLogsSnapshot(k8s, t)
 	// Deploy open tracing to see what happening.
-	nodes_setup, err := kubetest.SetupNodesConfig(k8s, 2, defaultTimeout, []*pods.NSMgrPodConfig{
+	config := []*pods.NSMgrPodConfig{
 		{
 			Variables: map[string]string{
 				properties.NsmdHealDSTWaitTimeout: "20", // 20 second delay, since we know both NSM and NSE will die and we need to go with different code branch.
@@ -48,7 +61,11 @@ func TestNSMHealRemoteDieNSMD_NSE(t *testing.T) {
 			Variables:          pods.DefaultNSMD(),
 			ForwarderVariables: kubetest.DefaultForwarderVariables(k8s.GetForwardingPlane()),
 		},
-	}, k8s.GetK8sNamespace())
+	}
+	for i := 0; i < 2; i++ {
+		config[i].Variables[nsmd.NsmdPreferredRemoteMechanism] = remoteMechanism
+	}
+	nodes_setup, err := kubetest.SetupNodesConfig(k8s, 2, defaultTimeout, config, k8s.GetK8sNamespace())
 	g.Expect(err).To(BeNil())
 
 	// Run ICMP on latest node
@@ -83,13 +100,26 @@ func TestNSMHealRemoteDieNSMD_NSE(t *testing.T) {
 	kubetest.HealNscChecker(k8s, nscPodNode)
 }
 
-func TestNSMHealRemoteDieNSMD(t *testing.T) {
-	g := NewWithT(t)
-
+func TestNSMHealRemoteDieNSMDVXLAN(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
 	}
+
+	testNSMHealRemoteDieNSMD(t, "VXLAN")
+}
+
+func TestNSMHealRemoteDieNSMDSRv6(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+
+	testNSMHealRemoteDieNSMD(t, "SRV6")
+}
+
+func testNSMHealRemoteDieNSMD(t *testing.T, remoteMechanism string) {
+	g := NewWithT(t)
 
 	k8s, err := kubetest.NewK8s(g, true)
 	defer k8s.Cleanup()
@@ -97,7 +127,17 @@ func TestNSMHealRemoteDieNSMD(t *testing.T) {
 	g.Expect(err).To(BeNil())
 
 	// Deploy open tracing to see what happening.
-	nodes_setup, err := kubetest.SetupNodes(k8s, 2, defaultTimeout)
+	config := []*pods.NSMgrPodConfig{}
+	for i := 0; i < 2; i++ {
+		cfg := &pods.NSMgrPodConfig{
+			Namespace:          k8s.GetK8sNamespace(),
+			Variables:          pods.DefaultNSMD(),
+			ForwarderVariables: kubetest.DefaultForwarderVariables(k8s.GetForwardingPlane()),
+		}
+		cfg.Variables[nsmd.NsmdPreferredRemoteMechanism] = remoteMechanism
+		config = append(config, cfg)
+	}
+	nodes_setup, err := kubetest.SetupNodesConfig(k8s, 2, defaultTimeout, config, k8s.GetK8sNamespace())
 	g.Expect(err).To(BeNil())
 
 	// Run ICMP on latest node
