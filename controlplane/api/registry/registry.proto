@@ -24,7 +24,7 @@ message Destination {
 message NetworkServiceManager {
     string name = 1;
     string url = 2;
-    google.protobuf.Timestamp last_seen = 3;
+    google.protobuf.Timestamp expiration_time = 3;
     string state = 4;
 }
 

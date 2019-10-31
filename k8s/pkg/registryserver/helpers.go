@@ -8,8 +8,6 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/utils"
 
-	"github.com/golang/protobuf/ptypes"
-	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
@@ -26,9 +24,9 @@ func mapNsmToCustomResource(nsm *registry.NetworkServiceManager) *v1.NetworkServ
 		},
 		Spec: v1.NetworkServiceManagerSpec{
 			URL: nsm.GetUrl(),
+			ExpirationTime: metav1.Time{Time: time.Now()},
 		},
 		Status: v1.NetworkServiceManagerStatus{
-			LastSeen: metav1.Time{Time: time.Now()},
 			State:    v1.RUNNING,
 		},
 	}
@@ -52,16 +50,10 @@ func mapNsmToCustomResource(nsm *registry.NetworkServiceManager) *v1.NetworkServ
 }
 
 func mapNsmFromCustomResource(cr *v1.NetworkServiceManager) *registry.NetworkServiceManager {
-	lastSeen, err := ptypes.TimestampProto(cr.Status.LastSeen.Time)
-	if err != nil {
-		logrus.Errorf("Failed time conversion of %v", cr.Status.LastSeen)
-	}
-
 	return &registry.NetworkServiceManager{
 		Name:     cr.GetName(),
 		Url:      cr.Spec.URL,
 		State:    string(cr.Status.State),
-		LastSeen: lastSeen,
 	}
 }
 

@@ -43,5 +43,7 @@ func New() *grpc.Server {
 	registry.RegisterNetworkServiceDiscoveryServer(server, discovery)
 	registry.RegisterNetworkServiceRegistryServer(server, registryService)
 
+	cache.StartNSMDTracking()
+
 	return server
 }

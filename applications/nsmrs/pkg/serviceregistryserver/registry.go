@@ -3,10 +3,9 @@ package serviceregistryserver
 import (
 	"context"
 	"fmt"
-	"strings"
-
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/sirupsen/logrus"
+	"strings"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 )
@@ -29,44 +28,16 @@ func NewNseRegistryService(cache NSERegistryCache) NSERegistryService {
 	}
 }
 
-// RegisterNSE - Registers NSE in cache and starts NSMgr monitor
+// RegisterNSE - Registers NSE in cache
 func (rs *nseRegistryService) RegisterNSE(ctx context.Context, request *registry.NSERegistration) (*registry.NSERegistration, error) {
 	logrus.Infof("Received RegisterNSE(%v)", request)
 
-	// Add public IP to NSM name to avoid name collision for different clusters
-	nsmName := fmt.Sprintf("%s_%s", request.NetworkServiceManager.Name, request.NetworkServiceManager.Url)
-	nsmName = strings.ReplaceAll(nsmName, ":", "_")
-	request.NetworkServiceManager.Name = nsmName
-	request.NetworkServiceEndpoint.NetworkServiceManagerName = nsmName
+	request = prepareNSERequest(request)
 
-	monitor := NewNSMMonitor(request.NetworkServiceManager, func() {
-		_, err := rs.RemoveNSE(ctx, &registry.RemoveNSERequest{
-			NetworkServiceEndpointName: request.NetworkServiceEndpoint.Name,
-		})
-		if err != nil {
-			logrus.Errorf("Error removing Network Service Endpoint (%s) from cache: %v", request.NetworkServiceEndpoint.Name, err)
-		}
-	})
-
-	_, err := rs.cache.AddNetworkServiceEndpoint(&NSECacheEntry{
-		Nse:     request,
-		Monitor: monitor,
-	})
-
+	_, err := rs.cache.AddNetworkServiceEndpoint(request)
 	if err != nil {
 		logrus.Errorf("Error registering NSE: %v", err)
 		return nil, err
-	}
-
-	err = monitor.StartMonitor()
-	if err != nil {
-		logrus.Errorf("Error starting NSMgr monitor: %v", err)
-		_, removeErr := rs.RemoveNSE(ctx, &registry.RemoveNSERequest{
-			NetworkServiceEndpointName: request.NetworkServiceEndpoint.Name,
-		})
-		if removeErr != nil {
-			logrus.Errorf("Error removing Network Service Endpoint (%s) from cache: %v", request.NetworkServiceEndpoint.Name, removeErr)
-		}
 	}
 
 	logrus.Infof("Returned from RegisterNSE: request: %v", request)
@@ -82,6 +53,14 @@ func (rs *nseRegistryService) BulkRegisterNSE(srv registry.NetworkServiceRegistr
 		}
 
 		logrus.Infof("Received BulkRegisterNSE request: %v", request)
+
+		request = prepareNSERequest(request)
+
+		_, err = rs.cache.UpdateNetworkServiceEndpoint(request)
+		if err != nil {
+			err = fmt.Errorf("error processing BulkRegisterNSE request: %v", err)
+			return err
+		}
 	}
 	return nil
 }
@@ -91,7 +70,6 @@ func (rs *nseRegistryService) RemoveNSE(ctx context.Context, request *registry.R
 	logrus.Infof("Received RemoveNSE(%v)", request)
 
 	nse, err := rs.cache.DeleteNetworkServiceEndpoint(request.NetworkServiceEndpointName)
-	nse.Monitor.Stop()
 	if err != nil {
 		logrus.Errorf("cannot remove Network Service Endpoint: %v", err)
 		return &empty.Empty{}, err
@@ -99,4 +77,14 @@ func (rs *nseRegistryService) RemoveNSE(ctx context.Context, request *registry.R
 
 	logrus.Infof("RemoveNSE done: %v", nse)
 	return &empty.Empty{}, nil
+}
+
+func prepareNSERequest(request *registry.NSERegistration) *registry.NSERegistration {
+	// Add public IP to NSM name to avoid name collision for different clusters
+	nsmName := fmt.Sprintf("%s_%s", request.NetworkServiceManager.Name, request.NetworkServiceManager.Url)
+	nsmName = strings.ReplaceAll(nsmName, ":", "_")
+	request.NetworkServiceManager.Name = nsmName
+	request.NetworkServiceEndpoint.NetworkServiceManagerName = nsmName
+
+	return request
 }

@@ -80,7 +80,7 @@ func (es *registryServer) RegisterNSEWithClient(ctx context.Context, request *re
 	// Some notes here:
 	// 1)  Yes, we are overwriting anything we get for NetworkServiceManager
 	//     from the NSE.  NSE's shouldn't specify NetworkServiceManager
-	// 2)  We are not specifying Name or LastSeen, the nsmd-k8s will fill those
+	// 2)  We are not specifying Name, the nsmd-k8s will fill those
 	//     in
 	request.NetworkServiceManager = &registry.NetworkServiceManager{
 		Url: es.nsm.serviceRegistry.GetPublicAPI(),

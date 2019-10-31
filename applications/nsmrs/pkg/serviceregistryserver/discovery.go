@@ -30,16 +30,16 @@ func (d *discoveryService) FindNetworkService(ctx context.Context, request *regi
 	response := &registry.FindNetworkServiceResponse{
 		NetworkService: &registry.NetworkService{
 			Name:    request.NetworkServiceName,
-			Payload: networkServiceEnpoints[0].Nse.NetworkService.Payload,
-			Matches: networkServiceEnpoints[0].Nse.NetworkService.Matches,
+			Payload: networkServiceEnpoints[0].NetworkService.Payload,
+			Matches: networkServiceEnpoints[0].NetworkService.Matches,
 		},
 		NetworkServiceManagers: make(map[string]*registry.NetworkServiceManager),
-		Payload:                networkServiceEnpoints[0].Nse.NetworkService.Payload,
+		Payload:                networkServiceEnpoints[0].NetworkService.Payload,
 	}
 
 	for _, endpoint := range networkServiceEnpoints {
-		response.NetworkServiceManagers[endpoint.Nse.NetworkServiceManager.Name] = endpoint.Nse.NetworkServiceManager
-		response.NetworkServiceEndpoints = append(response.NetworkServiceEndpoints, endpoint.Nse.NetworkServiceEndpoint)
+		response.NetworkServiceManagers[endpoint.NetworkServiceManager.Name] = endpoint.NetworkServiceManager
+		response.NetworkServiceEndpoints = append(response.NetworkServiceEndpoints, endpoint.NetworkServiceEndpoint)
 	}
 
 	logrus.Infof("FindNetworkService done: %v", response)
