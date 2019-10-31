@@ -76,7 +76,7 @@ func (rc *nseRegistryCache) UpdateNetworkServiceEndpoint(nse *registry.NSERegist
 
 // DeleteNetworkServiceEndpoint - remove NSE from cache
 func (rc *nseRegistryCache) DeleteNetworkServiceEndpoint(endpointName string) (*registry.NSERegistration, error) {
-	rc.endpoints[endpointName] = nil
+	delete(rc.endpoints, endpointName)
 	for networkService, endpointList := range rc.networkServiceEndpoints {
 		for i := range endpointList {
 			if endpointList[i].NetworkServiceEndpoint.Name == endpointName {
