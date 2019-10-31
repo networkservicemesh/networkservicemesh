@@ -3,6 +3,8 @@ package model
 import (
 	"context"
 
+	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
+
 	"github.com/golang/protobuf/proto"
 	"github.com/opentracing/opentracing-go"
 
@@ -72,12 +74,12 @@ func (cc *ClientConnection) GetConnectionSource() connection.Connection {
 	if cc.Xcon == nil {
 		return nil
 	}
-	return cc.Xcon.GetSourceConnection()
+	return compat.ConnectionUnifiedToNSM(cc.Xcon.GetSource())
 }
 
 // GetConnectionDestination returns destination part of connection
 func (cc *ClientConnection) GetConnectionDestination() connection.Connection {
-	return cc.Xcon.GetDestinationConnection()
+	return compat.ConnectionUnifiedToNSM(cc.Xcon.GetDestination())
 }
 
 // Clone return pointer to copy of ClientConnection

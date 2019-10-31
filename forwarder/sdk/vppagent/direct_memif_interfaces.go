@@ -3,10 +3,11 @@ package forwarder
 import (
 	"context"
 
+	memiIf "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/memif"
+
 	"github.com/golang/protobuf/ptypes/empty"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
-	local "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/forwarder/api/forwarder"
 	"github.com/networkservicemesh/networkservicemesh/forwarder/vppagent/pkg/memif"
 )
@@ -46,6 +47,6 @@ func (c *directMemifInterface) Close(ctx context.Context, crossConnect *crosscon
 }
 
 func isDirectMemif(crossConnect *crossconnect.CrossConnect) bool {
-	return crossConnect.GetLocalSource().GetMechanism().GetType() == local.MechanismType_MEM_INTERFACE &&
-		crossConnect.GetLocalDestination().GetMechanism().GetType() == local.MechanismType_MEM_INTERFACE
+	return crossConnect.GetLocalSource().GetMechanism().GetType() == memiIf.MECHANISM &&
+		crossConnect.GetLocalDestination().GetMechanism().GetType() == memiIf.MECHANISM
 }

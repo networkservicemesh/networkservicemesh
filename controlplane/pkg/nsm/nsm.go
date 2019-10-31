@@ -16,10 +16,14 @@ package nsm
 import (
 	"crypto/rand"
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"sync"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
+
+	unified_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
 
 	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
 
@@ -29,7 +33,6 @@ import (
 
 	unified_nsm "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
 
-	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/local"
 
 	"github.com/sirupsen/logrus"
@@ -38,6 +41,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	local_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	local_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
+	unified "github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
@@ -67,7 +71,7 @@ type networkServiceManager struct {
 	renamedEndpoints map[string]string
 	nseManager       nsm.NetworkServiceEndpointManager
 
-	remoteService remote_networkservice.NetworkServiceServer
+	remoteService unified.NetworkServiceServer
 	ctx           context.Context
 }
 
@@ -88,11 +92,11 @@ func (srv *networkServiceManager) LocalManager(clientConnection nsm.ClientConnec
 	)
 }
 
-func (srv *networkServiceManager) RemoteManager() remote_networkservice.NetworkServiceServer {
+func (srv *networkServiceManager) RemoteManager() unified.NetworkServiceServer {
 	return srv.remoteService
 }
 
-func (srv *networkServiceManager) SetRemoteServer(server remote_networkservice.NetworkServiceServer) {
+func (srv *networkServiceManager) SetRemoteServer(server unified.NetworkServiceServer) {
 	srv.remoteService = server
 }
 
@@ -215,13 +219,13 @@ func (srv *networkServiceManager) restoreXconnection(ctx context.Context, xcon *
 
 		var request networkservice.Request
 		workspaceName := ""
-		if src := xcon.GetSourceConnection(); !src.IsRemote() {
+		if src := xcon.GetSource(); src != nil && !src.IsRemote() {
 			// Update request to match source connection
 			request = local_networkservice.NewRequest(
-				src,
-				[]connection.Mechanism{src.GetConnectionMechanism()},
+				compat.ConnectionUnifiedToLocal(src),
+				[]connection.Mechanism{compat.MechanismUnifiedToLocal(src.Mechanism)},
 			)
-			workspaceName = src.GetConnectionMechanism().GetParameters()[local_connection.Workspace]
+			workspaceName = src.GetMechanism().GetParameters()[common.Workspace]
 		}
 
 		monitor := manager.LocalConnectionMonitor(workspaceName)
@@ -266,7 +270,7 @@ func (srv *networkServiceManager) findEndpoint(ctx context.Context, endpointName
 
 func (srv *networkServiceManager) performHeal(ctx context.Context, xcon *crossconnect.CrossConnect, endpoint *registry.NSERegistration, endpointRenamed bool, clientConnection nsm.ClientConnection, logger logrus.FieldLogger) {
 	// Add healing timer, for connection to be healed from source side.
-	if src := xcon.GetSourceConnection(); src.IsRemote() {
+	if src := xcon.GetSource(); src != nil && src.IsRemote() {
 		if endpoint != nil {
 			if endpointRenamed {
 				// close current connection and wait for a new one
@@ -291,7 +295,7 @@ func (srv *networkServiceManager) performHeal(ctx context.Context, xcon *crossco
 			}
 		}
 
-		if src.GetConnectionState() == connection.StateDown {
+		if src.GetState() == unified_connection.State_DOWN {
 			// if source is down, we need to close connection properly.
 			_ = srv.CloseConnection(ctx, clientConnection)
 		}
@@ -342,23 +346,23 @@ func (srv *networkServiceManager) getEndpoint(ctx context.Context, networkServic
 
 func (srv *networkServiceManager) getConnectionParameters(xcon *crossconnect.CrossConnect, logger logrus.FieldLogger) (connectionState model.ClientConnectionState, networkServiceName, endpointName string) {
 	connectionState = model.ClientConnectionReady
-	if src := xcon.GetSourceConnection(); src.IsRemote() {
+	if src := xcon.GetSource(); src != nil && src.IsRemote() {
 		// Since source is remote, connection need to be healed.
 		connectionState = model.ClientConnectionBroken
 
 		networkServiceName = src.GetNetworkService()
 		endpointName = src.GetNetworkServiceEndpointName()
-	} else if dst := xcon.GetDestinationConnection(); !dst.IsRemote() {
+	} else if dst := xcon.GetDestination(); dst != nil && !dst.IsRemote() {
 		// Local NSE, connection is Ready
 		networkServiceName = dst.GetNetworkService()
-		endpointName = dst.GetConnectionMechanism().GetParameters()[local_connection.WorkspaceNSEName]
+		endpointName = dst.GetMechanism().GetParameters()[local_connection.WorkspaceNSEName]
 	} else {
 		// NSE is remote one, and source is local one, we are ready.
-		networkServiceName = xcon.GetRemoteDestination().GetNetworkService()
-		endpointName = xcon.GetRemoteDestination().GetNetworkServiceEndpointName()
+		networkServiceName = xcon.GetDestination().GetNetworkService()
+		endpointName = xcon.GetDestination().GetNetworkServiceEndpointName()
 
 		// In case VxLan is used we need to correct vlanId id generator.
-		m := dst.GetConnectionMechanism().(*remote_connection.Mechanism)
+		m := compat.MechanismUnifiedToRemote(dst.Mechanism)
 		if m.Type == remote_connection.MechanismType_VXLAN {
 			srcIP, err := m.SrcIP()
 			dstIP, err2 := m.DstIP()

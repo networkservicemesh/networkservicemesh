@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"runtime/debug"
 
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/opentracing/opentracing-go"
@@ -91,7 +92,7 @@ func (s *spanHelper) Span() opentracing.Span {
 func (s *spanHelper) LogError(err error) {
 	if s.span != nil && err != nil {
 		otgrpc.SetSpanTags(s.span, err, false)
-		s.span.LogFields(log.String("event", "error"), log.String("message", fmt.Sprintf("%+v", err)))
+		s.span.LogFields(log.String("event", "error"), log.String("message", fmt.Sprintf("%+v", err)), log.String("stacktrace", string(debug.Stack())))
 		logrus.Errorf(">><<%s %s=%v span=%v", getPrefix("--", traceDepth(s.ctx)), "error", fmt.Sprintf("%+v", err), s.span)
 	}
 }
@@ -104,13 +105,13 @@ func (s *spanHelper) LogObject(attribute string, value interface{}) {
 	}
 
 	if s.span != nil {
-		s.span.LogFields(log.Object(attribute, msg))
+		s.span.LogFields(log.Object(attribute, msg), log.String("stacktrace", string(debug.Stack())))
 	}
 	logrus.Infof(">><<%s %s=%v span=%v", getPrefix("--", traceDepth(s.ctx)), attribute, msg, s.span)
 }
 func (s *spanHelper) LogValue(attribute string, value interface{}) {
 	if s.span != nil {
-		s.span.LogFields(log.Object(attribute, value))
+		s.span.LogFields(log.Object(attribute, value), log.String("stacktrace", string(debug.Stack())))
 	}
 	logrus.Infof(">><<%s %s=%v span=%v", getPrefix("--", traceDepth(s.ctx)), attribute, value, s.span)
 }

@@ -5,14 +5,16 @@ import (
 	"testing"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
+
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
-	remote "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 )
 
@@ -83,17 +85,17 @@ func TestNSMDCloseCrossConnection(t *testing.T) {
 	srv.TestModel.AddForwarder(context.Background(), &model.Forwarder{
 		RegisteredName: "test_data_plane",
 		SocketLocation: "tcp:some_addr",
-		LocalMechanisms: []connection.Mechanism{
-			&local.Mechanism{
-				Type: local.MechanismType_KERNEL_INTERFACE,
+		LocalMechanisms: []*connection.Mechanism{
+			&connection.Mechanism{
+				Type: kernel.MECHANISM,
 			},
 		},
-		RemoteMechanisms: []connection.Mechanism{
-			&remote.Mechanism{
-				Type: remote.MechanismType_VXLAN,
+		RemoteMechanisms: []*connection.Mechanism{
+			&connection.Mechanism{
+				Type: vxlan.MECHANISM,
 				Parameters: map[string]string{
-					remote.VXLANVNI:   "1",
-					remote.VXLANSrcIP: "10.1.1.1",
+					vxlan.VNI:   "1",
+					vxlan.SrcIP: "10.1.1.1",
 				},
 			},
 		},
@@ -103,12 +105,12 @@ func TestNSMDCloseCrossConnection(t *testing.T) {
 	srv2.TestModel.AddForwarder(context.Background(), &model.Forwarder{
 		RegisteredName: "test_data_plane",
 		SocketLocation: "tcp:some_addr",
-		RemoteMechanisms: []connection.Mechanism{
-			&remote.Mechanism{
-				Type: remote.MechanismType_VXLAN,
+		RemoteMechanisms: []*connection.Mechanism{
+			&connection.Mechanism{
+				Type: vxlan.MECHANISM,
 				Parameters: map[string]string{
-					remote.VXLANVNI:   "3",
-					remote.VXLANSrcIP: "10.1.1.2",
+					vxlan.VNI:   "3",
+					vxlan.SrcIP: "10.1.1.2",
 				},
 			},
 		},

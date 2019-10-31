@@ -7,6 +7,7 @@ import (
 	"os"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	. "github.com/onsi/gomega"
@@ -18,7 +19,13 @@ import (
 	monitor_crossconnect "github.com/networkservicemesh/networkservicemesh/sdk/monitor/crossconnect"
 )
 
-func startClient(g *WithT, target string) {
+func startClient(g *WithT, target string, ids ...string) {
+	visit := map[string]bool{}
+	for _, id := range ids {
+		visit[id] = false
+	}
+	timeout := time.After(time.Second)
+	logrus.Infof("Expected cross connects with ids = %v", ids)
 	_ = os.Setenv(tools.InsecureEnv, "true")
 	conn, err := tools.DialTCP(context.Background(), target)
 	defer conn.Close()
@@ -27,17 +34,33 @@ func startClient(g *WithT, target string) {
 	monitorClient := crossconnect.NewMonitorCrossConnectClient(conn)
 	stream, err := monitorClient.MonitorCrossConnects(context.Background(), &empty.Empty{})
 	g.Expect(err).To(BeNil())
-
-	event, err := stream.Recv()
-	g.Expect(err).To(BeNil())
-	logrus.Infof("Receive event: %v", event)
-	g.Expect(event).NotTo(BeNil())
-	g.Expect(event.Type).To(Equal(crossconnect.CrossConnectEventType_INITIAL_STATE_TRANSFER))
-	g.Expect(event.CrossConnects).NotTo(BeNil())
-	g.Expect(event.CrossConnects["1"]).NotTo(BeNil())
+	for {
+		select {
+		case <-timeout:
+			logrus.Error("timeout for wait events")
+			g.Expect(true).Should(BeFalse())
+		default:
+			event, err := stream.Recv()
+			g.Expect(err).To(BeNil())
+			logrus.Infof("Receive event: %v", event)
+			g.Expect(event).NotTo(BeNil())
+			for _, crossconnect := range event.CrossConnects {
+				visit[crossconnect.Id] = true
+			}
+			exit := true
+			for _, v := range visit {
+				if !v {
+					exit = false
+				}
+			}
+			if exit {
+				return
+			}
+		}
+	}
 }
 
-func TestSimple(t *testing.T) {
+func TestEachClientShouldGetAllEvents(t *testing.T) {
 	g := NewWithT(t)
 
 	listener, err := net.Listen("tcp", "localhost:0")
@@ -51,10 +74,12 @@ func TestSimple(t *testing.T) {
 	go func() {
 		grpcServer.Serve(listener)
 	}()
-
-	monitor.Update(context.Background(), &crossconnect.CrossConnect{Id: "1"})
-
-	startClient(g, listenerAddress(listener))
+	ids := []string{}
+	for id := 0; id < 10; id++ {
+		monitor.Update(context.Background(), &crossconnect.CrossConnect{Id: fmt.Sprint(id)})
+		ids = append(ids, fmt.Sprint(id))
+		startClient(g, listenerAddress(listener), ids...)
+	}
 }
 
 func listenerAddress(listener net.Listener) string {
@@ -87,7 +112,7 @@ func TestSeveralRecipient(t *testing.T) {
 	for i := 0; i < 3; i++ {
 		wg.Add(1)
 		go func() {
-			startClient(g, listenerAddress(listener))
+			startClient(g, listenerAddress(listener), "1")
 			wg.Done()
 		}()
 	}

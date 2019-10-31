@@ -5,7 +5,11 @@ import (
 	"fmt"
 	"time"
 
+	unified "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+
 	"github.com/pkg/errors"
+
+	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
@@ -19,7 +23,6 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
@@ -111,7 +114,7 @@ func (p *healProcessor) Heal(ctx context.Context, clientConnection nsm.ClientCon
 func (p *healProcessor) CloseConnection(ctx context.Context, conn nsm.ClientConnection) error {
 	var err error
 	if conn.GetConnectionSource().IsRemote() {
-		_, err = p.manager.RemoteManager().Close(ctx, conn.GetConnectionSource().(*remote_connection.Connection))
+		_, err = p.manager.RemoteManager().Close(ctx, compat.ConnectionRemoteToUnified(conn.GetConnectionSource().(*remote_connection.Connection)))
 	} else {
 		_, err = p.manager.LocalManager(conn).Close(ctx, conn.GetConnectionSource().(*local_connection.Connection))
 	}
@@ -243,7 +246,7 @@ func (p *healProcessor) healForwarderDown(ctx context.Context, cc *model.ClientC
 
 	// 3.3. Set source connection down
 	p.model.ApplyClientConnectionChanges(span.Context(), cc.GetID(), func(modelCC *model.ClientConnection) {
-		modelCC.GetConnectionSource().SetConnectionState(connection.StateDown)
+		modelCC.Xcon.Source.State = unified.State_DOWN
 	})
 
 	if cc.Xcon.GetRemoteSource() != nil {
@@ -298,7 +301,7 @@ func (p *healProcessor) performRequest(ctx context.Context, request networkservi
 	span := spanhelper.FromContext(ctx, "performRequest")
 	defer span.Finish()
 	if request.IsRemote() {
-		resp, err := p.manager.RemoteManager().Request(span.Context(), request.(*remote_networkservice.NetworkServiceRequest))
+		resp, err := p.manager.RemoteManager().Request(span.Context(), compat.NetworkServiceRequestRemoteToUnified(request.(*remote_networkservice.NetworkServiceRequest)))
 		span.LogObject("response", resp)
 		return err
 	}

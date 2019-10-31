@@ -30,7 +30,7 @@ func readNsm(reader io.Reader) (v1.NetworkServiceManager, error) {
 }
 
 func fakeNsmRest(g *WithT, serverData *sync.Map) *FakeRest {
-	result := NewFakeRest(v1.SchemeGroupVersion, scheme.Codecs)
+	result := newFakeRest(v1.SchemeGroupVersion, scheme.Codecs)
 	result.MockGet("/networkserviceendpoints", func(r *http.Request, resource string) (response *http.Response, e error) {
 		return Ok([]v1.NetworkServiceEndpoint{}), nil
 	})

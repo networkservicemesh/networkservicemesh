@@ -13,6 +13,7 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/security"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"github.com/networkservicemesh/networkservicemesh/utils"
 )
 
 type spireProxy struct {
@@ -62,8 +63,8 @@ func (sp *spireProxy) FetchX509SVID(request *proto.X509SVIDRequest, stream proto
 }
 
 func main() {
+	utils.PrintAllEnv(logrus.StandardLogger())
 	c := tools.NewOSSignalChannel()
-
 	srv := grpc.NewServer()
 	proto.RegisterSpiffeWorkloadAPIServer(srv, newSpireProxy())
 

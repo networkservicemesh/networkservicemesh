@@ -4,6 +4,8 @@ import (
 	"testing"
 	"time"
 
+	unified "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
 
 	. "github.com/onsi/gomega"
@@ -94,7 +96,7 @@ func TestHealRemoteNSE(t *testing.T) {
 	srv2.TestModel.DeleteEndpoint(context.Background(), epName)
 
 	// Simlate delete
-	clientConnection2.Xcon.GetLocalDestination().State = connection.State_DOWN
+	clientConnection2.Xcon.GetLocalDestination().State = unified.State_DOWN
 	srv.manager.GetHealProperties().HealDSTNSEWaitTimeout = time.Second * 1
 	srv2.manager.Heal(context.Background(), clientConnection2, nsm.HealStateDstDown)
 

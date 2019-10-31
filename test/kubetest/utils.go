@@ -36,6 +36,7 @@ import (
 	nsmd2 "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/networkservicemesh/networkservicemesh/sdk/prefix_pool"
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest/jaeger"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 )
 
@@ -68,6 +69,18 @@ func SetupNodes(k8s *K8s, nodesCount int, timeout time.Duration) ([]*NodeConf, e
 	return SetupNodesConfig(k8s, nodesCount, timeout, []*pods.NSMgrPodConfig{}, k8s.GetK8sNamespace())
 }
 
+//FindJaegerPod returns jaeger pod or nil
+func FindJaegerPod(k8s *K8s) *v1.Pod {
+	pods := k8s.ListPods()
+	for i := range pods {
+		p := &pods[i]
+		if strings.Contains(p.Name, "jaeger") {
+			return p
+		}
+	}
+	return nil
+}
+
 //DeployCorefile - Creates configmap with Corefile content
 func DeployCorefile(k8s *K8s, name, content string) error {
 	_, err := k8s.CreateConfigMap(&v1.ConfigMap{
@@ -90,9 +103,14 @@ func DeployCorefile(k8s *K8s, name, content string) error {
 // SetupNodesConfig - Setup NSMgr and Forwarder for particular number of nodes in cluster
 func SetupNodesConfig(k8s *K8s, nodesCount int, timeout time.Duration, conf []*pods.NSMgrPodConfig, namespace string) ([]*NodeConf, error) {
 	nodes := k8s.GetNodesWait(nodesCount, timeout)
+	var jaegerPod *v1.Pod
 	k8s.g.Expect(len(nodes) >= nodesCount).To(Equal(true),
 		"At least one Kubernetes node is required for this test")
-
+	if jaeger.ShouldStoreJaegerTraces() {
+		jaegerPod = k8s.CreatePod(pods.Jaeger())
+		k8s.WaitLogsContains(jaegerPod, jaegerPod.Spec.Containers[0].Name, "Starting HTTP server", timeout)
+		jaeger.JaegerAgentHost.Set(jaegerPod.Status.PodIP)
+	}
 	var wg sync.WaitGroup
 	confs := make([]*NodeConf, nodesCount)
 	var resultError error
@@ -120,6 +138,7 @@ func SetupNodesConfig(k8s *K8s, nodesCount int, timeout time.Duration, conf []*p
 				forwarderPod = pods.ForwardingPlaneWithConfig(forwarderName, node, conf[i].ForwarderVariables, k8s.GetForwardingPlane())
 			}
 			corePods, err := k8s.CreatePodsRaw(PodStartTimeout, true, corePod, forwarderPod)
+
 			if err != nil {
 				logrus.Errorf("Failed to Started NSMgr/Forwarder: %v on node %s %v", time.Since(startTime), node.Name, err)
 				resultError = err

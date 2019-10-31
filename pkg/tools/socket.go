@@ -175,7 +175,7 @@ func (b *DialBuilder) DialContextFunc() DialContextFunc {
 
 			unaryInts = append(unaryInts,
 				CloneArgsClientInterceptor(
-					otgrpc.OpenTracingClientInterceptor(opentracing.GlobalTracer(), otgrpc.LogPayloads())))
+					otgrpc.OpenTracingClientInterceptor(opentracing.GlobalTracer())))
 		}
 
 		if !b.insecure && b.cfg.SecurityProvider != nil {
@@ -265,7 +265,7 @@ func (b *NewServerBuilder) NewServerFunc() NewServerFunc {
 
 			unaryInts = append(unaryInts,
 				CloneArgsServerInterceptor(
-					otgrpc.OpenTracingServerInterceptor(opentracing.GlobalTracer(), otgrpc.LogPayloads())))
+					otgrpc.OpenTracingServerInterceptor(opentracing.GlobalTracer())))
 		}
 
 		opts = append(opts, grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(unaryInts...)))

@@ -19,6 +19,7 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
+	"github.com/networkservicemesh/networkservicemesh/utils"
 
 	"github.com/sirupsen/logrus"
 
@@ -38,11 +39,11 @@ const (
 var version string
 
 func main() {
-	// Capture signals to cleanup before exiting
-	c := tools.NewOSSignalChannel()
 	logrus.Info("Starting monitoring-nsc...")
 	logrus.Infof("Version: %v", version)
-
+	utils.PrintAllEnv(logrus.StandardLogger())
+	// Capture signals to cleanup before exiting
+	c := tools.NewOSSignalChannel()
 	closer := jaeger.InitJaeger("monitoring-nsc")
 	defer func() { _ = closer.Close() }()
 

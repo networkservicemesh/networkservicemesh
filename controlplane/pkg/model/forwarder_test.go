@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/memif"
+
 	. "github.com/onsi/gomega"
 
-	local "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
-	remote "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 )
 
 func TestAddAndGetDp(t *testing.T) {
@@ -18,17 +18,17 @@ func TestAddAndGetDp(t *testing.T) {
 	dp := &Forwarder{
 		RegisteredName: "dp1",
 		SocketLocation: "/socket",
-		LocalMechanisms: []connection.Mechanism{
-			&local.Mechanism{
-				Type: local.MechanismType_MEM_INTERFACE,
+		LocalMechanisms: []*connection.Mechanism{
+			&connection.Mechanism{
+				Type: memif.MECHANISM,
 				Parameters: map[string]string{
 					"localParam": "value",
 				},
 			},
 		},
-		RemoteMechanisms: []connection.Mechanism{
-			&remote.Mechanism{
-				Type: remote.MechanismType_GRE,
+		RemoteMechanisms: []*connection.Mechanism{
+			&connection.Mechanism{
+				Type: "gre",
 				Parameters: map[string]string{
 					"remoteParam": "value",
 				},
@@ -58,17 +58,17 @@ func TestDeleteDp(t *testing.T) {
 	dd.AddForwarder(context.Background(), &Forwarder{
 		RegisteredName: "dp1",
 		SocketLocation: "/socket",
-		LocalMechanisms: []connection.Mechanism{
-			&local.Mechanism{
-				Type: local.MechanismType_MEM_INTERFACE,
+		LocalMechanisms: []*connection.Mechanism{
+			&connection.Mechanism{
+				Type: memif.MECHANISM,
 				Parameters: map[string]string{
 					"localParam": "value",
 				},
 			},
 		},
-		RemoteMechanisms: []connection.Mechanism{
-			&remote.Mechanism{
-				Type: remote.MechanismType_GRE,
+		RemoteMechanisms: []*connection.Mechanism{
+			&connection.Mechanism{
+				Type: "gre",
 				Parameters: map[string]string{
 					"remoteParam": "value",
 				},
@@ -97,17 +97,17 @@ func TestSelectDp(t *testing.T) {
 		dd.AddForwarder(context.Background(), &Forwarder{
 			RegisteredName: fmt.Sprintf("dp%d", i),
 			SocketLocation: fmt.Sprintf("/socket-%d", i),
-			LocalMechanisms: []connection.Mechanism{
-				&local.Mechanism{
-					Type: local.MechanismType_MEM_INTERFACE,
+			LocalMechanisms: []*connection.Mechanism{
+				&connection.Mechanism{
+					Type: memif.MECHANISM,
 					Parameters: map[string]string{
 						"localParam": "value",
 					},
 				},
 			},
-			RemoteMechanisms: []connection.Mechanism{
-				&remote.Mechanism{
-					Type: remote.MechanismType_GRE,
+			RemoteMechanisms: []*connection.Mechanism{
+				&connection.Mechanism{
+					Type: "gre",
 					Parameters: map[string]string{
 						"remoteParam": "value",
 					},

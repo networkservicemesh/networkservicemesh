@@ -19,6 +19,7 @@ import (
 	"os"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
+	"github.com/networkservicemesh/networkservicemesh/utils"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
@@ -33,7 +34,7 @@ var version string
 func main() {
 	logrus.Info("Starting nsmdp-k8s...")
 	logrus.Infof("Version %v", version)
-	// Capture signals to cleanup before exiting
+	utils.PrintAllEnv(logrus.StandardLogger())
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
 

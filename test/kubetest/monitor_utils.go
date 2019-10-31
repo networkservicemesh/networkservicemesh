@@ -7,6 +7,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
+
 	"github.com/pkg/errors"
 
 	"github.com/golang/protobuf/ptypes/empty"
@@ -15,7 +18,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
@@ -199,7 +201,7 @@ func checkEventsCh(t *testing.T, actualCh <-chan *crossconnect.CrossConnectEvent
 }
 
 func checkXcon(actual *crossconnect.CrossConnect, srcUp, dstUp bool) error {
-	if src := actual.GetLocalSource(); src != nil && (srcUp != (src.GetState().String() == "UP")) {
+	if src := actual.GetLocalSource(); src != nil && (srcUp != (src.GetState() == connection.State_UP)) {
 		return xconStateError(actual, "SRC_UP", srcUp)
 	}
 	if src := actual.GetRemoteSource(); src != nil && (srcUp != (src.GetState().String() == "UP")) {
@@ -284,14 +286,13 @@ func srcConnToString(xcon *crossconnect.CrossConnect) string {
 	var state string
 	var distance string
 
-	if ls := xcon.GetLocalSource(); ls != nil {
+	if ls := xcon.GetSource(); ls != nil {
 		ip = ls.GetContext().GetIpContext().GetSrcIpAddr()
 		state = ls.GetState().String()
 		distance = "local"
-	} else {
-		ip = xcon.GetRemoteSource().GetContext().GetIpContext().GetSrcIpAddr()
-		state = xcon.GetRemoteSource().GetState().String()
-		distance = "remote"
+		if ls.IsRemote() {
+			distance = "remote"
+		}
 	}
 
 	return fmt.Sprintf("[SRC:%s:%s:%s]", distance, ip, state)
@@ -307,12 +308,12 @@ func dstConnToString(xcon *crossconnect.CrossConnect) string {
 		ip = ls.GetContext().GetIpContext().GetDstIpAddr()
 		state = ls.GetState().String()
 		distance = "local"
-		endpoint = ls.GetMechanism().GetParameters()[connection.WorkspaceNSEName]
+		endpoint = ls.GetMechanism().GetParameters()[kernel.WorkspaceNSEName]
 	} else {
 		ip = xcon.GetRemoteDestination().GetContext().GetIpContext().GetDstIpAddr()
 		state = xcon.GetRemoteDestination().GetState().String()
 		distance = "remote"
-		endpoint = xcon.GetRemoteDestination().GetMechanism().GetParameters()[connection.WorkspaceNSEName]
+		endpoint = xcon.GetRemoteDestination().GetMechanism().GetParameters()[kernel.WorkspaceNSEName]
 	}
 
 	return fmt.Sprintf("[DST:%s:%s:%s:%s]", endpoint, distance, ip, state)

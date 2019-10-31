@@ -1,12 +1,15 @@
 package compat
 
 import (
+	"github.com/sirupsen/logrus"
+
 	unified "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/cls"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/memif"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
+	nsm "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
 	remote "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
 )
 
@@ -19,14 +22,21 @@ func MechanismLocalToUnified(mechanism *local.Mechanism) *unified.Mechanism {
 	if mechanism == nil {
 		return nil
 	}
+	typeValue, ok := mapMechanismTypeLocalToUnified[mechanism.GetType()]
+	if !ok {
+		typeValue = mechanism.GetType().String()
+	}
 	return &unified.Mechanism{
 		Cls:        cls.LOCAL,
-		Type:       mapMechanismTypeLocalToUnified[mechanism.GetType()],
+		Type:       typeValue,
 		Parameters: mechanism.GetParameters(),
 	}
 }
 
 func MechanismListLocalToUnified(mechanism []*local.Mechanism) []*unified.Mechanism {
+	if mechanism == nil {
+		return nil
+	}
 	rv := make([]*unified.Mechanism, len(mechanism))
 	for i, value := range mechanism {
 		rv[i] = MechanismLocalToUnified(value)
@@ -43,13 +53,25 @@ func MechanismUnifiedToLocal(mechanism *unified.Mechanism) *local.Mechanism {
 	if mechanism == nil {
 		return nil
 	}
+	typeValue, ok := mapMechanismTypeUnifiedToLocal[mechanism.GetType()]
+	if !ok {
+		mval, ok2 := local.MechanismType_value[mechanism.GetType()]
+		if !ok2 {
+			logrus.Errorf("Fatal, conversion to local mechanism is not possible %v", mechanism)
+			return nil
+		}
+		typeValue = local.MechanismType(mval)
+	}
 	return &local.Mechanism{
-		Type:       mapMechanismTypeUnifiedToLocal[mechanism.GetType()],
+		Type:       typeValue,
 		Parameters: mechanism.GetParameters(),
 	}
 }
 
 func MechanismListUnifiedToLocal(mechanism []*unified.Mechanism) []*local.Mechanism {
+	if mechanism == nil {
+		return nil
+	}
 	rv := make([]*local.Mechanism, len(mechanism))
 	for i, value := range mechanism {
 		rv[i] = MechanismUnifiedToLocal(value)
@@ -65,14 +87,21 @@ func MechanismRemoteToUnified(mechanism *remote.Mechanism) *unified.Mechanism {
 	if mechanism == nil {
 		return nil
 	}
+	mechanismType, ok := mapMechanismTypeRemoteToUnified[mechanism.GetType()]
+	if !ok {
+		mechanismType = mechanism.GetType().String()
+	}
 	return &unified.Mechanism{
 		Cls:        cls.REMOTE,
-		Type:       mapMechanismTypeRemoteToUnified[mechanism.GetType()],
+		Type:       mechanismType,
 		Parameters: mechanism.GetParameters(),
 	}
 }
 
 func MechanismListRemoteToUnified(mechanism []*remote.Mechanism) []*unified.Mechanism {
+	if mechanism == nil {
+		return nil
+	}
 	rv := make([]*unified.Mechanism, len(mechanism))
 	for i, value := range mechanism {
 		rv[i] = MechanismRemoteToUnified(value)
@@ -88,13 +117,25 @@ func MechanismUnifiedToRemote(mechanism *unified.Mechanism) *remote.Mechanism {
 	if mechanism == nil {
 		return nil
 	}
+	typeValue, ok := mapMechanismTypeUnifiedToRemote[mechanism.GetType()]
+	if !ok {
+		mval, ok2 := remote.MechanismType_value[mechanism.GetType()]
+		if !ok2 {
+			logrus.Errorf("Fatal, conversion to remote mechanism is not possible %v", mechanism)
+			return nil
+		}
+		typeValue = remote.MechanismType(mval)
+	}
 	return &remote.Mechanism{
-		Type:       mapMechanismTypeUnifiedToRemote[mechanism.GetType()],
+		Type:       typeValue,
 		Parameters: mechanism.GetParameters(),
 	}
 }
 
 func MechanismListUnifiedToRemote(mechanism []*unified.Mechanism) []*remote.Mechanism {
+	if mechanism == nil {
+		return nil
+	}
 	rv := make([]*remote.Mechanism, len(mechanism))
 	for i, value := range mechanism {
 		rv[i] = MechanismUnifiedToRemote(value)
@@ -140,22 +181,23 @@ func ConnectionRemoteToUnified(c *remote.Connection) *unified.Connection {
 		return nil
 	}
 	rv := &unified.Connection{
-		Id:                         c.GetId(),
-		NetworkService:             c.GetNetworkService(),
-		Mechanism:                  MechanismRemoteToUnified(c.GetMechanism()),
-		Context:                    c.GetContext(),
-		Labels:                     c.GetLabels(),
-		NetworkServiceManagers:     make([]string, 2),
+		Id:             c.GetId(),
+		NetworkService: c.GetNetworkService(),
+		Mechanism:      MechanismRemoteToUnified(c.GetMechanism()),
+		Context:        c.GetContext(),
+		Labels:         c.GetLabels(),
+		NetworkServiceManagers: []string{
+			c.GetSourceNetworkServiceManagerName(),
+			c.GetDestinationNetworkServiceManagerName(),
+		},
 		NetworkServiceEndpointName: c.GetNetworkServiceEndpointName(),
 		State:                      unified.State(c.GetState()),
 		ResponseToken:              c.GetResponseJWT(),
 	}
-	if c.GetSourceNetworkServiceManagerName() != "" {
-		rv.GetNetworkServiceManagers()[0] = c.GetSourceNetworkServiceManagerName()
+	if c.GetSourceNetworkServiceManagerName() == "" && c.GetDestinationNetworkServiceManagerName() == "" {
+		rv.NetworkServiceManagers = nil
 	}
-	if c.GetDestinationNetworkServiceManagerName() != "" {
-		rv.GetNetworkServiceManagers()[1] = c.GetDestinationNetworkServiceManagerName()
-	}
+
 	return rv
 }
 
@@ -164,20 +206,16 @@ func ConnectionUnifiedToRemote(c *unified.Connection) *remote.Connection {
 		return nil
 	}
 	rv := &remote.Connection{
-		Id:                         c.GetId(),
-		NetworkService:             c.GetNetworkService(),
-		Mechanism:                  MechanismUnifiedToRemote(c.GetMechanism()),
-		Context:                    c.GetContext(),
-		Labels:                     c.GetLabels(),
-		NetworkServiceEndpointName: c.GetNetworkServiceEndpointName(),
-		State:                      remote.State(c.GetState()),
-		ResponseJWT:                c.GetResponseToken(),
-	}
-	if len(c.GetNetworkServiceManagers()) >= 1 {
-		rv.SourceNetworkServiceManagerName = c.GetNetworkServiceManagers()[0]
-		if len(c.GetNetworkServiceManagers()) >= 2 {
-			rv.DestinationNetworkServiceManagerName = c.GetNetworkServiceManagers()[1]
-		}
+		Id:                                   c.GetId(),
+		NetworkService:                       c.GetNetworkService(),
+		Mechanism:                            MechanismUnifiedToRemote(c.GetMechanism()),
+		Context:                              c.GetContext(),
+		Labels:                               c.GetLabels(),
+		NetworkServiceEndpointName:           c.GetNetworkServiceEndpointName(),
+		SourceNetworkServiceManagerName:      c.GetSourceNetworkServiceManagerName(),
+		DestinationNetworkServiceManagerName: c.GetDestinationNetworkServiceManagerName(),
+		State:                                remote.State(c.GetState()),
+		ResponseJWT:                          c.GetResponseToken(),
 	}
 	return rv
 }
@@ -266,4 +304,37 @@ func ConnectionEventUnifiedToRemote(c *unified.ConnectionEvent) *remote.Connecti
 		rv.GetConnections()[k] = ConnectionUnifiedToRemote(v)
 	}
 	return rv
+}
+
+// ConnectionUnifiedToNSM - convert unified connection to NSM
+func ConnectionUnifiedToNSM(c *unified.Connection) nsm.Connection {
+	if c == nil {
+		return nil
+	}
+	if c.IsRemote() {
+		return ConnectionUnifiedToRemote(c)
+	}
+	return ConnectionUnifiedToLocal(c)
+}
+
+// ConnectionNSMToUnified - convert nsm unified connection to unified.
+func ConnectionNSMToUnified(c nsm.Connection) *unified.Connection {
+	if c == nil {
+		return nil
+	}
+	if c.IsRemote() {
+		return ConnectionRemoteToUnified(c.(*remote.Connection))
+	}
+	return ConnectionLocalToUnified(c.(*local.Connection))
+}
+
+// MechanismNSMToUnified - convert nsm unified connection to unified.
+func MechanismNSMToUnified(c nsm.Mechanism) *unified.Mechanism {
+	if c == nil {
+		return nil
+	}
+	if c.IsRemote() {
+		return MechanismRemoteToUnified(c.(*remote.Mechanism))
+	}
+	return MechanismLocalToUnified(c.(*local.Mechanism))
 }

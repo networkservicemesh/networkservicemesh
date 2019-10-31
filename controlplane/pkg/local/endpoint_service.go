@@ -17,22 +17,25 @@ package local
 import (
 	"context"
 
+	"github.com/sirupsen/logrus"
+
+	unified "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	unified_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
+	pluginapi "github.com/networkservicemesh/networkservicemesh/controlplane/api/plugins"
+	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
+
 	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
 	unifiedconnection "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
 	unifiednetworkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/networkservice"
-	pluginapi "github.com/networkservicemesh/networkservicemesh/controlplane/api/plugins"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
-	remoteconnection "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
-	remotenetworkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
 	unifiednsm "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
@@ -63,11 +66,8 @@ func (cce *endpointService) closeEndpoint(ctx context.Context, cc *model.ClientC
 	client, nseClientError := cce.nseManager.CreateNSEClient(closeCtx, cc.Endpoint)
 
 	if client != nil {
-		if ld := cc.Xcon.GetLocalDestination(); ld != nil {
-			return client.Close(ctx, ld)
-		}
-		if rd := cc.Xcon.GetRemoteDestination(); rd != nil {
-			return client.Close(ctx, rd)
+		if ld := cc.Xcon.GetDestination(); ld != nil {
+			return client.Close(ctx, compat.ConnectionUnifiedToNSM(ld))
 		}
 		err := client.Cleanup()
 		span.LogError(err)
@@ -145,67 +145,72 @@ func (cce *endpointService) Close(ctx context.Context, connection *connection.Co
 
 func (cce *endpointService) createLocalNSERequest(endpoint *registry.NSERegistration, dp *model.Forwarder, requestConn *connection.Connection, clientConnection *model.ClientConnection) unifiednetworkservice.Request {
 	// We need to obtain parameters for local mechanism
-	localM := append([]unifiedconnection.Mechanism{}, dp.LocalMechanisms...)
+	localM := append([]*unified.Mechanism{}, dp.LocalMechanisms...)
 
 	if clientConnection.ConnectionState == model.ClientConnectionHealing && endpoint == clientConnection.Endpoint {
 		if localDst := clientConnection.Xcon.GetLocalDestination(); localDst != nil {
-			return networkservice.NewRequest(
-				&connection.Connection{
+			return compat.NetworkServiceRequestUnifiedToLocal(&unified_networkservice.NetworkServiceRequest{
+				Connection: &unified.Connection{
 					Id:             localDst.GetId(),
 					NetworkService: localDst.NetworkService,
 					Context:        localDst.GetContext(),
 					Labels:         localDst.GetLabels(),
 				},
-				localM,
-			)
+				MechanismPreferences: localM,
+			})
 		}
 	}
 
-	return networkservice.NewRequest(
-		&connection.Connection{
+	return compat.NetworkServiceRequestUnifiedToLocal(&unified_networkservice.NetworkServiceRequest{
+		Connection: &unified.Connection{
 			Id:             cce.model.ConnectionID(), // ID for NSE is managed by NSMgr
 			NetworkService: endpoint.GetNetworkService().GetName(),
 			Context:        requestConn.GetContext(),
 			Labels:         requestConn.GetLabels(),
 		},
-		localM,
-	)
+		MechanismPreferences: localM,
+	})
 }
 
-func (cce *endpointService) createRemoteNSMRequest(endpoint *registry.NSERegistration, requestConn *connection.Connection, dp *model.Forwarder, clientConnection *model.ClientConnection) unifiednetworkservice.Request {
+func (cce *endpointService) createRemoteNSMRequest(endpoint *registry.NSERegistration,
+	requestConn *connection.Connection, dp *model.Forwarder, clientConnection *model.ClientConnection) unifiednetworkservice.Request {
 	// We need to obtain parameters for remote mechanism
-	remoteM := append([]unifiedconnection.Mechanism{}, dp.RemoteMechanisms...)
+	remoteM := append([]*unified.Mechanism{}, dp.RemoteMechanisms...)
 
 	// Try Heal only if endpoint are same as for existing connection.
 	if clientConnection.ConnectionState == model.ClientConnectionHealing && endpoint == clientConnection.Endpoint {
 		if remoteDst := clientConnection.Xcon.GetRemoteDestination(); remoteDst != nil {
-			return remotenetworkservice.NewRequest(
-				&remoteconnection.Connection{
-					Id:                                   remoteDst.GetId(),
-					NetworkService:                       remoteDst.NetworkService,
-					Context:                              remoteDst.GetContext(),
-					Labels:                               remoteDst.GetLabels(),
-					DestinationNetworkServiceManagerName: endpoint.GetNetworkServiceManager().GetName(),
-					SourceNetworkServiceManagerName:      cce.model.GetNsm().GetName(),
-					NetworkServiceEndpointName:           endpoint.GetNetworkServiceEndpoint().GetName(),
+			return compat.NetworkServiceRequestUnifiedToRemote(&unified_networkservice.NetworkServiceRequest{
+				Connection: &unified.Connection{
+					Id:                         remoteDst.GetId(),
+					NetworkService:             remoteDst.NetworkService,
+					Context:                    remoteDst.GetContext(),
+					Labels:                     remoteDst.GetLabels(),
+					NetworkServiceEndpointName: endpoint.GetNetworkServiceEndpoint().GetName(),
+					NetworkServiceManagers: []string{
+						cce.model.GetNsm().GetName(),                  // src
+						endpoint.GetNetworkServiceManager().GetName(), // dst
+					},
 				},
-				remoteM,
-			)
+				MechanismPreferences: remoteM,
+			})
 		}
 	}
 
-	return remotenetworkservice.NewRequest(
-		&remoteconnection.Connection{
-			Id:                                   "-",
-			NetworkService:                       requestConn.GetNetworkService(),
-			Context:                              requestConn.GetContext(),
-			Labels:                               requestConn.GetLabels(),
-			DestinationNetworkServiceManagerName: endpoint.GetNetworkServiceManager().GetName(),
-			SourceNetworkServiceManagerName:      cce.model.GetNsm().GetName(),
-			NetworkServiceEndpointName:           endpoint.GetNetworkServiceEndpoint().GetName(),
+	return compat.NetworkServiceRequestUnifiedToRemote(&unified_networkservice.NetworkServiceRequest{
+		Connection: &unified.Connection{
+			Id:                         "-",
+			NetworkService:             requestConn.GetNetworkService(),
+			Context:                    requestConn.GetContext(),
+			Labels:                     requestConn.GetLabels(),
+			NetworkServiceEndpointName: endpoint.GetNetworkServiceEndpoint().GetName(),
+			NetworkServiceManagers: []string{
+				cce.model.GetNsm().GetName(),                  // src
+				endpoint.GetNetworkServiceManager().GetName(), // dst
+			},
 		},
-		remoteM,
-	)
+		MechanismPreferences: remoteM,
+	})
 }
 
 func (cce *endpointService) validateConnection(ctx context.Context, conn unifiedconnection.Connection) error {

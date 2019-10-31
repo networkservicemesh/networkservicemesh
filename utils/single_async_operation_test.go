@@ -14,7 +14,7 @@ func TestUsingSingleAsyncOperation(t *testing.T) {
 	defer func() {
 		err := recover()
 		if err != nil {
-			logrus.Errorf("test should dont fails, err: %v", err)
+			logrus.Errorf("test should not fails, err: %v", err)
 			t.FailNow()
 		}
 	}()
@@ -64,7 +64,7 @@ func TestLongSingleOperationRun(t *testing.T) {
 		}
 	}
 	close(longOperation)
-	<-time.After(testDuration / 2)
+	op.Wait()
 	assert.Expect(counter).Should(gomega.Equal(int32(2)))
 }
 
@@ -89,7 +89,7 @@ func TestLongSingleOperationRerun(t *testing.T) {
 	op.Run()
 	assert.Expect(op.state).Should(gomega.Equal(scheduledAndRunning))
 	close(block)
-	<-time.After(time.Millisecond * 200)
+	op.Wait()
 	assert.Expect(op.state).Should(gomega.Equal(notScheduled))
 	assert.Expect(counter).Should(gomega.Equal(int32(2)))
 }

@@ -18,8 +18,10 @@ import (
 	"context"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
-
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/memif"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	"github.com/gogo/protobuf/proto"
@@ -32,8 +34,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/status"
 
-	local "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
-	remote "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/forwarder/api/forwarder"
 	"github.com/networkservicemesh/networkservicemesh/forwarder/pkg/common"
 	sdk "github.com/networkservicemesh/networkservicemesh/forwarder/sdk/vppagent"
@@ -84,20 +84,25 @@ func (v *VPPAgent) MonitorMechanisms(empty *empty.Empty, updateSrv forwarder.Mec
 		span.Logger().Errorf("vpp-agent forwarder server: Detected error %s, grpc code: %+v on grpc channel", err.Error(), status.Convert(err).Code())
 		return nil
 	}
+	span.Finish()
 	for {
 		select {
 		// Waiting for any updates which might occur during a life of forwarder module and communicating
 		// them back to NSM.
 		case update := <-v.common.MechanismsUpdateChannel:
+			updateSpan := spanhelper.FromContext(span.Context(), "Sending update")
 			v.common.Mechanisms = update
-			span.Logger().Infof("Sending MonitorMechanisms update: %v", update)
+			updateSpan.Logger().Infof("Sending MonitorMechanisms update")
+			updateSpan.LogObject("update", update)
 			if err := updateSrv.Send(&forwarder.MechanismUpdate{
 				RemoteMechanisms: update.RemoteMechanisms,
 				LocalMechanisms:  update.LocalMechanisms,
 			}); err != nil {
-				span.Logger().Errorf("vpp forwarder server: Detected error %s, grpc code: %+v on grpc channel", err.Error(), status.Convert(err).Code())
+				updateSpan.Finish()
+				updateSpan.Logger().Errorf("vpp forwarder server: Detected error %s, grpc code: %+v on grpc channel", err.Error(), status.Convert(err).Code())
 				return nil
 			}
+			updateSpan.Finish()
 		}
 	}
 }
@@ -244,10 +249,6 @@ func (v *VPPAgent) programMgmtInterface() error {
 // Init makes setup for the VPPAgent
 func (v *VPPAgent) Init(common *common.ForwarderConfig) error {
 	v.common = common
-
-	closer := jaeger.InitJaeger(v.common.Name)
-	defer func() { _ = closer.Close() }()
-
 	err := v.configureVPPAgent()
 	if err != nil {
 		logrus.Errorf("Error configuring the VPP Agent: %s", err)
@@ -275,19 +276,19 @@ func (v *VPPAgent) configureVPPAgent() error {
 	}
 	v.common.MechanismsUpdateChannel = make(chan *common.Mechanisms, 1)
 	v.common.Mechanisms = &common.Mechanisms{
-		LocalMechanisms: []*local.Mechanism{
+		LocalMechanisms: []*connection.Mechanism{
 			{
-				Type: local.MechanismType_MEM_INTERFACE,
+				Type: memif.MECHANISM,
 			},
 			{
-				Type: local.MechanismType_KERNEL_INTERFACE,
+				Type: kernel.MECHANISM,
 			},
 		},
-		RemoteMechanisms: []*remote.Mechanism{
+		RemoteMechanisms: []*connection.Mechanism{
 			{
-				Type: remote.MechanismType_VXLAN,
+				Type: vxlan.MECHANISM,
 				Parameters: map[string]string{
-					remote.VXLANSrcIP: v.common.EgressInterface.SrcIPNet().IP.String(),
+					vxlan.SrcIP: v.common.EgressInterface.SrcIPNet().IP.String(),
 				},
 			},
 		},

@@ -17,6 +17,8 @@ package remote
 import (
 	"context"
 
+	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
+
 	"github.com/pkg/errors"
 
 	"github.com/golang/protobuf/ptypes/empty"
@@ -47,8 +49,8 @@ func (cce *сrossConnectService) Request(ctx context.Context, request *networkse
 	dpAPIConnection := crossconnect.NewCrossConnect(
 		request.Connection.GetId(),
 		endpoint.GetNetworkService().GetPayload(),
-		request.Connection,
-		endpointConnection,
+		compat.ConnectionRemoteToUnified(request.Connection),
+		compat.ConnectionNSMToUnified(endpointConnection),
 	)
 	clientConnection.Xcon = dpAPIConnection
 

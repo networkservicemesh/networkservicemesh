@@ -16,15 +16,16 @@ package remote
 
 import (
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
 	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/remote"
 
-	remotenetworkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
+	remotenetworkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
 )
 
 // NewRemoteNetworkServiceServer -  creates a new remote.NetworkServiceServer
 func NewRemoteNetworkServiceServer(manager nsm.NetworkServiceManager, connectionMonitor remote.MonitorServer) remotenetworkservice.NetworkServiceServer {
-	return NewCompositeService(
+	return compat.NewUnifiedNetworkServiceServerAdapter(NewCompositeService(
 		NewSecurityService(tools.GetConfig().SecurityProvider),
 		NewRequestValidator(),
 		NewMonitorService(connectionMonitor),
@@ -33,5 +34,5 @@ func NewRemoteNetworkServiceServer(manager nsm.NetworkServiceManager, connection
 		NewEndpointSelectorService(manager.NseManager(), manager.PluginRegistry(), manager.Model()),
 		NewEndpointService(manager.NseManager(), manager.GetHealProperties(), manager.Model(), manager.PluginRegistry()),
 		NewCrossConnectService(),
-	)
+	), nil)
 }

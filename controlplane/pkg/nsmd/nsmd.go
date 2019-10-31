@@ -2,14 +2,12 @@ package nsmd
 
 import (
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"net"
 	"os"
 	"sync"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/sdk/common"
-
-	remoteApi "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
 	remoteMonitor "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/remote"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/remote"
@@ -74,7 +72,7 @@ type nsmServer struct {
 	xconManager             *services.ClientConnectionManager
 	crossConnectMonitor     monitor_crossconnect.MonitorServer
 	remoteConnectionMonitor remoteMonitor.MonitorServer
-	remoteServer            remoteApi.NetworkServiceServer
+	remoteServer            unified.NetworkServiceServer
 }
 
 func (nsm *nsmServer) XconManager() *services.ClientConnectionManager {
@@ -567,7 +565,7 @@ func (nsm *nsmServer) StartAPIServerAt(ctx context.Context, sock net.Listener, p
 	probes.Append(health.NewGrpcHealth(grpcServer, sock.Addr(), time.Minute))
 
 	// Register Remote NetworkServiceManager
-	unified.RegisterNetworkServiceServer(grpcServer, compat.NewUnifiedNetworkServiceServerAdapter(nsm.remoteServer, nil))
+	unified.RegisterNetworkServiceServer(grpcServer, nsm.remoteServer)
 
 	// TODO: Add more public API services here.
 	go func() {

@@ -18,6 +18,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
+	"github.com/networkservicemesh/networkservicemesh/utils"
 
 	nsmmonitor "github.com/networkservicemesh/networkservicemesh/side-cars/pkg/nsm-monitor"
 
@@ -31,6 +32,7 @@ var version string
 func main() {
 	logrus.Info("Starting monitoring-dns-nsc...")
 	logrus.Infof("Version: %v", version)
+	utils.PrintAllEnv(logrus.StandardLogger())
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
 	nsminit.NewNSMClientApp(common.FromEnv()).Run()

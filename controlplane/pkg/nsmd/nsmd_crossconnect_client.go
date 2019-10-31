@@ -20,6 +20,9 @@ import (
 	"sync"
 	"time"
 
+	unified "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
+
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
@@ -32,7 +35,6 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	local "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	remote "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
@@ -132,7 +134,8 @@ func (client *NsmMonitorCrossConnectClient) ForwarderAdded(_ context.Context, dp
 func (client *NsmMonitorCrossConnectClient) ForwarderDeleted(_ context.Context, dp *model.Forwarder) {
 	span := spanhelper.FromContext(context.Background(), "ForwarderDeleted")
 	defer span.Finish()
-	client.xconManager.ForwarderDown(span.Context(), dp)
+	span.LogObject("deleted", dp)
+	client.xconManager.ForwarderDown(context.Background(), dp)
 	if cancel, ok := client.forwarders.Load(dp.RegisteredName); ok {
 		cancel.(context.CancelFunc)()
 		client.forwarders.Delete(dp.RegisteredName)
@@ -181,12 +184,16 @@ func (client *NsmMonitorCrossConnectClient) ClientConnectionUpdated(ctx context.
 
 	client.xconManager.MarkConnectionUpdated(new)
 
-	conn := new.Xcon.GetSourceConnection()
-	if conn.Equals(old.Xcon.GetSourceConnection()) {
+	conn := new.Xcon.GetSource()
+	if conn.Equals(old.Xcon.GetSource()) {
 		return
 	}
 	if new.Monitor != nil {
-		new.Monitor.Update(ctx, conn)
+		if conn.IsRemote() {
+			new.Monitor.Update(ctx, compat.ConnectionUnifiedToRemote(conn))
+		} else {
+			new.Monitor.Update(ctx, compat.ConnectionUnifiedToLocal(conn))
+		}
 	}
 }
 
@@ -510,16 +517,16 @@ func (client *NsmMonitorCrossConnectClient) handleRemoteConnectionEvent(ctx cont
 		ctx = span.Context()
 
 		// DST is down, we need to choose new NSE in any case.
-		downConnection := remoteConnection.Clone()
-		downConnection.SetConnectionState(connection.StateDown)
+		downConnection := compat.ConnectionRemoteToUnified(remoteConnection.Clone().(*remote.Connection))
+		downConnection.State = unified.State_DOWN
 
 		span.LogObject("current-remote", cc.GetConnectionDestination())
 		span.LogObject("new-remote", downConnection)
-		if !downConnection.Equals(cc.Xcon.GetDestinationConnection()) {
+		if !downConnection.Equals(cc.Xcon.GetDestination()) {
 			xconToSend := crossconnect.NewCrossConnect(
 				cc.Xcon.GetId(),
 				cc.Xcon.GetPayload(),
-				cc.Xcon.GetSourceConnection(),
+				cc.Xcon.GetSource(),
 				downConnection,
 			)
 			span.LogObject("xcon-event", xconToSend)

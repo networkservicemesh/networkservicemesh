@@ -2,16 +2,15 @@ syntax = "proto3";
 
 package forwarder;
 
-import "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection/connection.proto";
-import "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection/connection.proto";
+import "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/connection.proto";
 import "github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect/crossconnect.proto";
 import "ptypes/empty/empty.proto";
 
 // Message sent by forwarder module informing NSM of any changes in its
 // operations parameters or constraints
 message MechanismUpdate {
-  repeated remote.connection.Mechanism remote_mechanisms = 1;
-  repeated local.connection.Mechanism local_mechanisms = 2;
+  repeated connection.Mechanism remote_mechanisms = 1;
+  repeated connection.Mechanism local_mechanisms = 2;
 }
 
 // Forwarder inlcudes other operations which NSM will request forwarder module

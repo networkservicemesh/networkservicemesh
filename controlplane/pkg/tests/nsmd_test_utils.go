@@ -3,6 +3,7 @@ package tests
 import (
 	"context"
 	"fmt"
+	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"io/ioutil"
 	"net"
 	"os"
@@ -11,7 +12,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/sdk/common"
+	unified "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
 
 	"github.com/pkg/errors"
 
@@ -28,7 +30,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	local_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	local_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsmdapi"
 	pluginsapi "github.com/networkservicemesh/networkservicemesh/controlplane/api/plugins"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
@@ -431,14 +432,15 @@ type nsmdFullServer interface {
 	Stop()
 }
 type nsmdFullServerImpl struct {
-	apiRegistry     *testApiRegistry
-	nseRegistry     *nsmdTestServiceDiscovery
-	pluginRegistry  *testPluginRegistry
-	serviceRegistry *nsmdTestServiceRegistry
-	TestModel       model.Model
-	manager         nsm2.NetworkServiceManager
-	nsmServer       nsmd.NSMServer
-	rootDir         string
+	apiRegistry               *testApiRegistry
+	nseRegistry               *nsmdTestServiceDiscovery
+	pluginRegistry            *testPluginRegistry
+	serviceRegistry           *nsmdTestServiceRegistry
+	TestModel                 model.Model
+	manager                   nsm2.NetworkServiceManager
+	nsmServer                 nsmd.NSMServer
+	rootDir                   string
+	monitorCrossConnectClient *nsmd.NsmMonitorCrossConnectClient
 }
 
 func (srv *nsmdFullServerImpl) Stop() {
@@ -463,9 +465,9 @@ func (impl *nsmdFullServerImpl) AddFakeForwarder(dp_name string, dp_addr string)
 	impl.TestModel.AddForwarder(context.Background(), &model.Forwarder{
 		RegisteredName: dp_name,
 		SocketLocation: dp_addr,
-		LocalMechanisms: []connection.Mechanism{
-			&local_connection.Mechanism{
-				Type: local_connection.MechanismType_KERNEL_INTERFACE,
+		LocalMechanisms: []*unified.Mechanism{
+			&unified.Mechanism{
+				Type: kernel.MECHANISM,
 			},
 		},
 		MechanismsConfigured: true,
@@ -589,8 +591,8 @@ func newNSMDFullServerAt(ctx context.Context, nsmgrName string, storage *sharedS
 		panic(err)
 	}
 
-	monitorCrossConnectClient := nsmd.NewMonitorCrossConnectClient(srv.TestModel, nsmServer, nsmServer.XconManager(), srv.nsmServer)
-	srv.TestModel.AddListener(monitorCrossConnectClient)
+	srv.monitorCrossConnectClient = nsmd.NewMonitorCrossConnectClient(srv.TestModel, nsmServer, nsmServer.XconManager(), srv.nsmServer)
+	srv.TestModel.AddListener(srv.monitorCrossConnectClient)
 	probes := probes.New("Test probes", nil)
 
 	nsmServer.StartAPIServerAt(ctx, sock, probes)

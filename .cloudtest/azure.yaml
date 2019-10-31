@@ -32,3 +32,4 @@ providers:
       prepare: |
         make k8s-config helm-init
         make spire-install-azure
+        make spire-wait-registration

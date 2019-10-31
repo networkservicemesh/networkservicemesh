@@ -11,6 +11,7 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
 	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
+	"github.com/networkservicemesh/networkservicemesh/utils"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/probes/health"
 
@@ -39,6 +40,7 @@ const (
 func main() {
 	logrus.Info("Starting proxy nsmd...")
 	logrus.Infof("Version: %v", version)
+	utils.PrintAllEnv(logrus.StandardLogger())
 	start := time.Now()
 
 	// Capture signals to cleanup before exiting

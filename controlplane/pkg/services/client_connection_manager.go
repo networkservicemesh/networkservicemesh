@@ -2,8 +2,11 @@ package services
 
 import (
 	"context"
-	"fmt"
+	"sync"
 	"time"
+
+	unified_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
 
 	"github.com/pkg/errors"
 
@@ -29,6 +32,7 @@ const (
 )
 
 type managedClientConnection struct {
+	sync.RWMutex
 	deleteTime       time.Time
 	deleted          bool
 	clientConnection *model.ClientConnection
@@ -40,15 +44,14 @@ type ClientConnectionManager struct {
 	manager         nsm.NetworkServiceManager
 
 	// A map of deleted connections.
-	clientConnections map[string]*managedClientConnection
+	clientConnections sync.Map
 }
 
 func NewClientConnectionManager(model model.Model, manager nsm.NetworkServiceManager, serviceRegistry serviceregistry.ServiceRegistry) *ClientConnectionManager {
 	return &ClientConnectionManager{
-		model:             model,
-		serviceRegistry:   serviceRegistry,
-		manager:           manager,
-		clientConnections: map[string]*managedClientConnection{},
+		model:           model,
+		serviceRegistry: serviceRegistry,
+		manager:         manager,
 	}
 }
 
@@ -76,14 +79,14 @@ func (m *ClientConnectionManager) UpdateXcon(ctx context.Context, cc nsm.ClientC
 		return
 	}
 
-	if src := newXcon.GetLocalSource(); src != nil && src.State == local.State_DOWN {
+	if src := newXcon.GetLocalSource(); src != nil && src.State == unified_connection.State_DOWN {
 		logger.Info("ClientConnection src state is down. Closing.")
 		err := m.manager.CloseConnection(ctx, cc)
 		span.LogError(err)
 		return
 	}
 
-	if dst := newXcon.GetLocalDestination(); dst != nil && dst.State == local.State_DOWN {
+	if dst := newXcon.GetLocalDestination(); dst != nil && dst.State == unified_connection.State_DOWN {
 		logger.Info("ClientConnection dst state is down. calling Heal.")
 		m.manager.Heal(ctx, cc, nsm.HealStateDstDown)
 		return
@@ -105,14 +108,13 @@ func (m *ClientConnectionManager) DestinationDown(ctx context.Context, cc nsm.Cl
 
 // ForwarderDown handles case of local dp down
 func (m *ClientConnectionManager) ForwarderDown(ctx context.Context, forwarder *model.Forwarder) {
-	span := spanhelper.GetSpanHelper(ctx)
 	ccs := m.model.GetAllClientConnections()
 	for _, cc := range ccs {
-		span.LogObject(fmt.Sprintf("ForwarderDeleted-%v", cc.GetID()), cc)
 		if cc.ForwarderRegisteredName == forwarder.RegisteredName {
 			span := common.SpanHelperFromConnection(ctx, cc, "ForwarderDown")
-			defer span.Finish()
+			span.LogObject("connection", cc)
 			span.LogObject("forwarder", forwarder)
+			defer span.Finish()
 
 			m.manager.Heal(span.Context(), cc, nsm.HealStateForwarderDown)
 		}
@@ -181,7 +183,7 @@ func (m *ClientConnectionManager) destinationUpdated(ctx context.Context, cc nsm
 	}
 
 	if upd := m.model.ApplyClientConnectionChanges(ctx, cc.GetID(), func(cc *model.ClientConnection) {
-		cc.Xcon.SetDestinationConnection(dst)
+		cc.Xcon.Destination = compat.ConnectionNSMToUnified(dst)
 	}); upd != nil {
 		cc = upd
 	} else {
@@ -200,9 +202,10 @@ func (m *ClientConnectionManager) GetClientConnectionByXcon(xcon *crossconnect.C
 	if result != nil {
 		return result
 	}
-	deleted := m.clientConnections[id]
-	if deleted != nil {
-		return deleted.clientConnection
+	if v, ok := m.clientConnections.Load(id); ok {
+		if deleted, ok := v.(*managedClientConnection); ok {
+			return deleted.clientConnection
+		}
 	}
 	return nil
 }
@@ -247,10 +250,14 @@ func (m *ClientConnectionManager) GetClientConnectionByRemoteDst(dstID, remoteNa
 
 func (m *ClientConnectionManager) getClientConnections() []*model.ClientConnection {
 	clientConnections := m.model.GetAllClientConnections()
-	// Add all deleted client connections
-	for _, cc := range m.clientConnections {
-		clientConnections = append(clientConnections, cc.clientConnection)
-	}
+	m.clientConnections.Range(func(k, v interface{}) bool {
+		if cc, ok := v.(*managedClientConnection); ok {
+			cc.Lock()
+			clientConnections = append(clientConnections, cc.clientConnection)
+			cc.Unlock()
+		}
+		return true
+	})
 	return clientConnections
 }
 
@@ -352,7 +359,7 @@ func (m *ClientConnectionManager) GetClientConnectionBySource(networkServiceMana
 	for _, clientConnection := range clientConnections {
 		if clientConnection.Request != nil && clientConnection.Xcon != nil && clientConnection.Request.IsRemote() {
 			nsmConnection := clientConnection.Xcon.GetRemoteSource()
-			if nsmConnection != nil && nsmConnection.SourceNetworkServiceManagerName == networkServiceManagerName {
+			if nsmConnection != nil && nsmConnection.GetSourceNetworkServiceManagerName() == networkServiceManagerName {
 				rv = append(rv, clientConnection)
 			}
 		}
@@ -375,18 +382,26 @@ func (m *ClientConnectionManager) UpdateFromInitialState(xcons []*crossconnect.C
 
 // MarkConnectionDeleted - put connection into map of deleted connections.
 func (m *ClientConnectionManager) MarkConnectionDeleted(clientConnection *model.ClientConnection) {
-	if cc := m.clientConnections[clientConnection.GetID()]; cc != nil {
-		cc.deleteTime = time.Now()
-		cc.deleted = true
-		cc.clientConnection = clientConnection
+	if v, ok := m.clientConnections.Load(clientConnection.GetID()); ok {
+		if cc, ok := v.(*managedClientConnection); ok {
+			cc.Lock()
+			cc.deleteTime = time.Now()
+			cc.deleted = true
+			cc.clientConnection = clientConnection
+			cc.Unlock()
+		}
 	}
 	m.CleanupDeletedConnections()
 }
 
 // MarkConnectionUpdated - put connection into map of deleted connections.
 func (m *ClientConnectionManager) MarkConnectionUpdated(clientConnection *model.ClientConnection) {
-	if cc := m.clientConnections[clientConnection.GetID()]; cc != nil {
-		cc.clientConnection = clientConnection
+	if v, ok := m.clientConnections.Load(clientConnection.GetID()); ok {
+		if cc, ok := v.(*managedClientConnection); ok {
+			cc.Lock()
+			cc.clientConnection = clientConnection
+			cc.Unlock()
+		}
 	}
 	m.CleanupDeletedConnections()
 }
@@ -394,15 +409,24 @@ func (m *ClientConnectionManager) MarkConnectionUpdated(clientConnection *model.
 // CleanupDeletedConnections - cleanup deleted connections if timeout passed.
 func (m *ClientConnectionManager) CleanupDeletedConnections() {
 	// Iterate over connections to cleanup any orphaned.
-	for k, c := range m.clientConnections {
-		if c.deleted && time.Since(c.deleteTime) > deletedConnectionLifetime {
-			// remove connection if hold for a long time already.
-			delete(m.clientConnections, k)
+	idSlice := []string{}
+	m.clientConnections.Range(func(k, v interface{}) bool {
+		if c, ok := v.(*managedClientConnection); ok {
+			c.RLock()
+			deleted := c.deleted
+			c.RUnlock()
+			if deleted && time.Since(c.deleteTime) > deletedConnectionLifetime {
+				idSlice = append(idSlice, k.(string))
+			}
 		}
+		return true
+	})
+	for _, id := range idSlice {
+		m.clientConnections.Delete(id)
 	}
 }
 
 // MarkConnectionAdded - remember we have connection to send events from.
 func (m *ClientConnectionManager) MarkConnectionAdded(clientConnection *model.ClientConnection) {
-	m.clientConnections[clientConnection.GetID()] = &managedClientConnection{clientConnection: clientConnection, deleted: false}
+	m.clientConnections.Store(clientConnection.GetID(), &managedClientConnection{clientConnection: clientConnection, deleted: false})
 }
