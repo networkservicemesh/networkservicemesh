@@ -89,12 +89,21 @@ func (c *Connection) IsComplete() error {
 	return nil
 }
 
+// GetSignature returns signature of connection
 func (c *Connection) GetSignature() string {
 	return c.ResponseToken
 }
 
+// SetSignature allows to set signature to connection
 func (c *Connection) SetSignature(sign string) {
 	c.ResponseToken = sign
+}
+
+// WithoutSensitiveData returns clone of Connection, but without sensitive data, which shouldn't be seen in logs
+func (c *Connection) WithoutSensitiveData() *Connection {
+	cln := c.Clone()
+	cln.ResponseToken = ""
+	return cln
 }
 
 func (c *Connection) MatchesMonitorScopeSelector(selector *MonitorScopeSelector) bool {

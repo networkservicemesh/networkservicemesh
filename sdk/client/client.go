@@ -139,7 +139,7 @@ func (nsmc *NsmClient) ConnectRetry(ctx context.Context, name, mechanism, descri
 		break
 	}
 	span.Logger().Infof("Success connection")
-	span.LogObject("connection", outgoingConnection)
+	span.LogObject("connection", outgoingConnection.WithoutSensitiveData())
 	nsmc.OutgoingConnections = append(nsmc.OutgoingConnections, outgoingConnection)
 	return outgoingConnection, nil
 }
