@@ -16,9 +16,10 @@ package nsm
 import (
 	"crypto/rand"
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"sync"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
 

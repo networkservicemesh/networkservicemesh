@@ -3,7 +3,6 @@ package tests
 import (
 	"context"
 	"fmt"
-	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"io/ioutil"
 	"net"
 	"os"
@@ -11,6 +10,8 @@ import (
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 
 	unified "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
