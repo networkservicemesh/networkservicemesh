@@ -17,7 +17,9 @@
 package testsec
 
 import (
+	"crypto/x509"
 	"fmt"
+	"gopkg.in/square/go-jose.v2"
 	"testing"
 	"time"
 
@@ -49,43 +51,38 @@ func TestSign(t *testing.T) {
 	Expect(security.VerifySignature(signature, sc.GetCABundle(), SpiffeID1)).To(BeNil())
 }
 
-func TestChain(t *testing.T) {
-	RegisterTestingT(t)
-
-	msg := &testMsg{
-		testAud: aud,
-	}
+func TestJWKs(t *testing.T) {
+	g := NewWithT(t)
 
 	ca, err := GenerateCA()
-	Expect(err).To(BeNil())
+	g.Expect(err).To(BeNil())
 
-	sc1, err := newTestSecurityContextWithCA(SpiffeID1, &ca)
-	Expect(err).To(BeNil())
+	sc, err := newTestSecurityContextWithCA(SpiffeID1, &ca)
+	g.Expect(err).To(BeNil())
 
-	signature, err := security.GenerateSignature(msg, testClaimsSetter, sc1)
-	Expect(err).To(BeNil())
+	var certs []*x509.Certificate
 
-	sc2, err := newTestSecurityContextWithCA(SpiffeID2, &ca)
-	Expect(err).To(BeNil())
+	for _, c := range sc.GetCertificate().Certificate {
+		crt, err := x509.ParseCertificate(c)
+		g.Expect(err).To(BeNil())
 
-	signature2, err := security.GenerateSignature(msg, testClaimsSetter, sc2,
-		security.WithObo(&security.TokenAndClaims{Token: signature}))
-	Expect(err).To(BeNil())
+		certs = append(certs, crt)
+	}
 
-	sc3, err := newTestSecurityContextWithCA(SpiffeID3, &ca)
-	Expect(err).To(BeNil())
+	jswk := jose.JSONWebKey{
+		KeyID:        sc.GetSpiffeID(),
+		Key:          certs[0].PublicKey,
+		Certificates: certs,
+	}
 
-	signature3, err := security.GenerateSignature(msg, testClaimsSetter, sc3,
-		security.WithObo(&security.TokenAndClaims{Token: signature2}))
-	msg.token = signature3
-	Expect(err).To(BeNil())
+	b, err := jswk.MarshalJSON()
+	g.Expect(err).To(BeNil())
+	logrus.Info(b)
 
-	// checking generated signature
-	_, _, claims, err := security.ParseJWTWithClaims(signature3)
-	Expect(err).To(BeNil())
-	Expect(claims.Audience).To(Equal(aud))
-
-	Expect(security.VerifySignature(signature3, sc3.GetCABundle(), SpiffeID3)).To(BeNil())
+	unmjswk := jose.JSONWebKey{}
+	err = unmjswk.UnmarshalJSON(b)
+	g.Expect(err).To(BeNil())
+	logrus.Info(unmjswk.KeyID, unmjswk.Certificates)
 }
 
 func TestJWTPerformance(t *testing.T) {
@@ -108,24 +105,28 @@ func TestJWTPerformance(t *testing.T) {
 		providers = append(providers, sc)
 	}
 
-	previousToken := ""
+	previousSignatureStr := ""
+	previousSignature := &security.Signature{}
 
 	for i, provider := range providers {
 		logrus.Infof("Provider %d, spiffeID = %s", i, provider.GetSpiffeID())
 
-		if previousToken != "" {
+		if previousSignatureStr != "" {
 			t := time.Now()
-			g.Expect(security.VerifySignature(previousToken, provider.GetCABundle(), fmt.Sprintf("spiffe://test.com/%d", i-1))).To(BeNil())
+			g.Expect(security.VerifySignature(previousSignatureStr, provider.GetCABundle(), fmt.Sprintf("spiffe://test.com/%d", i-1))).To(BeNil())
 			logrus.Infof("Perf: Validate on %d iteration: %v", i-1, time.Since(t))
 		}
 
 		t := time.Now()
 		signature, err := security.GenerateSignature(msg, testClaimsSetter, provider,
-			security.WithObo(&security.TokenAndClaims{Token: previousToken}))
+			security.WithObo(previousSignature))
 		g.Expect(err).To(BeNil())
 		logrus.Infof("Perf: Generate on %d iteration: %v, length = %d", i, time.Since(t), len(signature))
 
 		msg.token = signature
-		previousToken = signature
+		previousSignatureStr = signature
+
+		err = previousSignature.Parse(signature)
+		g.Expect(err).To(BeNil())
 	}
 }

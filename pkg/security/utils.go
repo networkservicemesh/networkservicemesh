@@ -19,8 +19,6 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"strings"
-
 	"github.com/dgrijalva/jwt-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -61,7 +59,7 @@ func ClientInterceptor(securityProvider Provider, cfg TokenConfig) grpc.UnaryCli
 
 		logrus.Infof("ClientInterceptor start working...")
 
-		var obo *TokenAndClaims
+		var obo *Signature
 		if SecurityContext(ctx) != nil && SecurityContext(ctx).GetRequestOboToken() != nil {
 			logrus.Info("ClientInterceptor discovered obo-token")
 			obo = SecurityContext(ctx).GetRequestOboToken()
@@ -89,19 +87,19 @@ func ClientInterceptor(securityProvider Provider, cfg TokenConfig) grpc.UnaryCli
 			return errors.New("can't verify response: wrong type")
 		}
 
-		respToken, parts, claims, err := ParseJWTWithClaims(nsReply.GetSignature())
+		s := &Signature{}
+		err = s.Parse(nsReply.GetSignature())
 		if err != nil {
-			logrus.Error(err)
-			return status.Errorf(codes.Unauthenticated, fmt.Sprintf("response jwt is not valid: %v", err))
+			return err
 		}
 
-		if err := verifySignatureParsed(respToken, parts, claims, securityProvider.GetCABundle(), transportSpiffeID); err != nil {
+		if err := verifySignatureParsed(s, securityProvider.GetCABundle(), transportSpiffeID); err != nil {
 			return status.Errorf(codes.Unauthenticated, "response jwt is not valid: %v", err)
 		}
 
 		if SecurityContext(ctx) != nil {
 			logrus.Infof("Setting nsReply.GetSignature() to SecurityContext - %v", nsReply.GetSignature())
-			SecurityContext(ctx).SetResponseOboToken(&TokenAndClaims{nsReply.GetSignature(), claims})
+			SecurityContext(ctx).SetResponseOboToken(s)
 		}
 
 		return nil
@@ -135,21 +133,19 @@ func ServerInterceptor(securityProvider Provider, cfg TokenConfig) grpc.UnarySer
 			return nil, status.Errorf(codes.Unauthenticated, "no token provided")
 		}
 
-		jwt := md["authorization"][0]
-
-		token, parts, claims, err := ParseJWTWithClaims(jwt)
+		s := &Signature{}
+		err = s.Parse(md["authorization"][0])
 		if err != nil {
-			logrus.Error(err)
-			return nil, status.Errorf(codes.Unauthenticated, fmt.Sprintf("token is not valid: %v", err))
+			return nil, status.Errorf(codes.Unauthenticated, "signature parse error")
 		}
 
-		if err := verifySignatureParsed(token, parts, claims, securityProvider.GetCABundle(), spiffeID); err != nil {
+		if err := verifySignatureParsed(s, securityProvider.GetCABundle(), spiffeID); err != nil {
 			logrus.Error(err)
 			return nil, status.Errorf(codes.Unauthenticated, fmt.Sprintf("token is not valid: %v", err))
 		}
 
 		securityContext := NewContext()
-		securityContext.SetRequestOboToken(&TokenAndClaims{jwt, claims})
+		securityContext.SetRequestOboToken(s)
 
 		return handler(WithSecurityContext(ctx, securityContext), req)
 	}
@@ -205,40 +201,4 @@ func keyToPem(data []byte) []byte {
 		Bytes: data,
 	}
 	return pem.EncodeToMemory(b)
-}
-
-func verifyJWTChain(token *jwt.Token, parts []string, claims *ChainClaims, ca *x509.CertPool) error {
-	currentToken, currentParts, currentClaims := token, parts, claims
-
-	for currentToken != nil {
-		err := verifySingleJwt(currentToken, currentParts, currentClaims, ca)
-		if err != nil {
-			return err
-		}
-
-		currentToken, currentParts, currentClaims, err = currentClaims.parseObo()
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func verifySingleJwt(token *jwt.Token, parts []string, claims *ChainClaims, ca *x509.CertPool) error {
-	logrus.Infof("Validating JWT: %s", claims.Subject)
-	crt, err := claims.verifyAndGetCertificate(ca)
-	if err != nil {
-		return err
-	}
-
-	if len(parts) != 3 {
-		return errors.New("length of parts array is incorrect")
-	}
-
-	if err := token.Method.Verify(strings.Join(parts[0:2], "."), parts[2], crt.PublicKey); err != nil {
-		return errors.Wrap(err, "jwt signature is not valid: %s")
-	}
-
-	return nil
 }

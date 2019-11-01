@@ -13,6 +13,7 @@ require (
 	github.com/uber/jaeger-client-go v2.17.0+incompatible
 	github.com/uber/jaeger-lib v2.2.0+incompatible // indirect
 	google.golang.org/grpc v1.23.1
+	gopkg.in/square/go-jose.v2 v2.3.0
 )
 
 replace github.com/census-instrumentation/opencensus-proto v0.1.0-0.20181214143942-ba49f56771b8 => github.com/census-instrumentation/opencensus-proto v0.0.3-0.20181214143942-ba49f56771b8

@@ -16,44 +16,104 @@
 
 package security
 
-import "context"
+import (
+	"context"
+	"encoding/base64"
+	"encoding/json"
+	"fmt"
+	"github.com/dgrijalva/jwt-go"
+	"github.com/pkg/errors"
+	"gopkg.in/square/go-jose.v2"
+	"strings"
+)
 
 type Context interface {
-	GetRequestOboToken() *TokenAndClaims
-	SetRequestOboToken(token *TokenAndClaims)
+	GetRequestOboToken() *Signature
+	SetRequestOboToken(token *Signature)
 
-	GetResponseOboToken() *TokenAndClaims
-	SetResponseOboToken(token *TokenAndClaims)
+	GetResponseOboToken() *Signature
+	SetResponseOboToken(token *Signature)
 }
 
 type contextImpl struct {
-	requestOboToken  *TokenAndClaims
-	responseOboToken *TokenAndClaims
+	requestOboSignature  *Signature
+	responseOboSignature *Signature
 }
 
-type TokenAndClaims struct {
-	Token  string
-	claims *ChainClaims
+type Signature struct {
+	Token  *jwt.Token
+	Parts  []string
+	Claims *ChainClaims
+	JWKS   *jose.JSONWebKeySet
+}
+
+func (s *Signature) GetSpiffeID() string {
+	if s.Claims == nil {
+		return ""
+	}
+	return s.Claims.Subject
+}
+
+func (s *Signature) ToString() (string, error) {
+	if s.Token == nil {
+		return "", errors.New("Token is empty")
+	}
+
+	if s.JWKS == nil {
+		return "", errors.New("JWKS is empty")
+	}
+
+	return SignatureString(s.Token.Raw, s.JWKS)
+}
+
+func SignatureString(jwt string, jwks *jose.JSONWebKeySet) (string, error) {
+	b, err := json.Marshal(jwks)
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("%s:%s", jwt, base64.StdEncoding.EncodeToString(b)), nil
+}
+
+func (s *Signature) Parse(signature string) error {
+	strs := strings.Split(signature, ":")
+	if len(strs) != 2 {
+		return errors.New("token with JWKS in bad format")
+	}
+
+	b, err := base64.StdEncoding.DecodeString(strs[1])
+	if err != nil {
+		return err
+	}
+
+	jwks := &jose.JSONWebKeySet{}
+	if err := json.Unmarshal(b, jwks); err != nil {
+		return err
+	}
+	s.JWKS = jwks
+
+	s.Token, s.Parts, s.Claims, err = ParseJWTWithClaims(strs[0])
+	return err
 }
 
 func NewContext() Context {
 	return &contextImpl{}
 }
 
-func (c *contextImpl) GetRequestOboToken() *TokenAndClaims {
-	return c.requestOboToken
+func (c *contextImpl) GetRequestOboToken() *Signature {
+	return c.requestOboSignature
 }
 
-func (c *contextImpl) SetRequestOboToken(token *TokenAndClaims) {
-	c.requestOboToken = token
+func (c *contextImpl) SetRequestOboToken(token *Signature) {
+	c.requestOboSignature = token
 }
 
-func (c *contextImpl) GetResponseOboToken() *TokenAndClaims {
-	return c.responseOboToken
+func (c *contextImpl) GetResponseOboToken() *Signature {
+	return c.responseOboSignature
 }
 
-func (c *contextImpl) SetResponseOboToken(token *TokenAndClaims) {
-	c.responseOboToken = token
+func (c *contextImpl) SetResponseOboToken(token *Signature) {
+	c.responseOboSignature = token
 }
 
 func WithSecurityContext(parent context.Context, sc Context) context.Context {

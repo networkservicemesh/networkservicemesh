@@ -20,10 +20,8 @@ import (
 	"context"
 	"crypto/x509"
 	"encoding/base64"
-
-	"github.com/pkg/errors"
-
 	"github.com/dgrijalva/jwt-go"
+	"github.com/pkg/errors"
 )
 
 type contextKey int
