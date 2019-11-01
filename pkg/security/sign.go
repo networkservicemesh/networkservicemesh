@@ -18,9 +18,10 @@ package security
 
 import (
 	"crypto/x509"
-	"gopkg.in/square/go-jose.v2"
 	"strings"
 	"time"
+
+	"gopkg.in/square/go-jose.v2"
 
 	"github.com/pkg/errors"
 

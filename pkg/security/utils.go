@@ -19,6 +19,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+
 	"github.com/dgrijalva/jwt-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"

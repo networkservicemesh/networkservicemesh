@@ -19,9 +19,10 @@ package testsec
 import (
 	"crypto/x509"
 	"fmt"
-	"gopkg.in/square/go-jose.v2"
 	"testing"
 	"time"
+
+	"gopkg.in/square/go-jose.v2"
 
 	"github.com/sirupsen/logrus"
 
