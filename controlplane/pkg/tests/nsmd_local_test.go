@@ -7,15 +7,16 @@ import (
 	"testing"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
+
 	"github.com/golang/protobuf/ptypes/empty"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-	context2 "golang.org/x/net/context"
 	"google.golang.org/grpc"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 )
 
 type nseWithOptions struct {
@@ -26,7 +27,7 @@ type nseWithOptions struct {
 	connection        *connection.Connection
 }
 
-func (impl *nseWithOptions) Request(ctx context2.Context, in *networkservice.NetworkServiceRequest, opts ...grpc.CallOption) (*connection.Connection, error) {
+func (impl *nseWithOptions) Request(ctx context.Context, in *networkservice.NetworkServiceRequest, opts ...grpc.CallOption) (*connection.Connection, error) {
 	var mechanism *connection.Mechanism
 
 	if in.Connection.Labels != nil {
@@ -41,9 +42,9 @@ func (impl *nseWithOptions) Request(ctx context2.Context, in *networkservice.Net
 	mechanism = &connection.Mechanism{
 		Type: in.MechanismPreferences[0].Type,
 		Parameters: map[string]string{
-			connection.NetNsInodeKey: impl.netns,
+			common.NetNsInodeKey: impl.netns,
 			// TODO: Fix this terrible hack using xid for getting a unique interface name
-			connection.InterfaceNameKey: "nsm" + in.GetConnection().GetId(),
+			common.InterfaceNameKey: "nsm" + in.GetConnection().GetId(),
 		},
 	}
 
@@ -71,7 +72,7 @@ func (impl *nseWithOptions) Request(ctx context2.Context, in *networkservice.Net
 	return conn, nil
 }
 
-func (nseWithOptions) Close(ctx context2.Context, in *connection.Connection, opts ...grpc.CallOption) (*empty.Empty, error) {
+func (nseWithOptions) Close(ctx context.Context, in *connection.Connection, opts ...grpc.CallOption) (*empty.Empty, error) {
 	return nil, nil
 }
 

@@ -17,14 +17,12 @@ package local
 import (
 	"context"
 
-	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
-
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/pkg/errors"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 )
 
@@ -48,8 +46,8 @@ func (cce *сrossConnectService) Request(ctx context.Context, request *networkse
 	dpAPIConnection := crossconnect.NewCrossConnect(
 		request.Connection.GetId(),
 		endpoint.GetNetworkService().GetPayload(),
-		compat.ConnectionLocalToUnified(request.Connection),
-		compat.ConnectionNSMToUnified(endpointConnection),
+		request.Connection,
+		endpointConnection,
 	)
 	clientConnection.Xcon = dpAPIConnection
 

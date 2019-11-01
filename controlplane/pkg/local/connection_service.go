@@ -27,8 +27,8 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 )
 
 type connectionService struct {
@@ -72,11 +72,11 @@ func (cce *connectionService) Request(ctx context.Context, request *networkservi
 			return nil, err
 		}
 
-		request.Connection.SetID(clientConnection.GetID())
+		request.Connection.Id = clientConnection.GetID()
 		clientConnection = cce.updateClientConnection(ctx, span.Logger(), id, clientConnection)
 	} else {
 		// Assign ID to connection
-		request.Connection.SetID(cce.model.ConnectionID())
+		request.Connection.Id = cce.model.ConnectionID()
 
 		clientConnection = cce.createClientConnection(ctx, request)
 		cce.model.AddClientConnection(ctx, clientConnection)
@@ -127,7 +127,7 @@ func (cce *connectionService) createClientConnection(ctx context.Context, reques
 		ConnectionID:    request.Connection.GetId(),
 		ConnectionState: model.ClientConnectionRequesting,
 		Span:            common.OriginalSpan(ctx),
-		Monitor:         common.MonitorServer(ctx),
+		Monitor:         common.ConnectionMonitor(ctx),
 	}
 }
 

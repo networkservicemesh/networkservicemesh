@@ -4,6 +4,8 @@ import (
 	"context"
 	"sync"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+
 	"google.golang.org/grpc"
 
 	"github.com/pkg/errors"
@@ -47,7 +49,7 @@ func (cpm *connectionPluginManager) getClients() map[string]plugins.ConnectionPl
 	return cpm.pluginClients
 }
 
-func (cpm *connectionPluginManager) UpdateConnection(ctx context.Context, wrapper *plugins.ConnectionWrapper) (*plugins.ConnectionWrapper, error) {
+func (cpm *connectionPluginManager) UpdateConnection(ctx context.Context, wrapper *connection.Connection) (*connection.Connection, error) {
 	for name, plugin := range cpm.getClients() {
 		pluginCtx, cancel := context.WithTimeout(ctx, pluginCallTimeout)
 
@@ -62,7 +64,7 @@ func (cpm *connectionPluginManager) UpdateConnection(ctx context.Context, wrappe
 	return wrapper.Clone(), nil
 }
 
-func (cpm *connectionPluginManager) ValidateConnection(ctx context.Context, wrapper *plugins.ConnectionWrapper) (*plugins.ConnectionValidationResult, error) {
+func (cpm *connectionPluginManager) ValidateConnection(ctx context.Context, wrapper *connection.Connection) (*plugins.ConnectionValidationResult, error) {
 	for name, plugin := range cpm.getClients() {
 		pluginCtx, cancel := context.WithTimeout(ctx, pluginCallTimeout)
 

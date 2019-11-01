@@ -5,26 +5,20 @@ import (
 	"fmt"
 	"time"
 
-	unified "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
 
 	"github.com/pkg/errors"
 
-	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
-
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
-	local_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
-	local_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	nsm_properties "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/networkservice"
-	remote_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
-	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 
 	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 )
@@ -114,9 +108,9 @@ func (p *healProcessor) Heal(ctx context.Context, clientConnection nsm.ClientCon
 func (p *healProcessor) CloseConnection(ctx context.Context, conn nsm.ClientConnection) error {
 	var err error
 	if conn.GetConnectionSource().IsRemote() {
-		_, err = p.manager.RemoteManager().Close(ctx, compat.ConnectionRemoteToUnified(conn.GetConnectionSource().(*remote_connection.Connection)))
+		_, err = p.manager.RemoteManager().Close(ctx, conn.GetConnectionSource())
 	} else {
-		_, err = p.manager.LocalManager(conn).Close(ctx, conn.GetConnectionSource().(*local_connection.Connection))
+		_, err = p.manager.LocalManager(conn).Close(ctx, conn.GetConnectionSource())
 	}
 	if err != nil {
 		logrus.Errorf("NSM_Heal Error in Close: %v", err)
@@ -210,7 +204,7 @@ func (p *healProcessor) healDstDown(ctx context.Context, cc *model.ClientConnect
 		defer attemptSpan.Finish()
 
 		logger.Infof("NSM_Heal(2.3.0) Starting Heal by calling request: %v", cc.Request)
-		_, err := p.manager.LocalManager(cc).Request(requestCtx, cc.Request.(*local_networkservice.NetworkServiceRequest))
+		_, err := p.manager.LocalManager(cc).Request(requestCtx, cc.Request)
 		span.LogError(err)
 		if err == nil {
 			return true
@@ -246,7 +240,7 @@ func (p *healProcessor) healForwarderDown(ctx context.Context, cc *model.ClientC
 
 	// 3.3. Set source connection down
 	p.model.ApplyClientConnectionChanges(span.Context(), cc.GetID(), func(modelCC *model.ClientConnection) {
-		modelCC.Xcon.Source.State = unified.State_DOWN
+		modelCC.Xcon.Source.State = connection.State_DOWN
 	})
 
 	if cc.Xcon.GetRemoteSource() != nil {
@@ -259,7 +253,7 @@ func (p *healProcessor) healForwarderDown(ctx context.Context, cc *model.ClientC
 	request := cc.Request.Clone()
 	request.SetRequestConnection(cc.GetConnectionSource())
 
-	if _, err := p.manager.LocalManager(cc).Request(span.Context(), cc.Request.(*local_networkservice.NetworkServiceRequest)); err != nil {
+	if _, err := p.manager.LocalManager(cc).Request(span.Context(), cc.Request); err != nil {
 		logger.Errorf("NSM_Heal(3.5) Failed to heal connection: %v", err)
 		return false
 	}
@@ -297,15 +291,15 @@ func (p *healProcessor) healDstUpdate(ctx context.Context, cc *model.ClientConne
 	return true
 }
 
-func (p *healProcessor) performRequest(ctx context.Context, request networkservice.Request, cc nsm.ClientConnection) error {
+func (p *healProcessor) performRequest(ctx context.Context, request *networkservice.NetworkServiceRequest, cc nsm.ClientConnection) error {
 	span := spanhelper.FromContext(ctx, "performRequest")
 	defer span.Finish()
-	if request.IsRemote() {
-		resp, err := p.manager.RemoteManager().Request(span.Context(), compat.NetworkServiceRequestRemoteToUnified(request.(*remote_networkservice.NetworkServiceRequest)))
+	if request.GetConnection().IsRemote() {
+		resp, err := p.manager.RemoteManager().Request(span.Context(), request)
 		span.LogObject("response", resp)
 		return err
 	}
-	resp, err := p.manager.LocalManager(cc).Request(span.Context(), request.(*local_networkservice.NetworkServiceRequest))
+	resp, err := p.manager.LocalManager(cc).Request(span.Context(), request)
 	span.LogObject("response", resp)
 	return err
 }

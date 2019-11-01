@@ -11,28 +11,28 @@ import (
 	"sync"
 	"time"
 
-	unified "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 
 	"github.com/pkg/errors"
 
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 
-	"github.com/networkservicemesh/networkservicemesh/pkg/probes"
-	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 
+	"github.com/networkservicemesh/networkservicemesh/pkg/probes"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
-	local_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
-	local_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsmdapi"
 	pluginsapi "github.com/networkservicemesh/networkservicemesh/controlplane/api/plugins"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
-	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
 	nsm2 "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsm"
@@ -186,7 +186,7 @@ func (cpm *testConnectionPluginManager) addPlugin(plugin pluginsapi.ConnectionPl
 	cpm.plugins = append(cpm.plugins, plugin)
 }
 
-func (cpm *testConnectionPluginManager) UpdateConnection(ctx context.Context, wrapper *pluginsapi.ConnectionWrapper) (*pluginsapi.ConnectionWrapper, error) {
+func (cpm *testConnectionPluginManager) UpdateConnection(ctx context.Context, wrapper *connection.Connection) (*connection.Connection, error) {
 	for _, plugin := range cpm.plugins {
 		var err error
 		wrapper, err = plugin.UpdateConnection(ctx, wrapper)
@@ -197,7 +197,7 @@ func (cpm *testConnectionPluginManager) UpdateConnection(ctx context.Context, wr
 	return wrapper, nil
 }
 
-func (cpm *testConnectionPluginManager) ValidateConnection(ctx context.Context, wrapper *pluginsapi.ConnectionWrapper) (*pluginsapi.ConnectionValidationResult, error) {
+func (cpm *testConnectionPluginManager) ValidateConnection(ctx context.Context, wrapper *connection.Connection) (*pluginsapi.ConnectionValidationResult, error) {
 	for _, plugin := range cpm.plugins {
 		result, err := plugin.ValidateConnection(ctx, wrapper)
 		if err != nil {
@@ -214,7 +214,7 @@ type nsmdTestServiceRegistry struct {
 	nseRegistry             *nsmdTestServiceDiscovery
 	apiRegistry             *testApiRegistry
 	testForwarderConnection *testForwarderConnection
-	localTestNSE            local_networkservice.NetworkServiceClient
+	localTestNSE            networkservice.NetworkServiceClient
 	vniAllocator            vni.VniAllocator
 	rootDir                 string
 }
@@ -235,7 +235,7 @@ func (impl *nsmdTestServiceRegistry) WorkspaceName(endpoint *registry.NSERegistr
 	return ""
 }
 
-func (impl *nsmdTestServiceRegistry) RemoteNetworkServiceClient(ctx context.Context, nsm *registry.NetworkServiceManager) (remote_networkservice.NetworkServiceClient, *grpc.ClientConn, error) {
+func (impl *nsmdTestServiceRegistry) RemoteNetworkServiceClient(ctx context.Context, nsm *registry.NetworkServiceManager) (networkservice.NetworkServiceClient, *grpc.ClientConn, error) {
 	span := spanhelper.FromContext(ctx, "RemoteNetworkServiceClient")
 	defer span.Finish()
 	err := tools.WaitForPortAvailable(span.Context(), "tcp", nsm.Url, 100*time.Millisecond)
@@ -250,27 +250,27 @@ func (impl *nsmdTestServiceRegistry) RemoteNetworkServiceClient(ctx context.Cont
 		span.Logger().Errorf("Failed to dial Network Service Registry at %s: %s", nsm.Url, err)
 		return nil, nil, err
 	}
-	client := compat.NewRemoteNetworkServiceClient(conn)
+	client := networkservice.NewNetworkServiceClient(conn)
 	return client, conn, nil
 }
 
 type localTestNSENetworkServiceClient struct {
-	req        *local_networkservice.NetworkServiceRequest
+	req        *networkservice.NetworkServiceRequest
 	prefixPool prefix_pool.PrefixPool
 }
 
-func (impl *localTestNSENetworkServiceClient) Request(ctx context.Context, in *local_networkservice.NetworkServiceRequest, opts ...grpc.CallOption) (*local_connection.Connection, error) {
+func (impl *localTestNSENetworkServiceClient) Request(ctx context.Context, in *networkservice.NetworkServiceRequest, opts ...grpc.CallOption) (*connection.Connection, error) {
 	impl.req = in
 	netns, _ := tools.GetCurrentNS()
 	if netns == "" {
 		netns = "12"
 	}
-	mechanism := &local_connection.Mechanism{
-		Type: local_connection.MechanismType_KERNEL_INTERFACE,
+	mechanism := &connection.Mechanism{
+		Type: kernel.MECHANISM,
 		Parameters: map[string]string{
-			local_connection.NetNsInodeKey: netns,
+			common.NetNsInodeKey: netns,
 			// TODO: Fix this terrible hack using xid for getting a unique interface name
-			local_connection.InterfaceNameKey: "nsm" + in.GetConnection().GetId(),
+			common.InterfaceNameKey: "nsm" + in.GetConnection().GetId(),
 		},
 	}
 
@@ -279,7 +279,7 @@ func (impl *localTestNSENetworkServiceClient) Request(ctx context.Context, in *l
 	if err != nil {
 		return nil, err
 	}
-	conn := &local_connection.Connection{
+	conn := &connection.Connection{
 		Id:             in.GetConnection().GetId(),
 		NetworkService: in.GetConnection().GetNetworkService(),
 		Mechanism:      mechanism,
@@ -299,12 +299,12 @@ func (impl *localTestNSENetworkServiceClient) Request(ctx context.Context, in *l
 	return conn, nil
 }
 
-func (impl *localTestNSENetworkServiceClient) Close(ctx context.Context, in *local_connection.Connection, opts ...grpc.CallOption) (*empty.Empty, error) {
+func (impl *localTestNSENetworkServiceClient) Close(ctx context.Context, in *connection.Connection, opts ...grpc.CallOption) (*empty.Empty, error) {
 	//panic("implement me")
 	return nil, nil
 }
 
-func (impl *nsmdTestServiceRegistry) EndpointConnection(ctx context.Context, endpoint *model.Endpoint) (local_networkservice.NetworkServiceClient, *grpc.ClientConn, error) {
+func (impl *nsmdTestServiceRegistry) EndpointConnection(ctx context.Context, endpoint *model.Endpoint) (networkservice.NetworkServiceClient, *grpc.ClientConn, error) {
 	return impl.localTestNSE, nil, nil
 }
 
@@ -315,7 +315,7 @@ type testForwarderConnection struct {
 func (impl *testForwarderConnection) Request(ctx context.Context, in *crossconnect.CrossConnect, opts ...grpc.CallOption) (*crossconnect.CrossConnect, error) {
 	impl.connections = append(impl.connections, in)
 
-	if source := in.GetLocalSource(); source != nil && source.Labels != nil {
+	if source := in.Source; source != nil && source.Labels != nil {
 		if source.Labels != nil {
 			if val, ok := source.Labels["forwarder_sleep"]; ok {
 				delay, err := strconv.Atoi(val)
@@ -409,7 +409,7 @@ func newTestApiRegistry() *testApiRegistry {
 	}
 }
 
-func newNetworkServiceClient(nsmServerSocket string) (local_networkservice.NetworkServiceClient, *grpc.ClientConn, error) {
+func newNetworkServiceClient(nsmServerSocket string) (networkservice.NetworkServiceClient, *grpc.ClientConn, error) {
 	// Wait till we actually have an nsmd to talk to
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
@@ -423,7 +423,7 @@ func newNetworkServiceClient(nsmServerSocket string) (local_networkservice.Netwo
 		return nil, nil, err
 	}
 	// Init related activities start here
-	nsmConnectionClient := compat.NewLocalNetworkServiceClient(conn)
+	nsmConnectionClient := networkservice.NewNetworkServiceClient(conn)
 	return nsmConnectionClient, conn, nil
 }
 
@@ -464,8 +464,8 @@ func (impl *nsmdFullServerImpl) AddFakeForwarder(dp_name string, dp_addr string)
 	impl.TestModel.AddForwarder(context.Background(), &model.Forwarder{
 		RegisteredName: dp_name,
 		SocketLocation: dp_addr,
-		LocalMechanisms: []*unified.Mechanism{
-			&unified.Mechanism{
+		LocalMechanisms: []*connection.Mechanism{
+			&connection.Mechanism{
 				Type: kernel.MECHANISM,
 			},
 		},
@@ -504,14 +504,14 @@ func (srv *nsmdFullServerImpl) registerFakeEndpointWithName(networkServiceName s
 	}
 }
 
-func (srv *nsmdFullServerImpl) requestNSMConnection(clientName string) (local_networkservice.NetworkServiceClient, *grpc.ClientConn) {
+func (srv *nsmdFullServerImpl) requestNSMConnection(clientName string) (networkservice.NetworkServiceClient, *grpc.ClientConn) {
 	response := srv.RequestNSM(clientName)
 	// Now we could try to connect via Client API
 	nsmClient, conn := srv.CreateNSClient(response)
 	return nsmClient, conn
 }
 
-func (srv *nsmdFullServerImpl) CreateNSClient(response *nsmdapi.ClientConnectionReply) (local_networkservice.NetworkServiceClient, *grpc.ClientConn) {
+func (srv *nsmdFullServerImpl) CreateNSClient(response *nsmdapi.ClientConnectionReply) (networkservice.NetworkServiceClient, *grpc.ClientConn) {
 	nsmClient, conn, err := newNetworkServiceClient(response.HostBasedir + "/" + response.Workspace + "/" + response.NsmServerSocket)
 	if err != nil {
 		panic(err)
@@ -599,9 +599,10 @@ func newNSMDFullServerAt(ctx context.Context, nsmgrName string, storage *sharedS
 	return srv
 }
 
-func CreateRequest() *local_networkservice.NetworkServiceRequest {
-	request := &local_networkservice.NetworkServiceRequest{
-		Connection: &local_connection.Connection{
+// CreateRequest - create test request
+func CreateRequest() *networkservice.NetworkServiceRequest {
+	request := &networkservice.NetworkServiceRequest{
+		Connection: &connection.Connection{
 			NetworkService: "golden_network",
 			Context: &connectioncontext.ConnectionContext{
 				IpContext: &connectioncontext.IPContext{
@@ -611,12 +612,12 @@ func CreateRequest() *local_networkservice.NetworkServiceRequest {
 			},
 			Labels: make(map[string]string),
 		},
-		MechanismPreferences: []*local_connection.Mechanism{
+		MechanismPreferences: []*connection.Mechanism{
 			{
-				Type: local_connection.MechanismType_KERNEL_INTERFACE,
+				Type: kernel.MECHANISM,
 				Parameters: map[string]string{
-					local_connection.NetNsInodeKey:    "10",
-					local_connection.InterfaceNameKey: "icmp-responder1",
+					common.NetNsInodeKey:    "10",
+					common.InterfaceNameKey: "icmp-responder1",
 				},
 			},
 		},

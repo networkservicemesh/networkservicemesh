@@ -1,6 +1,10 @@
 package converter
 
-import "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
+import (
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/memif"
+)
 
 type LocalConnectionConverter struct {
 	*connection.Connection
@@ -9,10 +13,10 @@ type LocalConnectionConverter struct {
 }
 
 func NewLocalConnectionConverter(c *connection.Connection, conversionParameters *ConnectionConversionParameters) Converter {
-	if c.GetMechanism().GetType() == connection.MechanismType_KERNEL_INTERFACE {
+	if c.GetMechanism().GetType() == kernel.MECHANISM {
 		return NewKernelConnectionConverter(c, conversionParameters)
 	}
-	if c.GetMechanism().GetType() == connection.MechanismType_MEM_INTERFACE {
+	if c.GetMechanism().GetType() == memif.MECHANISM {
 		return NewMemifInterfaceConverter(c, conversionParameters)
 	}
 	return nil

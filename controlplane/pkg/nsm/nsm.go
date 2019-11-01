@@ -19,12 +19,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/local"
+	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/connectionmonitor"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
-
-	unified_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
-
-	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
 
 	"github.com/pkg/errors"
 
@@ -32,19 +32,13 @@ import (
 
 	unified_nsm "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/local"
-
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
-	local_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
-	local_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
-	unified "github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
-	remote_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/plugins"
@@ -70,7 +64,7 @@ type networkServiceManager struct {
 	renamedEndpoints map[string]string
 	nseManager       nsm.NetworkServiceEndpointManager
 
-	remoteService unified.NetworkServiceServer
+	remoteService networkservice.NetworkServiceServer
 	ctx           context.Context
 }
 
@@ -78,7 +72,7 @@ func (srv *networkServiceManager) Context() context.Context {
 	return srv.ctx
 }
 
-func (srv *networkServiceManager) LocalManager(clientConnection nsm.ClientConnection) local_networkservice.NetworkServiceServer {
+func (srv *networkServiceManager) LocalManager(clientConnection nsm.ClientConnection) networkservice.NetworkServiceServer {
 	return local.NewCompositeService(
 		local.NewRequestValidator(),
 		local.NewMonitorService(clientConnection.(*model.ClientConnection).Monitor),
@@ -90,11 +84,11 @@ func (srv *networkServiceManager) LocalManager(clientConnection nsm.ClientConnec
 	)
 }
 
-func (srv *networkServiceManager) RemoteManager() unified.NetworkServiceServer {
+func (srv *networkServiceManager) RemoteManager() networkservice.NetworkServiceServer {
 	return srv.remoteService
 }
 
-func (srv *networkServiceManager) SetRemoteServer(server unified.NetworkServiceServer) {
+func (srv *networkServiceManager) SetRemoteServer(server networkservice.NetworkServiceServer) {
 	srv.remoteService = server
 }
 
@@ -215,19 +209,21 @@ func (srv *networkServiceManager) restoreXconnection(ctx context.Context, xcon *
 
 		endpoint, endpointRenamed := srv.findEndpoint(span.Context(), endpointName, networkServiceName, discovery, xcon, span)
 
-		var request networkservice.Request
+		var request *networkservice.NetworkServiceRequest
 		workspaceName := ""
 		if src := xcon.GetSource(); src != nil && !src.IsRemote() {
 			// Update request to match source connection
-			request = local_networkservice.NewRequest(
-				compat.ConnectionUnifiedToLocal(src),
-				[]connection.Mechanism{compat.MechanismUnifiedToLocal(src.Mechanism)},
-			)
+			request = &networkservice.NetworkServiceRequest{
+				Connection: src,
+				MechanismPreferences: []*connection.Mechanism{
+					src.Mechanism,
+				},
+			}
 			workspaceName = src.GetMechanism().GetParameters()[common.Workspace]
 		}
 
 		monitor := manager.LocalConnectionMonitor(workspaceName)
-		clientConnection := srv.createConnection(xcon, request, endpoint, dp, connectionState, manager, monitor)
+		clientConnection := srv.createConnection(xcon, request, endpoint, dp, connectionState, monitor)
 		srv.model.AddClientConnection(span.Context(), clientConnection)
 
 		if monitor == nil {
@@ -293,14 +289,14 @@ func (srv *networkServiceManager) performHeal(ctx context.Context, xcon *crossco
 			}
 		}
 
-		if src.GetState() == unified_connection.State_DOWN {
+		if src.GetState() == connection.State_DOWN {
 			// if source is down, we need to close connection properly.
 			_ = srv.CloseConnection(ctx, clientConnection)
 		}
 	}
 }
 
-func (srv *networkServiceManager) createConnection(xcon *crossconnect.CrossConnect, request networkservice.Request, endpoint *registry.NSERegistration, dp *model.Forwarder, state model.ClientConnectionState, manager nsm.MonitorManager, monitor monitor.Server) *model.ClientConnection {
+func (srv *networkServiceManager) createConnection(xcon *crossconnect.CrossConnect, request *networkservice.NetworkServiceRequest, endpoint *registry.NSERegistration, dp *model.Forwarder, state model.ClientConnectionState, monitor connectionmonitor.MonitorServer) *model.ClientConnection {
 	return &model.ClientConnection{
 		ConnectionID:            xcon.GetId(),
 		Request:                 request,
@@ -353,15 +349,16 @@ func (srv *networkServiceManager) getConnectionParameters(xcon *crossconnect.Cro
 	} else if dst := xcon.GetDestination(); dst != nil && !dst.IsRemote() {
 		// Local NSE, connection is Ready
 		networkServiceName = dst.GetNetworkService()
-		endpointName = dst.GetMechanism().GetParameters()[local_connection.WorkspaceNSEName]
+		endpointName = dst.GetMechanism().GetParameters()[kernel.WorkspaceNSEName]
 	} else {
 		// NSE is remote one, and source is local one, we are ready.
 		networkServiceName = xcon.GetDestination().GetNetworkService()
 		endpointName = xcon.GetDestination().GetNetworkServiceEndpointName()
 
 		// In case VxLan is used we need to correct vlanId id generator.
-		m := compat.MechanismUnifiedToRemote(dst.Mechanism)
-		if m.Type == remote_connection.MechanismType_VXLAN {
+		mm := dst.Mechanism
+		if mm.GetType() == vxlan.MECHANISM {
+			m := vxlan.ToMechanism(mm)
 			srcIP, err := m.SrcIP()
 			dstIP, err2 := m.DstIP()
 			vni, err3 := m.VNI()

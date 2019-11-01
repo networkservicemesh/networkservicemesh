@@ -19,8 +19,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
-
 	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
@@ -29,11 +27,9 @@ import (
 
 	"github.com/golang/protobuf/ptypes/empty"
 
-	unified "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
-	unifiedNsm "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
@@ -59,7 +55,7 @@ type forwarderService struct {
 func (cce *forwarderService) selectForwarder(request *networkservice.NetworkServiceRequest) (*model.Forwarder, error) {
 	dp, err := cce.model.SelectForwarder(func(dp *model.Forwarder) bool {
 		for _, m := range request.GetRequestMechanismPreferences() {
-			if cce.findMechanism(dp.LocalMechanisms, m.GetMechanismType()) != nil {
+			if cce.findMechanism(dp.LocalMechanisms, m.GetType()) != nil {
 				return true
 			}
 		}
@@ -67,11 +63,10 @@ func (cce *forwarderService) selectForwarder(request *networkservice.NetworkServ
 	})
 	return dp, err
 }
-func (cce *forwarderService) findMechanism(mechanismPreferences []*unified.Mechanism, mechanismType unifiedNsm.MechanismType) unifiedNsm.Mechanism {
+func (cce *forwarderService) findMechanism(mechanismPreferences []*connection.Mechanism, mechanismType string) *connection.Mechanism {
 	for _, m := range mechanismPreferences {
-		um := compat.MechanismUnifiedToLocal(m)
-		if um.GetMechanismType() == mechanismType {
-			return um
+		if m.GetType() == mechanismType {
+			return m
 		}
 	}
 	return nil
@@ -81,18 +76,18 @@ func (cce *forwarderService) updateMechanism(request *networkservice.NetworkServ
 	conn := request.GetConnection()
 	// 5.x
 	for _, m := range request.GetRequestMechanismPreferences() {
-		if dpMechanism := cce.findMechanism(dp.LocalMechanisms, m.GetMechanismType()); dpMechanism != nil {
-			conn.SetConnectionMechanism(m.Clone())
+		if dpMechanism := cce.findMechanism(dp.LocalMechanisms, m.GetType()); dpMechanism != nil {
+			conn.Mechanism = m.Clone()
 			break
 		}
 	}
 
-	if conn.GetConnectionMechanism() == nil {
+	if conn.GetMechanism() == nil {
 		return errors.Errorf("required mechanism are not found... %v ", request.GetRequestMechanismPreferences())
 	}
 
-	if conn.GetConnectionMechanism().GetParameters() == nil {
-		conn.GetConnectionMechanism().SetParameters(map[string]string{})
+	if conn.GetMechanism().GetParameters() == nil {
+		conn.Mechanism.Parameters = map[string]string{}
 	}
 
 	return nil

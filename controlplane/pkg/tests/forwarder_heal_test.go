@@ -5,16 +5,19 @@ import (
 	"testing"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
+
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 
 	. "github.com/onsi/gomega"
 	"golang.org/x/net/context"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
-	connection2 "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
 )
 
 func TestHealLocalForwarder(t *testing.T) {
@@ -59,10 +62,10 @@ func TestHealLocalForwarder(t *testing.T) {
 		},
 		MechanismPreferences: []*connection.Mechanism{
 			{
-				Type: connection.MechanismType_KERNEL_INTERFACE,
+				Type: kernel.MECHANISM,
 				Parameters: map[string]string{
-					connection.NetNsInodeKey:    "10",
-					connection.InterfaceNameKey: "icmp-responder1",
+					common.NetNsInodeKey:    "10",
+					common.InterfaceNameKey: "icmp-responder1",
 				},
 			},
 		},
@@ -75,9 +78,9 @@ func TestHealLocalForwarder(t *testing.T) {
 	// We need to check for cross connections.
 	clientConnection1 := srv.TestModel.GetClientConnection(nsmResponse.GetId())
 	g.Expect(clientConnection1.GetID()).To(Equal("1"))
-	g.Expect(clientConnection1.Xcon.GetRemoteDestination().GetMechanism().GetParameters()[connection2.VXLANSrcIP]).To(Equal("127.0.0.1"))
+	g.Expect(clientConnection1.Xcon.Destination.Mechanism.GetParameters()[vxlan.SrcIP]).To(Equal("127.0.0.1"))
 
-	clientConnection2 := srv2.TestModel.GetClientConnection(clientConnection1.Xcon.GetRemoteDestination().GetId())
+	clientConnection2 := srv2.TestModel.GetClientConnection(clientConnection1.Xcon.Destination.GetId())
 	g.Expect(clientConnection2.GetID()).To(Equal("1"))
 
 	timeout := time.Second * 10
@@ -105,7 +108,7 @@ func TestHealLocalForwarder(t *testing.T) {
 	clientConnection1_1 := srv.TestModel.GetClientConnection(nsmResponse.GetId())
 	g.Expect(clientConnection1_1 != nil).To(Equal(true))
 	g.Expect(clientConnection1_1.GetID()).To(Equal("1"))
-	g.Expect(clientConnection1_1.Xcon.GetRemoteDestination().GetId()).To(Equal("1"))
-	g.Expect(clientConnection1_1.Xcon.GetRemoteDestination().GetNetworkServiceEndpointName()).To(Equal(epName))
-	g.Expect(clientConnection1_1.Xcon.GetRemoteDestination().GetMechanism().GetParameters()[connection2.VXLANSrcIP]).To(Equal("127.0.0.7"))
+	g.Expect(clientConnection1_1.Xcon.Destination.GetId()).To(Equal("1"))
+	g.Expect(clientConnection1_1.Xcon.Destination.GetNetworkServiceEndpointName()).To(Equal(epName))
+	g.Expect(clientConnection1_1.Xcon.Destination.GetMechanism().GetParameters()[vxlan.SrcIP]).To(Equal("127.0.0.7"))
 }

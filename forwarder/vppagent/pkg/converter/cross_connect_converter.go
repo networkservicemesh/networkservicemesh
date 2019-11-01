@@ -3,7 +3,7 @@ package converter
 import (
 	"path"
 
-	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
 
 	"github.com/pkg/errors"
 
@@ -48,8 +48,8 @@ func (c *CrossConnectConverter) ToDataRequest(rv *configurator.Config, connect b
 	srcName := srcPrefix + c.GetId()
 	dstName := dstPrefix + c.GetId()
 
-	if src := compat.ConnectionUnifiedToLocal(c.GetLocalSource()); src != nil {
-		baseDir := path.Join(c.conversionParameters.BaseDir, src.GetMechanism().GetWorkspace())
+	if src := c.GetLocalSource(); src != nil {
+		baseDir := path.Join(c.conversionParameters.BaseDir, src.GetMechanism().GetParameters()[common.Workspace])
 		conversionParameters := &ConnectionConversionParameters{
 			Name:      srcName,
 			Terminate: false,
@@ -63,8 +63,8 @@ func (c *CrossConnectConverter) ToDataRequest(rv *configurator.Config, connect b
 		}
 	}
 
-	if dst := compat.ConnectionUnifiedToLocal(c.GetLocalDestination()); dst != nil {
-		baseDir := path.Join(c.conversionParameters.BaseDir, dst.GetMechanism().GetWorkspace())
+	if dst := c.GetLocalDestination(); dst != nil {
+		baseDir := path.Join(c.conversionParameters.BaseDir, dst.GetMechanism().GetParameters()[common.Workspace])
 		conversionParameters := &ConnectionConversionParameters{
 			Name:      dstName,
 			Terminate: false,
@@ -111,14 +111,14 @@ func (c *CrossConnectConverter) MechanismsToDataRequest(rv *configurator.Config,
 	srcName := srcPrefix + c.GetId()
 
 	var err error
-	if src := compat.ConnectionUnifiedToRemote(c.GetRemoteSource()); src != nil {
+	if src := c.GetRemoteSource(); src != nil {
 		rv, err = NewRemoteConnectionConverter(src, srcName, SOURCE).ToDataRequest(rv, connect)
 		if err != nil {
 			return rv, errors.Wrapf(err, "error Converting CrossConnect %v", c)
 		}
 	}
 
-	if dst := compat.ConnectionUnifiedToRemote(c.GetRemoteDestination()); dst != nil {
+	if dst := c.GetRemoteDestination(); dst != nil {
 		rv, err = NewRemoteConnectionConverter(dst, "DST-"+c.GetId(), DESTINATION).ToDataRequest(rv, connect)
 		if err != nil {
 			return rv, errors.Wrapf(err, "error Converting CrossConnect %v", c)

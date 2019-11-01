@@ -5,12 +5,10 @@ import (
 	"testing"
 	"time"
 
-	unified "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	unified_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
-	nsm_api "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
-	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
-
 	"github.com/golang/protobuf/ptypes/empty"
+
+	unified "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	nsm_api "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 
@@ -20,14 +18,10 @@ import (
 	net_context "golang.org/x/net/context"
 	"google.golang.org/grpc"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
-	local_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
-	local_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
-	remote_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
-	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
@@ -61,15 +55,15 @@ type localManagerManagerStub struct {
 	connectionManager *connectionManagerStub
 }
 
-func (mgr *localManagerManagerStub) Request(ctx context.Context, request *local_networkservice.NetworkServiceRequest) (*local_connection.Connection, error) {
+func (mgr *localManagerManagerStub) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 	conn, err := mgr.connectionManager.request(ctx, request, mgr.connectionManager.model.GetClientConnection(request.GetConnection().GetId()))
 	if err == nil {
-		return conn.(*local_connection.Connection), nil
+		return conn, nil
 	}
 	return nil, err
 }
 
-func (mgr *localManagerManagerStub) Close(ctx context.Context, connection *local_connection.Connection) (*empty.Empty, error) {
+func (mgr *localManagerManagerStub) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
 	err := mgr.connectionManager.Close(ctx, mgr.connectionManager.model.GetClientConnection(connection.GetId()))
 	return &empty.Empty{}, err
 }
@@ -78,15 +72,15 @@ type remoteManagerManagerStub struct {
 	connectionManager *connectionManagerStub
 }
 
-func (mgr *remoteManagerManagerStub) Request(ctx context.Context, request *remote_networkservice.NetworkServiceRequest) (*remote_connection.Connection, error) {
+func (mgr *remoteManagerManagerStub) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 	conn, err := mgr.connectionManager.request(ctx, request, mgr.connectionManager.model.GetClientConnection(request.GetConnection().GetId()))
 	if err != nil {
-		return conn.(*remote_connection.Connection), nil
+		return conn, nil
 	}
 	return nil, err
 }
 
-func (mgr *remoteManagerManagerStub) Close(ctx context.Context, connection *remote_connection.Connection) (*empty.Empty, error) {
+func (mgr *remoteManagerManagerStub) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
 	err := mgr.connectionManager.Close(ctx, mgr.connectionManager.model.GetClientConnection(connection.GetId()))
 	return &empty.Empty{}, err
 }
@@ -327,19 +321,19 @@ type connectionManagerStub struct {
 	closeError error
 }
 
-func (stub *connectionManagerStub) LocalManager(cc nsm.ClientConnection) local_networkservice.NetworkServiceServer {
+func (stub *connectionManagerStub) LocalManager(cc nsm.ClientConnection) networkservice.NetworkServiceServer {
 	return &localManagerManagerStub{
 		connectionManager: stub,
 	}
 }
 
-func (stub *connectionManagerStub) RemoteManager() unified_networkservice.NetworkServiceServer {
-	return compat.NewUnifiedNetworkServiceServerAdapter(&remoteManagerManagerStub{
+func (stub *connectionManagerStub) RemoteManager() networkservice.NetworkServiceServer {
+	return &remoteManagerManagerStub{
 		connectionManager: stub,
-	}, nil)
+	}
 }
 
-func (stub *connectionManagerStub) request(ctx context.Context, request networkservice.Request, existingConnection *model.ClientConnection) (connection.Connection, error) {
+func (stub *connectionManagerStub) request(ctx context.Context, request *networkservice.NetworkServiceRequest, existingConnection *model.ClientConnection) (*connection.Connection, error) {
 	if stub.requestError != nil {
 		return nil, stub.requestError
 	}
@@ -411,7 +405,7 @@ type nseManagerStub struct {
 	nses []*registry.NSERegistration
 }
 
-func (stub *nseManagerStub) GetEndpoint(ctx net_context.Context, requestConnection connection.Connection, ignoreEndpoints map[registry.EndpointNSMName]*registry.NSERegistration) (*registry.NSERegistration, error) {
+func (stub *nseManagerStub) GetEndpoint(ctx net_context.Context, requestConnection *connection.Connection, ignoreEndpoints map[registry.EndpointNSMName]*registry.NSERegistration) (*registry.NSERegistration, error) {
 	panic("implement me")
 }
 
@@ -477,23 +471,25 @@ func (data *healTestData) createCrossConnection(isRemoteSrc, isRemoteDst bool, s
 	return xcon
 }
 
-func (data *healTestData) createRequest(isRemote bool) networkservice.Request {
+func (data *healTestData) createRequest(isRemote bool) *networkservice.NetworkServiceRequest {
 	if isRemote {
-		return &remote_networkservice.NetworkServiceRequest{
-			Connection: &remote_connection.Connection{
-				NetworkService: networkServiceName,
+		return &networkservice.NetworkServiceRequest{
+			Connection: &connection.Connection{
+				NetworkService:         networkServiceName,
+				NetworkServiceManagers: []string{"local", "remove"},
 			},
 		}
 	}
 
-	return &local_networkservice.NetworkServiceRequest{
-		Connection: &local_connection.Connection{
-			NetworkService: networkServiceName,
+	return &networkservice.NetworkServiceRequest{
+		Connection: &connection.Connection{
+			NetworkService:         networkServiceName,
+			NetworkServiceManagers: []string{"local"},
 		},
 	}
 }
 
-func (data *healTestData) createClientConnection(id string, xcon *crossconnect.CrossConnect, nse *registry.NSERegistration, nsm, forwarder string, request networkservice.Request) *model.ClientConnection {
+func (data *healTestData) createClientConnection(id string, xcon *crossconnect.CrossConnect, nse *registry.NSERegistration, nsm, forwarder string, request *networkservice.NetworkServiceRequest) *model.ClientConnection {
 	return &model.ClientConnection{
 		ConnectionID: id,
 		Xcon:         xcon,
@@ -513,13 +509,8 @@ func (data *healTestData) cloneClientConnection(connection *model.ClientConnecti
 	nse := data.createEndpoint(connection.Endpoint.GetNetworkServiceEndpoint().GetName(), connection.Endpoint.GetNetworkServiceManager().GetName())
 	nsm := connection.RemoteNsm.GetName()
 	forwarder := connection.ForwarderRegisteredName
-	request := data.createRequest(connection.Request.IsRemote())
-
-	if request.IsRemote() {
-		request.(*remote_networkservice.NetworkServiceRequest).Connection.Id = id
-	} else {
-		request.(*local_networkservice.NetworkServiceRequest).Connection.Id = id
-	}
+	request := data.createRequest(connection.GetConnectionSource().IsRemote())
+	request.Connection.Id = id
 
 	return data.createClientConnection(id, xcon, nse, nsm, forwarder, request)
 }

@@ -1,11 +1,27 @@
-package remote
+// Copyright (c) 2019 Cisco Systems, Inc and/or its affiliates.
+//
+// SPDX-License-Identifier: Apache-2.0
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package connectionmonitor
 
 import (
 	context "context"
 
 	"github.com/pkg/errors"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
 )
 
@@ -31,12 +47,12 @@ func (e *event) Message() (interface{}, error) {
 }
 
 type eventFactory struct {
+	factoryName string
 }
 
 func (m *eventFactory) FactoryName() string {
-	return "RemoteConnection"
+	return m.factoryName
 }
-
 func (m *eventFactory) NewEvent(ctx context.Context, eventType monitor.EventType, entities map[string]monitor.Entity) monitor.Event {
 	return &event{
 		BaseEvent: monitor.NewBaseEvent(ctx, eventType, entities),
@@ -70,7 +86,7 @@ func eventTypeToConnectionEventType(eventType monitor.EventType) (connection.Con
 	case monitor.EventTypeDelete:
 		return connection.ConnectionEventType_DELETE, nil
 	default:
-		return 0, errors.Errorf("unable to cast %v to remote.ConnectionEventType", eventType)
+		return 0, errors.Errorf("unable to cast %v to local.ConnectionEventType", eventType)
 	}
 }
 
@@ -94,7 +110,7 @@ func connectionsFromEntities(entities map[string]monitor.Entity) (map[string]*co
 		if conn, ok := v.(*connection.Connection); ok {
 			connections[k] = conn
 		} else {
-			return nil, errors.New("unable to cast Entity to remote.Connection")
+			return nil, errors.New("unable to cast Entity to connection.Connection")
 		}
 	}
 

@@ -10,8 +10,9 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
+	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/connectionmonitor"
 )
 
 const (
@@ -37,11 +38,11 @@ func NewProxyMonitorServer() ProxyMonitorServer {
 
 // MonitorConnections adds recipient for MonitorServer events
 func (s *proxyMonitorServer) MonitorConnections(selector *connection.MonitorScopeSelector, recipient connection.MonitorConnection_MonitorConnectionsServer) error {
-	filtered := newMonitorConnectionFilter(selector, recipient)
+	filtered := connectionmonitor.NewMonitorConnectionFilter(selector, recipient)
 
-	logrus.Printf("Monitor Connections request: %s -> %s", selector.NetworkServiceManagerName, selector.DestinationNetworkServiceManagerName)
+	logrus.Printf("Monitor Connections request: %s -> %s", selector.NetworkServiceManagers[0], selector.NetworkServiceManagers[1])
 
-	remotePeerName, remotePeerURL, err := interdomain.ParseNsmURL(selector.DestinationNetworkServiceManagerName)
+	remotePeerName, remotePeerURL, err := interdomain.ParseNsmURL(selector.NetworkServiceManagers[1])
 	if err != nil {
 		return errors.Wrap(err, "ProxyNSM-Monitor")
 	}
@@ -53,7 +54,7 @@ func (s *proxyMonitorServer) MonitorConnections(selector *connection.MonitorScop
 
 	go s.monitorConnection(
 		ctx,
-		selector.NetworkServiceManagerName, remotePeerName, remotePeerURL,
+		selector.NetworkServiceManagers[0], remotePeerName, remotePeerURL,
 		s.handleRemoteConnection, filtered, quit)
 
 	select {
@@ -66,7 +67,7 @@ func (s *proxyMonitorServer) MonitorConnections(selector *connection.MonitorScop
 		}
 	}
 
-	logrus.Printf("Monitor Connections done: %s -> %s", selector.NetworkServiceManagerName, selector.DestinationNetworkServiceManagerName)
+	logrus.Printf("Monitor Connections done: %s -> %s", selector.NetworkServiceManagers[0], selector.NetworkServiceManagers[1])
 
 	return nil
 }
@@ -87,9 +88,8 @@ func (s *proxyMonitorServer) monitorConnection(
 	logrus.Infof(proxyLogFormat, name, "Connected")
 	defer func() { _ = conn.Close() }()
 
-	monitorClient, err := NewMonitorClient(conn, &connection.MonitorScopeSelector{
-		NetworkServiceManagerName:            name,
-		DestinationNetworkServiceManagerName: remotePeerName,
+	monitorClient, err := connectionmonitor.NewMonitorClient(conn, &connection.MonitorScopeSelector{
+		NetworkServiceManagers: []string{name, remotePeerName},
 	})
 	if err != nil {
 		logrus.Errorf(proxyLogWithParamFormat, name, "Failed to start monitor", err)

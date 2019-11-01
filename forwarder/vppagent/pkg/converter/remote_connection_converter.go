@@ -22,11 +22,10 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
-)
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
 
-// SupportedMechanisms by Forwarder (add new mechanisms next way "connection.MechanismType_VXLAN | connection.MechanismType_SRV6 | ...")
-const SupportedMechanisms = connection.MechanismType_VXLAN
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+)
 
 // RemoteConnectionConverter described the remote connection
 type RemoteConnectionConverter struct {
@@ -52,7 +51,7 @@ func (c *RemoteConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 	if err := c.IsComplete(); err != nil {
 		return rv, err
 	}
-	if c.GetMechanism().GetType()&SupportedMechanisms == 0 {
+	if c.GetMechanism().GetType() != vxlan.MECHANISM {
 		return rv, errors.Errorf("attempt to use not supported Connection.Mechanism.Type %s", c.GetMechanism().GetType())
 	}
 	if rv == nil {
@@ -62,7 +61,7 @@ func (c *RemoteConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 		rv.VppConfig = &vpp.ConfigData{}
 	}
 
-	m := c.GetMechanism()
+	m := vxlan.ToMechanism(c.GetMechanism())
 
 	// If the remote Connection is DESTINATION Side then srcip/dstip match the Connection
 	srcip, _ := m.SrcIP()
@@ -74,9 +73,9 @@ func (c *RemoteConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 	}
 	vni, _ := m.VNI()
 
-	logrus.Infof("m.GetParameters()[%s]: %s", connection.VXLANSrcIP, srcip)
-	logrus.Infof("m.GetParameters()[%s]: %s", connection.VXLANDstIP, dstip)
-	logrus.Infof("m.GetParameters()[%s]: %d", connection.VXLANVNI, vni)
+	logrus.Infof("m.GetParameters()[%s]: %s", vxlan.SrcIP, srcip)
+	logrus.Infof("m.GetParameters()[%s]: %s", vxlan.DstIP, dstip)
+	logrus.Infof("m.GetParameters()[%s]: %d", vxlan.VNI, vni)
 
 	rv.VppConfig.Interfaces = append(rv.VppConfig.Interfaces, &vpp.Interface{
 		Name:    c.name,

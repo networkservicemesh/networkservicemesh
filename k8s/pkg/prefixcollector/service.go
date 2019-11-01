@@ -4,6 +4,8 @@ import (
 	"context"
 	"sync"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
@@ -68,15 +70,15 @@ func (c *prefixService) monitorExcludedPrefixes(clientset *kubernetes.Clientset)
 	return nil
 }
 
-func (c *prefixService) UpdateConnection(ctx context.Context, wrapper *plugins.ConnectionWrapper) (*plugins.ConnectionWrapper, error) {
-	connCtx := wrapper.GetConnection().GetContext()
+func (c *prefixService) UpdateConnection(ctx context.Context, wrapper *connection.Connection) (*connection.Connection, error) {
+	connCtx := wrapper.GetContext()
 	connCtx.GetIpContext().ExcludedPrefixes = append(connCtx.GetIpContext().GetExcludedPrefixes(), c.getExcludedPrefixes().GetPrefixes()...)
 	return wrapper, nil
 }
 
-func (c *prefixService) ValidateConnection(ctx context.Context, wrapper *plugins.ConnectionWrapper) (*plugins.ConnectionValidationResult, error) {
+func (c *prefixService) ValidateConnection(ctx context.Context, wrapper *connection.Connection) (*plugins.ConnectionValidationResult, error) {
 	prefixes := c.getExcludedPrefixes()
-	connCtx := wrapper.GetConnection().GetContext()
+	connCtx := wrapper.GetContext()
 
 	if srcIP := connCtx.GetIpContext().GetSrcIpAddr(); srcIP != "" {
 		intersect, err := prefixes.Intersect(srcIP)

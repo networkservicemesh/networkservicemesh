@@ -21,7 +21,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/local"
+	connectionMonitor "github.com/networkservicemesh/networkservicemesh/sdk/monitor/connectionmonitor"
 	"github.com/networkservicemesh/networkservicemesh/utils"
 
 	"github.com/networkservicemesh/networkservicemesh/test/applications/cmd/icmp-responder-nse/flags"
@@ -154,7 +154,7 @@ func ipNeighborMutator(ctc context.Context, c *connection.Connection) error {
 	return nil
 }
 
-func updateConnections(ctx context.Context, monitorServer local.MonitorServer) {
+func updateConnections(ctx context.Context, monitorServer connectionMonitor.MonitorServer) {
 	for _, entity := range monitorServer.Entities() {
 		localConnection := proto.Clone(entity.(*connection.Connection)).(*connection.Connection)
 		localConnection.GetContext().GetIpContext().ExcludedPrefixes =

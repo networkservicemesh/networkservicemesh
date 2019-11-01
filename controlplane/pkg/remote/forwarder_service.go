@@ -20,7 +20,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
 
 	"github.com/pkg/errors"
 
@@ -30,11 +30,9 @@ import (
 
 	"github.com/golang/protobuf/ptypes/empty"
 
-	unified "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
-	unifiedconnection "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
@@ -60,7 +58,7 @@ type forwarderService struct {
 func (cce *forwarderService) selectForwarder(request *networkservice.NetworkServiceRequest) (*model.Forwarder, error) {
 	dp, err := cce.model.SelectForwarder(func(dp *model.Forwarder) bool {
 		for _, m := range request.GetRequestMechanismPreferences() {
-			if cce.findMechanism(dp.RemoteMechanisms, m.GetMechanismType()) != nil {
+			if cce.findMechanism(dp.RemoteMechanisms, m.GetType()) != nil {
 				return true
 			}
 		}
@@ -68,10 +66,9 @@ func (cce *forwarderService) selectForwarder(request *networkservice.NetworkServ
 	})
 	return dp, err
 }
-func (cce *forwarderService) findMechanism(mechanismPreferences []*unified.Mechanism, mechanismType unifiedconnection.MechanismType) unifiedconnection.Mechanism {
-	for _, me := range mechanismPreferences {
-		m := compat.MechanismUnifiedToRemote(me)
-		if m.GetMechanismType() == mechanismType {
+func (cce *forwarderService) findMechanism(mechanismPreferences []*connection.Mechanism, mechanismType string) *connection.Mechanism {
+	for _, m := range mechanismPreferences {
+		if m.GetType() == mechanismType {
 			return m
 		}
 	}
@@ -80,30 +77,30 @@ func (cce *forwarderService) findMechanism(mechanismPreferences []*unified.Mecha
 
 func (cce *forwarderService) selectRemoteMechanism(request *networkservice.NetworkServiceRequest, dp *model.Forwarder) (*connection.Mechanism, error) {
 	for _, mechanism := range request.GetRequestMechanismPreferences() {
-		dpMechanism := cce.findMechanism(dp.RemoteMechanisms, connection.MechanismType_VXLAN)
+		dpMechanism := cce.findMechanism(dp.RemoteMechanisms, vxlan.MECHANISM)
 		if dpMechanism == nil {
 			continue
 		}
 
 		// TODO: Add other mechanisms support
 
-		if mechanism.GetMechanismType() == connection.MechanismType_VXLAN {
+		if mechanism.GetType() == vxlan.MECHANISM {
 			parameters := mechanism.GetParameters()
 			dpParameters := dpMechanism.GetParameters()
 
-			parameters[connection.VXLANDstIP] = dpParameters[connection.VXLANSrcIP]
+			parameters[vxlan.DstIP] = dpParameters[vxlan.SrcIP]
 			var vni uint32
 
-			extSrcIP := parameters[connection.VXLANSrcIP]
-			extDstIP := dpParameters[connection.VXLANSrcIP]
-			srcIP := parameters[connection.VXLANSrcIP]
-			dstIP := dpParameters[connection.VXLANSrcIP]
+			extSrcIP := parameters[vxlan.SrcIP]
+			extDstIP := dpParameters[vxlan.SrcIP]
+			srcIP := parameters[vxlan.SrcIP]
+			dstIP := dpParameters[vxlan.SrcIP]
 
-			if ip, ok := parameters[connection.VXLANSrcOriginalIP]; ok {
+			if ip, ok := parameters[vxlan.SrcOriginalIP]; ok {
 				srcIP = ip
 			}
 
-			if ip, ok := parameters[connection.VXLANDstExternalIP]; ok {
+			if ip, ok := parameters[vxlan.DstExternalIP]; ok {
 				extDstIP = ip
 			}
 
@@ -113,11 +110,11 @@ func (cce *forwarderService) selectRemoteMechanism(request *networkservice.Netwo
 				vni = cce.serviceRegistry.VniAllocator().Vni(dstIP, srcIP)
 			}
 
-			parameters[connection.VXLANVNI] = strconv.FormatUint(uint64(vni), 10)
+			parameters[vxlan.VNI] = strconv.FormatUint(uint64(vni), 10)
 		}
 
 		logrus.Infof("NSM:(5.1) Remote mechanism selected %v", mechanism)
-		return mechanism.(*connection.Mechanism), nil
+		return mechanism, nil
 	}
 
 	return nil, errors.New("failed to select mechanism, no matched mechanisms found")
@@ -127,17 +124,17 @@ func (cce *forwarderService) updateMechanism(request *networkservice.NetworkServ
 	conn := request.GetConnection()
 	// 5.x
 	if m, err := cce.selectRemoteMechanism(request, dp); err == nil {
-		conn.SetConnectionMechanism(m.Clone())
+		conn.Mechanism = m.Clone()
 	} else {
 		return err
 	}
 
-	if conn.GetConnectionMechanism() == nil {
+	if conn.GetMechanism() == nil {
 		return errors.Errorf("required mechanism are not found... %v ", request.GetRequestMechanismPreferences())
 	}
 
-	if conn.GetConnectionMechanism().GetParameters() == nil {
-		conn.GetConnectionMechanism().SetParameters(map[string]string{})
+	if conn.GetMechanism().GetParameters() == nil {
+		conn.Mechanism.Parameters = map[string]string{}
 	}
 
 	return nil

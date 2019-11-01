@@ -22,16 +22,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	connectionMonitor "github.com/networkservicemesh/networkservicemesh/sdk/monitor/connectionmonitor"
+
 	. "github.com/onsi/gomega"
 
-	unified "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
-	local_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
-	remote_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/local"
-	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/remote"
 )
 
 type eventCollector struct {
@@ -53,7 +51,7 @@ func TestNSMDCrossConnectClientRemote(t *testing.T) {
 	srv := NewNSMDFullServer(Master, storage)
 	defer srv.Stop()
 
-	mon := remote.NewMonitorServer()
+	mon := connectionMonitor.NewMonitorServer("LocalConnection")
 
 	msgs := &eventCollector{
 		messages: []interface{}{},
@@ -71,11 +69,11 @@ func TestNSMDCrossConnectClientRemote(t *testing.T) {
 		&model.ClientConnection{
 			ConnectionID: "1",
 			Xcon: &crossconnect.CrossConnect{
-				Source: &unified.Connection{
+				Source: &connection.Connection{
 					Id:                     "1",
 					NetworkServiceManagers: []string{"nsm1", "nsm2"},
 				},
-				Destination: &unified.Connection{
+				Destination: &connection.Connection{
 					Id: "2",
 				},
 			},
@@ -91,13 +89,14 @@ func TestNSMDCrossConnectClientRemote(t *testing.T) {
 		g.Expect(true).To(BeNil(), "Timeout")
 	}
 	g.Expect(len(msgs.messages)).To(Equal(2))
-	evt := msg.(*remote_connection.ConnectionEvent)
+	evt := msg.(*connection.ConnectionEvent)
 	ents := evt.Connections
 	g.Expect(len(ents)).To(Equal(1))
 	conn, ok := ents["1"]
 	g.Expect(ok).To(Equal(true))
 	g.Expect(conn.Id).To(Equal("1"))
-	g.Expect(conn.DestinationNetworkServiceManagerName).To(Equal("nsm2"))
+	g.Expect(len(conn.NetworkServiceManagers)).To(Equal(2))
+	g.Expect(conn.NetworkServiceManagers[1]).To(Equal("nsm2"))
 }
 
 func TestNSMDCrossConnectClientLocal(t *testing.T) {
@@ -108,7 +107,7 @@ func TestNSMDCrossConnectClientLocal(t *testing.T) {
 	srv := NewNSMDFullServer(Master, storage)
 	defer srv.Stop()
 
-	mon := local.NewMonitorServer()
+	mon := connectionMonitor.NewMonitorServer("LocalConnection")
 
 	msgs := &eventCollector{
 		messages: []interface{}{},
@@ -126,11 +125,11 @@ func TestNSMDCrossConnectClientLocal(t *testing.T) {
 		&model.ClientConnection{
 			ConnectionID: "1",
 			Xcon: &crossconnect.CrossConnect{
-				Source: &unified.Connection{
+				Source: &connection.Connection{
 					Id:                     "1",
 					NetworkServiceManagers: []string{"nsm1"},
 				},
-				Destination: &unified.Connection{
+				Destination: &connection.Connection{
 					Id: "2",
 				},
 			},
@@ -146,7 +145,7 @@ func TestNSMDCrossConnectClientLocal(t *testing.T) {
 		g.Expect(true).To(BeNil(), "Timeout")
 	}
 	g.Expect(len(msgs.messages)).To(Equal(2))
-	evt := msg.(*local_connection.ConnectionEvent)
+	evt := msg.(*connection.ConnectionEvent)
 	ents := evt.Connections
 	g.Expect(len(ents)).To(Equal(1))
 	conn, ok := ents["1"]
