@@ -2,8 +2,8 @@ package serviceregistryserver
 
 import (
 	"context"
-	"fmt"
 
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
@@ -22,7 +22,7 @@ func newDiscoveryService(cache NSERegistryCache) *discoveryService {
 func (d *discoveryService) FindNetworkService(ctx context.Context, request *registry.FindNetworkServiceRequest) (*registry.FindNetworkServiceResponse, error) {
 	networkServiceEnpoints := d.cache.GetEndpointsByNs(request.NetworkServiceName)
 	if len(networkServiceEnpoints) == 0 {
-		err := fmt.Errorf("no NetworkService with name: %v", request.NetworkServiceName)
+		err := errors.Errorf("no NetworkService with name: %v", request.NetworkServiceName)
 		logrus.Errorf("Cannot find Network Service: %v", err)
 		return nil, err
 	}

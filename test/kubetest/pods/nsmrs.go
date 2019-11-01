@@ -26,7 +26,6 @@ func NSMRSPod(name string, node *v1.Node) *v1.Pod {
 
 // NSMRSPodWithConfig - create NSMRS pod with custom config
 func NSMRSPodWithConfig(name string, node *v1.Node, config *NSMgrPodConfig) *v1.Pod {
-
 	ht := new(v1.HostPathType)
 	*ht = v1.HostPathDirectoryOrCreate
 

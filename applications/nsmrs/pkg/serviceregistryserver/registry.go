@@ -3,9 +3,12 @@ package serviceregistryserver
 import (
 	"context"
 	"fmt"
+	"strings"
+
+	"github.com/pkg/errors"
+
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/sirupsen/logrus"
-	"strings"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 )
@@ -48,7 +51,7 @@ func (rs *nseRegistryService) BulkRegisterNSE(srv registry.NetworkServiceRegistr
 	for {
 		request, err := srv.Recv()
 		if err != nil {
-			err = fmt.Errorf("error receiving BulkRegisterNSE request : %v", err)
+			err = errors.Errorf("error receiving BulkRegisterNSE request : %v", err)
 			return err
 		}
 
@@ -58,11 +61,10 @@ func (rs *nseRegistryService) BulkRegisterNSE(srv registry.NetworkServiceRegistr
 
 		_, err = rs.cache.UpdateNetworkServiceEndpoint(request)
 		if err != nil {
-			err = fmt.Errorf("error processing BulkRegisterNSE request: %v", err)
+			err = errors.Errorf("error processing BulkRegisterNSE request: %v", err)
 			return err
 		}
 	}
-	return nil
 }
 
 // RemoveNSE - Removes NSE from cache and stops NSMgr monitor

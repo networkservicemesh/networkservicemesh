@@ -514,8 +514,6 @@ func (nsm *nsmServer) initMonitorServers() {
 	nsm.crossConnectMonitor = monitor_crossconnect.NewMonitorServer()
 	// Start Connection monitor server
 	nsm.remoteConnectionMonitor = remoteMonitor.NewMonitorServer(nsm.xconManager)
-	// Start Live Check Monitor server
-	nsm.liveMonitor = livemonitor.NewServer()
 }
 
 func (nsm *nsmServer) StartForwarderRegistratorServer(ctx context.Context) error {

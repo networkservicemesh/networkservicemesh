@@ -23,11 +23,11 @@ func mapNsmToCustomResource(nsm *registry.NetworkServiceManager) *v1.NetworkServ
 			Name: nsm.GetName(),
 		},
 		Spec: v1.NetworkServiceManagerSpec{
-			URL: nsm.GetUrl(),
+			URL:            nsm.GetUrl(),
 			ExpirationTime: metav1.Time{Time: time.Now()},
 		},
 		Status: v1.NetworkServiceManagerStatus{
-			State:    v1.RUNNING,
+			State: v1.RUNNING,
 		},
 	}
 
@@ -51,9 +51,9 @@ func mapNsmToCustomResource(nsm *registry.NetworkServiceManager) *v1.NetworkServ
 
 func mapNsmFromCustomResource(cr *v1.NetworkServiceManager) *registry.NetworkServiceManager {
 	return &registry.NetworkServiceManager{
-		Name:     cr.GetName(),
-		Url:      cr.Spec.URL,
-		State:    string(cr.Status.State),
+		Name:  cr.GetName(),
+		Url:   cr.Spec.URL,
+		State: string(cr.Status.State),
 	}
 }
 

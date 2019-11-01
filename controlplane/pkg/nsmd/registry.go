@@ -15,11 +15,12 @@
 package nsmd
 
 import (
-	"fmt"
-	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
-	"github.com/pkg/errors"
 	"time"
+
+	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/pkg/errors"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 
@@ -152,13 +153,13 @@ func (es *registryServer) startNSETracking(request *registry.NSERegistration) er
 	client, err := es.nsm.serviceRegistry.NseRegistryClient(ctx)
 	if err != nil {
 		cancel()
-		return fmt.Errorf("cannot start NSE tracking : %v", err)
+		return errors.Errorf("cannot start NSE tracking : %v", err)
 	}
 
 	stream, err := client.BulkRegisterNSE(ctx)
 	if err != nil {
 		cancel()
-		return fmt.Errorf("cannot start NSE tracking : %v", err)
+		return errors.Errorf("cannot start NSE tracking : %v", err)
 	}
 
 	go func() {
@@ -166,13 +167,16 @@ func (es *registryServer) startNSETracking(request *registry.NSERegistration) er
 
 		for {
 			select {
-				case <-ctx.Done():
-					return
-				case <-time.After(2 * time.Minute):
-					stream.Send(request)
+			case <-ctx.Done():
+				return
+			case <-time.After(2 * time.Minute):
+				err := stream.Send(request)
+				if err != nil {
+					logrus.Errorf("Error sending BulkRegisterNSE request : %v", err)
+				}
 			}
 		}
-	} ()
+	}()
 
 	return nil
 }

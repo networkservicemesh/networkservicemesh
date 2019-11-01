@@ -1,3 +1,5 @@
+// +build interdomain
+
 package nsmd_integration_tests
 
 import (
@@ -98,6 +100,6 @@ func testFloatingInterdomainDie(t *testing.T, clustersCount int, killPod string)
 		k8ss[clustersCount-1].K8s.WaitLogsContains(nsmrsPod, "nsmrs", "RemoveNSE done", defaultTimeout)
 	case "nsmd":
 		k8ss[clustersCount-1].K8s.DeletePods(k8ss[clustersCount-1].NodesSetup[0].Nsmd)
-		k8ss[clustersCount-1].K8s.WaitLogsContains(nsmrsPod, "nsmrs", "Network Service Endpoint removed by timeout", 7 * time.Minute)
+		k8ss[clustersCount-1].K8s.WaitLogsContains(nsmrsPod, "nsmrs", "Network Service Endpoint removed by timeout", 7*time.Minute)
 	}
 }

@@ -1,10 +1,11 @@
 package registryserver
 
 import (
-	"fmt"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 
@@ -121,32 +122,30 @@ func (rs *nseRegistryService) BulkRegisterNSE(srv registry.NetworkServiceRegistr
 
 	nseRegistryClient, err := remoteRegistry.NseRegistryClient(ctx)
 	if err != nil {
-		err = fmt.Errorf("error forwarding BulkRegisterNSE request to %s : %v", nsrURL, err)
+		err = errors.Errorf("error forwarding BulkRegisterNSE request to %s : %v", nsrURL, err)
 		return err
 	}
 
 	stream, err := nseRegistryClient.BulkRegisterNSE(ctx)
 	if err != nil {
-		err = fmt.Errorf("error forwarding BulkRegisterNSE request to %s : %v", nsrURL, err)
+		err = errors.Errorf("error forwarding BulkRegisterNSE request to %s : %v", nsrURL, err)
 		return err
 	}
 
 	for {
 		request, err := srv.Recv()
 		if err != nil {
-			err = fmt.Errorf("error receiving BulkRegisterNSE request : %v", err)
+			err = errors.Errorf("error receiving BulkRegisterNSE request : %v", err)
 			return err
 		}
 
 		logrus.Infof("Forward BulkRegisterNSE request: %v", request)
 		err = stream.Send(request)
 		if err != nil {
-			err = fmt.Errorf("error forwarding BulkRegisterNSE request to %s : %v", nsrURL, err)
+			err = errors.Errorf("error forwarding BulkRegisterNSE request to %s : %v", nsrURL, err)
 			return err
 		}
 	}
-
-	return nil
 }
 
 func (rs *nseRegistryService) RemoveNSE(ctx context.Context, request *registry.RemoveNSERequest) (*empty.Empty, error) {
@@ -202,7 +201,7 @@ func (rs *nseRegistryService) forwardRegisterNSE(request *registry.NSERegistrati
 	case err := <-quit:
 		return err
 	case <-time.After(ForwardingTimeout):
-		return fmt.Errorf("timeout requesting NseRegistryClient")
+		return errors.Errorf("timeout requesting NseRegistryClient")
 	}
 
 	service, err := rs.cache.GetNetworkService(request.NetworkService.Name)
@@ -272,7 +271,7 @@ func (rs *nseRegistryService) forwardRemoveNSE(request *registry.RemoveNSEReques
 	case err := <-quit:
 		return err
 	case <-time.After(ForwardingTimeout):
-		return fmt.Errorf("timeout requesting NseRegistryClient")
+		return errors.Errorf("timeout requesting NseRegistryClient")
 	}
 
 	_, err := nseRegistryClient.RemoveNSE(ctx, request)

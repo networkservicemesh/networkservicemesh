@@ -1,8 +1,9 @@
 package serviceregistryserver
 
 import (
-	"fmt"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/sirupsen/logrus"
@@ -42,13 +43,13 @@ func NewNSERegistryCache() NSERegistryCache {
 // AddNetworkServiceEndpoint - register NSE in cache
 func (rc *nseRegistryCache) AddNetworkServiceEndpoint(entry *registry.NSERegistration) (*registry.NSERegistration, error) {
 	if endpoint, ok := rc.endpoints[entry.NetworkServiceEndpoint.Name]; ok {
-		return nil, fmt.Errorf("network service endpoint with name %s already exists: old: %v; new: %v", endpoint.NetworkServiceEndpoint.Name, endpoint, entry)
+		return nil, errors.Errorf("network service endpoint with name %s already exists: old: %v; new: %v", endpoint.NetworkServiceEndpoint.Name, endpoint, entry)
 	}
 
 	existingEndpoints := rc.GetEndpointsByNs(entry.NetworkService.Name)
 	for _, endpoint := range existingEndpoints {
 		if !proto.Equal(endpoint.NetworkService, entry.NetworkService) {
-			return nil, fmt.Errorf("network service already exists with different parameters: old: %v; new: %v", endpoint, entry)
+			return nil, errors.Errorf("network service already exists with different parameters: old: %v; new: %v", endpoint, entry)
 		}
 	}
 
@@ -65,7 +66,7 @@ func (rc *nseRegistryCache) AddNetworkServiceEndpoint(entry *registry.NSERegistr
 func (rc *nseRegistryCache) UpdateNetworkServiceEndpoint(nse *registry.NSERegistration) (*registry.NSERegistration, error) {
 	if endpoint, ok := rc.endpoints[nse.NetworkServiceEndpoint.Name]; ok {
 		if endpoint.NetworkServiceManager.Name != nse.NetworkServiceManager.Name {
-			return nil, fmt.Errorf("network service endpoint with name %s already registered from different NSM: old: %v; new: %v", endpoint.NetworkServiceEndpoint.Name, endpoint, nse)
+			return nil, errors.Errorf("network service endpoint with name %s already registered from different NSM: old: %v; new: %v", endpoint.NetworkServiceEndpoint.Name, endpoint, nse)
 		}
 		endpoint.NetworkServiceManager.ExpirationTime = &timestamp.Timestamp{Seconds: time.Now().Add(NSEExpirationTimeout).Unix()}
 		return endpoint, nil
@@ -86,7 +87,7 @@ func (rc *nseRegistryCache) DeleteNetworkServiceEndpoint(endpointName string) (*
 			}
 		}
 	}
-	return nil, fmt.Errorf("endpoint %s not found", endpointName)
+	return nil, errors.Errorf("endpoint %s not found", endpointName)
 }
 
 // GetEndpointsByNs - get Endpoints list from cache by Name

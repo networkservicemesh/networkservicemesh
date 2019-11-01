@@ -88,6 +88,10 @@ func (impl *nsmdTestServiceDiscovery) RegisterNSE(ctx context.Context, in *regis
 	return in, nil
 }
 
+func (impl *nsmdTestServiceDiscovery) BulkRegisterNSE(ctx context.Context, opts ...grpc.CallOption) (registry.NetworkServiceRegistry_BulkRegisterNSEClient, error) {
+	return nil, errors.Errorf("not implemented")
+}
+
 func (impl *nsmdTestServiceDiscovery) RemoveNSE(ctx context.Context, in *registry.RemoveNSERequest, opts ...grpc.CallOption) (*empty.Empty, error) {
 	impl.storage.Lock()
 	delete(impl.storage.endpoints, in.GetNetworkServiceEndpointName())

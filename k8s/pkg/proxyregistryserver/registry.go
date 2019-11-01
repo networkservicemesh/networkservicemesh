@@ -1,9 +1,12 @@
+// Package proxyregistryserver forwarding NSMD k8s commands to remote domain
 package proxyregistryserver
 
 import (
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/pkg/errors"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/sirupsen/logrus"
@@ -37,14 +40,14 @@ func (rs *nseRegistryService) RegisterNSE(ctx context.Context, request *registry
 
 	nsmrsURL := os.Getenv(NSMRSAddressEnv)
 	if strings.TrimSpace(nsmrsURL) == "" {
-		err := fmt.Errorf("NSMRS Address variable was not set")
+		err := errors.Errorf("NSMRS Address variable was not set")
 		logrus.Warnf("%s: Skipping Register NSE forwarding: %v", NSRegistryForwarderLogPrefix, err)
 		return request, err
 	}
 
 	nodeConfiguration, cErr := rs.clusterInfoService.GetNodeIPConfiguration(ctx, &clusterinfo.NodeIPConfiguration{NodeName: request.NetworkServiceManager.Name})
 	if cErr != nil {
-		err := fmt.Errorf("cannot get Network Service Manager's IP address: %s", cErr)
+		err := errors.Errorf("cannot get Network Service Manager's IP address: %s", cErr)
 		logrus.Errorf("%s: %v", NSRegistryForwarderLogPrefix, err)
 		return nil, err
 	}
@@ -73,7 +76,7 @@ func (rs *nseRegistryService) RegisterNSE(ctx context.Context, request *registry
 
 	_, err = nseRegistryClient.RegisterNSE(ctx, request)
 	if err != nil {
-		errIn := fmt.Errorf("failed register NSE in NSMRS: %v", err)
+		errIn := errors.Errorf("failed register NSE in NSMRS: %v", err)
 		logrus.Errorf("%s: %v", NSRegistryForwarderLogPrefix, errIn)
 		return request, errIn
 	}
@@ -86,7 +89,7 @@ func (rs *nseRegistryService) BulkRegisterNSE(srv registry.NetworkServiceRegistr
 
 	nsmrsURL := os.Getenv(NSMRSAddressEnv)
 	if strings.TrimSpace(nsmrsURL) == "" {
-		err := fmt.Errorf("NSMRS Address variable was not set")
+		err := errors.Errorf("NSMRS Address variable was not set")
 		logrus.Warnf("%s: Skipping Bulk Register NSE forwarding: %v", NSRegistryForwarderLogPrefix, err)
 		return err
 	}
@@ -99,32 +102,30 @@ func (rs *nseRegistryService) BulkRegisterNSE(srv registry.NetworkServiceRegistr
 
 	nseRegistryClient, err := remoteRegistry.NseRegistryClient(ctx)
 	if err != nil {
-		err = fmt.Errorf("error forwarding BulkRegisterNSE request to %s : %v", nsmrsURL, err)
+		err = errors.Errorf("error forwarding BulkRegisterNSE request to %s : %v", nsmrsURL, err)
 		return err
 	}
 
 	stream, err := nseRegistryClient.BulkRegisterNSE(ctx)
 	if err != nil {
-		err = fmt.Errorf("error forwarding BulkRegisterNSE request to %s : %v", nsmrsURL, err)
+		err = errors.Errorf("error forwarding BulkRegisterNSE request to %s : %v", nsmrsURL, err)
 		return err
 	}
 
 	for {
 		request, err := srv.Recv()
 		if err != nil {
-			err = fmt.Errorf("error receiving BulkRegisterNSE request : %v", err)
+			err = errors.Errorf("error receiving BulkRegisterNSE request : %v", err)
 			return err
 		}
 
 		logrus.Infof("Forward BulkRegisterNSE request: %v", request)
 		err = stream.Send(request)
 		if err != nil {
-			err = fmt.Errorf("error forwarding BulkRegisterNSE request to %s : %v", nsmrsURL, err)
+			err = errors.Errorf("error forwarding BulkRegisterNSE request to %s : %v", nsmrsURL, err)
 			return err
 		}
 	}
-
-	return nil
 }
 
 func (rs *nseRegistryService) RemoveNSE(ctx context.Context, request *registry.RemoveNSERequest) (*empty.Empty, error) {
@@ -132,7 +133,7 @@ func (rs *nseRegistryService) RemoveNSE(ctx context.Context, request *registry.R
 
 	nsmrsURL := os.Getenv(NSMRSAddressEnv)
 	if strings.TrimSpace(nsmrsURL) == "" {
-		err := fmt.Errorf("NSMRS Address variable was not set")
+		err := errors.Errorf("NSMRS Address variable was not set")
 		logrus.Warnf("%s: Skipping Register NSE forwarding: %v", NSRegistryForwarderLogPrefix, err)
 		return &empty.Empty{}, err
 	}
