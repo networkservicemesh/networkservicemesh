@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
 
@@ -94,8 +95,9 @@ func testFloatingInterdomainDie(t *testing.T, clustersCount int, killPod string)
 	switch killPod {
 	case "nse":
 		k8ss[clustersCount-1].K8s.DeletePods(icmpPod)
+		k8ss[clustersCount-1].K8s.WaitLogsContains(nsmrsPod, "nsmrs", "RemoveNSE done", defaultTimeout)
 	case "nsmd":
 		k8ss[clustersCount-1].K8s.DeletePods(k8ss[clustersCount-1].NodesSetup[0].Nsmd)
+		k8ss[clustersCount-1].K8s.WaitLogsContains(nsmrsPod, "nsmrs", "Network Service Endpoint removed by timeout", 7 * time.Minute)
 	}
-	k8ss[clustersCount-1].K8s.WaitLogsContains(nsmrsPod, "nsmrs", "RemoveNSE done", defaultTimeout)
 }

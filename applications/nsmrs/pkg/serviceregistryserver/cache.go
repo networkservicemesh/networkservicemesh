@@ -99,12 +99,12 @@ func (rc *nseRegistryCache) StartNSMDTracking() {
 		for {
 			<-time.After(NSEValidationInterval)
 			for endpointName, endpoint := range rc.endpoints {
-				logrus.Info("COMPARE %v %v", endpoint.NetworkServiceManager.ExpirationTime.Seconds, time.Now().Unix())
 				if endpoint.NetworkServiceManager.ExpirationTime.Seconds < time.Now().Unix() {
-					_, err := rc.DeleteNetworkServiceEndpoint(endpointName)
+					nse, err := rc.DeleteNetworkServiceEndpoint(endpointName)
 					if err != nil {
 						logrus.Errorf("Unexpected registry error : %v", err)
 					}
+					logrus.Infof("Network Service Endpoint removed by timeout : %v", nse)
 				}
 			}
 		}
