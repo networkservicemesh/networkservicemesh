@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: jaeger
-          image: jaegertracing/all-in-one:latest
+          image: {{ .Values.image }}
           imagePullPolicy: {{ .Values.pullPolicy }}
           ports:
             - name: http

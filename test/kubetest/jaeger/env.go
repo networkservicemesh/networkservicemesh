@@ -29,6 +29,8 @@ const (
 	jaegerPrefix = "JAEGER"
 	//StoreJaegerTraces env variable represents boolean, means store jaeger traces as files
 	StoreJaegerTraces utils.EnvVar = "STORE_JAEGER_TRACES"
+	//StoreJaegerTracesInAnyCases env variable represents boolean, means store jaeger traces if test passed
+	StoreJaegerTracesInAnyCases utils.EnvVar = "STORE_JAEGER_TRACES_IN_ANY_CASE"
 	//JaegerRestAPIPort means port of ingester api server
 	JaegerRestAPIPort utils.EnvVar = "JAEGER_REST_API_PORT"
 	//JaegerAgentHost the hostname for communicating with agent via UDP
