@@ -44,7 +44,7 @@ func Jaeger() *v1.Pod {
 			Containers: []v1.Container{
 				{
 					Name:            "jaeger",
-					Image:           fmt.Sprintf("%v:%v", "jaegertracing/all-in-one:", jaegerVersion),
+					Image:           fmt.Sprintf("%v:%v", "jaegertracing/all-in-one", jaegerVersion),
 					ImagePullPolicy: v1.PullIfNotPresent,
 					Ports: []v1.ContainerPort{
 						{Name: "http", ContainerPort: 16686, Protocol: "TCP"},
