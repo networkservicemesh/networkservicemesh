@@ -102,7 +102,7 @@ func (s *spanHelper) LogError(err error) {
 }
 
 func (s *spanHelper) LogObject(attribute string, value interface{}) {
-	if _, ok := value.(security.Signed); ok {
+	if v, ok := value.(security.Signed); ok && v.GetSignature() != "" {
 		value = proto.Clone(value.(proto.Message))
 		value.(security.Signed).SetSignature("SENSITIVE DATA")
 	}
