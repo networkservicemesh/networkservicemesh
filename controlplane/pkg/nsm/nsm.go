@@ -19,18 +19,20 @@ import (
 	"sync"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/properties"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/local"
 	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/connectionmonitor"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
+	mechanismCommon "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
 
 	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
-
-	unified_nsm "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
 
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
@@ -59,7 +61,7 @@ type networkServiceManager struct {
 	serviceRegistry  serviceregistry.ServiceRegistry
 	pluginRegistry   plugins.PluginRegistry
 	model            model.Model
-	properties       *unified_nsm.Properties
+	props            *properties.Properties
 	stateRestored    chan bool
 	renamedEndpoints map[string]string
 	nseManager       nsm.NetworkServiceEndpointManager
@@ -73,14 +75,14 @@ func (srv *networkServiceManager) Context() context.Context {
 }
 
 func (srv *networkServiceManager) LocalManager(clientConnection nsm.ClientConnection) networkservice.NetworkServiceServer {
-	return local.NewCompositeService(
-		local.NewRequestValidator(),
-		local.NewMonitorService(clientConnection.(*model.ClientConnection).Monitor),
+	return common.NewCompositeService("LocalHeal",
+		common.NewRequestValidator(),
+		common.NewMonitorService(clientConnection.(*model.ClientConnection).Monitor),
 		local.NewConnectionService(srv.model),
 		local.NewForwarderService(srv.model, srv.serviceRegistry),
 		local.NewEndpointSelectorService(srv.nseManager, srv.pluginRegistry),
-		local.NewEndpointService(srv.nseManager, srv.properties, srv.model, srv.pluginRegistry),
-		local.NewCrossConnectService(),
+		local.NewEndpointService(srv.nseManager, srv.props, srv.model, srv.pluginRegistry),
+		common.NewCrossConnectService(),
 	)
 }
 
@@ -105,24 +107,24 @@ func (srv *networkServiceManager) Model() model.Model {
 	return srv.model
 }
 
-func (srv *networkServiceManager) GetHealProperties() *unified_nsm.Properties {
-	return srv.properties
+func (srv *networkServiceManager) GetHealProperties() *properties.Properties {
+	return srv.props
 }
 
 // NewNetworkServiceManager creates an instance of NetworkServiceManager
 func NewNetworkServiceManager(ctx context.Context, model model.Model, serviceRegistry serviceregistry.ServiceRegistry, pluginRegistry plugins.PluginRegistry) nsm.NetworkServiceManager {
-	properties := unified_nsm.NewNsmProperties()
+	properties := properties.NewNsmProperties()
 	nseManager := &nseManager{
 		serviceRegistry: serviceRegistry,
 		model:           model,
-		properties:      properties,
+		props:           properties,
 	}
 
 	srv := &networkServiceManager{
 		serviceRegistry:  serviceRegistry,
 		pluginRegistry:   pluginRegistry,
 		model:            model,
-		properties:       properties,
+		props:            properties,
 		stateRestored:    make(chan bool, 1),
 		renamedEndpoints: make(map[string]string),
 		nseManager:       nseManager,
@@ -219,7 +221,7 @@ func (srv *networkServiceManager) restoreXconnection(ctx context.Context, xcon *
 					src.Mechanism,
 				},
 			}
-			workspaceName = src.GetMechanism().GetParameters()[common.Workspace]
+			workspaceName = src.GetMechanism().GetParameters()[mechanismCommon.Workspace]
 		}
 
 		monitor := manager.LocalConnectionMonitor(workspaceName)
@@ -388,7 +390,7 @@ func (srv *networkServiceManager) RemoteConnectionLost(ctx context.Context, clie
 	})
 
 	go func() {
-		<-time.After(srv.properties.HealTimeout)
+		<-time.After(srv.props.HealTimeout)
 
 		if modelCC := srv.model.GetClientConnection(clientConnection.GetID()); modelCC != nil && modelCC.ConnectionState == model.ClientConnectionHealing {
 			logrus.Errorf("NSM: Timeout happened for checking connection status from Healing.. %v. Closing connection...", clientConnection)

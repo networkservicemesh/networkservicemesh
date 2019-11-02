@@ -20,14 +20,14 @@ import (
 	"k8s.io/client-go/util/cert"
 	"k8s.io/client-go/util/keyutil"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/properties"
+
 	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/security"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 
 	"github.com/networkservicemesh/networkservicemesh/test/applications/cmd/icmp-responder-nse/flags"
-
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
 
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
@@ -420,9 +420,9 @@ func defaultNSCEnv() map[string]string {
 func noHealNSMgrPodConfig(k8s *K8s) *pods.NSMgrPodConfig {
 	return &pods.NSMgrPodConfig{
 		Variables: map[string]string{
-			nsmd2.NsmdDeleteLocalRegistry: "true", // Do not use local registry restore for clients/NSEs
-			nsm.NsmdHealDSTWaitTimeout:    "1",    // 1 second
-			nsm.NsmdHealEnabled:           "false",
+			nsmd2.NsmdDeleteLocalRegistry:     "true", // Do not use local registry restore for clients/NSEs
+			properties.NsmdHealDSTWaitTimeout: "1",    // 1 second
+			properties.NsmdHealEnabled:        "false",
 		},
 		Namespace:          k8s.GetK8sNamespace(),
 		ForwarderVariables: DefaultForwarderVariables(k8s.GetForwardingPlane()),

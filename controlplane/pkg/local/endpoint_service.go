@@ -17,13 +17,14 @@ package local
 import (
 	"context"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/properties"
+
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
 	mechanismCommon "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	"github.com/golang/protobuf/ptypes/empty"
@@ -41,7 +42,7 @@ import (
 // ConnectionService makes basic Mechanism selection for the incoming connection
 type endpointService struct {
 	nseManager     unifiednsm.NetworkServiceEndpointManager
-	properties     *nsm.Properties
+	props          *properties.Properties
 	pluginRegistry plugins.PluginRegistry
 	model          model.Model
 }
@@ -56,7 +57,7 @@ func (cce *endpointService) closeEndpoint(ctx context.Context, cc *model.ClientC
 		logger.Infof("No need to close, since NSE is we know is dead at this point.")
 		return nil
 	}
-	closeCtx, closeCancel := context.WithTimeout(ctx, cce.properties.CloseTimeout)
+	closeCtx, closeCancel := context.WithTimeout(ctx, cce.props.CloseTimeout)
 	defer closeCancel()
 
 	client, nseClientError := cce.nseManager.CreateNSEClient(closeCtx, cc.Endpoint)
@@ -125,7 +126,7 @@ func (cce *endpointService) Request(ctx context.Context, request *networkservice
 
 	ctx = common.WithEndpointConnection(ctx, nseConn)
 
-	return ProcessNext(ctx, request)
+	return common.ProcessNext(ctx, request)
 }
 
 func (cce *endpointService) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
@@ -136,7 +137,7 @@ func (cce *endpointService) Close(ctx context.Context, connection *connection.Co
 		}
 	}
 
-	return ProcessClose(ctx, connection)
+	return common.ProcessClose(ctx, connection)
 }
 
 func (cce *endpointService) createLocalNSERequest(endpoint *registry.NSERegistration, dp *model.Forwarder, requestConn *connection.Connection, clientConnection *model.ClientConnection) *networkservice.NetworkServiceRequest {
@@ -252,10 +253,10 @@ func (cce *endpointService) updateConnectionParameters(nseConn *connection.Conne
 }
 
 // NewEndpointService -  creates a service to connect to endpoint
-func NewEndpointService(nseManager unifiednsm.NetworkServiceEndpointManager, properties *nsm.Properties, mdl model.Model, pluginRegistry plugins.PluginRegistry) networkservice.NetworkServiceServer {
+func NewEndpointService(nseManager unifiednsm.NetworkServiceEndpointManager, properties *properties.Properties, mdl model.Model, pluginRegistry plugins.PluginRegistry) networkservice.NetworkServiceServer {
 	return &endpointService{
 		nseManager:     nseManager,
-		properties:     properties,
+		props:          properties,
 		model:          mdl,
 		pluginRegistry: pluginRegistry,
 	}

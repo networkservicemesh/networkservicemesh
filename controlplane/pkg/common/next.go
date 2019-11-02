@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package local
+// Package common - define a common set of services for both local/remote chains
+package common
 
 import (
 	"context"
@@ -24,15 +25,15 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 	"github.com/networkservicemesh/networkservicemesh/utils/typeutils"
 )
 
-const nextKey common.ContextKeyType = "Next"
+const nextKey ContextKeyType = "Next"
 
 type nextEndpoint struct {
-	composite *CompositeNetworkService
-	index     int
+	composite   *CompositeNetworkService
+	index       int
+	factoryName string
 }
 
 // WithNext -
@@ -62,7 +63,7 @@ func ProcessNext(ctx context.Context, request *networkservice.NetworkServiceRequ
 	return request.Connection, nil
 }
 
-// ProcessClose - performs a next close operation on chain if defined
+// ProcessClose - perform a next close operation on chain if defined
 func ProcessClose(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
 	if Next(ctx) != nil {
 		return Next(ctx).Close(ctx, connection)
@@ -72,17 +73,17 @@ func ProcessClose(ctx context.Context, connection *connection.Connection) (*empt
 
 func (n *nextEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 	if n.index+1 < len(n.composite.services) {
-		ctx = WithNext(ctx, &nextEndpoint{composite: n.composite, index: n.index + 1})
+		ctx = WithNext(ctx, &nextEndpoint{factoryName: n.factoryName, composite: n.composite, index: n.index + 1})
 	} else {
 		ctx = WithNext(ctx, nil)
 	}
 
-	span := spanhelper.FromContext(ctx, fmt.Sprintf("Local.%s.Request", typeutils.GetTypeName(n.composite.services[n.index])))
+	span := spanhelper.FromContext(ctx, fmt.Sprintf("%s.%s.Request", n.factoryName, typeutils.GetTypeName(n.composite.services[n.index])))
 	defer span.Finish()
 	logger := span.Logger()
 	ctx = span.Context()
 
-	ctx = common.WithLog(ctx, logger)
+	ctx = WithLog(ctx, logger)
 	span.LogObject("request", request)
 
 	// Actually call the next
@@ -95,18 +96,18 @@ func (n *nextEndpoint) Request(ctx context.Context, request *networkservice.Netw
 
 func (n *nextEndpoint) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
 	if n.index+1 < len(n.composite.services) {
-		ctx = WithNext(ctx, &nextEndpoint{composite: n.composite, index: n.index + 1})
+		ctx = WithNext(ctx, &nextEndpoint{factoryName: n.factoryName, composite: n.composite, index: n.index + 1})
 	} else {
 		ctx = WithNext(ctx, nil)
 	}
 	// Create a new span
-	span := spanhelper.FromContext(ctx, fmt.Sprintf("Local.%s.Close", typeutils.GetTypeName(n.composite.services[n.index])))
+	span := spanhelper.FromContext(ctx, fmt.Sprintf("%s.%s.Close", n.factoryName, typeutils.GetTypeName(n.composite.services[n.index])))
 	defer span.Finish()
 	ctx = span.Context()
 
 	// Make sure we log to span
 	logger := span.Logger()
-	ctx = common.WithLog(ctx, logger)
+	ctx = WithLog(ctx, logger)
 
 	span.LogObject("request", connection)
 	rv, err := n.composite.services[n.index].Close(ctx, connection)

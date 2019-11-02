@@ -43,7 +43,7 @@ func (srv *workspaceProviderService) Request(ctx context.Context, request *netwo
 	srv.updateMechanisms(request)
 
 	ctx = common.WithWorkspaceName(ctx, srv.name)
-	result, err := ProcessNext(ctx, request)
+	result, err := common.ProcessNext(ctx, request)
 	if result != nil {
 		// Remove workspace field since clients doesn't require them.
 		delete(result.GetMechanism().GetParameters(), mechanismCommon.Workspace)
@@ -64,5 +64,5 @@ func (srv *workspaceProviderService) updateMechanisms(request *networkservice.Ne
 
 func (srv *workspaceProviderService) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
 	ctx = common.WithWorkspaceName(ctx, srv.name)
-	return ProcessClose(ctx, connection)
+	return common.ProcessClose(ctx, connection)
 }
