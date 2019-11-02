@@ -29,12 +29,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type Signable interface {
-	SetSignature(sign string)
-}
-
 type Signed interface {
 	GetSignature() string
+	SetSignature(sign string)
 }
 
 type ClaimsSetter func(claims *ChainClaims, msg interface{}) error
@@ -155,14 +152,14 @@ func verifySignatureParsed(s *Signature, ca *x509.CertPool, spiffeID string) err
 		}
 	}
 
-	return verifyJWTChain(s, ca)
+	return verifyChainJWT(s, ca)
 }
 
-func verifyJWTChain(s *Signature, ca *x509.CertPool) error {
+func verifyChainJWT(s *Signature, ca *x509.CertPool) error {
 	current := s
 
 	for current != nil {
-		err := verifySingleJwt(current, ca)
+		err := verifySingleJWT(current, ca)
 		if err != nil {
 			return err
 		}
@@ -187,7 +184,7 @@ func verifyJWTChain(s *Signature, ca *x509.CertPool) error {
 	return nil
 }
 
-func verifySingleJwt(s *Signature, ca *x509.CertPool) error {
+func verifySingleJWT(s *Signature, ca *x509.CertPool) error {
 	logrus.Infof("Validating JWT: %s, len(JWKS.Keys) = %d", s.Claims.Subject, len(s.JWKS.Keys))
 
 	if len(s.Parts) != 3 {
@@ -200,6 +197,7 @@ func verifySingleJwt(s *Signature, ca *x509.CertPool) error {
 	}
 
 	// JWKS might contain more than one JWK for specified SpiffeID
+	logrus.Infof("%d JWK for %s keyID", len(jwk), s.Claims.Subject)
 	for i := 0; i < len(jwk); i++ {
 		leaf := jwk[i].Certificates[0]
 
@@ -219,6 +217,7 @@ func verifySingleJwt(s *Signature, ca *x509.CertPool) error {
 	return errors.New("no appropriate JWK found in JWKS")
 }
 
+// verifyJWK verifies that JWK was issued by trusted authority
 func verifyJWK(spiffeID string, jwk *jose.JSONWebKey, caBundle *x509.CertPool) error {
 	leaf := jwk.Certificates[0]
 

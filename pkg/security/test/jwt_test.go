@@ -17,12 +17,9 @@
 package testsec
 
 import (
-	"crypto/x509"
 	"fmt"
 	"testing"
 	"time"
-
-	"gopkg.in/square/go-jose.v2"
 
 	"github.com/sirupsen/logrus"
 
@@ -30,6 +27,8 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/security"
 )
+
+const numberOfProviders = 20
 
 func TestSign(t *testing.T) {
 	RegisterTestingT(t)
@@ -52,74 +51,120 @@ func TestSign(t *testing.T) {
 	Expect(security.VerifySignature(signature, sc.GetCABundle(), SpiffeID1)).To(BeNil())
 }
 
-func TestJWKs(t *testing.T) {
+func TestJWTChain_DistinctProviders(t *testing.T) {
 	g := NewWithT(t)
 
 	ca, err := GenerateCA()
 	g.Expect(err).To(BeNil())
 
-	sc, err := newTestSecurityContextWithCA(SpiffeID1, &ca)
-	g.Expect(err).To(BeNil())
+	providers := make([]security.Provider, 0, numberOfProviders)
 
-	var certs []*x509.Certificate
-
-	for _, c := range sc.GetCertificate().Certificate {
-		crt, err := x509.ParseCertificate(c)
-		g.Expect(err).To(BeNil())
-
-		certs = append(certs, crt)
-	}
-
-	jswk := jose.JSONWebKey{
-		KeyID:        sc.GetSpiffeID(),
-		Key:          certs[0].PublicKey,
-		Certificates: certs,
-	}
-
-	b, err := jswk.MarshalJSON()
-	g.Expect(err).To(BeNil())
-	logrus.Info(b)
-
-	unmjswk := jose.JSONWebKey{}
-	err = unmjswk.UnmarshalJSON(b)
-	g.Expect(err).To(BeNil())
-	logrus.Info(unmjswk.KeyID, unmjswk.Certificates)
-}
-
-func TestJWTPerformance(t *testing.T) {
-	g := NewWithT(t)
-
-	msg := &testMsg{
-		testAud: aud,
-	}
-
-	ca, err := GenerateCA()
-	g.Expect(err).To(BeNil())
-
-	const n = 20
-	providers := make([]security.Provider, 0, n)
-
-	for i := 0; i < n; i++ {
+	for i := 0; i < numberOfProviders; i++ {
+		// all providers have different spiffeID
 		sc, err := newTestSecurityContextWithCA(fmt.Sprintf("spiffe://test.com/%d", i), &ca)
 		g.Expect(err).To(BeNil())
 
 		providers = append(providers, sc)
 	}
 
+	chainRequest(g, providers)
+}
+
+func TestJWTChain_EqualPairProviders(t *testing.T) {
+	g := NewWithT(t)
+
+	ca, err := GenerateCA()
+	g.Expect(err).To(BeNil())
+
+	providers := make([]security.Provider, 0, numberOfProviders)
+
+	for i := 0; i < numberOfProviders; i++ {
+		// spiffe://test.com/0, spiffe://test.com/0, spiffe://test.com/2, spiffe://test.com/2 ...
+		sc, err := newTestSecurityContextWithCA(fmt.Sprintf("spiffe://test.com/%d", i-i%2), &ca)
+		g.Expect(err).To(BeNil())
+
+		providers = append(providers, sc)
+	}
+
+	chainRequest(g, providers)
+}
+
+func TestJWTChain_RepeatedSeq(t *testing.T) {
+	g := NewWithT(t)
+
+	ca, err := GenerateCA()
+	g.Expect(err).To(BeNil())
+
+	providers := make([]security.Provider, 0, numberOfProviders)
+
+	for i := 0; i < numberOfProviders; i++ {
+		// spiffe://test.com/0, ..., spiffe://test.com/4, spiffe://test.com/0, ..., spiffe://test.com/4
+		sc, err := newTestSecurityContextWithCA(fmt.Sprintf("spiffe://test.com/%d", i%5), &ca)
+		logrus.Info(fmt.Sprintf("spiffe://test.com/%d", i%5))
+		g.Expect(err).To(BeNil())
+
+		providers = append(providers, sc)
+	}
+
+	chainRequest(g, providers)
+}
+
+func TestJWTChain_VPNFirewall(t *testing.T) {
+	g := NewWithT(t)
+
+	ca, err := GenerateCA()
+	g.Expect(err).To(BeNil())
+
+	ids := []string{
+		"spiffe://test.com/nsc",
+		"spiffe://test.com/nsmgr",
+		"spiffe://test.com/nse",
+		"spiffe://test.com/nsmgr",
+		"spiffe://test.com/nse",
+		"spiffe://test.com/nsmgr",
+		"spiffe://test.com/nse",
+		"spiffe://test.com/nsmgr",
+		"spiffe://test.com/nse",
+		"spiffe://test.com/nsmgr",
+		"spiffe://test.com/nse",
+		"spiffe://test.com/nsmgr",
+		"spiffe://test.com/nse",
+		"spiffe://test.com/nsmgr",
+	}
+	providers := make([]security.Provider, 0, len(ids))
+
+	for i := 0; i < len(ids); i++ {
+		sc, err := newTestSecurityContextWithCA(ids[i], &ca)
+		logrus.Info(fmt.Sprintf("spiffe://test.com/%d", i%5))
+		g.Expect(err).To(BeNil())
+
+		providers = append(providers, sc)
+	}
+
+	chainRequest(g, providers)
+}
+
+// chainRequest accepts list of providers, generates signature for provider N
+// using obo-signature from provider N-1, verifies signature on each iteration
+func chainRequest(g *WithT, p []security.Provider) {
+	msg := &testMsg{
+		testAud: aud,
+	}
+
 	previousSignatureStr := ""
 	previousSignature := &security.Signature{}
 
-	for i, provider := range providers {
-		logrus.Infof("Provider %d, spiffeID = %s", i, provider.GetSpiffeID())
+	for i := 0; i < len(p); i++ {
+		logrus.Infof("Provider %d, spiffeID = %s", i, p[i].GetSpiffeID())
 
 		if previousSignatureStr != "" {
 			t := time.Now()
-			g.Expect(security.VerifySignature(previousSignatureStr, provider.GetCABundle(), fmt.Sprintf("spiffe://test.com/%d", i-1))).To(BeNil())
+			g.Expect(security.VerifySignature(previousSignatureStr, p[i].GetCABundle(), p[i-1].GetSpiffeID())).To(BeNil())
 			logrus.Infof("Perf: Validate on %d iteration: %v", i-1, time.Since(t))
 		}
 
 		t := time.Now()
-		signature, err := security.GenerateSignature(msg, testClaimsSetter, provider,
+		signature, err := security.GenerateSignature(msg, testClaimsSetter, p[i],
 			security.WithObo(previousSignature))
 		g.Expect(err).To(BeNil())
 		logrus.Infof("Perf: Generate on %d iteration: %v, length = %d", i, time.Since(t), len(signature))
