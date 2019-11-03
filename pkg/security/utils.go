@@ -78,7 +78,7 @@ func ClientInterceptor(securityProvider Provider, cfg TokenConfig) grpc.UnaryCli
 		if err != nil {
 			return err
 		}
-
+		t2 := time.Now()
 		transportSpiffeID, err := spiffeIDFromPeer(p)
 		if err != nil {
 			return err
@@ -103,6 +103,7 @@ func ClientInterceptor(securityProvider Provider, cfg TokenConfig) grpc.UnaryCli
 			logrus.Infof("Setting nsReply.GetSignature() to SecurityContext - %v", nsReply.GetSignature())
 			SecurityContext(ctx).SetResponseOboToken(s)
 		}
+		logrus.Infof("ClientInterceptor after 'invoke' took %v", time.Since(t2))
 		logrus.Infof("ClientInterceptor took %v", time.Since(t))
 		return nil
 	}
