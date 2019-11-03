@@ -40,7 +40,7 @@ import (
 
 const (
 	// ConnectTimeout - a default connection timeout
-	ConnectTimeout = 25 * time.Second
+	ConnectTimeout = 15 * time.Second
 	// ConnectionRetry - A number of retries for establish a network service, default == 10
 	ConnectionRetry = 10
 	// RequestDelay - A delay between attempts, default = 5sec
