@@ -117,6 +117,9 @@ func (c *Connection) IsComplete() error {
 
 // GetSignature returns signature of connection
 func (c *Connection) GetSignature() string {
+	if c == nil {
+		return ""
+	}
 	return c.ResponseToken
 }
 
