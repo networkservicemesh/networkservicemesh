@@ -57,6 +57,7 @@ type Workspace struct {
 	locationProvider serviceregistry.WorkspaceLocationProvider
 	localRegistry    *nseregistry.NSERegistry
 	ctx              context.Context
+	discoveryServer  registry.NetworkServiceDiscoveryServer
 }
 
 // NewWorkSpace - constructs a new workspace.
@@ -117,6 +118,7 @@ func NewWorkSpace(ctx context.Context, nsm *nsmServer, name string, restore bool
 func registerWorkspaceServices(span spanhelper.SpanHelper, w *Workspace, nsm *nsmServer) {
 	span.Logger().Infof("Creating new NetworkServiceRegistryServer")
 	w.registryServer = NewRegistryServer(nsm, w)
+	w.discoveryServer = NewNetworkServiceDiscoveryServer(nsm.serviceRegistry)
 
 	span.Logger().Infof("Creating new MonitorConnectionServer")
 	w.monitorConnectionServer = connectionMonitor.NewMonitorServer("LocalConnection")
@@ -129,6 +131,8 @@ func registerWorkspaceServices(span spanhelper.SpanHelper, w *Workspace, nsm *ns
 
 	span.Logger().Infof("Registering NetworkServiceRegistryServer with registerServer")
 	registry.RegisterNetworkServiceRegistryServer(w.grpcServer, w.registryServer)
+	span.Logger().Infof("Registering NetworkServiceDiscoveryServer with discoveryServer")
+	registry.RegisterNetworkServiceDiscoveryServer(w.grpcServer, w.discoveryServer)
 	span.Logger().Infof("Registering NetworkServiceServer with registerServer")
 	unified.RegisterNetworkServiceServer(w.grpcServer, w.networkServiceServer)
 	span.Logger().Infof("Registering MonitorConnectionServer with registerServer")
