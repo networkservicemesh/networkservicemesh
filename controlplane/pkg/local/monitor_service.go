@@ -19,26 +19,25 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 
-	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
-
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
+	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/connectionmonitor"
 )
 
 type monitorService struct {
-	monitor monitor.Server
+	monitor connectionmonitor.MonitorServer
 }
 
 // NewMonitorService - Perform updates to workspace monitoring services.
-func NewMonitorService(monitor monitor.Server) networkservice.NetworkServiceServer {
+func NewMonitorService(monitor connectionmonitor.MonitorServer) networkservice.NetworkServiceServer {
 	return &monitorService{
 		monitor: monitor,
 	}
 }
 
 func (srv *monitorService) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
-	ctx = common.WithMonitorServer(ctx, srv.monitor)
+	ctx = common.WithConnectionMonitor(ctx, srv.monitor)
 
 	conn, err := ProcessNext(ctx, request)
 	if err == nil {
@@ -51,7 +50,7 @@ func (srv *monitorService) Close(ctx context.Context, connection *connection.Con
 	logrus.Infof("Closing connection: %v", connection)
 
 	// Pass model connection with context
-	ctx = common.WithMonitorServer(ctx, srv.monitor)
+	ctx = common.WithConnectionMonitor(ctx, srv.monitor)
 	conn, err := ProcessClose(ctx, connection)
 	if conn != nil {
 		srv.monitor.Delete(ctx, connection)

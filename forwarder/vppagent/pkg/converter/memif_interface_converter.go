@@ -18,14 +18,16 @@ import (
 	"os"
 	"path"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/memif"
+
 	"github.com/ligato/vpp-agent/api/configurator"
 	"github.com/ligato/vpp-agent/api/models/vpp"
 	vpp_interfaces "github.com/ligato/vpp-agent/api/models/vpp/interfaces"
 	vpp_l3 "github.com/ligato/vpp-agent/api/models/vpp/l3"
 	"github.com/pkg/errors"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 )
 
 type MemifInterfaceConverter struct {
@@ -48,7 +50,7 @@ func (c *MemifInterfaceConverter) ToDataRequest(rv *configurator.Config, connect
 	if rv.VppConfig == nil {
 		rv.VppConfig = &vpp.ConfigData{}
 	}
-	fullyQualifiedSocketFilename := path.Join(c.conversionParameters.BaseDir, c.Connection.GetMechanism().GetSocketFilename())
+	fullyQualifiedSocketFilename := path.Join(c.conversionParameters.BaseDir, memif.ToMechanism(c.Connection.GetMechanism()).GetSocketFilename())
 	SocketDir := path.Dir(fullyQualifiedSocketFilename)
 
 	var isMaster bool

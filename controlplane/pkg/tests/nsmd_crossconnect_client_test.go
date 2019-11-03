@@ -5,13 +5,12 @@ import (
 	"net"
 	"testing"
 
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
-
 	"github.com/golang/protobuf/ptypes/empty"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
@@ -20,13 +19,14 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/services"
 	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
+	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/connectionmonitor"
 	monitor_crossconnect "github.com/networkservicemesh/networkservicemesh/sdk/monitor/crossconnect"
 )
 
 type monitorManager struct {
 	crossConnectMonitor     monitor_crossconnect.MonitorServer
 	remoteConnectionMonitor remote.MonitorServer
-	localConnectionMonitors map[string]monitor.Server
+	localConnectionMonitors map[string]connectionmonitor.MonitorServer
 }
 
 func (m *monitorManager) CrossConnectMonitor() monitor_crossconnect.MonitorServer {
@@ -37,7 +37,7 @@ func (m *monitorManager) RemoteConnectionMonitor() monitor.Server {
 	return m.remoteConnectionMonitor
 }
 
-func (m *monitorManager) LocalConnectionMonitor(workspace string) monitor.Server {
+func (m *monitorManager) LocalConnectionMonitor(workspace string) connectionmonitor.MonitorServer {
 	return m.localConnectionMonitors[workspace]
 }
 
@@ -63,11 +63,11 @@ func startAPIServer(model model.Model, nsmdApiAddress string) (*grpc.Server, mon
 	monitorManager := &monitorManager{
 		crossConnectMonitor:     monitor_crossconnect.NewMonitorServer(),
 		remoteConnectionMonitor: remote.NewMonitorServer(xconManager),
-		localConnectionMonitors: map[string]monitor.Server{},
+		localConnectionMonitors: map[string]connectionmonitor.MonitorServer{},
 	}
 
 	crossconnect.RegisterMonitorCrossConnectServer(grpcServer, monitorManager.crossConnectMonitor)
-	connection.RegisterMonitorConnectionServer(grpcServer, compat.NewMonitorConnectionServerAdapter(monitorManager.remoteConnectionMonitor, nil))
+	connection.RegisterMonitorConnectionServer(grpcServer, monitorManager.remoteConnectionMonitor)
 
 	monitorClient := nsmd.NewMonitorCrossConnectClient(model, monitorManager, xconManager, &endpointManager{model: model})
 	model.AddListener(monitorClient)

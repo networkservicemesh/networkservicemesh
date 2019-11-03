@@ -17,17 +17,15 @@ package common
 import (
 	"context"
 
-	"github.com/opentracing/opentracing-go"
-
-	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
+	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/connectionmonitor"
 
 	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
-	unified_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 )
 
 // ContextKeyType - a type object for context values.
@@ -36,7 +34,7 @@ type ContextKeyType string
 const (
 	clientConnectionKey   ContextKeyType = "ClientConnection"
 	modelConnectionKey    ContextKeyType = "ModelConnection"
-	monitorServerKey      ContextKeyType = "MonitorServer"
+	monitorServerKey      ContextKeyType = "ConnectionMonitor"
 	logKey                ContextKeyType = "Log"
 	forwarderKey          ContextKeyType = "Forwarder"
 	endpointKey           ContextKeyType = "Endpoint"
@@ -96,28 +94,28 @@ func Log(ctx context.Context) logrus.FieldLogger {
 	return logrus.New()
 }
 
-// WithMonitorServer -
+// WithConnectionMonitor -
 //   Wraps 'parent' in a new Context that has the local connection Monitor
 //   using Context.Value(...) and returns the result.
-//   Note: any previously existing MonitorServer will be overwritten.
+//   Note: any previously existing ConnectionMonitor will be overwritten.
 //
-func WithMonitorServer(parent context.Context, monitorServer monitor.Server) context.Context {
+func WithConnectionMonitor(parent context.Context, monitorServer connectionmonitor.MonitorServer) context.Context {
 	if parent == nil {
 		parent = context.Background()
 	}
 	return context.WithValue(parent, monitorServerKey, monitorServer)
 }
 
-// MonitorServer -
-//    Returns a MonitorServer from:
+// ConnectionMonitor -
+//    Returns a ConnectionMonitor from:
 //      ctx context.Context
 //    If any is present, otherwise nil
-func MonitorServer(ctx context.Context) monitor.Server {
+func ConnectionMonitor(ctx context.Context) connectionmonitor.MonitorServer {
 	value := ctx.Value(monitorServerKey)
 	if value == nil {
 		return nil
 	}
-	return value.(monitor.Server)
+	return value.(connectionmonitor.MonitorServer)
 }
 
 // WithModelConnection -
@@ -192,7 +190,7 @@ func Endpoint(ctx context.Context) *registry.NSERegistration {
 //   using Context.Value(...) and returns the result.
 //   Note: any previously existing value will be overwritten.
 //
-func WithEndpointConnection(parent context.Context, connection unified_connection.Connection) context.Context {
+func WithEndpointConnection(parent context.Context, connection *connection.Connection) context.Context {
 	if parent == nil {
 		parent = context.Background()
 	}
@@ -200,12 +198,12 @@ func WithEndpointConnection(parent context.Context, connection unified_connectio
 }
 
 // EndpointConnection - Return endpoint connection object
-func EndpointConnection(ctx context.Context) unified_connection.Connection {
+func EndpointConnection(ctx context.Context) *connection.Connection {
 	value := ctx.Value(endpointConnectionKey)
 	if value == nil {
 		return nil
 	}
-	return value.(unified_connection.Connection)
+	return value.(*connection.Connection)
 }
 
 // WithOriginalSpan -
@@ -213,7 +211,7 @@ func EndpointConnection(ctx context.Context) unified_connection.Connection {
 //   using Context.Value(...) and returns the result.
 //   Note: any previously existing value will be overwritten.
 //
-func WithOriginalSpan(parent context.Context, span opentracing.Span) context.Context {
+func WithOriginalSpan(parent context.Context, span spanhelper.SpanHelper) context.Context {
 	if parent == nil {
 		parent = context.Background()
 	}
@@ -221,12 +219,12 @@ func WithOriginalSpan(parent context.Context, span opentracing.Span) context.Con
 }
 
 // OriginalSpan - Return forwarder
-func OriginalSpan(ctx context.Context) opentracing.Span {
+func OriginalSpan(ctx context.Context) spanhelper.SpanHelper {
 	value := ctx.Value(originalSpan)
 	if value == nil {
 		return nil
 	}
-	return value.(opentracing.Span)
+	return value.(spanhelper.SpanHelper)
 }
 
 // WithIgnoredEndpoints -

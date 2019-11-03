@@ -20,8 +20,7 @@ import (
 	"sync"
 	"time"
 
-	unified "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
+	connectionMonitor "github.com/networkservicemesh/networkservicemesh/sdk/monitor/connectionmonitor"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
@@ -33,17 +32,14 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
-	local "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
-	remote "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/services"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
 	monitor_crossconnect "github.com/networkservicemesh/networkservicemesh/sdk/monitor/crossconnect"
-	monitor_local "github.com/networkservicemesh/networkservicemesh/sdk/monitor/local"
-	monitor_remote "github.com/networkservicemesh/networkservicemesh/sdk/monitor/remote"
 )
 
 const (
@@ -189,11 +185,7 @@ func (client *NsmMonitorCrossConnectClient) ClientConnectionUpdated(ctx context.
 		return
 	}
 	if new.Monitor != nil {
-		if conn.IsRemote() {
-			new.Monitor.Update(ctx, compat.ConnectionUnifiedToRemote(conn))
-		} else {
-			new.Monitor.Update(ctx, compat.ConnectionUnifiedToLocal(conn))
-		}
+		new.Monitor.Update(span.Context(), conn.Clone())
 	}
 }
 
@@ -290,11 +282,16 @@ func (client *NsmMonitorCrossConnectClient) endpointConnectionMonitor(ctx contex
 		return client.connectToEndpoint(endpoint)
 	}
 
+	monFunc := func(cc *grpc.ClientConn) (monitor.Client, error) {
+		return connectionMonitor.NewMonitorClient(cc, &connection.MonitorScopeSelector{
+			NetworkServiceManagers: []string{client.model.GetNsm().GetName()},
+		})
+	}
+
 	err := client.monitor(
 		ctx,
 		endpointLogFormat, endpointLogWithParamFormat, endpoint.EndpointName(),
-		grpcConnectionSupplier, monitor_local.NewMonitorClient,
-		client.handleLocalConnection, nil, map[string]string{endpointName: endpoint.EndpointName()})
+		grpcConnectionSupplier, monFunc, client.handleLocalConnection, nil, map[string]string{endpointName: endpoint.EndpointName()})
 
 	if err != nil {
 		if err = client.endpointManager.DeleteEndpointWithBrokenConnection(ctx, endpoint); err != nil {
@@ -317,7 +314,7 @@ func (client *NsmMonitorCrossConnectClient) connectToEndpoint(endpoint *model.En
 }
 
 func (client *NsmMonitorCrossConnectClient) handleLocalConnection(entity monitor.Entity, eventType monitor.EventType, parameters map[string]string) error {
-	localConnection, ok := entity.(*local.Connection)
+	localConnection, ok := entity.(*connection.Connection)
 	if !ok {
 		return errors.Errorf("unable to cast %v to local.Connection", entity)
 	}
@@ -436,9 +433,11 @@ func (client *NsmMonitorCrossConnectClient) remotePeerConnectionMonitor(ctx cont
 		return tools.DialTCP(span.Context(), remotePeer.GetUrl())
 	}
 	monitorClientSupplier := func(conn *grpc.ClientConn) (monitor.Client, error) {
-		return monitor_remote.NewMonitorClient(conn, &remote.MonitorScopeSelector{
-			NetworkServiceManagerName:            client.xconManager.GetNsmName(),
-			DestinationNetworkServiceManagerName: remotePeer.Name,
+		return connectionMonitor.NewMonitorClient(conn, &connection.MonitorScopeSelector{
+			NetworkServiceManagers: []string{
+				client.xconManager.GetNsmName(), // src
+				remotePeer.Name,                 // dst
+			},
 		})
 	}
 
@@ -462,12 +461,13 @@ func (client *NsmMonitorCrossConnectClient) remotePeerConnectionMonitor(ctx cont
 }
 
 func (client *NsmMonitorCrossConnectClient) handleRemoteConnection(entity monitor.Entity, eventType monitor.EventType, parameters map[string]string) error {
-	remoteConnection, ok := entity.(*remote.Connection)
+	remoteConnection, ok := entity.(*connection.Connection)
+
 	if !ok {
 		return errors.Errorf("unable to cast %v to remote.Connection", entity)
 	}
 	peerName := parameters[peerName]
-	if cc := client.xconManager.GetClientConnectionByRemoteDst(remoteConnection.GetId(), peerName); cc != nil {
+	if cc := client.xconManager.GetClientConnectionByRemoteDst(remoteConnection.Id, peerName); cc != nil {
 		span := common.SpanHelperFromConnection(context.Background(), cc, "handleRemoteConnection")
 		defer span.Finish()
 		ctx := span.Context()
@@ -506,7 +506,7 @@ func (client *NsmMonitorCrossConnectClient) handleRemoteConnection(entity monito
 	return nil
 }
 
-func (client *NsmMonitorCrossConnectClient) handleRemoteConnectionEvent(ctx context.Context, eventType monitor.EventType, cc *model.ClientConnection, remoteConnection *remote.Connection) {
+func (client *NsmMonitorCrossConnectClient) handleRemoteConnectionEvent(ctx context.Context, eventType monitor.EventType, cc *model.ClientConnection, remoteConnection *connection.Connection) {
 	switch eventType {
 	case monitor.EventTypeInitialStateTransfer, monitor.EventTypeUpdate:
 		// DST connection is updated, we most probable need to re-program our data plane.
@@ -517,8 +517,8 @@ func (client *NsmMonitorCrossConnectClient) handleRemoteConnectionEvent(ctx cont
 		ctx = span.Context()
 
 		// DST is down, we need to choose new NSE in any case.
-		downConnection := compat.ConnectionRemoteToUnified(remoteConnection.Clone().(*remote.Connection))
-		downConnection.State = unified.State_DOWN
+		downConnection := remoteConnection.Clone()
+		downConnection.State = connection.State_DOWN
 
 		span.LogObject("current-remote", cc.GetConnectionDestination())
 		span.LogObject("new-remote", downConnection)

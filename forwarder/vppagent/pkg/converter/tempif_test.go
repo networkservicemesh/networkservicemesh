@@ -4,15 +4,15 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/networkservicemesh/networkservicemesh/forwarder/vppagent/pkg/converter"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
+	"github.com/networkservicemesh/networkservicemesh/forwarder/vppagent/pkg/converter"
 )
 
 func TestTempIf(t *testing.T) {
 	tempIface := converter.TempIfName()
 	fmt.Printf("tempIface: %s len(tempIface) %d\n", tempIface, len(tempIface))
-	if len(tempIface) > connection.LinuxIfMaxLength {
-		t.Errorf("%s is longer than %d", tempIface, connection.LinuxIfMaxLength)
+	if len(tempIface) > kernel.LinuxIfMaxLength {
+		t.Errorf("%s is longer than %d", tempIface, kernel.LinuxIfMaxLength)
 	}
 }

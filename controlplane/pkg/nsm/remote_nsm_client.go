@@ -6,24 +6,22 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/networkservice"
-	remote_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
-	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 )
 
 //// Remote NSM Connection Client
 type nsmClient struct {
-	client     remote_networkservice.NetworkServiceClient
+	client     networkservice.NetworkServiceClient
 	connection *grpc.ClientConn
 }
 
-func (c *nsmClient) Request(ctx context.Context, request networkservice.Request) (connection.Connection, error) {
+func (c *nsmClient) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 	if c == nil || c.client == nil {
 		return nil, errors.New("Remote NSM Connection is not initialized...")
 	}
 
-	response, err := c.client.Request(ctx, request.(*remote_networkservice.NetworkServiceRequest))
+	response, err := c.client.Request(ctx, request)
 	if err != nil {
 		return nil, err
 	}
@@ -31,11 +29,11 @@ func (c *nsmClient) Request(ctx context.Context, request networkservice.Request)
 	return response.Clone(), nil
 }
 
-func (c *nsmClient) Close(ctx context.Context, conn connection.Connection) error {
+func (c *nsmClient) Close(ctx context.Context, conn *connection.Connection) error {
 	if c == nil || c.client == nil {
 		return errors.New("Remote NSM Connection is not initialized...")
 	}
-	_, err := c.client.Close(ctx, conn.(*remote_connection.Connection))
+	_, err := c.client.Close(ctx, conn)
 	_ = c.Cleanup()
 	return err
 }

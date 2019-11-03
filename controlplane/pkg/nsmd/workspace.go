@@ -24,19 +24,19 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
-	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
+	connectionMonitor "github.com/networkservicemesh/networkservicemesh/sdk/monitor/connectionmonitor"
 
 	"google.golang.org/grpc"
 
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	unified "github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nseregistry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/local"
 )
 
 type WorkspaceState int
@@ -52,7 +52,7 @@ type Workspace struct {
 	listener                net.Listener
 	registryServer          NSERegistryServer
 	networkServiceServer    networkservice.NetworkServiceServer
-	monitorConnectionServer local.MonitorServer
+	monitorConnectionServer connectionMonitor.MonitorServer
 	grpcServer              *grpc.Server
 	sync.Mutex
 	state            WorkspaceState
@@ -121,7 +121,7 @@ func registerWorkspaceServices(span spanhelper.SpanHelper, w *Workspace, nsm *ns
 	w.registryServer = NewRegistryServer(nsm, w)
 
 	span.Logger().Infof("Creating new MonitorConnectionServer")
-	w.monitorConnectionServer = local.NewMonitorServer()
+	w.monitorConnectionServer = connectionMonitor.NewMonitorServer("LocalConnection")
 
 	span.Logger().Infof("Creating new NetworkServiceServer")
 	w.networkServiceServer = NewNetworkServiceServer(nsm.model, w, nsm.manager)
@@ -132,9 +132,9 @@ func registerWorkspaceServices(span spanhelper.SpanHelper, w *Workspace, nsm *ns
 	span.Logger().Infof("Registering NetworkServiceRegistryServer with registerServer")
 	registry.RegisterNetworkServiceRegistryServer(w.grpcServer, w.registryServer)
 	span.Logger().Infof("Registering NetworkServiceServer with registerServer")
-	unified.RegisterNetworkServiceServer(w.grpcServer, compat.NewUnifiedNetworkServiceServerAdapter(nil, w.networkServiceServer))
+	unified.RegisterNetworkServiceServer(w.grpcServer, w.networkServiceServer)
 	span.Logger().Infof("Registering MonitorConnectionServer with registerServer")
-	connection.RegisterMonitorConnectionServer(w.grpcServer, compat.NewMonitorConnectionServerAdapter(nil, w.monitorConnectionServer))
+	connection.RegisterMonitorConnectionServer(w.grpcServer, w.monitorConnectionServer)
 }
 
 func (w *Workspace) Name() string {
@@ -162,7 +162,7 @@ func (w *Workspace) NsmClientSocket() string {
 }
 
 // MonitorConnectionServer returns workspace.monitorConnectionServer
-func (w *Workspace) MonitorConnectionServer() local.MonitorServer {
+func (w *Workspace) MonitorConnectionServer() connectionMonitor.MonitorServer {
 	if w == nil {
 		return nil
 	}

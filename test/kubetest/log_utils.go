@@ -32,7 +32,8 @@ func makeLogsSnapshot(k8s *K8s, t *testing.T) {
 	for i := 0; i < len(pods); i++ {
 		showPodLogs(k8s, t, &pods[i])
 	}
-	if jaeger.ShouldStoreJaegerTraces() {
+	if (t.Failed() || jaeger.StoreJaegerTracesInAnyCases.GetBooleanOrDefault(false)) &&
+		jaeger.ShouldStoreJaegerTraces() {
 		jaegerPod := FindJaegerPod(k8s)
 		if jaegerPod != nil {
 			dir := filepath.Join(logsDir(), t.Name())

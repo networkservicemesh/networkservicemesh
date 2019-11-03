@@ -12,17 +12,15 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
-	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
-
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/connectivity"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsmdapi"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
-	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/vni"
@@ -68,7 +66,7 @@ func (impl *nsmdServiceRegistry) NewWorkspaceProvider() serviceregistry.Workspac
 	return NewDefaultWorkspaceProvider()
 }
 
-func (impl *nsmdServiceRegistry) RemoteNetworkServiceClient(ctx context.Context, nsm *registry.NetworkServiceManager) (remote_networkservice.NetworkServiceClient, *grpc.ClientConn, error) {
+func (impl *nsmdServiceRegistry) RemoteNetworkServiceClient(ctx context.Context, nsm *registry.NetworkServiceManager) (networkservice.NetworkServiceClient, *grpc.ClientConn, error) {
 	err := tools.WaitForPortAvailable(ctx, "tcp", nsm.GetUrl(), 100*time.Millisecond)
 	if err != nil {
 		return nil, nil, err
@@ -79,7 +77,7 @@ func (impl *nsmdServiceRegistry) RemoteNetworkServiceClient(ctx context.Context,
 		logrus.Errorf("Failed to dial Remote Network Service Manager %s at %s: %s", nsm.GetName(), nsm.Url, err)
 		return nil, nil, err
 	}
-	client := compat.NewRemoteNetworkServiceClient(conn)
+	client := networkservice.NewNetworkServiceClient(conn)
 	logrus.Infof("Connection with Remote Network Service %s at %s is established", nsm.GetName(), nsm.GetUrl())
 	return client, conn, nil
 }
@@ -90,7 +88,7 @@ func (impl *nsmdServiceRegistry) EndpointConnection(ctx context.Context, endpoin
 		logrus.Errorf("unable to connect to nse %v", endpoint)
 		return nil, nil, err
 	}
-	client := compat.NewLocalNetworkServiceClient(nseConn)
+	client := networkservice.NewNetworkServiceClient(nseConn)
 
 	return client, nseConn, nil
 }

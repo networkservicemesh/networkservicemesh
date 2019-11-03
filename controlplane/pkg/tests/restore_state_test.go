@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
 
 	. "github.com/onsi/gomega"
@@ -46,7 +48,7 @@ func TestRestoreConnectionStateWrongDst(t *testing.T) {
 		NetworkService: "ns1",
 		Mechanism: &connection.Mechanism{
 			Parameters: map[string]string{
-				connection.Workspace: nsmClient.Workspace,
+				common.Workspace: nsmClient.Workspace,
 			},
 		},
 		NetworkServiceManagers: []string{"src"},

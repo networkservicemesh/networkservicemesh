@@ -9,11 +9,10 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
-	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
 	"github.com/networkservicemesh/networkservicemesh/utils"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/probes/health"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/probes"
 
@@ -88,11 +87,11 @@ func getProxyNSMDAPIAddress() string {
 func startAPIServerAt(sock net.Listener, serviceRegistry serviceregistry.ServiceRegistry, probes probes.Probes) {
 	grpcServer := tools.NewServerWithToken(context.Background(), &common.NSTokenConfig{})
 	remoteConnectionMonitor := remote.NewProxyMonitorServer()
-	connection.RegisterMonitorConnectionServer(grpcServer, compat.NewMonitorConnectionServerAdapter(remoteConnectionMonitor, nil))
+	connection.RegisterMonitorConnectionServer(grpcServer, remoteConnectionMonitor)
 	probes.Append(health.NewGrpcHealth(grpcServer, sock.Addr(), time.Minute))
 	// Register Remote NetworkServiceManager
 	remoteServer := proxynetworkserviceserver.NewProxyNetworkServiceServer(serviceRegistry)
-	unified.RegisterNetworkServiceServer(grpcServer, compat.NewUnifiedNetworkServiceServerAdapter(remoteServer, nil))
+	unified.RegisterNetworkServiceServer(grpcServer, remoteServer)
 
 	go func() {
 		if err := grpcServer.Serve(sock); err != nil {

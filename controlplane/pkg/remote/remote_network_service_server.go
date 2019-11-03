@@ -15,17 +15,15 @@
 package remote
 
 import (
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
-	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/remote"
-
-	remotenetworkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/connectionmonitor"
 )
 
 // NewRemoteNetworkServiceServer -  creates a new remote.NetworkServiceServer
-func NewRemoteNetworkServiceServer(manager nsm.NetworkServiceManager, connectionMonitor remote.MonitorServer) remotenetworkservice.NetworkServiceServer {
-	return compat.NewUnifiedNetworkServiceServerAdapter(NewCompositeService(
+func NewRemoteNetworkServiceServer(manager nsm.NetworkServiceManager, connectionMonitor connectionmonitor.MonitorServer) networkservice.NetworkServiceServer {
+	return NewCompositeService(
 		NewSecurityService(tools.GetConfig().SecurityProvider),
 		NewRequestValidator(),
 		NewMonitorService(connectionMonitor),
@@ -34,5 +32,5 @@ func NewRemoteNetworkServiceServer(manager nsm.NetworkServiceManager, connection
 		NewEndpointSelectorService(manager.NseManager(), manager.PluginRegistry(), manager.Model()),
 		NewEndpointService(manager.NseManager(), manager.GetHealProperties(), manager.Model(), manager.PluginRegistry()),
 		NewCrossConnectService(),
-	), nil)
+	)
 }

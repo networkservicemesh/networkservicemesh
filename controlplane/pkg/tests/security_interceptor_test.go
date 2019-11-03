@@ -28,8 +28,8 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/pkg/security"
 	testsec "github.com/networkservicemesh/networkservicemesh/pkg/security/test"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
@@ -94,7 +94,7 @@ func (d *dummyNetworkService) Request(ctx context.Context, r *networkservice.Net
 		if err != nil {
 			return nil, err
 		}
-		rv.ResponseJWT = sign
+		rv.ResponseToken = sign
 		return rv, nil
 	}
 
@@ -123,7 +123,7 @@ func (d *dummyNetworkService) Request(ctx context.Context, r *networkservice.Net
 	if err != nil {
 		return nil, err
 	}
-	reply.ResponseJWT = sign
+	reply.ResponseToken = sign
 
 	return reply, nil
 

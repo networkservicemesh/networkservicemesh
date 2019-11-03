@@ -28,16 +28,19 @@ import (
 )
 
 const (
-	containerRepoEnv      = "CONTAINER_REPO"
-	containerTagEnv       = "CONTAINER_TAG"
-	containerTagDefault   = "latest"
-	containerForcePullEnv = "CONTAINER_FORCE_PULL"
-	containerRepoDefault  = "networkservicemesh"
+	containerRepoEnv                   = "CONTAINER_REPO"
+	containerTagEnv                    = "CONTAINER_TAG"
+	containerTagDefault                = "latest"
+	containerForcePullEnv              = "CONTAINER_FORCE_PULL"
+	jaegerVersionEnv      utils.EnvVar = "JAEGER_IMAGE_VERSION"
+	containerRepoDefault               = "networkservicemesh"
+	defaultJaegerVersion               = "1.14.0"
 )
 
 var containerRepo = ""
 var containerTag = "latest"
 var containerForcePull = false
+var jaegerVersion = ""
 
 func init() {
 	found := false
@@ -51,7 +54,7 @@ func init() {
 	if !found {
 		containerTag = containerTagDefault
 	}
-
+	jaegerVersion = jaegerVersionEnv.GetStringOrDefault(defaultJaegerVersion)
 	pull := os.Getenv(containerForcePullEnv)
 	containerForcePull = pull == "true"
 }

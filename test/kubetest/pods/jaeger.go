@@ -1,6 +1,8 @@
 package pods
 
 import (
+	"fmt"
+
 	v1 "k8s.io/api/core/v1"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -42,7 +44,7 @@ func Jaeger() *v1.Pod {
 			Containers: []v1.Container{
 				{
 					Name:            "jaeger",
-					Image:           "jaegertracing/all-in-one:latest",
+					Image:           fmt.Sprintf("%v:%v", "jaegertracing/all-in-one", jaegerVersion),
 					ImagePullPolicy: v1.PullIfNotPresent,
 					Ports: []v1.ContainerPort{
 						{Name: "http", ContainerPort: 16686, Protocol: "TCP"},

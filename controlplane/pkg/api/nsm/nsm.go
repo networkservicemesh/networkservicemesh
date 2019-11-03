@@ -17,35 +17,34 @@ package nsm
 import (
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
-	unified_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
-	unified_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/plugins"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
-	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
+	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/connectionmonitor"
 	crossconnect_monitor "github.com/networkservicemesh/networkservicemesh/sdk/monitor/crossconnect"
 
 	"golang.org/x/net/context"
 
-	local_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 )
 
 // ClientConnection is an interface for client connection
 type ClientConnection interface {
 	GetID() string
-	GetConnectionSource() unified_connection.Connection
-	GetConnectionDestination() unified_connection.Connection
+	GetConnectionSource() *connection.Connection
+	GetConnectionDestination() *connection.Connection
 	GetNetworkService() string
 }
 
 // NetworkServiceClient is an interface for network service client
 type NetworkServiceClient interface {
-	Request(ctx context.Context, request unified_networkservice.Request) (unified_connection.Connection, error)
-	Close(ctx context.Context, connection unified_connection.Connection) error
+	Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error)
+	Close(ctx context.Context, connection *connection.Connection) error
 
 	Cleanup() error
 }
@@ -68,7 +67,7 @@ const (
 
 // NetworkServiceRequestManager - allow to provide local and remote service interfaces.
 type NetworkServiceRequestManager interface {
-	LocalManager(clientConnection ClientConnection) local_networkservice.NetworkServiceServer
+	LocalManager(clientConnection ClientConnection) networkservice.NetworkServiceServer
 	RemoteManager() networkservice.NetworkServiceServer
 }
 
@@ -81,7 +80,7 @@ type NetworkServiceHealProcessor interface {
 // MonitorManager is an interface to provide access to different monitors
 type MonitorManager interface {
 	CrossConnectMonitor() crossconnect_monitor.MonitorServer
-	LocalConnectionMonitor(workspace string) monitor.Server
+	LocalConnectionMonitor(workspace string) connectionmonitor.MonitorServer
 }
 
 //NetworkServiceManager - hold useful nsm structures
@@ -104,7 +103,7 @@ type NetworkServiceManager interface {
 
 //NetworkServiceEndpointManager - manages endpoints, TODO: Will be removed in next PRs.
 type NetworkServiceEndpointManager interface {
-	GetEndpoint(ctx context.Context, requestConnection unified_connection.Connection, ignoreEndpoints map[registry.EndpointNSMName]*registry.NSERegistration) (*registry.NSERegistration, error)
+	GetEndpoint(ctx context.Context, requestConnection *connection.Connection, ignoreEndpoints map[registry.EndpointNSMName]*registry.NSERegistration) (*registry.NSERegistration, error)
 	CreateNSEClient(ctx context.Context, endpoint *registry.NSERegistration) (NetworkServiceClient, error)
 	IsLocalEndpoint(endpoint *registry.NSERegistration) bool
 	CheckUpdateNSE(ctx context.Context, reg *registry.NSERegistration) bool

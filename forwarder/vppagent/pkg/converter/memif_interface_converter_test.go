@@ -5,12 +5,15 @@ import (
 	"path"
 	"testing"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/memif"
+
 	"github.com/ligato/vpp-agent/api/models/vpp"
 	vpp_interfaces "github.com/ligato/vpp-agent/api/models/vpp/interfaces"
 	. "github.com/onsi/gomega"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
 	. "github.com/networkservicemesh/networkservicemesh/forwarder/vppagent/pkg/converter"
 )
 
@@ -28,11 +31,11 @@ const (
 
 func createTestMechanism() *connection.Mechanism {
 	return &connection.Mechanism{
-		Type: connection.MechanismType_MEM_INTERFACE,
+		Type: memif.MECHANISM,
 		Parameters: map[string]string{
-			connection.InterfaceNameKey:        mechanismName,
-			connection.InterfaceDescriptionKey: mechanismDescription,
-			connection.SocketFilename:          path.Join(mechanismName, socketFilename),
+			common.InterfaceNameKey:        mechanismName,
+			common.InterfaceDescriptionKey: mechanismDescription,
+			memif.SocketFilename:           path.Join(mechanismName, socketFilename),
 		},
 	}
 }

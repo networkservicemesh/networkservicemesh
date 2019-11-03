@@ -46,7 +46,7 @@ func TestNSMDRestart1(t *testing.T) {
 	defer nsmEndpoint.Delete()
 
 	// Wait for at least one NSE is available.
-	l1.WaitEndpoints(1, time.Second*30, t)
+	l1.WaitEndpoints(1, time.Second*5, t)
 
 	endpoints1 := srv.TestModel.GetEndpointsByNetworkService("test_nse")
 	g.Expect(len(endpoints1)).To(Equal(1))

@@ -4,16 +4,18 @@ import (
 	"testing"
 	"time"
 
-	unified "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
 
 	. "github.com/onsi/gomega"
 	"golang.org/x/net/context"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 )
 
@@ -60,10 +62,10 @@ func TestHealRemoteNSE(t *testing.T) {
 		},
 		MechanismPreferences: []*connection.Mechanism{
 			{
-				Type: connection.MechanismType_KERNEL_INTERFACE,
+				Type: kernel.MECHANISM,
 				Parameters: map[string]string{
-					connection.NetNsInodeKey:    "10",
-					connection.InterfaceNameKey: "icmp-responder1",
+					common.NetNsInodeKey:    "10",
+					common.InterfaceNameKey: "icmp-responder1",
 				},
 			},
 		},
@@ -79,7 +81,7 @@ func TestHealRemoteNSE(t *testing.T) {
 	clientConnection1 := srv.TestModel.GetClientConnection(nsmResponse.GetId())
 	g.Expect(clientConnection1.GetID()).To(Equal("1"))
 
-	clientConnection2 := srv2.TestModel.GetClientConnection(clientConnection1.Xcon.GetRemoteDestination().GetId())
+	clientConnection2 := srv2.TestModel.GetClientConnection(clientConnection1.Xcon.Destination.GetId())
 	g.Expect(clientConnection2.GetID()).To(Equal("1"))
 
 	// We need to inform cross connection monitor about this connection, since forwarder is fake one.
@@ -95,8 +97,8 @@ func TestHealRemoteNSE(t *testing.T) {
 
 	srv2.TestModel.DeleteEndpoint(context.Background(), epName)
 
-	// Simlate delete
-	clientConnection2.Xcon.GetLocalDestination().State = unified.State_DOWN
+	// Simulate delete
+	clientConnection2.Xcon.Destination.State = connection.State_DOWN
 	srv.manager.GetHealProperties().HealDSTNSEWaitTimeout = time.Second * 1
 	srv2.manager.Heal(context.Background(), clientConnection2, nsm.HealStateDstDown)
 
@@ -106,5 +108,5 @@ func TestHealRemoteNSE(t *testing.T) {
 
 	clientConnection1_1 := srv.TestModel.GetClientConnection(nsmResponse.GetId())
 	g.Expect(clientConnection1_1.GetID()).To(Equal("1"))
-	g.Expect(clientConnection1_1.Xcon.GetRemoteDestination().GetId()).To(Equal("4"))
+	g.Expect(clientConnection1_1.Xcon.Destination.GetId()).To(Equal("4"))
 }

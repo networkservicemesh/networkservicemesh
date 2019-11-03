@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+
 	. "github.com/onsi/gomega"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/plugins"
@@ -14,13 +16,13 @@ type dummyConnectionPlugin struct {
 	shouldFail bool
 }
 
-func (cp *dummyConnectionPlugin) UpdateConnection(ctx context.Context, wrapper *plugins.ConnectionWrapper) (*plugins.ConnectionWrapper, error) {
-	connCtx := wrapper.GetConnection().GetContext()
+func (cp *dummyConnectionPlugin) UpdateConnection(ctx context.Context, wrapper *connection.Connection) (*connection.Connection, error) {
+	connCtx := wrapper.GetContext()
 	connCtx.GetIpContext().ExcludedPrefixes = append(connCtx.GetIpContext().GetExcludedPrefixes(), cp.prefixes...)
 	return wrapper, nil
 }
 
-func (cp *dummyConnectionPlugin) ValidateConnection(ctx context.Context, wrapper *plugins.ConnectionWrapper) (*plugins.ConnectionValidationResult, error) {
+func (cp *dummyConnectionPlugin) ValidateConnection(ctx context.Context, wrapper *connection.Connection) (*plugins.ConnectionValidationResult, error) {
 	if cp.shouldFail {
 		return &plugins.ConnectionValidationResult{
 			Status:       plugins.ConnectionValidationStatus_FAIL,
