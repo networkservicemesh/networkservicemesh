@@ -19,6 +19,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"time"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/pkg/errors"
@@ -53,7 +54,7 @@ func ClientInterceptor(securityProvider Provider, cfg TokenConfig) grpc.UnaryCli
 		cc *grpc.ClientConn,
 		invoker grpc.UnaryInvoker,
 		opts ...grpc.CallOption) error {
-
+		t := time.Now()
 		if !cfg.RequestFilter(req) {
 			return invoker(ctx, method, req, reply, cc, opts...)
 		}
@@ -71,7 +72,7 @@ func ClientInterceptor(securityProvider Provider, cfg TokenConfig) grpc.UnaryCli
 			logrus.Error(err)
 			return err
 		}
-
+		logrus.Infof("ClientInterceptor before 'invoke' took %v", time.Since(t))
 		p := new(peer.Peer)
 		err = invoker(ctx, method, req, reply, cc, append(opts, grpc.PerRPCCredentials(&NSMToken{Token: token}), grpc.Peer(p))...)
 		if err != nil {
@@ -102,7 +103,7 @@ func ClientInterceptor(securityProvider Provider, cfg TokenConfig) grpc.UnaryCli
 			logrus.Infof("Setting nsReply.GetSignature() to SecurityContext - %v", nsReply.GetSignature())
 			SecurityContext(ctx).SetResponseOboToken(s)
 		}
-
+		logrus.Infof("ClientInterceptor took %v", time.Since(t))
 		return nil
 	}
 }
@@ -113,7 +114,7 @@ func ServerInterceptor(securityProvider Provider, cfg TokenConfig) grpc.UnarySer
 		req interface{},
 		info *grpc.UnaryServerInfo,
 		handler grpc.UnaryHandler) (resp interface{}, err error) {
-
+		t := time.Now()
 		if !cfg.RequestFilter(req) {
 			return handler(ctx, req)
 		}
@@ -147,7 +148,7 @@ func ServerInterceptor(securityProvider Provider, cfg TokenConfig) grpc.UnarySer
 
 		securityContext := NewContext()
 		securityContext.SetRequestOboToken(s)
-
+		logrus.Infof("ServerInterceptor took %v", time.Since(t))
 		return handler(WithSecurityContext(ctx, securityContext), req)
 	}
 }
