@@ -7,8 +7,8 @@ echo "[default]
 region = us-east-2" > "$HOME/.aws/config"
 
 echo "[default]
-aws_access_key_id = $NSM_AWS_ACCESS_KEY_ID
-aws_secret_access_key = $NSM_AWS_SECRET_ACCESS_KEY" > "$HOME/.aws/credentials"
+aws_access_key_id = $AWS_ACCESS_KEY_ID
+aws_secret_access_key = $AWS_SECRET_ACCESS_KEY" > "$HOME/.aws/credentials"
 
 if [ ! -f "$HOME/bin/aws-iam-authenticator" ]; then
     unameOut="$(uname -s)"
