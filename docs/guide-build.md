@@ -52,6 +52,16 @@ go mod vendor
 ```
 Will enable use of vendor folder to share go dependencies. 
 
+## Installing the helm
+Before run examples make sure that you have [helm](https://github.com/helm/helm). To install helm you can use prepared scripts: 
+```bash
+sh scripts/install-helm.sh
+helm init
+sh scripts/helm-patch-tiller.sh
+```
+
+After installing you can verify it with `helm version`.
+
 ## Running the NSM code
 
 Network Service Mesh provides a handy Vagrant setup for running a two node K8s cluster. Once you've done ```make k8s-save```, you can deploy to it with:
