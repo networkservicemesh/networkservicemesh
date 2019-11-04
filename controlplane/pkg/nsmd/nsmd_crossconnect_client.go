@@ -263,14 +263,14 @@ func (client *NsmMonitorCrossConnectClient) monitor(
 				logrus.Info(logFormat, name, "Skip nil event")
 				continue
 			}
-			if eventHandler == nil {
-				logrus.Infof(logWithParamFormat, name, "Handler is nil, event: %v not handled", event)
-				continue
-			}
 			for _, entity := range event.Entities() {
 				if err = entityHandler(entity, event.EventType(), parameters); err != nil {
 					logrus.Errorf(logWithParamFormat, name, "Error handling entity", err)
 				}
+			}
+			if eventHandler == nil {
+				logrus.Infof(logWithParamFormat, name, "Handler is nil, event: %v not handled", event)
+				continue
 			}
 			if err = eventHandler(event, parameters); err != nil {
 				logrus.Errorf(logWithParamFormat, name, "Error handling event", err)
