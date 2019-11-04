@@ -1,5 +1,7 @@
 package main
 
+import v1 "k8s.io/api/core/v1"
+
 const (
 	emptyBody            = "empty body"
 	mutateMethod         = "/mutate"
@@ -19,8 +21,8 @@ const (
 	initContainerDefault = "nsm-init"
 	tagDefault           = "latest"
 	initContainerName    = "nsm-init-container"
-	certFile             = "/etc/webhook/certs/cert.pem"
-	keyFile              = "/etc/webhook/certs/key.pem"
+	certFile             = "/etc/webhook/certs/" + v1.TLSCertKey
+	keyFile              = "/etc/webhook/certs/" + v1.TLSPrivateKeyKey
 	initContainersPath   = "/spec/initContainers"
 	unsupportedKind      = "kind %v is not supported"
 	deploymentSubPath    = "/spec/template"
