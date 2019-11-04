@@ -2,14 +2,19 @@ package monitor
 
 import (
 	"context"
+	"time"
 
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
 
+const clientEventCapacity = 10
+const connectionStatusReportPeriod = time.Second * 15
+
 // EventStream is an unified interface for blocking receiver
 type EventStream interface {
 	Recv() (interface{}, error)
+	Context() context.Context
 }
 
 // EventStreamConstructor is a type for EventStream constructor
@@ -32,6 +37,11 @@ type client struct {
 	cancel context.CancelFunc
 }
 
+type recvResult struct {
+	err error
+	msg interface{}
+}
+
 // NewClient creates a new Client on given GRPC connection with given EventFactory and EventStreamConstructor
 func NewClient(cc *grpc.ClientConn, eventFactory EventFactory, streamConstructor EventStreamConstructor) (Client, error) {
 	ctx, cancel := context.WithCancel(context.Background())
@@ -43,22 +53,37 @@ func NewClient(cc *grpc.ClientConn, eventFactory EventFactory, streamConstructor
 	}
 
 	errorChannel := make(chan error, 1)
-	eventChannel := make(chan Event, 1)
+	eventChannel := make(chan Event, clientEventCapacity)
 	go func() {
 		defer close(eventChannel)
 		defer close(errorChannel)
 
-		for {
-			message, err := stream.Recv()
-			if err != nil {
-				errorChannel <- err
-				return
+		recvCh := make(chan recvResult)
+		go func() {
+			for {
+				message, err := stream.Recv()
+				recvCh <- recvResult{msg: message, err: err}
 			}
+		}()
 
-			if event, err := eventFactory.EventFromMessage(context.Background(), message); err != nil {
-				logrus.Errorf("An error during conversion event: %v", err)
-			} else {
-				eventChannel <- event
+		for {
+			select {
+			case r := <-recvCh:
+				if r.err != nil {
+					logrus.Infof("An error during recv: %v", r.err)
+					errorChannel <- r.err
+					return
+				}
+				if event, err := eventFactory.EventFromMessage(context.Background(), r.msg); err != nil {
+					logrus.Errorf("An error during conversion event: %v", err)
+				} else {
+					eventChannel <- event
+				}
+			case <-stream.Context().Done():
+				errorChannel <- stream.Context().Err()
+				return
+			case <-time.After(connectionStatusReportPeriod):
+				logrus.Infof("monitor client(%v) connection status: %v", cc.Target(), cc.GetState().String())
 			}
 		}
 	}()
