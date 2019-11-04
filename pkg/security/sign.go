@@ -203,6 +203,7 @@ func verifySingleJWT(s *Signature, ca *x509.CertPool) error {
 
 		// we iterate over all JWK with provided SpiffeID and try to verify JWT
 		if err := s.Token.Method.Verify(strings.Join(s.Parts[0:2], "."), s.Parts[2], leaf.PublicKey); err != nil {
+			logrus.Info("Wrong JWK, trying next one...")
 			continue
 		}
 
