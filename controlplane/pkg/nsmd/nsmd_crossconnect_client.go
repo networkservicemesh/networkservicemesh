@@ -258,19 +258,22 @@ func (client *NsmMonitorCrossConnectClient) monitor(
 			logrus.Errorf(logWithParamFormat, name, "Connection closed", err)
 			return err
 		case event := <-monitorClient.EventChannel():
-			if event != nil {
-				logrus.Infof(logWithParamFormat, name, "Received event", event)
-				for _, entity := range event.Entities() {
-					if err = entityHandler(entity, event.EventType(), parameters); err != nil {
-						logrus.Errorf(logWithParamFormat, name, "Error handling entity", err)
-					}
+			logrus.Infof(logWithParamFormat, name, "Received event", event)
+			if event == nil {
+				logrus.Info(logFormat, name, "Skip nil event")
+				continue
+			}
+			for _, entity := range event.Entities() {
+				if err = entityHandler(entity, event.EventType(), parameters); err != nil {
+					logrus.Errorf(logWithParamFormat, name, "Error handling entity", err)
 				}
-
-				if eventHandler != nil {
-					if err = eventHandler(event, parameters); err != nil {
-						logrus.Errorf(logWithParamFormat, name, "Error handling event", err)
-					}
-				}
+			}
+			if eventHandler == nil {
+				logrus.Infof(logWithParamFormat, name, "Handler is nil, event: %v not handled", event)
+				continue
+			}
+			if err = eventHandler(event, parameters); err != nil {
+				logrus.Errorf(logWithParamFormat, name, "Error handling event", err)
 			}
 		}
 	}

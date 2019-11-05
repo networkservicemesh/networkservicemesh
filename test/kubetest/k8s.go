@@ -253,14 +253,9 @@ func blockUntilPodWorking(client kubernetes.Interface, context context.Context, 
 	exists := make(chan error)
 	go func() {
 		for {
-			pod, err := client.CoreV1().Pods(pod.Namespace).Get(pod.Name, metaV1.GetOptions{})
+			_, err := client.CoreV1().Pods(pod.Namespace).Get(pod.Name, metaV1.GetOptions{})
 			if err != nil {
 				// Pod not found
-				close(exists)
-				break
-			}
-
-			if pod == nil {
 				close(exists)
 				break
 			}
