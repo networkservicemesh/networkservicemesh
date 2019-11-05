@@ -37,6 +37,11 @@ func TestNSMDDeploy(t *testing.T) {
 	g.Expect(err).To(BeNil())
 	k8s.DescribePod(node.Nsmd)
 	k8s.DescribePod(node.Forwarder)
+	nsmdPullingImageTime := k8s.GetPullingImagesDuration(node.Nsmd)
+	forwarderPullingImageTime := k8s.GetPullingImagesDuration(node.Forwarder)
+	logrus.Infof("NSMD pulling image time: %v", nsmdPullingImageTime)
+	logrus.Infof("VPPAgent Forwarder pulling image time: %v", forwarderPullingImageTime)
+	deploy -= nsmdPullingImageTime + forwarderPullingImageTime
 	destroy := measureTime(k8s.Cleanup)
 
 	logrus.Infof("Pods deploy time: %v", deploy)
