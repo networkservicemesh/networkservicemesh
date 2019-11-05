@@ -11,8 +11,8 @@ metadata:
   namespace: {{ .Release.Namespace }}
 type: Opaque
 data:
-  key.pem: {{ $cert.Key | b64enc }}
-  cert.pem: {{ $cert.Cert | b64enc }}
+  tls.key: {{ $cert.Key | b64enc }}
+  tls.crt: {{ $cert.Cert | b64enc }}
 ---
 apiVersion: apps/v1
 kind: Deployment
