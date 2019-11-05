@@ -497,6 +497,23 @@ func (k8s *K8s) initNamespace() {
 	k8s.g.Expect(err).To(BeNil())
 }
 
+func (k8s *K8s) describePod(pod *v1.Pod) []v1.Event {
+	result := []v1.Event{}
+	eventsInterface := k8s.clientset.CoreV1().Events(k8s.namespace)
+	selector := eventsInterface.GetFieldSelector(&pod.Name, &k8s.namespace, nil, nil)
+	options := metaV1.ListOptions{FieldSelector: selector.String()}
+	events, err := eventsInterface.List(options)
+	if err != nil {
+		logrus.Error(err)
+	}
+	for i := len(events.Items) - 1; i >= 0; i-- {
+		if pod.UID == events.Items[i].InvolvedObject.UID {
+			result = append(result, events.Items[i])
+		}
+	}
+	return result
+}
+
 // Delete POD with completion check
 // Make force delete on timeout
 func (k8s *K8s) deletePods(pods ...*v1.Pod) error {
@@ -612,20 +629,35 @@ func (k8s *K8s) CleanupCRDs() {
 
 // DescribePod describes a pod
 func (k8s *K8s) DescribePod(pod *v1.Pod) {
-	eventsInterface := k8s.clientset.CoreV1().Events(k8s.namespace)
+	events := k8s.describePod(pod)
+	for i := range events {
+		event := &events[i]
+		logrus.Infof("Pod %s event: %v", pod.Name, prettyPrint(event))
 
-	selector := eventsInterface.GetFieldSelector(&pod.Name, &k8s.namespace, nil, nil)
-	options := metaV1.ListOptions{FieldSelector: selector.String()}
-	events, err := eventsInterface.List(options)
-	if err != nil {
-		logrus.Error(err)
 	}
+}
 
-	for i := len(events.Items) - 1; i >= 0; i-- {
-		if pod.UID == events.Items[i].InvolvedObject.UID {
-			logrus.Infof("Pod %s event: %v", pod.Name, prettyPrint(events.Items[i]))
+//GetPullingImagesDuration returns pod images pulling duration
+func (k8s *K8s) GetPullingImagesDuration(pod *v1.Pod) time.Duration {
+	events := k8s.describePod(pod)
+	var start, end *time.Time
+	for i := range events {
+		event := &events[i]
+		if strings.Contains(event.Reason, "Pulling") {
+			if start == nil || start.After(event.FirstTimestamp.Time) {
+				start = &event.FirstTimestamp.Time
+			}
+		}
+		if strings.Contains(event.Reason, "Pulled") {
+			if end == nil || end.Before(event.LastTimestamp.Time) {
+				end = &event.LastTimestamp.Time
+			}
 		}
 	}
+	if start == nil || end == nil {
+		return 0
+	}
+	return end.Sub(*start)
 }
 
 // PrintImageVersion Prints image version pf pod.
