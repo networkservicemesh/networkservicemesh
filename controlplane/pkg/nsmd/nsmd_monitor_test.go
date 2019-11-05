@@ -22,6 +22,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/onsi/gomega"
+
 	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/connectionmonitor"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/remote"
@@ -38,27 +40,21 @@ const sendPeriod = time.Millisecond * 15
 const testingTime = time.Second / 4
 
 func TestNsmdMonitorShouldHandleServerShutdown(t *testing.T) {
-	port, stop := setupServer(t)
+	g := gomega.NewWithT(t)
+	port, stop := setupServer(g)
 	go func() {
 		<-time.After(testingTime / 2)
 		stop()
 	}()
-	err := startClient(t, testingTime, port)
-	if err == nil {
-		t.Fatal("client should detect server shutdown")
-	}
-	logrus.Info(err)
+	err := startClient(g, testingTime, port)
+	g.Expect(err).ShouldNot(gomega.BeNil())
 }
 
-func startClient(t *testing.T, timeout time.Duration, serverPort int) error {
+func startClient(g *gomega.WithT, timeout time.Duration, serverPort int) error {
 	conn, err := tools.DialTCP(fmt.Sprintf(":%v", serverPort))
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	g.Expect(err).Should(gomega.BeNil())
 	client, err := connectionmonitor.NewMonitorClient(conn, &connection.MonitorScopeSelector{})
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	g.Expect(err).Should(gomega.BeNil())
 	for {
 		select {
 		case <-time.After(timeout):
@@ -73,16 +69,14 @@ func startClient(t *testing.T, timeout time.Duration, serverPort int) error {
 	}
 }
 
-func setupServer(t *testing.T) (int, func()) {
-	grcServer := tools.NewServer(context.Background())
+func setupServer(g *gomega.WithT) (int, func()) {
+	grpcServer := tools.NewServer(context.Background())
 	remoteMonitor := remote.NewMonitorServer(nil)
-	connection.RegisterMonitorConnectionServer(grcServer, remoteMonitor)
+	connection.RegisterMonitorConnectionServer(grpcServer, remoteMonitor)
 	l, err := net.Listen("tcp", ":0")
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	g.Expect(err).Should(gomega.BeNil())
 	go func() {
-		grcServer.Serve(l)
+		grpcServer.Serve(l)
 	}()
 	go func() {
 		for {
@@ -92,7 +86,7 @@ func setupServer(t *testing.T) (int, func()) {
 	}()
 
 	return l.Addr().(*net.TCPAddr).Port,
-		grcServer.Stop
+		grpcServer.Stop
 }
 
 type testEvent struct {

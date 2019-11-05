@@ -37,11 +37,6 @@ type client struct {
 	cancel context.CancelFunc
 }
 
-type recvResult struct {
-	err error
-	msg interface{}
-}
-
 // NewClient creates a new Client on given GRPC connection with given EventFactory and EventStreamConstructor
 func NewClient(cc *grpc.ClientConn, eventFactory EventFactory, streamConstructor EventStreamConstructor) (Client, error) {
 	ctx, cancel := context.WithCancel(context.Background())
@@ -55,6 +50,11 @@ func NewClient(cc *grpc.ClientConn, eventFactory EventFactory, streamConstructor
 	errorChannel := make(chan error, 1)
 	eventChannel := make(chan Event, clientEventCapacity)
 	go func() {
+		type recvResult struct {
+			err error
+			msg interface{}
+		}
+
 		defer close(eventChannel)
 		defer close(errorChannel)
 
