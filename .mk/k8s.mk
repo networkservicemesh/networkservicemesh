@@ -24,6 +24,9 @@ NSM_NAMESPACE = `cat "${K8S_CONF_DIR}/${CLUSTER_CONFIG_NAMESPACE}.yaml" | awk '/
 endif
 CONTAINER_REPO?=networkservicemesh
 CONTAINER_TAG?=master
+
+NSMGR_CONTAINERS := nsmd nsmd-k8s nsmdp
+
 # All of the rules that use vagrant are intentionally written in such a way
 # That you could set the CLUSTER_RULES_PREFIX different and introduce
 # a new platform to run on with k8s by adding a new include ${method}.mk
@@ -170,10 +173,14 @@ k8s-nsmgr-worker-tlogs:
 k8s-nsmgr-build: $(addsuffix -build, $(addprefix docker-, nsmd nsmd-k8s nsmdp))
 
 .PHONY: k8s-nsmgr-save
-k8s-nsmgr-save: $(addsuffix -save, $(addprefix docker-, nsmd nsmd-k8s nsmdp))
+k8s-nsmgr-save: $(addsuffix -save, $(addprefix docker-, $(NSMGR_CONTAINERS)))
 
+.PHONY: k8s-nsmgr-load-images
+k8s-nsmgr-load-images: $(addsuffix -load-images, $(addprefix $(CLUSTER_RULES_PREFIX)-, $(NSMGR_CONTAINERS)))
 
+.PHONY: k8s-nsmgr-update
+k8s-nsmgr-update: k8s-nsmgr-save k8s-nsmgr-load-images
 
-
-
-
+.PHONY: k8s-%-update
+k8s-%-update: docker-%-save k8s-%-load-images
+	$(info Image updated in cluster: $*)
