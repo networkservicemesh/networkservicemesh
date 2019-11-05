@@ -35,6 +35,7 @@ func TestSimpleMetrics(t *testing.T) {
 		{
 			ForwarderVariables: map[string]string{
 				common.ForwarderMetricsEnabledKey:       "true",
+				"DEBUG_IFSTATES":                        "true",
 				common.ForwarderMetricsRequestPeriodKey: requestPeriod.String(),
 			},
 			Variables: pods.DefaultNSMD(),
@@ -50,10 +51,10 @@ func TestSimpleMetrics(t *testing.T) {
 
 	metricsCh := metricsFromEventCh(eventCh)
 	nsc := kubetest.DeployNSC(k8s, nodes[0].Node, "nsc1", defaultTimeout)
-
-	response, _, err := k8s.Exec(nsc, nsc.Spec.Containers[0].Name, "ping", "172.16.1.2", "-A", "-c", "4")
-	logrus.Infof("response = %v", response)
-	g.Expect(err).To(BeNil())
+	for i := 0; i < 10; i++ {
+		response, _, _ := k8s.Exec(nsc, nsc.Spec.Containers[0].Name, "ping", "172.16.1.2", "-A", "-c", "4")
+		logrus.Infof("response = %v", response)
+	}
 	<-time.After(requestPeriod * 5)
 	k8s.DeletePods(nsc)
 	select {
