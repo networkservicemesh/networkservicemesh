@@ -56,8 +56,7 @@ Will enable use of vendor folder to share go dependencies.
 Before run examples make sure that you have [helm](https://github.com/helm/helm). To install helm you can use prepared scripts: 
 ```bash
 sh scripts/install-helm.sh
-helm init
-sh scripts/helm-patch-tiller.sh
+make helm-init
 ```
 
 After installing you can verify it with `helm version`.
