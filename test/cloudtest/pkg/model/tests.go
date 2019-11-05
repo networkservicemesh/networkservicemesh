@@ -29,6 +29,8 @@ const (
 	StatusSkipped
 	// StatusSkippedSinceNoClusters - status of test if not clusters of desired group are available.
 	StatusSkippedSinceNoClusters
+	// StatusRerunRequest - a test was requested its re-run
+	StatusRerunRequest
 )
 
 // TestEntryExecution - represent one test execution.

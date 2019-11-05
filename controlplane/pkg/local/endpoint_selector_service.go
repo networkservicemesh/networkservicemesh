@@ -92,9 +92,11 @@ func (cce *endpointSelectorService) Request(ctx context.Context, request *networ
 		// 7.1.1 Clone Connection to support iteration via EndPoints
 		newRequest, endpoint, err := cce.prepareRequest(ctx, request, clientConnection, ignoreEndpoints)
 		if err != nil {
+			span.Finish()
 			return cce.combineErrors(span, lastError, err)
 		}
 		if err = cce.checkTimeout(parentCtx, span); err != nil {
+			span.Finish()
 			return nil, err
 		}
 

@@ -49,6 +49,12 @@ type ExecutionConfig struct {
 	OnFail          string   `yaml:"on_fail"`          // A script to execute against required cluster, called if task failed
 }
 
+type RetestConfig struct {
+	// Executions, every execution execute some tests agains configured set of clusters
+	Patterns     []string `yaml:"pattern"` // Restart test output pattern, to treat as a test restart request, test will be added back for execution.
+	RestartCount int      `yaml:"count"`   // Allow to restart only few times using RestartCode check.
+}
+
 type CloudTestConfig struct {
 	Version    string                   `yaml:"version"` // Provider file version, 1.0
 	Providers  []*ClusterProviderConfig `yaml:"providers"`
@@ -60,4 +66,6 @@ type CloudTestConfig struct {
 	Executions []*ExecutionConfig `yaml:"executions"`
 	Timeout    int64              `yaml:"timeout"` // Global timeout in seconds
 	Imports    []string           `yaml:"import"`  // A set of configurations for import
+
+	RetestConfig RetestConfig `yaml:"retest"`
 }

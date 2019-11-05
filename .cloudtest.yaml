@@ -10,6 +10,11 @@ import:
   - .cloudtest/aws.yaml
   - .cloudtest/azure.yaml
 
+retest:  # Allow to do test re-run if some kind of failures are detected, line CNI network plugin errors.
+  count: 3  # Allow 3 times to do restart
+  pattern:
+    - "NetworkPlugin cni failed to set up pod"
+    - "etcdserver: request timed out, possibly due to previous leader fail"
 reporting:
   junit-report: "results/junit.xml"
 executions:

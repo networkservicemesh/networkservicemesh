@@ -8,9 +8,9 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/pkg/errors"
-
 	"github.com/sirupsen/logrus"
+
+	"github.com/pkg/errors"
 )
 
 //ProcWrapper - A simple process wrapper
@@ -25,7 +25,11 @@ type ProcWrapper struct {
 func (w *ProcWrapper) ExitCode() int {
 	err := w.Cmd.Wait()
 	if err != nil {
+		e, ok := err.(*exec.ExitError)
 		logrus.Errorf("Error during waiting for process exit code: %v %v", w.Cmd.Args, err)
+		if ok {
+			return e.ExitCode()
+		}
 		return -1
 	}
 	return w.Cmd.ProcessState.ExitCode()

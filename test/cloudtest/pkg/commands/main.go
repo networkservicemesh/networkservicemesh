@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -389,7 +390,7 @@ func (ctx *executionContext) processTaskUpdate(event operationEvent) {
 			}
 		}
 	} else {
-		logrus.Infof("Re schedule task %v", event.task.test.Name)
+		logrus.Infof("Re schedule task %v reason: %v", event.task.test.Name, statusName(event.task.test.Status))
 		ctx.tasks = append(ctx.tasks, event.task)
 	}
 }
@@ -406,6 +407,8 @@ func statusName(status model.Status) interface{} {
 		return "success"
 	case model.StatusTimeout:
 		return "timeout"
+	case model.StatusRerunRequest:
+		return "rerun-request"
 	}
 	return fmt.Sprintf("code: %v", status)
 }
@@ -713,6 +716,7 @@ func (ctx *executionContext) executeTask(task *testTask, clusterConfigs []string
 		_, _ = writer.WriteString(msg)
 		_, _ = writer.WriteString(fmt.Sprintf("Command line %v\nenv==%v \n\n", runner.GetCmdLine(), env))
 		_ = writer.Flush()
+
 		timeoutCtx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
 
@@ -722,8 +726,27 @@ func (ctx *executionContext) executeTask(task *testTask, clusterConfigs []string
 		}
 		task.test.Started = time.Now()
 		ctx.Unlock()
+
 		errCode := runner.Run(timeoutCtx, env, writer)
 
+		writer.Flush()
+
+		// Check if test ask us restart it, and have few executions left
+		if errCode != nil && len(ctx.cloudTestConfig.RetestConfig.Patterns) > 0 {
+			writer.Flush()
+
+			if ctx.matchRestartRequest(fileName) {
+				if len(task.test.Executions) < ctx.cloudTestConfig.RetestConfig.RestartCount {
+					ctx.updateTestExecution(task, fileName, model.StatusRerunRequest)
+				} else {
+					logrus.Errorf("Test %v retry count %v exceed: err: %v", task.test.Name, ctx.cloudTestConfig.RetestConfig.RestartCount, errCode.Error())
+					_, _ = writer.WriteString(errCode.Error())
+					_ = writer.Flush()
+					ctx.updateTestExecution(task, fileName, model.StatusFailed)
+				}
+				return
+			}
+		}
 		if errCode != nil {
 			onFailErr := ctx.handleOnFailTask(task, env, writer)
 			if err != nil {
@@ -760,6 +783,31 @@ func (ctx *executionContext) executeTask(task *testTask, clusterConfigs []string
 			ctx.updateTestExecution(task, fileName, model.StatusSuccess)
 		}
 	}()
+}
+
+func (ctx *executionContext) matchRestartRequest(fileName string) bool {
+	hasPattern := false
+	// Check if output file contains restart request marker
+	f, err := os.OpenFile(fileName, os.O_RDONLY, 0600)
+	if err != nil {
+		return false
+	}
+	defer f.Close()
+
+	reader := bufio.NewReader(f)
+	for {
+		r, err := reader.ReadString('\n')
+		if err != nil {
+			break
+		}
+		for _, pp := range ctx.cloudTestConfig.RetestConfig.Patterns {
+			if matched, _ := regexp.MatchString(pp, r); matched {
+				hasPattern = true
+				break
+			}
+		}
+	}
+	return hasPattern
 }
 
 func (ctx *executionContext) handleOnFailTask(task *testTask, env []string, writer *bufio.Writer) error {
@@ -1204,12 +1252,13 @@ func (ctx *executionContext) generateTestCaseReport(test *testTask, totalTests i
 
 		message := fmt.Sprintf("Test execution failed %v", test.test.Name)
 		result := strings.Builder{}
-		for _, ex := range test.test.Executions {
+		for idx, ex := range test.test.Executions {
 			lines, err := utils.ReadFile(ex.OutputFile)
 			if err != nil {
 				logrus.Errorf("Failed to read stored output %v", ex.OutputFile)
 				lines = []string{"Failed to read stored output:", ex.OutputFile, err.Error()}
 			}
+			result.WriteString(fmt.Sprintf("Execution attempt: %v Output file: %v", idx, ex.OutputFile))
 			result.WriteString(strings.Join(lines, "\n"))
 		}
 		testCase.Failure = &reporting.Failure{

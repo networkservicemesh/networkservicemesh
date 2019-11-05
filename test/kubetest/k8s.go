@@ -15,6 +15,8 @@ import (
 	"sync"
 	"time"
 
+	"k8s.io/apimachinery/pkg/watch"
+
 	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
@@ -47,6 +49,9 @@ const (
 	podExecTimeout     = 1 * time.Minute
 	podGetLogTimeout   = 1 * time.Minute
 	accountWaitTimeout = 1 * time.Minute
+
+	//NetworkPluginCNIFailure - pattern to check for CNI issue, pattern required to try redeploy pod
+	NetworkPluginCNIFailure = "NetworkPlugin cni failed to set up pod"
 )
 
 const (
@@ -83,6 +88,7 @@ func (k8s *K8s) createAndBlock(client kubernetes.Interface, namespace string, ti
 		wg.Add(1)
 		go func(pod *v1.Pod) {
 			defer wg.Done()
+
 			var err error
 			createdPod, err := client.CoreV1().Pods(namespace).Create(pod)
 
@@ -96,7 +102,7 @@ func (k8s *K8s) createAndBlock(client kubernetes.Interface, namespace string, ti
 				resultChan <- &PodDeployResult{pod, err}
 				return
 			}
-			pod, err = blockUntilPodReady(client, timeout, pod)
+			pod, err = k8s.blockUntilPodReady(client, timeout, pod)
 			if err != nil {
 				logrus.Errorf("blockUntilPodReady failed. Cause: %v pod: %v", err, pod.Name)
 				k8s.DescribePod(pod)
@@ -177,9 +183,10 @@ func prettyPrint(value interface{}) string {
 	return fmt.Sprintf("%v", res)
 }
 
-func blockUntilPodReady(client kubernetes.Interface, timeout time.Duration, sourcePod *v1.Pod) (*v1.Pod, error) {
+func (k8s *K8s) blockUntilPodReady(client kubernetes.Interface, timeout time.Duration, sourcePod *v1.Pod) (*v1.Pod, error) {
 	st := time.Now()
 	infoPrinted := false
+	lastPodNetworkCheck := time.Now()
 	for {
 		pod, err := client.CoreV1().Pods(sourcePod.Namespace).Get(sourcePod.Name, metaV1.GetOptions{})
 
@@ -189,6 +196,14 @@ func blockUntilPodReady(client kubernetes.Interface, timeout time.Duration, sour
 		}
 		if err != nil {
 			return pod, err
+		}
+
+		// Check every 1 second for pod deploy network problems
+		if time.Since(lastPodNetworkCheck) > 1*time.Second {
+			if podErr := k8s.IsNetworkProblem(pod); podErr != nil {
+				return pod, podErr
+			}
+			lastPodNetworkCheck = time.Now()
 		}
 
 		if pod != nil && pod.Status.Phase != v1.PodPending {
@@ -201,10 +216,14 @@ func blockUntilPodReady(client kubernetes.Interface, timeout time.Duration, sour
 		}
 
 		time.Sleep(time.Millisecond * time.Duration(50))
-
 		if time.Since(st) > timeout {
 			return pod, podTimeout(pod)
 		}
+	}
+
+	// Check if we have event with deploy failure, let's report it.
+	if podErr := k8s.IsNetworkProblem(sourcePod); podErr != nil {
+		return sourcePod, podErr
 	}
 
 	watcher, err := client.CoreV1().Pods(sourcePod.Namespace).Watch(metaV1.SingleObject(metaV1.ObjectMeta{Name: sourcePod.Name}))
@@ -213,6 +232,14 @@ func blockUntilPodReady(client kubernetes.Interface, timeout time.Duration, sour
 		return sourcePod, err
 	}
 
+	return k8s.waitPodStatus(watcher, sourcePod, client, timeout)
+}
+
+func (k8s *K8s) isNetworkProblemEvent(event *v1.Event) bool {
+	return strings.Contains(event.Message, NetworkPluginCNIFailure)
+}
+
+func (k8s *K8s) waitPodStatus(watcher watch.Interface, sourcePod *v1.Pod, client kubernetes.Interface, timeout time.Duration) (*v1.Pod, error) {
 	for {
 		select {
 		case _, ok := <-watcher.ResultChan():
@@ -324,6 +351,8 @@ type K8s struct {
 	sa                 []string
 	g                  *WithT
 	cleanupFunc        func()
+
+	describeHook func(*v1.Pod, []v1.Event) []v1.Event
 }
 
 type spanRecord struct {
@@ -537,6 +566,9 @@ func (k8s *K8s) describePod(pod *v1.Pod) []v1.Event {
 			result = append(result, events.Items[i])
 		}
 	}
+	if k8s.describeHook != nil {
+		return k8s.describeHook(pod, result)
+	}
 	return result
 }
 
@@ -656,10 +688,10 @@ func (k8s *K8s) CleanupCRDs() {
 // DescribePod describes a pod
 func (k8s *K8s) DescribePod(pod *v1.Pod) {
 	events := k8s.describePod(pod)
+
 	for i := range events {
 		event := &events[i]
 		logrus.Infof("Pod %s event: %v", pod.Name, prettyPrint(event))
-
 	}
 }
 
@@ -818,7 +850,7 @@ func (k8s *K8s) CreatePodsRaw(timeout time.Duration, failTest bool, templates ..
 	// Make sure unit test is failed
 	var err error = nil
 	if failTest {
-		k8s.g.Expect(len(errs)).To(Equal(0))
+		k8s.g.Expect(len(errs)).To(Equal(0), string(debug.Stack()))
 	} else {
 		// Lets construct error
 		err = errors.Errorf("Errors %v", errs)
@@ -1452,6 +1484,24 @@ func (k8s *K8s) DeleteNetworkServices(names ...string) error {
 	for _, name := range names {
 		if err := networkServiceClient.Delete(name, &metaV1.DeleteOptions{}); err != nil {
 			return err
+		}
+	}
+	return nil
+}
+
+//SetDescribeHook - set hook to update events, require to test logic.
+func (k8s *K8s) SetDescribeHook(hook func(*v1.Pod, []v1.Event) []v1.Event) {
+	k8s.describeHook = hook
+}
+
+//IsNetworkProblem - return error if pod has deploy network problems detected in events.
+func (k8s *K8s) IsNetworkProblem(pod *v1.Pod) error {
+	// Check if we have CNI issue and try to re-create pod.
+	events := k8s.describePod(pod)
+	for index := range events {
+		msg := &events[index]
+		if k8s.isNetworkProblemEvent(msg) {
+			return errors.Errorf("pod %s deploy error: %v.", pod.Name, msg)
 		}
 	}
 	return nil
