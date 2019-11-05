@@ -285,10 +285,17 @@ func RunProxyNSMgrService(k8s *K8s) func() {
 	}
 }
 
-// DeployNSMRS - Setup NSMRS on Cluster
+// DeployNSMRS - Setup NSMRS on Cluster with default config
 func DeployNSMRS(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
 	return deployNSMRS(k8s, nodeName(node), name, timeout,
 		pods.NSMRSPod(name, node),
+	)
+}
+
+// DeployNSMRSWithConfig - Setup NSMRS on Cluster
+func DeployNSMRSWithConfig(k8s *K8s, node *v1.Node, name string, timeout time.Duration, config *pods.NSMgrPodConfig) *v1.Pod {
+	return deployNSMRS(k8s, nodeName(node), name, timeout,
+		pods.NSMRSPodWithConfig(name, node, config),
 	)
 }
 

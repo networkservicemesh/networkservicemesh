@@ -22,9 +22,11 @@ import (
 	"fmt"
 	"os"
 	"testing"
-	"time"
 
 	. "github.com/onsi/gomega"
+
+	"github.com/networkservicemesh/networkservicemesh/applications/nsmrs/pkg/serviceregistryserver"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/proxyregistryserver"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
@@ -70,7 +72,11 @@ func testFloatingInterdomainDie(t *testing.T, clustersCount int, killPod string)
 	}
 
 	nsmrsNode := &k8ss[clustersCount-1].K8s.GetNodesWait(2, defaultTimeout)[1]
-	nsmrsPod := kubetest.DeployNSMRS(k8ss[clustersCount-1].K8s, nsmrsNode, "nsmrs", defaultTimeout)
+	nsmrsPod := kubetest.DeployNSMRSWithConfig(k8ss[clustersCount-1].K8s, nsmrsNode, "nsmrs", defaultTimeout, &pods.NSMgrPodConfig{
+		Variables: map[string]string{
+			serviceregistryserver.NSEExpirationTimeoutSecondsEnv: "30",
+		},
+	})
 
 	nsmrsExternalIP, err := kubetest.GetNodeExternalIP(nsmrsNode)
 	if err != nil {
@@ -82,7 +88,15 @@ func testFloatingInterdomainDie(t *testing.T, clustersCount int, killPod string)
 
 	for i := 0; i < clustersCount; i++ {
 		k8s := k8ss[i].K8s
-		nodesSetup, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
+		nodesSetup, err := kubetest.SetupNodesConfig(k8s, 1, defaultTimeout, []*pods.NSMgrPodConfig{
+			{
+				Variables: map[string]string{
+					nsmd.NSETrackingIntervalSecondsEnv: "30",
+				},
+				Namespace:          k8s.GetK8sNamespace(),
+				ForwarderVariables: kubetest.DefaultForwarderVariables(k8s.GetForwardingPlane()),
+			},
+		}, k8s.GetK8sNamespace())
 		g.Expect(err).To(BeNil())
 
 		k8ss[i].NodesSetup = nodesSetup
@@ -116,6 +130,6 @@ func testFloatingInterdomainDie(t *testing.T, clustersCount int, killPod string)
 		k8ss[clustersCount-1].K8s.WaitLogsContains(nsmrsPod, "nsmrs", "RemoveNSE done", defaultTimeout)
 	case "nsmd":
 		k8ss[clustersCount-1].K8s.DeletePods(k8ss[clustersCount-1].NodesSetup[0].Nsmd)
-		k8ss[clustersCount-1].K8s.WaitLogsContains(nsmrsPod, "nsmrs", "Network Service Endpoint removed by timeout", 7*time.Minute)
+		k8ss[clustersCount-1].K8s.WaitLogsContains(nsmrsPod, "nsmrs", "Network Service Endpoint removed by timeout", defaultTimeout)
 	}
 }

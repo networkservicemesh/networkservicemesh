@@ -8,6 +8,7 @@ require (
 	github.com/golang/protobuf v1.3.2
 	github.com/google/uuid v1.1.1
 	github.com/ligato/vpp-agent v2.5.1+incompatible
+	github.com/networkservicemesh/networkservicemesh/applications/nsmrs v0.2.0
 	github.com/networkservicemesh/networkservicemesh/controlplane v0.2.0
 	github.com/networkservicemesh/networkservicemesh/controlplane/api v0.2.0
 	github.com/networkservicemesh/networkservicemesh/forwarder v0.2.0
@@ -68,6 +69,7 @@ replace (
 
 replace (
 	github.com/networkservicemesh/networkservicemesh => ../
+	github.com/networkservicemesh/networkservicemesh/applications/nsmrs => ../applications/nsmrs
 	github.com/networkservicemesh/networkservicemesh/controlplane => ../controlplane
 	github.com/networkservicemesh/networkservicemesh/controlplane/api => ../controlplane/api
 	github.com/networkservicemesh/networkservicemesh/forwarder => ../forwarder

@@ -17,6 +17,9 @@
 package serviceregistryserver
 
 import (
+	"os"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -30,8 +33,8 @@ import (
 )
 
 const (
-	NSEExpirationTimeout  = 5 * time.Minute
-	NSEValidationInterval = 2 * time.Minute
+	NSEExpirationTimeoutDefault    = 5 * time.Minute
+	NSEExpirationTimeoutSecondsEnv = "NSE_EXPIRATION_TIMEOUT"
 )
 
 // NSERegistryCache - cache of registered Network Service Endpoints
@@ -46,13 +49,25 @@ type NSERegistryCache interface {
 type nseRegistryCache struct {
 	networkServiceEndpoints map[string][]*registry.NSERegistration
 	endpoints               map[string]*registry.NSERegistration
+	nseExpirationTimeout    time.Duration
 }
 
 //NewNSERegistryCache creates new nerwork service endpoints cache
 func NewNSERegistryCache() NSERegistryCache {
+	expirationTimeout := NSEExpirationTimeoutDefault
+	if interval := strings.TrimSpace(os.Getenv(NSEExpirationTimeoutSecondsEnv)); interval != "" {
+		t, err := strconv.ParseInt(interval, 10, 32)
+		if err != nil {
+			logrus.Errorf("Cannot parse %s, use default value : %v", NSEExpirationTimeoutSecondsEnv, err)
+		} else {
+			expirationTimeout = time.Duration(t) * time.Second
+		}
+	}
+
 	return &nseRegistryCache{
 		networkServiceEndpoints: make(map[string][]*registry.NSERegistration),
 		endpoints:               make(map[string]*registry.NSERegistration),
+		nseExpirationTimeout:    expirationTimeout,
 	}
 }
 
@@ -69,7 +84,7 @@ func (rc *nseRegistryCache) AddNetworkServiceEndpoint(entry *registry.NSERegistr
 		}
 	}
 
-	entry.NetworkServiceManager.ExpirationTime = &timestamp.Timestamp{Seconds: time.Now().Add(NSEExpirationTimeout).Unix()}
+	entry.NetworkServiceManager.ExpirationTime = &timestamp.Timestamp{Seconds: time.Now().Add(rc.nseExpirationTimeout).Unix()}
 
 	rc.networkServiceEndpoints[entry.NetworkService.Name] = append(rc.networkServiceEndpoints[entry.NetworkService.Name], entry)
 	rc.endpoints[entry.NetworkServiceEndpoint.Name] = entry
@@ -84,7 +99,7 @@ func (rc *nseRegistryCache) UpdateNetworkServiceEndpoint(nse *registry.NSERegist
 		if endpoint.NetworkServiceManager.Name != nse.NetworkServiceManager.Name {
 			return nil, errors.Errorf("network service endpoint with name %s already registered from different NSM: old: %v; new: %v", endpoint.NetworkServiceEndpoint.Name, endpoint, nse)
 		}
-		endpoint.NetworkServiceManager.ExpirationTime = &timestamp.Timestamp{Seconds: time.Now().Add(NSEExpirationTimeout).Unix()}
+		endpoint.NetworkServiceManager.ExpirationTime = &timestamp.Timestamp{Seconds: time.Now().Add(rc.nseExpirationTimeout).Unix()}
 		return endpoint, nil
 	}
 
@@ -114,7 +129,7 @@ func (rc *nseRegistryCache) GetEndpointsByNs(networkServiceName string) []*regis
 func (rc *nseRegistryCache) StartNSMDTracking() {
 	go func() {
 		for {
-			<-time.After(NSEValidationInterval)
+			<-time.After(rc.nseExpirationTimeout / 2)
 			for endpointName, endpoint := range rc.endpoints {
 				if endpoint.NetworkServiceManager.ExpirationTime.Seconds < time.Now().Unix() {
 					nse, err := rc.DeleteNetworkServiceEndpoint(endpointName)

@@ -15,6 +15,9 @@
 package nsmd
 
 import (
+	"os"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
@@ -28,6 +31,11 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
+)
+
+const (
+	NSETrackingIntervalDefault    = 2 * time.Minute
+	NSETrackingIntervalSecondsEnv = "NSE_TRACKING_INTERVAL"
 )
 
 type NSERegistryServer interface {
@@ -162,6 +170,16 @@ func (es *registryServer) startNSETracking(request *registry.NSERegistration) er
 		return errors.Errorf("cannot start NSE tracking : %v", err)
 	}
 
+	trackingInterval := NSETrackingIntervalDefault
+	if interval := strings.TrimSpace(os.Getenv(NSETrackingIntervalSecondsEnv)); interval != "" {
+		t, err := strconv.ParseInt(interval, 10, 32)
+		if err != nil {
+			logrus.Errorf("Cannot parse %s, use default value : %v", NSETrackingIntervalSecondsEnv, err)
+		} else {
+			trackingInterval = time.Duration(t) * time.Second
+		}
+	}
+
 	go func() {
 		defer cancel()
 
@@ -169,7 +187,7 @@ func (es *registryServer) startNSETracking(request *registry.NSERegistration) er
 			select {
 			case <-ctx.Done():
 				return
-			case <-time.After(2 * time.Minute):
+			case <-time.After(trackingInterval):
 				err := stream.Send(request)
 				if err != nil {
 					logrus.Errorf("Error sending BulkRegisterNSE request : %v", err)

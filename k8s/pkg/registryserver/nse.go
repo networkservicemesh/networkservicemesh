@@ -5,6 +5,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
+
 	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
@@ -22,6 +24,8 @@ import (
 const (
 	// ForwardingTimeout - Timeout waiting for Proxy NseRegistryClient
 	ForwardingTimeout = 15 * time.Second
+	// ProxyRegistryReconnectInterval - reconnect interval to Proxy NSMD-K8S if connection refused
+	ProxyRegistryReconnectInterval = 15 * time.Second
 )
 
 type nseRegistryService struct {
@@ -120,32 +124,47 @@ func (rs *nseRegistryService) BulkRegisterNSE(srv registry.NetworkServiceRegistr
 	remoteRegistry := nsmd.NewServiceRegistryAt(nsrURL)
 	defer remoteRegistry.Stop()
 
+	for {
+		stream, err := requestBulkRegisterNSEStream(ctx, remoteRegistry, nsrURL)
+		if err != nil {
+			logrus.Warnf("Cannot connect to Proxy NSMGR %s : %v", nsrURL, err)
+			<-time.After(ProxyRegistryReconnectInterval)
+			continue
+		}
+
+		for {
+			request, err := srv.Recv()
+			if err != nil {
+				err = errors.Errorf("error receiving BulkRegisterNSE request : %v", err)
+				return err
+			}
+
+			logrus.Infof("Forward BulkRegisterNSE request: %v", request)
+			err = stream.Send(request)
+			if err != nil {
+				logrus.Warnf("Error forwarding BulkRegisterNSE request to %s : %v", nsrURL, err)
+				break
+			}
+		}
+
+		<-time.After(ProxyRegistryReconnectInterval)
+	}
+}
+
+func requestBulkRegisterNSEStream(ctx context.Context, remoteRegistry serviceregistry.ServiceRegistry, nsrURL string) (registry.NetworkServiceRegistry_BulkRegisterNSEClient, error) {
 	nseRegistryClient, err := remoteRegistry.NseRegistryClient(ctx)
 	if err != nil {
 		err = errors.Errorf("error forwarding BulkRegisterNSE request to %s : %v", nsrURL, err)
-		return err
+		return nil, err
 	}
 
 	stream, err := nseRegistryClient.BulkRegisterNSE(ctx)
 	if err != nil {
 		err = errors.Errorf("error forwarding BulkRegisterNSE request to %s : %v", nsrURL, err)
-		return err
+		return nil, err
 	}
 
-	for {
-		request, err := srv.Recv()
-		if err != nil {
-			err = errors.Errorf("error receiving BulkRegisterNSE request : %v", err)
-			return err
-		}
-
-		logrus.Infof("Forward BulkRegisterNSE request: %v", request)
-		err = stream.Send(request)
-		if err != nil {
-			err = errors.Errorf("error forwarding BulkRegisterNSE request to %s : %v", nsrURL, err)
-			return err
-		}
-	}
+	return stream, nil
 }
 
 func (rs *nseRegistryService) RemoveNSE(ctx context.Context, request *registry.RemoveNSERequest) (*empty.Empty, error) {
