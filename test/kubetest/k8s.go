@@ -18,6 +18,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
+	jaeger_env "github.com/networkservicemesh/networkservicemesh/test/kubetest/jaeger"
 
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
@@ -304,7 +305,7 @@ type spanRecord struct {
 }
 
 func (k8s *K8s) reportSpans() {
-	if !jaeger.IsOpentracingEnabled() {
+	if !jaeger.IsOpentracingEnabled() || jaeger_env.StoreJaegerTraces.GetBooleanOrDefault(false) {
 		return
 	}
 	logrus.Infof("Finding spans")

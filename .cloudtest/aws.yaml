@@ -20,8 +20,8 @@ providers:
       - CIRCLE_WORKFLOW_ID
       - CONTAINER_REPO
       - CONTAINER_TAG
-      - NSM_AWS_ACCESS_KEY_ID
-      - NSM_AWS_SECRET_ACCESS_KEY
+      - AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY
     scripts:
       start: |
         make aws-start
