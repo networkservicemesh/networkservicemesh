@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package local
+package common
 
 import (
 	"github.com/golang/protobuf/ptypes/empty"
@@ -21,7 +21,6 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/connectionmonitor"
 )
 
@@ -37,7 +36,7 @@ func NewMonitorService(monitor connectionmonitor.MonitorServer) networkservice.N
 }
 
 func (srv *monitorService) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
-	ctx = common.WithConnectionMonitor(ctx, srv.monitor)
+	ctx = WithConnectionMonitor(ctx, srv.monitor)
 
 	conn, err := ProcessNext(ctx, request)
 	if err == nil {
@@ -50,8 +49,10 @@ func (srv *monitorService) Close(ctx context.Context, connection *connection.Con
 	logrus.Infof("Closing connection: %v", connection)
 
 	// Pass model connection with context
-	ctx = common.WithConnectionMonitor(ctx, srv.monitor)
+	ctx = WithConnectionMonitor(ctx, srv.monitor)
 	conn, err := ProcessClose(ctx, connection)
+
+	// We send update if conn != nil
 	if conn != nil {
 		srv.monitor.Delete(ctx, connection)
 	}

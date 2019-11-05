@@ -31,7 +31,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	pluginapi "github.com/networkservicemesh/networkservicemesh/controlplane/api/plugins"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
-	unifiednsm "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
+	nsm "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/plugins"
@@ -39,7 +39,7 @@ import (
 
 // ConnectionService makes basic Mechanism selection for the incoming connection
 type endpointSelectorService struct {
-	nseManager     unifiednsm.NetworkServiceEndpointManager
+	nseManager     nsm.NetworkServiceEndpointManager
 	pluginRegistry plugins.PluginRegistry
 }
 
@@ -76,6 +76,7 @@ func (cce *endpointSelectorService) Request(ctx context.Context, request *networ
 	if clientConnection.ConnectionState == model.ClientConnectionHealing && !requestNSEOnUpdate {
 		return cce.checkUpdateConnectionContext(ctx, request, clientConnection)
 	}
+
 	// 7.1 try find NSE and do a Request to it.
 	var lastError error
 	ignoreEndpoints := common.IgnoredEndpoints(ctx)
@@ -96,9 +97,11 @@ func (cce *endpointSelectorService) Request(ctx context.Context, request *networ
 		if err = cce.checkTimeout(parentCtx, span); err != nil {
 			return nil, err
 		}
+
+		// 7.1.7 perform request to NSE/remote NSMD/NSE
 		ctx = common.WithEndpoint(ctx, endpoint)
 		// Perform passing execution to next chain element.
-		conn, err := ProcessNext(ctx, newRequest)
+		conn, err := common.ProcessNext(ctx, newRequest)
 
 		// 7.1.8 in case of error we put NSE into ignored list to check another one.
 		if err != nil {
@@ -155,14 +158,16 @@ func (cce *endpointSelectorService) checkNSEUpdateIsRequired(ctx context.Context
 			requestNSEOnUpdate = true
 
 			// Just close, since client connection already passed with context.
-			_, err := ProcessClose(ctx, request.GetConnection())
 			// Network service is closing, we need to close remote NSM and re-program local one.
-			if err != nil {
+			if _, err := common.ProcessClose(ctx, request.GetConnection()); err != nil {
 				logger.Errorf("NSM:(4.1) Error during close of NSE during Request.Upgrade %v Existing connection: %v error %v", request, clientConnection, err)
 			}
 		} else {
 			// 4.2 Check if NSE is still required, if some more context requests are different.
 			requestNSEOnUpdate = cce.checkNeedNSERequest(logger, request.Connection, clientConnection, dp)
+			if requestNSEOnUpdate {
+				logger.Infof("Context is different, NSE request is required")
+			}
 		}
 	}
 	return requestNSEOnUpdate
@@ -244,13 +249,13 @@ func (cce *endpointSelectorService) findMechanism(mechanismPreferences []*connec
 }
 
 func (cce *endpointSelectorService) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
-	return ProcessClose(ctx, connection)
+	return common.ProcessClose(ctx, connection)
 }
 
 func (cce *endpointSelectorService) checkUpdateConnectionContext(ctx context.Context, request *networkservice.NetworkServiceRequest, clientConnection *model.ClientConnection) (*connection.Connection, error) {
-	logger := common.Log(ctx)
 	// We do not need to do request to endpoint and just need to update all stuff.
 	// 7.2 We do not need to access NSE, since all parameters are same.
+	logger := common.Log(ctx)
 	clientConnection.Xcon.Source.Mechanism = request.Connection.GetMechanism()
 	clientConnection.Xcon.Source.State = connection.State_UP
 
@@ -259,8 +264,8 @@ func (cce *endpointSelectorService) checkUpdateConnectionContext(ctx context.Con
 		err = errors.Errorf("NSM:(7.3) Failed to update source connection context: %v", err)
 
 		// Just close since client connection is already passed with context
-		if _, closeErr := ProcessClose(ctx, request.GetConnection()); closeErr != nil {
-			logger.Errorf("Close error: %v", closeErr)
+		if _, closeErr := common.ProcessClose(ctx, request.GetConnection()); closeErr != nil {
+			logger.Errorf("Failed to perform close: %v", closeErr)
 		}
 		return nil, err
 	}
@@ -304,7 +309,7 @@ func (cce *endpointSelectorService) checkTimeout(ctx context.Context, span spanh
 }
 
 // NewEndpointSelectorService - creates a service to select endpoint
-func NewEndpointSelectorService(nseManager unifiednsm.NetworkServiceEndpointManager, pluginRegistry plugins.PluginRegistry) networkservice.NetworkServiceServer {
+func NewEndpointSelectorService(nseManager nsm.NetworkServiceEndpointManager, pluginRegistry plugins.PluginRegistry) networkservice.NetworkServiceServer {
 	return &endpointSelectorService{
 		nseManager:     nseManager,
 		pluginRegistry: pluginRegistry,

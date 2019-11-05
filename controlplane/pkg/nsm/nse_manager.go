@@ -3,11 +3,11 @@ package nsm
 import (
 	"context"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/properties"
+
 	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
-
-	nsm_properties "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
 
 	"github.com/sirupsen/logrus"
 
@@ -21,7 +21,7 @@ import (
 type nseManager struct {
 	serviceRegistry serviceregistry.ServiceRegistry
 	model           model.Model
-	properties      *nsm_properties.Properties
+	props           *properties.Properties
 }
 
 func (nsem *nseManager) GetEndpoint(ctx context.Context, requestConnection *connection.Connection, ignoreEndpoints map[registry.EndpointNSMName]*registry.NSERegistration) (*registry.NSERegistration, error) {
@@ -104,7 +104,7 @@ func (nsem *nseManager) CreateNSEClient(ctx context.Context, endpoint *registry.
 		return &endpointClient{connection: conn, client: client}, nil
 	} else {
 		logger.Infof("Create remote NSE connection to endpoint: %v", endpoint)
-		ctx, cancel := context.WithTimeout(span.Context(), nsem.properties.HealRequestConnectTimeout)
+		ctx, cancel := context.WithTimeout(span.Context(), nsem.props.HealRequestConnectTimeout)
 		defer cancel()
 		client, conn, err := nsem.serviceRegistry.RemoteNetworkServiceClient(ctx, endpoint.GetNetworkServiceManager())
 		if err != nil {
@@ -119,7 +119,7 @@ func (nsem *nseManager) IsLocalEndpoint(endpoint *registry.NSERegistration) bool
 }
 
 func (nsem *nseManager) CheckUpdateNSE(ctx context.Context, reg *registry.NSERegistration) bool {
-	pingCtx, pingCancel := context.WithTimeout(ctx, nsem.properties.HealRequestConnectCheckTimeout)
+	pingCtx, pingCancel := context.WithTimeout(ctx, nsem.props.HealRequestConnectCheckTimeout)
 	defer pingCancel()
 
 	client, err := nsem.CreateNSEClient(pingCtx, reg)

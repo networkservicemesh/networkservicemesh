@@ -8,11 +8,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/properties"
+
 	"github.com/golang/protobuf/ptypes/empty"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
@@ -36,8 +37,8 @@ func TestNSMHealRemoteDieNSMD_NSE(t *testing.T) {
 	nodes_setup, err := kubetest.SetupNodesConfig(k8s, 2, defaultTimeout, []*pods.NSMgrPodConfig{
 		{
 			Variables: map[string]string{
-				nsm.NsmdHealDSTWaitTimeout:   "20", // 20 second delay, since we know both NSM and NSE will die and we need to go with different code branch.
-				nsmd.NsmdDeleteLocalRegistry: "true",
+				properties.NsmdHealDSTWaitTimeout: "20", // 20 second delay, since we know both NSM and NSE will die and we need to go with different code branch.
+				nsmd.NsmdDeleteLocalRegistry:      "true",
 			},
 			Namespace:          k8s.GetK8sNamespace(),
 			ForwarderVariables: kubetest.DefaultForwarderVariables(k8s.GetForwardingPlane()),
