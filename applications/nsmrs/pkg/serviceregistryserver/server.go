@@ -18,10 +18,11 @@
 package serviceregistryserver
 
 import (
+	"context"
 	"net"
 
-	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
-	"github.com/opentracing/opentracing-go"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+
 	"google.golang.org/grpc"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
@@ -47,12 +48,7 @@ func NewNSMDServiceRegistryServer() ServiceRegistry {
 
 // New - creates new grcp server and registers NSE discovery and registry services
 func New() *grpc.Server {
-	tracer := opentracing.GlobalTracer()
-	server := grpc.NewServer(
-		grpc.UnaryInterceptor(
-			otgrpc.OpenTracingServerInterceptor(tracer, otgrpc.LogPayloads())),
-		grpc.StreamInterceptor(
-			otgrpc.OpenTracingStreamServerInterceptor(tracer)))
+	server := tools.NewServer(context.Background())
 
 	cache := NewNSERegistryCache()
 	discovery := newDiscoveryService(cache)

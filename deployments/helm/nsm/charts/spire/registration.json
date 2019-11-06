@@ -39,6 +39,16 @@
       ],
       "spiffe_id": "spiffe://test.com/forward-plane",
       "parent_id": "spiffe://test.com/spire-agent"
+    },
+    {
+      "selectors": [
+        {
+          "type": "k8s",
+          "value": "sa:nsmrs-acc"
+        }
+      ],
+      "spiffe_id": "spiffe://test.com/nsmrs",
+      "parent_id": "spiffe://test.com/spire-agent"
     }
   ]
 }

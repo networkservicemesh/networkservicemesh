@@ -22,6 +22,8 @@ const (
 	NSCServiceAccount = "nsc-acc"
 	// NSMgrServiceAccount service account for Network Service Managers
 	NSMgrServiceAccount = "nsmgr-acc"
+	// NSMgrServiceAccount service account for Network Service Managers
+	NSMRSServiceAccount = "nsmrs-acc"
 	// ForwardPlaneServiceAccount service account for Forwarding Plane
 	ForwardPlaneServiceAccount = "forward-plane-acc"
 )

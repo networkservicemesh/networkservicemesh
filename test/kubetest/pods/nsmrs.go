@@ -51,6 +51,7 @@ func NSMRSPodWithConfig(name string, node *v1.Node, config *NSMgrPodConfig) *v1.
 			Kind: "Deployment",
 		},
 		Spec: v1.PodSpec{
+			ServiceAccountName: NSMRSServiceAccount,
 			Containers: []v1.Container{
 				containerMod(&v1.Container{
 					Name:            "nsmrs",
@@ -63,8 +64,10 @@ func NSMRSPodWithConfig(name string, node *v1.Node, config *NSMgrPodConfig) *v1.
 							ContainerPort: 5006,
 						},
 					},
+					VolumeMounts: []v1.VolumeMount{spireVolumeMount()},
 				}),
 			},
+			Volumes: []v1.Volume{spireVolume()},
 		},
 	}
 	if len(config.Variables) > 0 {
