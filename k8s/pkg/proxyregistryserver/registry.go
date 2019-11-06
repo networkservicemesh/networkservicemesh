@@ -14,6 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package proxyregistryserver - forwards k8s commands from local registry to remote one
 package proxyregistryserver
 
 import (

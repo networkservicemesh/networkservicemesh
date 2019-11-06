@@ -33,7 +33,9 @@ import (
 )
 
 const (
-	NSEExpirationTimeoutDefault    = 5 * time.Minute
+	// NSEExpirationTimeoutDefault - default Endpoint expiration timeout, NSE will be deleted if UpdateNetworkServiceEndpoint not received
+	NSEExpirationTimeoutDefault = 5 * time.Minute
+	// NSEExpirationTimeoutSecondsEnv - environment variable contains custom NSEExpirationTimeout
 	NSEExpirationTimeoutSecondsEnv = "NSE_EXPIRATION_TIMEOUT"
 )
 

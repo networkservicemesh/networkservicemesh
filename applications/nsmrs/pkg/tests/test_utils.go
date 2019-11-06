@@ -14,6 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package tests - unit tests for NSM Registry Server
 package tests
 
 import "github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"

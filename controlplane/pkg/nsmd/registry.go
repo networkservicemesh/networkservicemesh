@@ -34,7 +34,9 @@ import (
 )
 
 const (
-	NSETrackingIntervalDefault    = 2 * time.Minute
+	// NSETrackingIntervalDefault - default registry notification interval that NSE is still alive
+	NSETrackingIntervalDefault = 2 * time.Minute
+	// NSETrackingIntervalSecondsEnv - environment variable contains registry notification interval that NSE is still alive in seconds
 	NSETrackingIntervalSecondsEnv = "NSE_TRACKING_INTERVAL"
 )
 
