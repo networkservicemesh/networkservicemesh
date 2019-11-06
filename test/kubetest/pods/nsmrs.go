@@ -61,7 +61,7 @@ func NSMRSPodWithConfig(name string, node *v1.Node, config *NSMgrPodConfig) *v1.
 					Ports: []v1.ContainerPort{
 						{
 							HostPort:      80,
-							ContainerPort: 5006,
+							ContainerPort: 5010,
 						},
 					},
 					VolumeMounts: []v1.VolumeMount{spireVolumeMount()},

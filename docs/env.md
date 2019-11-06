@@ -9,6 +9,7 @@
 
 * *NSMD_API_ADDRESS* - Specifies IP address and port to start NSMD server (default ":5001")
 * *INSECURE* - Allows to start NSMD in insecure mode (all `grpc.Dial()` will be called with `grpc.WithInsecure()`)
+* *NSE_TRACKING_INTERVAL* - registry notification interval that NSE is still alive in seconds
 
 **NSMD-K8S**
 
@@ -37,3 +38,7 @@
 
 ##NSM-ADMISSION-WEBHOOK
 * *DNS_SEARCH_DOMAINS* - Represents a list of strings. Uses for configuring DNS Search domains patch.
+
+## NSMRS
+* *NSMRS_API_ADDRESS* -  Specifies IP address and port to start NSMRS server (default ":5010")
+* *NSE_EXPIRATION_TIMEOUT* - Timeout to make registered Network Service Endpoint not valid in seconds

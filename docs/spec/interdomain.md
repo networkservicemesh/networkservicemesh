@@ -35,7 +35,7 @@ Floating interdomain provides an ability to register Network Service Endpoints f
 
 * NSMRS (Network Service Mesh Registry Server) is used as interdomain NSE registry server. 
 * Floating Interdomain handle Network Services requests the same way as regular Interdomain request (for example request for Network Service of the form *network-service@nsmrs-domain.com*)
-* NSMRS is independent from kubernetes.
+* NSMRS is independent from kubernetes (except spire registration).
 * Proxy NSMD-K8S should be configured to forward registry packets to the NSMRS (Environment variable "*NSMRS_ADDRESS*").
 
 Example usage

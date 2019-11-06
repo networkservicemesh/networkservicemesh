@@ -36,7 +36,7 @@ const (
 	// RegistryAPIAddressEnv - env with NSMRS API address
 	RegistryAPIAddressEnv = "NSMRS_API_ADDRESS"
 	// RegistryAPIAddressDefaults - default NSMRS API address
-	RegistryAPIAddressDefaults = ":5006"
+	RegistryAPIAddressDefaults = ":5010"
 )
 
 var version string
