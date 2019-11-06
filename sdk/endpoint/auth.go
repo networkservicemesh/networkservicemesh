@@ -2,12 +2,14 @@ package endpoint
 
 import (
 	"context"
+
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/open-policy-agent/opa/rego"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 )
 
 type AuthEndpoint struct {

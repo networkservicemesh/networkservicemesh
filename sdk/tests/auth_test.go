@@ -2,14 +2,16 @@ package tests
 
 import (
 	"context"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
-	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
+	"testing"
+
 	"github.com/onsi/gomega"
 	"github.com/open-policy-agent/opa/rego"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"testing"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
 )
 
 func TestAuthEndpoint_Positive(t *testing.T) {
