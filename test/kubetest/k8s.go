@@ -1231,8 +1231,8 @@ func (k8s *K8s) CreateTestNamespace(namespace string) (string, error) {
 
 // CreateServiceAccounts create service accounts with passed names
 func (k8s *K8s) CreateServiceAccounts() {
-	accountsCount := len(k8s.sa) + 1 //1 means default acc
-	errs := make(chan error, accountsCount)
+	accountCount := len(k8s.sa) + 1 //1 means default acc
+	errs := make(chan error, accountCount)
 	for i := range k8s.sa {
 		index := i
 		go func() {
@@ -1275,7 +1275,7 @@ func (k8s *K8s) CreateServiceAccounts() {
 		}
 		errs <- err
 	}()
-	for i := 0; i < accountsCount; i++ {
+	for i := 0; i < accountCount; i++ {
 		err := <-errs
 		if err != nil {
 			logrus.Error(err)
