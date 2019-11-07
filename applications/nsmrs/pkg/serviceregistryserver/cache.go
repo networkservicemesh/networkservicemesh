@@ -17,6 +17,7 @@
 package serviceregistryserver
 
 import (
+	"sync"
 	"time"
 
 	"github.com/networkservicemesh/networkservicemesh/utils"
@@ -48,6 +49,7 @@ type NSERegistryCache interface {
 }
 
 type nseRegistryCache struct {
+	sync.RWMutex
 	networkServiceEndpoints map[string][]*registry.NSERegistration
 	endpoints               map[string]*registry.NSERegistration
 	nseExpirationTimeout    time.Duration
@@ -64,6 +66,13 @@ func NewNSERegistryCache() NSERegistryCache {
 
 // AddNetworkServiceEndpoint - register NSE in cache
 func (rc *nseRegistryCache) AddNetworkServiceEndpoint(entry *registry.NSERegistration) (*registry.NSERegistration, error) {
+	rc.Lock()
+	defer rc.Unlock()
+
+	return rc.addNetworkServiceEndpoint(entry)
+}
+
+func (rc *nseRegistryCache) addNetworkServiceEndpoint(entry *registry.NSERegistration) (*registry.NSERegistration, error) {
 	if endpoint, ok := rc.endpoints[entry.NetworkServiceEndpoint.Name]; ok {
 		return nil, errors.Errorf("network service endpoint with name %s already exists: old: %v; new: %v", endpoint.NetworkServiceEndpoint.Name, endpoint, entry)
 	}
@@ -86,6 +95,9 @@ func (rc *nseRegistryCache) AddNetworkServiceEndpoint(entry *registry.NSERegistr
 }
 
 func (rc *nseRegistryCache) UpdateNetworkServiceEndpoint(nse *registry.NSERegistration) (*registry.NSERegistration, error) {
+	rc.Lock()
+	defer rc.Unlock()
+
 	if endpoint, ok := rc.endpoints[nse.NetworkServiceEndpoint.Name]; ok {
 		if endpoint.NetworkServiceManager.Name != nse.NetworkServiceManager.Name {
 			return nil, errors.Errorf("network service endpoint with name %s already registered from different NSM: old: %v; new: %v", endpoint.NetworkServiceEndpoint.Name, endpoint, nse)
@@ -94,11 +106,14 @@ func (rc *nseRegistryCache) UpdateNetworkServiceEndpoint(nse *registry.NSERegist
 		return endpoint, nil
 	}
 
-	return rc.AddNetworkServiceEndpoint(nse)
+	return rc.addNetworkServiceEndpoint(nse)
 }
 
 // DeleteNetworkServiceEndpoint - remove NSE from cache
 func (rc *nseRegistryCache) DeleteNetworkServiceEndpoint(endpointName string) (*registry.NSERegistration, error) {
+	rc.Lock()
+	defer rc.Unlock()
+
 	delete(rc.endpoints, endpointName)
 	for networkService, endpointList := range rc.networkServiceEndpoints {
 		for i := range endpointList {
