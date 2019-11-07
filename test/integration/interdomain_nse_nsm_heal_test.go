@@ -24,8 +24,8 @@ func TestInterdomainNSMHealLocalDieNSMD(t *testing.T) {
 		return
 	}
 
-	testInterdomainNSMHeal(t, 2, 0, false)
 	t.Fail()
+	testInterdomainNSMHeal(t, 2, 0, false)
 }
 
 func TestInterdomainNSMHealRemoteDieNSMD(t *testing.T) {
