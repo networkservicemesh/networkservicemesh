@@ -15,10 +15,9 @@
 package nsmd
 
 import (
-	"os"
-	"strconv"
-	"strings"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/utils"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/pkg/errors"
@@ -37,7 +36,7 @@ const (
 	// NSETrackingIntervalDefault - default registry notification interval that NSE is still alive
 	NSETrackingIntervalDefault = 2 * time.Minute
 	// NSETrackingIntervalSecondsEnv - environment variable contains registry notification interval that NSE is still alive in seconds
-	NSETrackingIntervalSecondsEnv = "NSE_TRACKING_INTERVAL"
+	NSETrackingIntervalSecondsEnv = utils.EnvVar("NSE_TRACKING_INTERVAL")
 )
 
 type NSERegistryServer interface {
@@ -172,16 +171,7 @@ func (es *registryServer) startNSETracking(request *registry.NSERegistration) er
 		return errors.Errorf("cannot start NSE tracking : %v", err)
 	}
 
-	trackingInterval := NSETrackingIntervalDefault
-	if interval := strings.TrimSpace(os.Getenv(NSETrackingIntervalSecondsEnv)); interval != "" {
-		t, err := strconv.ParseInt(interval, 10, 32)
-		if err != nil {
-			logrus.Errorf("Cannot parse %s, use default value : %v", NSETrackingIntervalSecondsEnv, err)
-		} else {
-			trackingInterval = time.Duration(t) * time.Second
-		}
-	}
-
+	trackingInterval := NSETrackingIntervalSecondsEnv.GetOrDefaultDuration(NSETrackingIntervalDefault)
 	go func() {
 		defer cancel()
 

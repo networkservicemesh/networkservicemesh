@@ -74,7 +74,7 @@ func testFloatingInterdomainDie(t *testing.T, clustersCount int, killPod string)
 	nsmrsNode := &k8ss[clustersCount-1].K8s.GetNodesWait(2, defaultTimeout)[1]
 	nsmrsPod := kubetest.DeployNSMRSWithConfig(k8ss[clustersCount-1].K8s, nsmrsNode, "nsmrs", defaultTimeout, &pods.NSMgrPodConfig{
 		Variables: map[string]string{
-			serviceregistryserver.NSEExpirationTimeoutSecondsEnv: "30",
+			serviceregistryserver.NSEExpirationTimeoutEnv.Name(): "30s",
 		},
 	})
 
@@ -91,7 +91,7 @@ func testFloatingInterdomainDie(t *testing.T, clustersCount int, killPod string)
 		nodesSetup, err := kubetest.SetupNodesConfig(k8s, 1, defaultTimeout, []*pods.NSMgrPodConfig{
 			{
 				Variables: map[string]string{
-					nsmd.NSETrackingIntervalSecondsEnv: "30",
+					nsmd.NSETrackingIntervalSecondsEnv.Name(): "30s",
 				},
 				Namespace:          k8s.GetK8sNamespace(),
 				ForwarderVariables: kubetest.DefaultForwarderVariables(k8s.GetForwardingPlane()),

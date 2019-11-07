@@ -84,7 +84,7 @@ func testFloatingInterdomainMonitor(t *testing.T, killPod string) {
 	nodesSetup, err := kubetest.SetupNodesConfig(k8s, 1, defaultTimeout, []*pods.NSMgrPodConfig{
 		{
 			Variables: map[string]string{
-				nsmd.NSETrackingIntervalSecondsEnv: "10",
+				nsmd.NSETrackingIntervalSecondsEnv.Name(): "10s",
 			},
 			Namespace:          k8s.GetK8sNamespace(),
 			ForwarderVariables: kubetest.DefaultForwarderVariables(k8s.GetForwardingPlane()),

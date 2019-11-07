@@ -17,10 +17,9 @@
 package serviceregistryserver
 
 import (
-	"os"
-	"strconv"
-	"strings"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/utils"
 
 	"github.com/pkg/errors"
 
@@ -35,8 +34,8 @@ import (
 const (
 	// NSEExpirationTimeoutDefault - default Endpoint expiration timeout, NSE will be deleted if UpdateNetworkServiceEndpoint not received
 	NSEExpirationTimeoutDefault = 5 * time.Minute
-	// NSEExpirationTimeoutSecondsEnv - environment variable contains custom NSEExpirationTimeout
-	NSEExpirationTimeoutSecondsEnv = "NSE_EXPIRATION_TIMEOUT"
+	// NSEExpirationTimeoutEnv - environment variable contains custom NSEExpirationTimeout
+	NSEExpirationTimeoutEnv = utils.EnvVar("NSE_EXPIRATION_TIMEOUT")
 )
 
 // NSERegistryCache - cache of registered Network Service Endpoints
@@ -56,20 +55,10 @@ type nseRegistryCache struct {
 
 //NewNSERegistryCache creates new nerwork service endpoints cache
 func NewNSERegistryCache() NSERegistryCache {
-	expirationTimeout := NSEExpirationTimeoutDefault
-	if interval := strings.TrimSpace(os.Getenv(NSEExpirationTimeoutSecondsEnv)); interval != "" {
-		t, err := strconv.ParseInt(interval, 10, 32)
-		if err != nil {
-			logrus.Errorf("Cannot parse %s, use default value : %v", NSEExpirationTimeoutSecondsEnv, err)
-		} else {
-			expirationTimeout = time.Duration(t) * time.Second
-		}
-	}
-
 	return &nseRegistryCache{
 		networkServiceEndpoints: make(map[string][]*registry.NSERegistration),
 		endpoints:               make(map[string]*registry.NSERegistration),
-		nseExpirationTimeout:    expirationTimeout,
+		nseExpirationTimeout:    NSEExpirationTimeoutEnv.GetOrDefaultDuration(NSEExpirationTimeoutDefault),
 	}
 }
 

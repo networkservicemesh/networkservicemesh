@@ -19,9 +19,9 @@ package main
 import (
 	"math/rand"
 	"net"
-	"os"
-	"strings"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/utils"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
 
@@ -34,7 +34,7 @@ import (
 
 const (
 	// RegistryAPIAddressEnv - env with NSMRS API address
-	RegistryAPIAddressEnv = "NSMRS_API_ADDRESS"
+	RegistryAPIAddressEnv = utils.EnvVar("NSMRS_API_ADDRESS")
 	// RegistryAPIAddressDefaults - default NSMRS API address
 	RegistryAPIAddressDefaults = ":5010"
 )
@@ -52,10 +52,7 @@ func main() {
 	closer := jaeger.InitJaeger("serviceregistryserver")
 	defer func() { _ = closer.Close() }()
 
-	address := os.Getenv(RegistryAPIAddressEnv)
-	if strings.TrimSpace(address) == "" {
-		address = RegistryAPIAddressDefaults
-	}
+	address := RegistryAPIAddressEnv.GetStringOrDefault(RegistryAPIAddressDefaults)
 
 	logrus.Println("Starting NSMD Service Registry Server on " + address)
 	serviceRegistryServer := serviceregistryserver.NewNSMDServiceRegistryServer()
