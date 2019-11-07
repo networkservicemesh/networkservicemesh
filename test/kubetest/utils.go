@@ -109,14 +109,26 @@ func DeployCorefile(k8s *K8s, name, content string) error {
 // SetupNodesConfig - Setup NSMgr and Forwarder for particular number of nodes in cluster
 func SetupNodesConfig(k8s *K8s, nodesCount int, timeout time.Duration, conf []*pods.NSMgrPodConfig, namespace string) ([]*NodeConf, error) {
 	nodes := k8s.GetNodesWait(nodesCount, timeout)
-	var jaegerPod *v1.Pod
 	k8s.g.Expect(len(nodes) >= nodesCount).To(Equal(true),
 		"At least one Kubernetes node is required for this test")
 	if jaeger.ShouldStoreJaegerTraces() {
-		jaegerPod = k8s.CreatePod(pods.Jaeger())
-		k8s.WaitLogsContains(jaegerPod, jaegerPod.Spec.Containers[0].Name, "Starting HTTP server", timeout)
-		jaeger.JaegerAgentHost.Set(jaegerPod.Status.PodIP)
+		if !jaeger.UseJaegerService.GetBooleanOrDefault(false) {
+			jaegerPod := k8s.CreatePod(pods.Jaeger())
+			k8s.WaitLogsContains(jaegerPod, jaegerPod.Spec.Containers[0].Name, "Starting HTTP server", timeout)
+			jaeger.JaegerAgentHost.Set(jaegerPod.Status.PodIP)
+		} else if jaeger.JaegerAgentHost.StringValue() == "" {
+			template := pods.Jaeger()
+			template.Spec.NodeSelector = map[string]string{
+				"kubernetes.io/hostname": nodes[0].Labels["kubernetes.io/hostname"],
+			}
+			jaegerPod := k8s.CreatePod(template)
+			_, err := k8s.CreateService(pods.JaegerService(jaegerPod), k8s.namespace)
+			k8s.g.Expect(err).Should(BeNil())
+			jaeger.JaegerAgentHost.Set(getExternalOrInternalAddress(&nodes[0]))
+			jaeger.JaegerAgentPort.Set(jaeger.GetJaegerNodePort())
+		}
 	}
+
 	var wg sync.WaitGroup
 	confs := make([]*NodeConf, nodesCount)
 	var resultError error
@@ -177,6 +189,19 @@ func SetupNodesConfig(k8s *K8s, nodesCount int, timeout time.Duration, conf []*p
 	}
 	wg.Wait()
 	return confs, resultError
+}
+
+func getExternalOrInternalAddress(n *v1.Node) string {
+	internalAddr := ""
+	for i := range n.Status.Addresses {
+		addr := &n.Status.Addresses[i]
+		if addr.Type == v1.NodeExternalIP {
+			return addr.Address
+		} else if addr.Type == v1.NodeInternalIP && internalAddr == "" {
+			internalAddr = addr.Address
+		}
+	}
+	return internalAddr
 }
 
 func deployNSMgrAndForwarder(k8s *K8s, corePods []*v1.Pod, timeout time.Duration) (nsmd, forwarder *v1.Pod, err error) {
