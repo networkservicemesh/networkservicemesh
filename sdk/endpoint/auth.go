@@ -12,12 +12,12 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 )
 
-type AuthEndpoint struct {
+type AuthzEndpoint struct {
 	policy rego.PreparedEvalQuery
 }
 
-func (auth *AuthEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
-	rs, err := auth.policy.Eval(ctx, rego.EvalInput(request))
+func (authz *AuthzEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+	rs, err := authz.policy.Eval(ctx, rego.EvalInput(request))
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
@@ -41,7 +41,7 @@ func (auth *AuthEndpoint) Request(ctx context.Context, request *networkservice.N
 	return request.GetConnection(), nil
 }
 
-func (auth *AuthEndpoint) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
+func (authz *AuthzEndpoint) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
 	if Next(ctx) != nil {
 		return Next(ctx).Close(ctx, connection)
 	}
@@ -49,7 +49,7 @@ func (auth *AuthEndpoint) Close(ctx context.Context, connection *connection.Conn
 }
 
 func NewAuthEndpoint(policy rego.PreparedEvalQuery) networkservice.NetworkServiceServer {
-	return &AuthEndpoint{
+	return &AuthzEndpoint{
 		policy: policy,
 	}
 }

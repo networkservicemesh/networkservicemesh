@@ -14,7 +14,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
 )
 
-func TestAuthEndpoint_Positive(t *testing.T) {
+func TestAuthzEndpoint_Positive(t *testing.T) {
 	g := gomega.NewWithT(t)
 
 	policy := `
@@ -45,7 +45,7 @@ func TestAuthEndpoint_Positive(t *testing.T) {
 	g.Expect(resp.Id).To(gomega.Equal("allowed"))
 }
 
-func TestAuthEndpoint_Negative(t *testing.T) {
+func TestAuthzEndpoint_Negative(t *testing.T) {
 	g := gomega.NewWithT(t)
 
 	policy := `
