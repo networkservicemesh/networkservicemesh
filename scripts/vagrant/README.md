@@ -7,6 +7,8 @@ This Vagrant directory provides a simple environment in which to test various co
 Sshfs is used to mount the /vagrant directory of the guest. Hence the vagrant-sshfs plugin for vagrant must be installed.
 If libvirt is used, the vagrant-libvirt plugin must also be installed.
 
+The go version in your system must be 1.13 or higher.
+
 
 # Starting Vagrant
 
@@ -35,9 +37,6 @@ kubectl version
 # Getting locally built images into Vagrant VM
 
 ```bash
-make docker-build
-make docker-save
-cd forwarders/vpp
 make docker-build
 make docker-save
 ```
