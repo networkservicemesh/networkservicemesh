@@ -19,8 +19,8 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+
 	"github.com/dgrijalva/jwt-go"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -29,6 +29,8 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 )
 
 func ParseJWTWithClaims(tokenString string) (*jwt.Token, []string, *ChainClaims, error) {

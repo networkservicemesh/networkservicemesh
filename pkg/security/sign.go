@@ -19,9 +19,10 @@ package security
 import (
 	"context"
 	"crypto/x509"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 	"strings"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	"gopkg.in/square/go-jose.v2"
 
