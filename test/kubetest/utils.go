@@ -114,8 +114,8 @@ func SetupNodesConfig(k8s *K8s, nodesCount int, timeout time.Duration, conf []*p
 	if jaeger.ShouldStoreJaegerTraces() {
 		if !jaeger.UseJaegerService.GetBooleanOrDefault(false) {
 			jaegerPod := k8s.CreatePod(pods.Jaeger())
-			k8s.WaitLogsContains(jaegerPod, jaegerPod.Spec.Containers[0].Name, "Starting HTTP server", timeout)
 			jaeger.JaegerAgentHost.Set(jaegerPod.Status.PodIP)
+			k8s.WaitLogsContains(jaegerPod, jaegerPod.Spec.Containers[0].Name, "Starting HTTP server", timeout)
 		} else if jaeger.JaegerAgentHost.StringValue() == "" {
 			template := pods.Jaeger()
 			template.Spec.NodeSelector = map[string]string{
@@ -126,6 +126,7 @@ func SetupNodesConfig(k8s *K8s, nodesCount int, timeout time.Duration, conf []*p
 			k8s.g.Expect(err).Should(BeNil())
 			jaeger.JaegerAgentHost.Set(getExternalOrInternalAddress(&nodes[0]))
 			jaeger.JaegerAgentPort.Set(jaeger.GetJaegerNodePort())
+			k8s.WaitLogsContains(jaegerPod, jaegerPod.Spec.Containers[0].Name, "Starting HTTP server", timeout)
 		}
 	}
 
