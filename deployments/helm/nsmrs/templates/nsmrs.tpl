@@ -37,3 +37,5 @@ spec:
             path: /run/spire/sockets
             type: DirectoryOrCreate
           name: spire-agent-socket
+      nodeSelector:
+        nsmrs: "true"

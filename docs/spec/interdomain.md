@@ -37,6 +37,9 @@ Floating interdomain provides an ability to register Network Service Endpoints f
 * Floating Interdomain handle Network Services requests the same way as regular Interdomain request (for example request for Network Service of the form *network-service@nsmrs-domain.com*)
 * NSMRS is independent from kubernetes (except spire registration).
 * Proxy NSMD-K8S should be configured to forward registry packets to the NSMRS (Environment variable "*NSMRS_ADDRESS*").
+* Helm script require specific label for node to assign NSMRS deployment
+> kubectl label nodes \<node-name\> nsmrs=true
+
 
 Example usage
 ------------------------
