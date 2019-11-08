@@ -91,7 +91,7 @@ func (rs *nseRegistryService) RegisterNSE(ctx context.Context, request *registry
 
 	logger.Infof("%s: Prepared forwarding RegisterNSE request: %v", NSRegistryForwarderLogPrefix, request)
 
-	remoteRegistry := nsmd.NewServiceRegistryAt(nsmrsURL + ":80")
+	remoteRegistry := nsmd.NewServiceRegistryAt(nsmrsURL)
 	defer remoteRegistry.Stop()
 
 	nseRegistryClient, err := remoteRegistry.NseRegistryClient(context.Background())
@@ -127,7 +127,7 @@ func (rs *nseRegistryService) BulkRegisterNSE(srv registry.NetworkServiceRegistr
 	ctx, cancel := context.WithCancel(srv.Context())
 	defer cancel()
 
-	remoteRegistry := nsmd.NewServiceRegistryAt(nsmrsURL + ":80")
+	remoteRegistry := nsmd.NewServiceRegistryAt(nsmrsURL)
 	defer remoteRegistry.Stop()
 
 	for {
@@ -186,7 +186,7 @@ func (rs *nseRegistryService) RemoveNSE(ctx context.Context, request *registry.R
 		return &empty.Empty{}, err
 	}
 
-	remoteRegistry := nsmd.NewServiceRegistryAt(nsmrsURL + ":80")
+	remoteRegistry := nsmd.NewServiceRegistryAt(nsmrsURL)
 	defer remoteRegistry.Stop()
 
 	nseRegistryClient, err := remoteRegistry.NseRegistryClient(context.Background())

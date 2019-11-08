@@ -121,7 +121,7 @@ func startProxyNSMGRPod(g *WithT, pnsmdName string, k8s *kubetest.K8s, nodesSetu
 		Variables: pods.DefaultProxyNSMD(),
 		Namespace: k8s.GetK8sNamespace(),
 	}
-	proxyNSMgrConfig.Variables[proxyregistryserver.NSMRSAddressEnv] = nsmrsExternalIP
+	proxyNSMgrConfig.Variables[proxyregistryserver.NSMRSAddressEnv] = nsmrsExternalIP + ":80"
 	pnsmd, err := kubetest.DeployProxyNSMgrWithConfig(k8s, nodesSetup[0].Node, pnsmdName, defaultTimeout, proxyNSMgrConfig)
 	g.Expect(err).To(BeNil())
 

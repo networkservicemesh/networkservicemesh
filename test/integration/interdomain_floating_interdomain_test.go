@@ -83,7 +83,7 @@ func testFloatingInterdomain(t *testing.T, clustersCount int) {
 			Variables: pods.DefaultProxyNSMD(),
 			Namespace: k8s.GetK8sNamespace(),
 		}
-		proxyNSMgrConfig.Variables[proxyregistryserver.NSMRSAddressEnv] = nsmrsInternalIP
+		proxyNSMgrConfig.Variables[proxyregistryserver.NSMRSAddressEnv] = nsmrsInternalIP + ":80"
 		_, err = kubetest.DeployProxyNSMgrWithConfig(k8s, nodesSetup[0].Node, pnsmdName, defaultTimeout, proxyNSMgrConfig)
 		g.Expect(err).To(BeNil())
 
