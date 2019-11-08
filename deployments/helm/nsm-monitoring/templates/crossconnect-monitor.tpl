@@ -22,6 +22,15 @@ spec:
 {{- else }}
               value: "false"
 {{- end }}
+          volumeMounts:
+            - name: spire-agent-socket
+              mountPath: /run/spire/sockets
+              readOnly: true
+      volumes:
+        - hostPath:
+            path: /run/spire/sockets
+            type: DirectoryOrCreate
+          name: spire-agent-socket
 metadata:
   name: crossconnect-monitor
   namespace: {{ .Release.Namespace }}
