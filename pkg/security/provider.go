@@ -44,10 +44,10 @@ type Response struct {
 
 type certificateManager struct {
 	sync.RWMutex
-	caBundle    *x509.CertPool
-	cert        *tls.Certificate
-	readyCh     chan struct{}
-	checkerFunc func(interface{}) bool
+	caBundle *x509.CertPool
+	cert     *tls.Certificate
+	readyCh  chan struct{}
+	spiffeID string
 }
 
 // NewProvider creates new security.Manager using SpireCertObtainer
@@ -59,9 +59,6 @@ func NewProvider() Provider {
 func NewProviderWithCertObtainer(obtainer CertificateObtainer) Provider {
 	cm := &certificateManager{
 		readyCh: make(chan struct{}),
-		checkerFunc: func(i interface{}) bool {
-			return false
-		},
 	}
 	go cm.exchangeCertificates(obtainer)
 	return cm
@@ -84,13 +81,25 @@ func (m *certificateManager) GetCABundle() *x509.CertPool {
 }
 
 func (m *certificateManager) GetSpiffeID() string {
-	// todo: don't parse certificate every time, save spiffeID
+	m.RLock()
+	if m.spiffeID != "" {
+		rv := m.spiffeID
+		m.RUnlock()
+		return rv
+	}
+	m.RUnlock()
+
 	crtBytes := m.GetCertificate().Certificate[0]
 	x509crt, err := x509.ParseCertificate(crtBytes)
 	if err != nil {
 		logrus.Error(err)
 		return ""
 	}
+
+	m.Lock()
+	m.spiffeID = x509crt.URIs[0].String()
+	m.Unlock()
+
 	return x509crt.URIs[0].String()
 }
 

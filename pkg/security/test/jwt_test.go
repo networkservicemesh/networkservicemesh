@@ -160,7 +160,7 @@ func chainRequest(g *WithT, p []security.Provider) {
 
 		if previousSignatureStr != "" {
 			t := time.Now()
-			g.Expect(security.VerifySignature(previousSignatureStr, p[i].GetCABundle(), p[i-1].GetSpiffeID())).To(BeNil())
+			g.Expect(security.VerifySignature(context.Background(), previousSignatureStr, p[i].GetCABundle(), p[i-1].GetSpiffeID())).To(BeNil())
 			logrus.Infof("Perf: Validate on %d iteration: %v", i-1, time.Since(t))
 		}
 
