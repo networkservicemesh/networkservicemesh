@@ -15,7 +15,6 @@ providers:
       - NSM_AWS_SERVICE_SUFFIX=${AWS_CLUSTER_NAME}
       - CA_DIR=./deployments/helm/nsm/charts/spire/
     env-check:
-      - COMMIT
       - CIRCLE_BUILD_NUM
       - CIRCLE_WORKFLOW_ID
       - CONTAINER_REPO
