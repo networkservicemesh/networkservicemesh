@@ -61,7 +61,7 @@ func New(ctx context.Context) *grpc.Server {
 	registry.RegisterNetworkServiceDiscoveryServer(server, discovery)
 	registry.RegisterNetworkServiceRegistryServer(server, registryService)
 
-	cache.StartNSMDTracking(ctx)
+	StartNSMDTracking(ctx, cache.(*nseRegistryCache))
 
 	return server
 }

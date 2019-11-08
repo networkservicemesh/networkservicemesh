@@ -48,7 +48,6 @@ type NSERegistryCache interface {
 	UpdateNetworkServiceEndpoint(nse *registry.NSERegistration) (*registry.NSERegistration, error)
 	DeleteNetworkServiceEndpoint(endpointName string) (*registry.NSERegistration, error)
 	GetEndpoints(networkServiceName string) []*registry.NSERegistration
-	StartNSMDTracking(ctx context.Context)
 }
 
 type nseRegistryCache struct {
@@ -130,12 +129,13 @@ func (rc *nseRegistryCache) DeleteNetworkServiceEndpoint(endpointName string) (*
 	return nil, errors.Errorf("endpoint %s not found", endpointName)
 }
 
-// GetEndpoints - get Endpoints list from cache by Name
+// GetEndpoints - get Endpoints list from cache by network service Name
 func (rc *nseRegistryCache) GetEndpoints(networkServiceName string) []*registry.NSERegistration {
 	return rc.networkServiceEndpoints[networkServiceName]
 }
 
-func (rc *nseRegistryCache) StartNSMDTracking(ctx context.Context) {
+// StartNSMDTracking - starts tracking NSMD expiration time to keep registry up to dated
+func StartNSMDTracking(ctx context.Context, rc *nseRegistryCache) {
 	span := spanhelper.FromContext(ctx, "NsmrsCache.StartNSMDTracking")
 	defer span.Finish()
 	logger := span.Logger()
