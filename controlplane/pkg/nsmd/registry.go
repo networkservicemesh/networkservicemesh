@@ -44,14 +44,16 @@ type NSERegistryServer interface {
 	RegisterNSEWithClient(ctx context.Context, request *registry.NSERegistration, client registry.NetworkServiceRegistryClient) (*registry.NSERegistration, error)
 }
 type registryServer struct {
-	nsm       *nsmServer
-	workspace *Workspace
+	nsm         *nsmServer
+	workspace   *Workspace
+	nseTrackers map[string]chan bool
 }
 
 func NewRegistryServer(nsm *nsmServer, workspace *Workspace) NSERegistryServer {
 	return &registryServer{
-		nsm:       nsm,
-		workspace: workspace,
+		nsm:         nsm,
+		workspace:   workspace,
+		nseTrackers: make(map[string]chan bool),
 	}
 }
 
@@ -136,6 +138,12 @@ func (es *registryServer) RemoveNSE(ctx context.Context, request *registry.Remov
 	// TODO make sure we track which registry server we got the RegisterNSE from so we can only allow a deletion
 	// of what you advertised
 	span.Logger().Infof("Received Endpoint Remove request: %+v", request)
+
+	err := es.stopNSETracking(request.NetworkServiceEndpointName)
+	if err != nil {
+		span.Logger().Warnf("Attempt to stop tracking NSE failed : %v", err)
+	}
+
 	client, err := es.nsm.serviceRegistry.NseRegistryClient(span.Context())
 	if err != nil {
 		err = errors.Wrap(err, "attempt to pass through from nsm to upstream registry failed with")
@@ -171,6 +179,10 @@ func (es *registryServer) startNSETracking(request *registry.NSERegistration) er
 		return errors.Wrapf(err, "cannot start NSE tracking : %v", err)
 	}
 
+	stopped := make(chan bool)
+
+	es.nseTrackers[request.NetworkServiceEndpoint.Name] = stopped
+
 	trackingInterval := NSETrackingIntervalSecondsEnv.GetOrDefaultDuration(NSETrackingIntervalDefault)
 	go func() {
 		defer cancel()
@@ -178,7 +190,9 @@ func (es *registryServer) startNSETracking(request *registry.NSERegistration) er
 		for {
 			select {
 			case <-ctx.Done():
-				return
+				goto FinishTracking
+			case <-stopped:
+				goto FinishTracking
 			case <-time.After(trackingInterval):
 				err := stream.Send(request)
 				if err != nil {
@@ -186,7 +200,18 @@ func (es *registryServer) startNSETracking(request *registry.NSERegistration) er
 				}
 			}
 		}
+	FinishTracking:
+		delete(es.nseTrackers, request.NetworkServiceEndpoint.Name)
+		logrus.Errorf("NSE tracking done : %v", request)
 	}()
 
 	return nil
+}
+
+func (es *registryServer) stopNSETracking(nseName string) error {
+	if c, ok := es.nseTrackers[nseName]; ok {
+		c <- true
+		return nil
+	}
+	return errors.Errorf("tracker for NSE with name %s not found ", nseName)
 }

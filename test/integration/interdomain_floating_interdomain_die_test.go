@@ -127,6 +127,7 @@ func testFloatingInterdomainDie(t *testing.T, clustersCount int, killPod string)
 	switch killPod {
 	case "nse":
 		k8ss[clustersCount-1].K8s.DeletePods(icmpPod)
+		k8ss[clustersCount-1].K8s.WaitLogsContains(k8ss[clustersCount-1].NodesSetup[0].Nsmd, "nsmd", "NSE tracking done", defaultTimeout)
 		k8ss[clustersCount-1].K8s.WaitLogsContains(nsmrsPod, "nsmrs", "RemoveNSE done", defaultTimeout)
 	case "nsmd":
 		k8ss[clustersCount-1].K8s.DeletePods(k8ss[clustersCount-1].NodesSetup[0].Nsmd)
