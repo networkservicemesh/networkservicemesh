@@ -19,8 +19,7 @@ apps_targets = $(addsuffix -build, $(addprefix go-, $(apps)))
 $(apps_targets): go-%-build:
 	@echo "----------------------  Building applications::$* via Cross compile ----------------------" && \
 	pushd ./applications/$* && \
-	CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) go build \
-    	-ldflags "-extldflags '-static' -X  main.version=$(VERSION)" -o $(BIN_DIR)/$*/$* ./cmd/main.go && \
+	${GO_BUILD} -o $(BIN_DIR)/$*/$* ./cmd/main.go && \
 	popd
 
 .PHONY: docker-applications-build
