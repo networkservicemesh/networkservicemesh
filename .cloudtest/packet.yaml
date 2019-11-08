@@ -35,7 +35,7 @@ providers:
         - baremetal
         - layer_2
         - global_ipv4
-      preferred-facility: sjc1
+      preferred-facility: sea1
     scripts:
       install: "echo all deps installed"
       setup: |
