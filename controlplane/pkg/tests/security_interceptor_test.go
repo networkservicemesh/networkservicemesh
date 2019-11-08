@@ -90,7 +90,7 @@ func (d *dummyNetworkService) Request(ctx context.Context, r *networkservice.Net
 	next, ok := d.transitions[d.name][r.Connection.Id]
 	if !ok {
 		rv := &connection.Connection{Id: "1"}
-		sign, err := security.GenerateSignature(rv, common.ConnectionFillClaimsFunc, d.provider)
+		sign, err := security.GenerateSignature(ctx, rv, common.ConnectionFillClaimsFunc, d.provider)
 		if err != nil {
 			return nil, err
 		}
@@ -118,7 +118,7 @@ func (d *dummyNetworkService) Request(ctx context.Context, r *networkservice.Net
 	//logrus.Info(security.SecurityContext(ctx).GetRequestOboToken())
 	//logrus.Info(security.SecurityContext(ctx).GetResponseOboToken())
 
-	sign, err := security.GenerateSignature(reply, common.ConnectionFillClaimsFunc, d.provider,
+	sign, err := security.GenerateSignature(ctx, reply, common.ConnectionFillClaimsFunc, d.provider,
 		security.WithObo(security.SecurityContext(ctx).GetResponseOboToken()))
 	if err != nil {
 		return nil, err

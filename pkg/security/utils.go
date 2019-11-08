@@ -19,9 +19,8 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"time"
-
 	"github.com/dgrijalva/jwt-go"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -54,31 +53,32 @@ func ClientInterceptor(securityProvider Provider, cfg TokenConfig) grpc.UnaryCli
 		cc *grpc.ClientConn,
 		invoker grpc.UnaryInvoker,
 		opts ...grpc.CallOption) error {
-		t := time.Now()
+
 		if !cfg.RequestFilter(req) {
 			return invoker(ctx, method, req, reply, cc, opts...)
 		}
 
-		logrus.Infof("ClientInterceptor start working...")
+		span := spanhelper.FromContext(ctx, "security.ClientInterceptor")
+		defer span.Finish()
 
 		var obo *Signature
 		if SecurityContext(ctx) != nil && SecurityContext(ctx).GetRequestOboToken() != nil {
-			logrus.Info("ClientInterceptor discovered obo-token")
+			span.Logger().Info("ClientInterceptor discovered obo-token")
 			obo = SecurityContext(ctx).GetRequestOboToken()
 		}
 
-		token, err := GenerateSignature(req, cfg.FillClaims, securityProvider, WithObo(obo))
+		token, err := GenerateSignature(ctx, req, cfg.FillClaims, securityProvider, WithObo(obo))
 		if err != nil {
 			logrus.Error(err)
 			return err
 		}
-		logrus.Infof("ClientInterceptor before 'invoke' took %v", time.Since(t))
+		//logrus.Infof("ClientInterceptor before 'invoke' took %v", time.Since(t))
 		p := new(peer.Peer)
 		err = invoker(ctx, method, req, reply, cc, append(opts, grpc.PerRPCCredentials(&NSMToken{Token: token}), grpc.Peer(p))...)
 		if err != nil {
 			return err
 		}
-		t2 := time.Now()
+
 		transportSpiffeID, err := spiffeIDFromPeer(p)
 		if err != nil {
 			return err
@@ -95,16 +95,13 @@ func ClientInterceptor(securityProvider Provider, cfg TokenConfig) grpc.UnaryCli
 			return err
 		}
 
-		if err := verifySignatureParsed(s, securityProvider.GetCABundle(), transportSpiffeID); err != nil {
+		if err := verifySignatureParsed(ctx, s, securityProvider.GetCABundle(), transportSpiffeID); err != nil {
 			return status.Errorf(codes.Unauthenticated, "response jwt is not valid: %v", err)
 		}
 
 		if SecurityContext(ctx) != nil {
-			logrus.Infof("Setting nsReply.GetSignature() to SecurityContext - %v", nsReply.GetSignature())
 			SecurityContext(ctx).SetResponseOboToken(s)
 		}
-		logrus.Infof("ClientInterceptor after 'invoke' took %v", time.Since(t2))
-		logrus.Infof("ClientInterceptor took %v", time.Since(t))
 		return nil
 	}
 }
@@ -115,12 +112,12 @@ func ServerInterceptor(securityProvider Provider, cfg TokenConfig) grpc.UnarySer
 		req interface{},
 		info *grpc.UnaryServerInfo,
 		handler grpc.UnaryHandler) (resp interface{}, err error) {
-		t := time.Now()
 		if !cfg.RequestFilter(req) {
 			return handler(ctx, req)
 		}
 
-		logrus.Infof("ServerInterceptor start working...")
+		span := spanhelper.FromContext(ctx, "security.ServerInterceptor")
+		defer span.Finish()
 
 		spiffeID, err := spiffeIDFromContext(ctx)
 		if err != nil {
@@ -142,14 +139,13 @@ func ServerInterceptor(securityProvider Provider, cfg TokenConfig) grpc.UnarySer
 			return nil, status.Errorf(codes.Unauthenticated, "signature parse error")
 		}
 
-		if err := verifySignatureParsed(s, securityProvider.GetCABundle(), spiffeID); err != nil {
+		if err := verifySignatureParsed(ctx, s, securityProvider.GetCABundle(), spiffeID); err != nil {
 			logrus.Error(err)
 			return nil, status.Errorf(codes.Unauthenticated, fmt.Sprintf("token is not valid: %v", err))
 		}
 
 		securityContext := NewContext()
 		securityContext.SetRequestOboToken(s)
-		logrus.Infof("ServerInterceptor took %v", time.Since(t))
 		return handler(WithSecurityContext(ctx, securityContext), req)
 	}
 }

@@ -6,10 +6,6 @@ import (
 	"fmt"
 	"runtime/debug"
 
-	"github.com/golang/protobuf/proto"
-
-	"github.com/networkservicemesh/networkservicemesh/pkg/security"
-
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/log"
@@ -102,10 +98,10 @@ func (s *spanHelper) LogError(err error) {
 }
 
 func (s *spanHelper) LogObject(attribute string, value interface{}) {
-	if v, ok := value.(security.Signed); ok && v.GetSignature() != "" {
-		value = proto.Clone(value.(proto.Message))
-		value.(security.Signed).SetSignature("SENSITIVE DATA")
-	}
+	//if v, ok := value.(security.Signed); ok && v.GetSignature() != "" {
+	//	value = proto.Clone(value.(proto.Message))
+	//	value.(security.Signed).SetSignature("SENSITIVE DATA")
+	//}
 
 	cc, err := json.Marshal(value)
 	msg := value
@@ -120,10 +116,10 @@ func (s *spanHelper) LogObject(attribute string, value interface{}) {
 }
 
 func (s *spanHelper) LogValue(attribute string, value interface{}) {
-	if _, ok := value.(security.Signed); ok {
-		value = proto.Clone(value.(proto.Message))
-		value.(security.Signed).SetSignature("SENSITIVE DATA")
-	}
+	//if _, ok := value.(security.Signed); ok {
+	//	value = proto.Clone(value.(proto.Message))
+	//	value.(security.Signed).SetSignature("SENSITIVE DATA")
+	//}
 
 	if s.span != nil {
 		s.span.LogFields(log.Object(attribute, value), log.String("stacktrace", string(debug.Stack())))

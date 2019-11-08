@@ -54,7 +54,7 @@ func (s *securityService) Request(ctx context.Context, request *networkservice.N
 		return conn, nil
 	}
 
-	sign, err := security.GenerateSignature(conn, common.ConnectionFillClaimsFunc, s.provider, security.WithObo(security.SecurityContext(ctx).GetResponseOboToken()))
+	sign, err := security.GenerateSignature(ctx, conn, common.ConnectionFillClaimsFunc, s.provider, security.WithObo(security.SecurityContext(ctx).GetResponseOboToken()))
 	if err != nil {
 		span.LogError(err)
 		return nil, err

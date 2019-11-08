@@ -17,6 +17,7 @@
 package testsec
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -40,7 +41,7 @@ func TestSign(t *testing.T) {
 	sc, err := newTestSecurityContext(SpiffeID1)
 	Expect(err).To(BeNil())
 
-	signature, err := security.GenerateSignature(msg, testClaimsSetter, sc)
+	signature, err := security.GenerateSignature(context.Background(), msg, testClaimsSetter, sc)
 	Expect(err).To(BeNil())
 
 	// checking generated signature
@@ -48,7 +49,7 @@ func TestSign(t *testing.T) {
 	Expect(err).To(BeNil())
 	Expect(claims.Audience).To(Equal(aud))
 
-	Expect(security.VerifySignature(signature, sc.GetCABundle(), SpiffeID1)).To(BeNil())
+	Expect(security.VerifySignature(context.Background(), signature, sc.GetCABundle(), SpiffeID1)).To(BeNil())
 }
 
 func TestJWTChain_DistinctProviders(t *testing.T) {
@@ -164,7 +165,7 @@ func chainRequest(g *WithT, p []security.Provider) {
 		}
 
 		t := time.Now()
-		signature, err := security.GenerateSignature(msg, testClaimsSetter, p[i],
+		signature, err := security.GenerateSignature(context.Background(), msg, testClaimsSetter, p[i],
 			security.WithObo(previousSignature))
 		g.Expect(err).To(BeNil())
 		logrus.Infof("Perf: Generate on %d iteration: %v, length = %d", i, time.Since(t), len(signature))

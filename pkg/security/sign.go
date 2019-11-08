@@ -17,7 +17,9 @@
 package security
 
 import (
+	"context"
 	"crypto/x509"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 	"strings"
 	"time"
 
@@ -26,7 +28,6 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/dgrijalva/jwt-go"
-	"github.com/sirupsen/logrus"
 )
 
 type Signed interface {
@@ -71,7 +72,10 @@ func WithLifetime(t time.Duration) SignOption {
 	})
 }
 
-func GenerateSignature(msg interface{}, claimsSetter ClaimsSetter, p Provider, opts ...SignOption) (string, error) {
+func GenerateSignature(ctx context.Context, msg interface{}, claimsSetter ClaimsSetter, p Provider, opts ...SignOption) (string, error) {
+	span := spanhelper.FromContext(ctx, "security.GenerateSignature")
+	defer span.Finish()
+
 	cfg := &signConfig{}
 	for _, o := range opts {
 		o.apply(cfg)
@@ -83,12 +87,12 @@ func GenerateSignature(msg interface{}, claimsSetter ClaimsSetter, p Provider, o
 	}
 
 	if cfg.obo != nil && cfg.obo.GetSpiffeID() == p.GetSpiffeID() {
-		logrus.Info("GeneratingSignature: claims.Obo.Subject equals current SpiffeID")
+		span.Logger().Info("GeneratingSignature: claims.Obo.Subject equals current SpiffeID")
 		return cfg.obo.ToString()
 	}
 
 	if cfg.obo != nil && cfg.obo.Token != nil {
-		logrus.Info("GeneratingSignature: claims.Obo is not empty")
+		span.Logger().Info("GeneratingSignature: claims.Obo is not empty")
 		claims.Obo = cfg.obo.Token.Raw
 	}
 
@@ -131,17 +135,23 @@ func GenerateSignature(msg interface{}, claimsSetter ClaimsSetter, p Provider, o
 	return SignatureString(token, jwks)
 }
 
-func VerifySignature(signature string, ca *x509.CertPool, spiffeID string) error {
+func VerifySignature(ctx context.Context, signature string, ca *x509.CertPool, spiffeID string) error {
+	span := spanhelper.FromContext(ctx, "security.VerifySignature")
+	defer span.Finish()
+
 	s := &Signature{}
 	err := s.Parse(signature)
 	if err != nil {
 		return err
 	}
 
-	return verifySignatureParsed(s, ca, spiffeID)
+	return verifySignatureParsed(ctx, s, ca, spiffeID)
 }
 
-func verifySignatureParsed(s *Signature, ca *x509.CertPool, spiffeID string) error {
+func verifySignatureParsed(ctx context.Context, s *Signature, ca *x509.CertPool, spiffeID string) error {
+	span := spanhelper.FromContext(ctx, "security.verifySignatureParsed")
+	defer span.Finish()
+
 	if s.Claims.Subject != spiffeID {
 		return errors.New("wrong spiffeID")
 	}
@@ -152,14 +162,17 @@ func verifySignatureParsed(s *Signature, ca *x509.CertPool, spiffeID string) err
 		}
 	}
 
-	return verifyChainJWT(s, ca)
+	return verifyChainJWT(ctx, s, ca)
 }
 
-func verifyChainJWT(s *Signature, ca *x509.CertPool) error {
+func verifyChainJWT(ctx context.Context, s *Signature, ca *x509.CertPool) error {
+	span := spanhelper.FromContext(ctx, "security.verifyChainJWT")
+	defer span.Finish()
+
 	current := s
 
 	for current != nil {
-		err := verifySingleJWT(current, ca)
+		err := verifySingleJWT(ctx, current, ca)
 		if err != nil {
 			return err
 		}
@@ -184,8 +197,11 @@ func verifyChainJWT(s *Signature, ca *x509.CertPool) error {
 	return nil
 }
 
-func verifySingleJWT(s *Signature, ca *x509.CertPool) error {
-	logrus.Infof("Validating JWT: %s, len(JWKS.Keys) = %d", s.Claims.Subject, len(s.JWKS.Keys))
+func verifySingleJWT(ctx context.Context, s *Signature, ca *x509.CertPool) error {
+	span := spanhelper.FromContext(ctx, "security.verifySingleJWT")
+	defer span.Finish()
+
+	span.Logger().Infof("Validating JWT: %s, len(JWKS.Keys) = %d", s.Claims.Subject, len(s.JWKS.Keys))
 
 	if len(s.Parts) != 3 {
 		return errors.New("length of parts array is incorrect")
@@ -197,18 +213,18 @@ func verifySingleJWT(s *Signature, ca *x509.CertPool) error {
 	}
 
 	// JWKS might contain more than one JWK for specified SpiffeID
-	logrus.Infof("%d JWK for %s keyID", len(jwk), s.Claims.Subject)
+	span.Logger().Infof("%d JWK for %s keyID", len(jwk), s.Claims.Subject)
 	for i := 0; i < len(jwk); i++ {
 		leaf := jwk[i].Certificates[0]
 
 		// we iterate over all JWK with provided SpiffeID and try to verify JWT
 		if err := s.Token.Method.Verify(strings.Join(s.Parts[0:2], "."), s.Parts[2], leaf.PublicKey); err != nil {
-			logrus.Info("Wrong JWK, trying next one...")
+			span.Logger().Info("Wrong JWK, trying next one...")
 			continue
 		}
 
 		// if we manage to find appropriate JWK, we will check it with our CA
-		if err := verifyJWK(s.GetSpiffeID(), &jwk[i], ca); err != nil {
+		if err := verifyJWK(ctx, s.GetSpiffeID(), &jwk[i], ca); err != nil {
 			continue
 		}
 
@@ -219,7 +235,10 @@ func verifySingleJWT(s *Signature, ca *x509.CertPool) error {
 }
 
 // verifyJWK verifies that JWK was issued by trusted authority
-func verifyJWK(spiffeID string, jwk *jose.JSONWebKey, caBundle *x509.CertPool) error {
+func verifyJWK(ctx context.Context, spiffeID string, jwk *jose.JSONWebKey, caBundle *x509.CertPool) error {
+	span := spanhelper.FromContext(ctx, "security.verifyJWK")
+	defer span.Finish()
+
 	leaf := jwk.Certificates[0]
 
 	if leaf.URIs[0].String() != spiffeID {

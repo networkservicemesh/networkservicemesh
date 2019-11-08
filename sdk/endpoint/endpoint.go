@@ -174,7 +174,7 @@ func (nsme *nsmEndpoint) Request(ctx context.Context, request *networkservice.Ne
 		return incomingConnection, nil
 	}
 
-	sign, err := security.GenerateSignature(incomingConnection, common.ConnectionFillClaimsFunc, tools.GetConfig().SecurityProvider, security.WithObo(security.SecurityContext(ctx).GetResponseOboToken()))
+	sign, err := security.GenerateSignature(ctx, incomingConnection, common.ConnectionFillClaimsFunc, tools.GetConfig().SecurityProvider, security.WithObo(security.SecurityContext(ctx).GetResponseOboToken()))
 	if err != nil {
 		logrus.Errorf("Unable to sign response: %v", err)
 		return nil, err
