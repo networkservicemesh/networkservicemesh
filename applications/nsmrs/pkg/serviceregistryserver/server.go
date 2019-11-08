@@ -21,6 +21,8 @@ import (
 	"context"
 	"net"
 
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
+
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 
 	"google.golang.org/grpc"
@@ -47,8 +49,11 @@ func NewNSMDServiceRegistryServer() ServiceRegistry {
 }
 
 // New - creates new grcp server and registers NSE discovery and registry services
-func New() *grpc.Server {
-	server := tools.NewServer(context.Background())
+func New(ctx context.Context) *grpc.Server {
+	span := spanhelper.FromContext(ctx, "NsmrsServer.New")
+	defer span.Finish()
+
+	server := tools.NewServer(span.Context())
 
 	cache := NewNSERegistryCache()
 	discovery := newDiscoveryService(cache)
@@ -56,7 +61,7 @@ func New() *grpc.Server {
 	registry.RegisterNetworkServiceDiscoveryServer(server, discovery)
 	registry.RegisterNetworkServiceRegistryServer(server, registryService)
 
-	cache.StartNSMDTracking()
+	cache.StartNSMDTracking(ctx)
 
 	return server
 }

@@ -5,6 +5,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 
 	"github.com/pkg/errors"
@@ -12,7 +14,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
@@ -43,7 +44,11 @@ func newNseRegistryService(nsmName string, cache RegistryCache) *nseRegistryServ
 func (rs *nseRegistryService) RegisterNSE(ctx context.Context, request *registry.NSERegistration) (*registry.NSERegistration, error) {
 	st := time.Now()
 
-	logrus.Infof("Received RegisterNSE(%v)", request)
+	span := spanhelper.FromContext(ctx, "ProxyNsmgr.BulkRegisterNSE")
+	defer span.Finish()
+	logger := span.Logger()
+
+	logger.Infof("Received RegisterNSE(%v)", request)
 
 	labels := request.GetNetworkServiceEndpoint().GetLabels()
 	if labels == nil {
@@ -61,7 +66,7 @@ func (rs *nseRegistryService) RegisterNSE(ctx context.Context, request *registry
 			Status: v1.NetworkServiceStatus{},
 		})
 		if err != nil {
-			logrus.Errorf("Failed to register nsm: %s", err)
+			logger.Errorf("Failed to register nsm: %s", err)
 			return nil, err
 		}
 
@@ -101,17 +106,21 @@ func (rs *nseRegistryService) RegisterNSE(ctx context.Context, request *registry
 		request.NetworkServiceManager = mapNsmFromCustomResource(nsm)
 
 		go func() {
-			if forwardErr := rs.forwardRegisterNSE(request); forwardErr != nil {
-				logrus.Errorf("Cannot forward NSE Registration: %v", forwardErr)
+			if forwardErr := rs.forwardRegisterNSE(ctx, request); forwardErr != nil {
+				logger.Errorf("Cannot forward NSE Registration: %v", forwardErr)
 			}
 		}()
 	}
-	logrus.Infof("Returned from RegisterNSE: time: %v request: %v", time.Since(st), request)
+	logger.Infof("Returned from RegisterNSE: time: %v request: %v", time.Since(st), request)
 	return request, nil
 }
 
 func (rs *nseRegistryService) BulkRegisterNSE(srv registry.NetworkServiceRegistry_BulkRegisterNSEServer) error {
-	logrus.Infof("Forwarding Bulk Register NSE stream...")
+	span := spanhelper.FromContext(srv.Context(), "ProxyNsmgr.BulkRegisterNSE")
+	defer span.Finish()
+	logger := span.Logger()
+
+	logger.Infof("Forwarding Bulk Register NSE stream...")
 
 	nsrURL := os.Getenv(ProxyNsmdK8sAddressEnv)
 	if strings.TrimSpace(nsrURL) == "" {
@@ -127,7 +136,7 @@ func (rs *nseRegistryService) BulkRegisterNSE(srv registry.NetworkServiceRegistr
 	for {
 		stream, err := requestBulkRegisterNSEStream(ctx, remoteRegistry, nsrURL)
 		if err != nil {
-			logrus.Warnf("Cannot connect to Proxy NSMGR %s : %v", nsrURL, err)
+			logger.Warnf("Cannot connect to Proxy NSMGR %s : %v", nsrURL, err)
 			<-time.After(ProxyRegistryReconnectInterval)
 			continue
 		}
@@ -139,10 +148,10 @@ func (rs *nseRegistryService) BulkRegisterNSE(srv registry.NetworkServiceRegistr
 				return err
 			}
 
-			logrus.Infof("Forward BulkRegisterNSE request: %v", request)
+			logger.Infof("Forward BulkRegisterNSE request: %v", request)
 			err = stream.Send(request)
 			if err != nil {
-				logrus.Warnf("Error forwarding BulkRegisterNSE request to %s : %v", nsrURL, err)
+				logger.Warnf("Error forwarding BulkRegisterNSE request to %s : %v", nsrURL, err)
 				break
 			}
 		}
@@ -170,24 +179,32 @@ func requestBulkRegisterNSEStream(ctx context.Context, remoteRegistry servicereg
 func (rs *nseRegistryService) RemoveNSE(ctx context.Context, request *registry.RemoveNSERequest) (*empty.Empty, error) {
 	st := time.Now()
 
-	logrus.Infof("Received RemoveNSE(%v)", request)
+	span := spanhelper.FromContext(ctx, "ProxyNsmgr.BulkRegisterNSE")
+	defer span.Finish()
+	logger := span.Logger()
+
+	logger.Infof("Received RemoveNSE(%v)", request)
 
 	if err := rs.cache.DeleteNetworkServiceEndpoint(request.GetNetworkServiceEndpointName()); err != nil {
 		return nil, err
 	}
 
 	go func() {
-		if forwardErr := rs.forwardRemoveNSE(request); forwardErr != nil {
-			logrus.Errorf("Cannot forward Remove NSE: %v", forwardErr)
+		if forwardErr := rs.forwardRemoveNSE(ctx, request); forwardErr != nil {
+			logger.Errorf("Cannot forward Remove NSE: %v", forwardErr)
 		}
 	}()
 
-	logrus.Infof("RemoveNSE done: time %v", time.Since(st))
+	logger.Infof("RemoveNSE done: time %v", time.Since(st))
 	return &empty.Empty{}, nil
 }
 
-func (rs *nseRegistryService) forwardRegisterNSE(request *registry.NSERegistration) error {
-	logrus.Infof("Forwarding Register NSE request (%v)", request)
+func (rs *nseRegistryService) forwardRegisterNSE(ctx context.Context, request *registry.NSERegistration) error {
+	span := spanhelper.FromContext(ctx, "ProxyNsmgr.BulkRegisterNSE")
+	defer span.Finish()
+	logger := span.Logger()
+
+	logger.Infof("Forwarding Register NSE request (%v)", request)
 
 	nsrURL := os.Getenv(ProxyNsmdK8sAddressEnv)
 	if strings.TrimSpace(nsrURL) == "" {
@@ -216,7 +233,7 @@ func (rs *nseRegistryService) forwardRegisterNSE(request *registry.NSERegistrati
 	var nseRegistryClient registry.NetworkServiceRegistryClient
 	select {
 	case nseRegistryClient = <-done:
-		// continue
+		break
 	case err := <-quit:
 		return err
 	case <-time.After(ForwardingTimeout):
@@ -256,8 +273,12 @@ func (rs *nseRegistryService) forwardRegisterNSE(request *registry.NSERegistrati
 	return nil
 }
 
-func (rs *nseRegistryService) forwardRemoveNSE(request *registry.RemoveNSERequest) error {
-	logrus.Infof("Forwarding Remove NSE request (%v)", request)
+func (rs *nseRegistryService) forwardRemoveNSE(ctx context.Context, request *registry.RemoveNSERequest) error {
+	span := spanhelper.FromContext(ctx, "ProxyNsmgr.BulkRegisterNSE")
+	defer span.Finish()
+	logger := span.Logger()
+
+	logger.Infof("Forwarding Remove NSE request (%v)", request)
 
 	nsrURL := os.Getenv(ProxyNsmdK8sAddressEnv)
 	if strings.TrimSpace(nsrURL) == "" {
@@ -286,7 +307,7 @@ func (rs *nseRegistryService) forwardRemoveNSE(request *registry.RemoveNSEReques
 	var nseRegistryClient registry.NetworkServiceRegistryClient
 	select {
 	case nseRegistryClient = <-done:
-		// continue
+		break
 	case err := <-quit:
 		return err
 	case <-time.After(ForwardingTimeout):

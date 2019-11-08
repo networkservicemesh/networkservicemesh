@@ -17,17 +17,18 @@
 package main
 
 import (
+	"context"
 	"math/rand"
 	"net"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	"github.com/networkservicemesh/networkservicemesh/utils"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
 
 	"github.com/networkservicemesh/networkservicemesh/applications/nsmrs/pkg/serviceregistryserver"
-
-	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
@@ -42,8 +43,11 @@ const (
 var version string
 
 func main() {
-	logrus.Info("Starting kube-api-server...")
-	logrus.Infof("Version: %v", version)
+	span := spanhelper.FromContext(context.Background(), "Start-NSMD-k8s")
+	defer span.Finish()
+
+	span.Logger().Infof("Starting kube-api-server...")
+	span.Logger().Infof("Version: %v", version)
 
 	rand.Seed(time.Now().Unix())
 
@@ -54,26 +58,29 @@ func main() {
 
 	address := RegistryAPIAddressEnv.GetStringOrDefault(RegistryAPIAddressDefaults)
 
-	logrus.Println("Starting NSMD Service Registry Server on " + address)
+	span.Logger().Println("Starting NSMD Service Registry Server on " + address)
 	serviceRegistryServer := serviceregistryserver.NewNSMDServiceRegistryServer()
 	sock, err := serviceRegistryServer.NewPublicListener(address)
 	if err != nil {
-		logrus.Errorf("Failed to start Public API server...")
+		span.Logger().Errorf("Failed to start Public API server...")
 		return
 	}
 
-	startAPIServerAt(sock)
+	startAPIServerAt(span.Context(), sock)
 
 	<-c
 }
 
-func startAPIServerAt(sock net.Listener) {
-	grpcServer := serviceregistryserver.New()
+func startAPIServerAt(ctx context.Context, sock net.Listener) {
+	span := spanhelper.FromContext(ctx, "Nsmrs.RegisterNSE")
+	defer span.Finish()
+
+	grpcServer := serviceregistryserver.New(ctx)
 
 	go func() {
 		if err := grpcServer.Serve(sock); err != nil {
-			logrus.Fatalf("Failed to start Service Registry API server %+v", err)
+			span.Logger().Fatalf("Failed to start Service Registry API server %+v", err)
 		}
 	}()
-	logrus.Infof("Service Registry gRPC API Server: %s is operational", sock.Addr().String())
+	span.Logger().Infof("Service Registry gRPC API Server: %s is operational", sock.Addr().String())
 }

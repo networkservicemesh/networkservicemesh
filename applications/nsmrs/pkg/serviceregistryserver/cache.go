@@ -17,8 +17,11 @@
 package serviceregistryserver
 
 import (
+	"context"
 	"sync"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	"github.com/networkservicemesh/networkservicemesh/utils"
 
@@ -45,7 +48,7 @@ type NSERegistryCache interface {
 	UpdateNetworkServiceEndpoint(nse *registry.NSERegistration) (*registry.NSERegistration, error)
 	DeleteNetworkServiceEndpoint(endpointName string) (*registry.NSERegistration, error)
 	GetEndpoints(networkServiceName string) []*registry.NSERegistration
-	StartNSMDTracking()
+	StartNSMDTracking(ctx context.Context)
 }
 
 type nseRegistryCache struct {
@@ -132,7 +135,11 @@ func (rc *nseRegistryCache) GetEndpoints(networkServiceName string) []*registry.
 	return rc.networkServiceEndpoints[networkServiceName]
 }
 
-func (rc *nseRegistryCache) StartNSMDTracking() {
+func (rc *nseRegistryCache) StartNSMDTracking(ctx context.Context) {
+	span := spanhelper.FromContext(ctx, "NsmrsCache.StartNSMDTracking")
+	defer span.Finish()
+	logger := span.Logger()
+
 	go func() {
 		for {
 			<-time.After(rc.nseExpirationTimeout / 2)
@@ -140,12 +147,12 @@ func (rc *nseRegistryCache) StartNSMDTracking() {
 				if endpoint.NetworkServiceManager.ExpirationTime.Seconds < time.Now().Unix() {
 					nse, err := rc.DeleteNetworkServiceEndpoint(endpointName)
 					if err != nil {
-						logrus.Errorf("Unexpected registry error : %v", err)
+						logger.Errorf("Unexpected registry error : %v", err)
 					}
-					logrus.Infof("Network Service Endpoint removed by timeout : %v", nse)
+					logger.Infof("Network Service Endpoint removed by timeout : %v", nse)
 				}
 			}
 		}
 	}()
-	logrus.Infof("NSMD tracking started")
+	logger.Infof("NSMD tracking started")
 }

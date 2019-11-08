@@ -21,10 +21,11 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
+
 	"github.com/pkg/errors"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 )
@@ -49,21 +50,29 @@ func NewNseRegistryService(cache NSERegistryCache) NSERegistryService {
 
 // RegisterNSE - Registers NSE in cache
 func (rs *nseRegistryService) RegisterNSE(ctx context.Context, request *registry.NSERegistration) (*registry.NSERegistration, error) {
-	logrus.Infof("Received RegisterNSE(%v)", request)
+	span := spanhelper.FromContext(ctx, "Nsmrs.RegisterNSE")
+	defer span.Finish()
+	logger := span.Logger()
+
+	logger.Infof("Received RegisterNSE(%v)", request)
 
 	request = prepareNSERequest(request)
 
 	_, err := rs.cache.AddNetworkServiceEndpoint(request)
 	if err != nil {
-		logrus.Errorf("Error registering NSE: %v", err)
+		logger.Errorf("Error registering NSE: %v", err)
 		return nil, err
 	}
 
-	logrus.Infof("Returned from RegisterNSE: request: %v", request)
+	logger.Infof("Returned from RegisterNSE: request: %v", request)
 	return request, err
 }
 
 func (rs *nseRegistryService) BulkRegisterNSE(srv registry.NetworkServiceRegistry_BulkRegisterNSEServer) error {
+	span := spanhelper.FromContext(srv.Context(), "Nsmrs.BulkRegisterNSE")
+	defer span.Finish()
+	logger := span.Logger()
+
 	for {
 		request, err := srv.Recv()
 		if err != nil {
@@ -71,7 +80,7 @@ func (rs *nseRegistryService) BulkRegisterNSE(srv registry.NetworkServiceRegistr
 			return err
 		}
 
-		logrus.Infof("Received BulkRegisterNSE request: %v", request)
+		logger.Infof("Received BulkRegisterNSE request: %v", request)
 
 		request = prepareNSERequest(request)
 
@@ -85,15 +94,19 @@ func (rs *nseRegistryService) BulkRegisterNSE(srv registry.NetworkServiceRegistr
 
 // RemoveNSE - Removes NSE from cache and stops NSMgr monitor
 func (rs *nseRegistryService) RemoveNSE(ctx context.Context, request *registry.RemoveNSERequest) (*empty.Empty, error) {
-	logrus.Infof("Received RemoveNSE(%v)", request)
+	span := spanhelper.FromContext(ctx, "Nsmrs.RemoveNSE")
+	defer span.Finish()
+	logger := span.Logger()
+
+	logger.Infof("Received RemoveNSE(%v)", request)
 
 	nse, err := rs.cache.DeleteNetworkServiceEndpoint(request.NetworkServiceEndpointName)
 	if err != nil {
-		logrus.Errorf("cannot remove Network Service Endpoint: %v", err)
+		logger.Errorf("cannot remove Network Service Endpoint: %v", err)
 		return &empty.Empty{}, err
 	}
 
-	logrus.Infof("RemoveNSE done: %v", nse)
+	logger.Infof("RemoveNSE done: %v", nse)
 	return &empty.Empty{}, nil
 }
 

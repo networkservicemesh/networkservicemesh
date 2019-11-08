@@ -19,8 +19,9 @@ package serviceregistryserver
 import (
 	"context"
 
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
+
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 )
@@ -36,10 +37,14 @@ func newDiscoveryService(cache NSERegistryCache) *discoveryService {
 }
 
 func (d *discoveryService) FindNetworkService(ctx context.Context, request *registry.FindNetworkServiceRequest) (*registry.FindNetworkServiceResponse, error) {
+	span := spanhelper.FromContext(ctx, "Nsmrs.FindNetworkService")
+	defer span.Finish()
+	logger := span.Logger()
+
 	networkServiceEnpoints := d.cache.GetEndpoints(request.NetworkServiceName)
 	if len(networkServiceEnpoints) == 0 {
 		err := errors.Errorf("no NetworkService with name: %v", request.NetworkServiceName)
-		logrus.Errorf("Cannot find Network Service: %v", err)
+		logger.Errorf("Cannot find Network Service: %v", err)
 		return nil, err
 	}
 
@@ -58,7 +63,7 @@ func (d *discoveryService) FindNetworkService(ctx context.Context, request *regi
 		response.NetworkServiceEndpoints = append(response.NetworkServiceEndpoints, endpoint.NetworkServiceEndpoint)
 	}
 
-	logrus.Infof("FindNetworkService done: %v", response)
+	logger.Infof("FindNetworkService done: %v", response)
 
 	return response, nil
 }

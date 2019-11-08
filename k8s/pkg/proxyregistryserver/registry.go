@@ -23,12 +23,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 
 	"github.com/pkg/errors"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/clusterinfo"
@@ -57,19 +58,23 @@ func newNseRegistryService(clusterInfoService clusterinfo.ClusterInfoServer) *ns
 }
 
 func (rs *nseRegistryService) RegisterNSE(ctx context.Context, request *registry.NSERegistration) (*registry.NSERegistration, error) {
-	logrus.Infof("%s: received RegisterNSE(%v)", NSRegistryForwarderLogPrefix, request)
+	span := spanhelper.FromContext(ctx, "ProxyNsmgr.RegisterNSE")
+	defer span.Finish()
+	logger := span.Logger()
+
+	logger.Infof("%s: received RegisterNSE(%v)", NSRegistryForwarderLogPrefix, request)
 
 	nsmrsURL := os.Getenv(NSMRSAddressEnv)
 	if strings.TrimSpace(nsmrsURL) == "" {
 		err := errors.Errorf("NSMRS Address variable was not set")
-		logrus.Warnf("%s: Skipping Register NSE forwarding: %v", NSRegistryForwarderLogPrefix, err)
+		logger.Warnf("%s: Skipping Register NSE forwarding: %v", NSRegistryForwarderLogPrefix, err)
 		return request, err
 	}
 
 	nodeConfiguration, cErr := rs.clusterInfoService.GetNodeIPConfiguration(ctx, &clusterinfo.NodeIPConfiguration{NodeName: request.NetworkServiceManager.Name})
 	if cErr != nil {
 		err := errors.Errorf("cannot get Network Service Manager's IP address: %s", cErr)
-		logrus.Errorf("%s: %v", NSRegistryForwarderLogPrefix, err)
+		logger.Errorf("%s: %v", NSRegistryForwarderLogPrefix, err)
 		return nil, err
 	}
 
@@ -84,21 +89,21 @@ func (rs *nseRegistryService) RegisterNSE(ctx context.Context, request *registry
 	}
 	request.NetworkServiceManager.Url = externalIP
 
-	logrus.Infof("%s: Prepared forwarding RegisterNSE request: %v", NSRegistryForwarderLogPrefix, request)
+	logger.Infof("%s: Prepared forwarding RegisterNSE request: %v", NSRegistryForwarderLogPrefix, request)
 
 	remoteRegistry := nsmd.NewServiceRegistryAt(nsmrsURL + ":80")
 	defer remoteRegistry.Stop()
 
 	nseRegistryClient, err := remoteRegistry.NseRegistryClient(context.Background())
 	if err != nil {
-		logrus.Warnf(fmt.Sprintf("%s: Cannot register network service endpoint in NSMRS: %v", NSRegistryForwarderLogPrefix, err))
+		logger.Warnf(fmt.Sprintf("%s: Cannot register network service endpoint in NSMRS: %v", NSRegistryForwarderLogPrefix, err))
 		return request, err
 	}
 
 	_, err = nseRegistryClient.RegisterNSE(ctx, request)
 	if err != nil {
 		errIn := errors.Errorf("failed register NSE in NSMRS: %v", err)
-		logrus.Errorf("%s: %v", NSRegistryForwarderLogPrefix, errIn)
+		logger.Errorf("%s: %v", NSRegistryForwarderLogPrefix, errIn)
 		return request, errIn
 	}
 
@@ -106,12 +111,16 @@ func (rs *nseRegistryService) RegisterNSE(ctx context.Context, request *registry
 }
 
 func (rs *nseRegistryService) BulkRegisterNSE(srv registry.NetworkServiceRegistry_BulkRegisterNSEServer) error {
-	logrus.Infof("%s: Forwarding Bulk Register NSE stream...", NSRegistryForwarderLogPrefix)
+	span := spanhelper.FromContext(srv.Context(), "ProxyNsmgr.BulkRegisterNSE")
+	defer span.Finish()
+	logger := span.Logger()
+
+	logger.Infof("%s: Forwarding Bulk Register NSE stream...", NSRegistryForwarderLogPrefix)
 
 	nsmrsURL := os.Getenv(NSMRSAddressEnv)
 	if strings.TrimSpace(nsmrsURL) == "" {
 		err := errors.Errorf("NSMRS Address variable was not set")
-		logrus.Warnf("%s: Skipping Bulk Register NSE forwarding: %v", NSRegistryForwarderLogPrefix, err)
+		logger.Warnf("%s: Skipping Bulk Register NSE forwarding: %v", NSRegistryForwarderLogPrefix, err)
 		return err
 	}
 
@@ -124,7 +133,7 @@ func (rs *nseRegistryService) BulkRegisterNSE(srv registry.NetworkServiceRegistr
 	for {
 		stream, err := requestBulkRegisterNSEStream(ctx, remoteRegistry, nsmrsURL)
 		if err != nil {
-			logrus.Warnf("Cannot connect to Registry Server %s : %v", nsmrsURL, err)
+			logger.Warnf("Cannot connect to Registry Server %s : %v", nsmrsURL, err)
 			<-time.After(NSMRSReconnectInterval)
 			continue
 		}
@@ -133,14 +142,14 @@ func (rs *nseRegistryService) BulkRegisterNSE(srv registry.NetworkServiceRegistr
 			request, err := srv.Recv()
 			if err != nil {
 				err = errors.Errorf("error receiving BulkRegisterNSE request : %v", err)
-				logrus.Errorf("%s: %v", NSRegistryForwarderLogPrefix, err)
+				logger.Errorf("%s: %v", NSRegistryForwarderLogPrefix, err)
 				return err
 			}
 
-			logrus.Infof("%s: Forward BulkRegisterNSE request: %v", NSRegistryForwarderLogPrefix, request)
+			logger.Infof("%s: Forward BulkRegisterNSE request: %v", NSRegistryForwarderLogPrefix, request)
 			err = stream.Send(request)
 			if err != nil {
-				logrus.Warnf("%s: error forwarding BulkRegisterNSE request to %s : %v", NSRegistryForwarderLogPrefix, nsmrsURL, err)
+				logger.Warnf("%s: error forwarding BulkRegisterNSE request to %s : %v", NSRegistryForwarderLogPrefix, nsmrsURL, err)
 				break
 			}
 		}
@@ -164,12 +173,16 @@ func requestBulkRegisterNSEStream(ctx context.Context, remoteRegistry servicereg
 }
 
 func (rs *nseRegistryService) RemoveNSE(ctx context.Context, request *registry.RemoveNSERequest) (*empty.Empty, error) {
-	logrus.Infof("%s: Received RemoveNSE(%v)", NSRegistryForwarderLogPrefix, request)
+	span := spanhelper.FromContext(ctx, "ProxyNsmgr.RemoveNSE")
+	defer span.Finish()
+	logger := span.Logger()
+
+	logger.Infof("%s: Received RemoveNSE(%v)", NSRegistryForwarderLogPrefix, request)
 
 	nsmrsURL := os.Getenv(NSMRSAddressEnv)
 	if strings.TrimSpace(nsmrsURL) == "" {
 		err := errors.Errorf("NSMRS Address variable was not set")
-		logrus.Warnf("%s: Skipping Register NSE forwarding: %v", NSRegistryForwarderLogPrefix, err)
+		logger.Warnf("%s: Skipping Register NSE forwarding: %v", NSRegistryForwarderLogPrefix, err)
 		return &empty.Empty{}, err
 	}
 
@@ -178,7 +191,7 @@ func (rs *nseRegistryService) RemoveNSE(ctx context.Context, request *registry.R
 
 	nseRegistryClient, err := remoteRegistry.NseRegistryClient(context.Background())
 	if err != nil {
-		logrus.Warnf(fmt.Sprintf("%s: Cannot register network service endpoint in NSMRS: %v", NSRegistryForwarderLogPrefix, err))
+		logger.Warnf(fmt.Sprintf("%s: Cannot register network service endpoint in NSMRS: %v", NSRegistryForwarderLogPrefix, err))
 		return &empty.Empty{}, err
 	}
 
