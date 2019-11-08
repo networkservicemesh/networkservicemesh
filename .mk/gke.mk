@@ -61,15 +61,14 @@ gke-docker-login:
 
 .PHONY: gke-%-push
 gke-%-push: gke-docker-login
-	@if [ "x$${COMMIT}" == "x" ] ; then \
-		COMMIT=latest; \
+	@if [ "x$${CONTAINER_TAG}" == "x" ] ; then \
+		CONTAINER_TAG=latest; \
 	fi ;\
-	if [ "x$${TAG}" == "x" ] ; then \
-		TAG=latest; \
+	if [ "x$${CONTAINER_TAG}" == "x" ] ; then \
+		CONTAINER_TAG=latest; \
 	fi ;\
     ORG=gcr.io/$(shell gcloud config get-value project); \
-	docker tag $${ORG}/$*:$${COMMIT} $${ORG}/$*:$${TAG}; \
-	docker push $${ORG}/$*:$${TAG}
+	docker push $${ORG}/$*:$${CONTAINER_TAG}
 
 gke-push: $(addsuffix -push,$(addprefix gke-,$(BUILD_CONTAINERS)))
 	@echo $(addsuffix -push,$(addprefix gke-,$(BUILD_CONTAINERS)))
