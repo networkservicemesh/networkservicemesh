@@ -249,6 +249,37 @@ func isPodReady(pod *v1.Pod) bool {
 	return true
 }
 
+func (k8s *K8s) waitForServiceAccountCreated(timeout time.Duration, serviceAccountName string) error {
+	err := waitFor(accountWaitTimeout, func() bool {
+		sa, getErr := k8s.clientset.CoreV1().ServiceAccounts(k8s.namespace).Get(serviceAccountName, metaV1.GetOptions{})
+		if getErr != nil {
+			logrus.Errorf("An error during get service account: %v, err: %v", sa.Name, getErr.Error())
+			return false
+		}
+		logrus.Info(sa)
+		return len(sa.Secrets) != 0
+	})
+	if err != nil {
+		err = errors.Wrapf(err, "account: %v, secrets == 0", serviceAccountName)
+	}
+	return err
+}
+
+func waitFor(timeout time.Duration, condition func() bool) error {
+	timeoutCh := time.After(timeout)
+	for {
+		select {
+		case <-timeoutCh:
+			return errors.New("time out for wait condition true")
+		default:
+			if condition() {
+				return nil
+			}
+			<-time.After(100 * time.Millisecond)
+		}
+	}
+}
+
 func blockUntilPodWorking(client kubernetes.Interface, context context.Context, pod *v1.Pod) error {
 	exists := make(chan error)
 	go func() {
@@ -1237,7 +1268,7 @@ func (k8s *K8s) CreateServiceAccounts() {
 		index := i
 		go func() {
 			n := k8s.sa[index]
-			sa, err := k8s.clientset.CoreV1().ServiceAccounts(k8s.namespace).Create(&v1.ServiceAccount{
+			_, err := k8s.clientset.CoreV1().ServiceAccounts(k8s.namespace).Create(&v1.ServiceAccount{
 				ObjectMeta: metaV1.ObjectMeta{
 					Name: n,
 				},
@@ -1246,55 +1277,18 @@ func (k8s *K8s) CreateServiceAccounts() {
 				errs <- err
 				return
 			}
-			err = waitFor(accountWaitTimeout, func() bool {
-				sa, getErr := k8s.clientset.CoreV1().ServiceAccounts(k8s.namespace).Get(n, metaV1.GetOptions{})
-				if getErr != nil {
-					logrus.Errorf("An error during get service account: %v, err: %v", sa.Name, getErr.Error())
-					return false
-				}
-				logrus.Info(sa)
-				return len(sa.Secrets) != 0
-			})
-			if err != nil {
-				err = errors.Wrapf(err, "account: %v, secrets == 0", sa.Name)
-			}
-			errs <- err
+			errs <- k8s.waitForServiceAccountCreated(accountWaitTimeout, n)
 		}()
 	}
 
 	go func() {
-		err := waitFor(accountWaitTimeout, func() bool {
-			_, getErr := k8s.clientset.CoreV1().ServiceAccounts(k8s.namespace).Get(pods.DefaultAccount, metaV1.GetOptions{})
-			if getErr != nil {
-				logrus.Errorf("An error during get service account: %v, err: %v", pods.DefaultAccount, getErr.Error())
-			}
-			return getErr == nil
-		})
-		if err != nil {
-			err = errors.Wrapf(err, "account: %v, can not create", pods.DefaultAccount)
-		}
-		errs <- err
+		errs <- k8s.waitForServiceAccountCreated(accountWaitTimeout, pods.DefaultAccount)
 	}()
 	for i := 0; i < accountCount; i++ {
 		err := <-errs
 		if err != nil {
 			logrus.Error(err)
 			k8s.g.Expect(true).Should(BeFalse())
-		}
-	}
-}
-
-func waitFor(timeout time.Duration, condition func() bool) error {
-	timeoutCh := time.After(timeout)
-	for {
-		select {
-		case <-timeoutCh:
-			return errors.New("time out for wait condition true")
-		default:
-			if condition() {
-				return nil
-			}
-			<-time.After(100 * time.Millisecond)
 		}
 	}
 }
