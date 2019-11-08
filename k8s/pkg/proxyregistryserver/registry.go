@@ -73,7 +73,7 @@ func (rs *nseRegistryService) RegisterNSE(ctx context.Context, request *registry
 
 	nodeConfiguration, cErr := rs.clusterInfoService.GetNodeIPConfiguration(ctx, &clusterinfo.NodeIPConfiguration{NodeName: request.NetworkServiceManager.Name})
 	if cErr != nil {
-		err := errors.Errorf("cannot get Network Service Manager's IP address: %s", cErr)
+		err := errors.Wrapf(cErr, "cannot get Network Service Manager's IP address: %s", cErr)
 		logger.Errorf("%s: %v", NSRegistryForwarderLogPrefix, err)
 		return nil, err
 	}
@@ -102,7 +102,7 @@ func (rs *nseRegistryService) RegisterNSE(ctx context.Context, request *registry
 
 	_, err = nseRegistryClient.RegisterNSE(ctx, request)
 	if err != nil {
-		errIn := errors.Errorf("failed register NSE in NSMRS: %v", err)
+		errIn := errors.Wrapf(err, "failed register NSE in NSMRS: %v", err)
 		logger.Errorf("%s: %v", NSRegistryForwarderLogPrefix, errIn)
 		return request, errIn
 	}
@@ -141,7 +141,7 @@ func (rs *nseRegistryService) BulkRegisterNSE(srv registry.NetworkServiceRegistr
 		for {
 			request, err := srv.Recv()
 			if err != nil {
-				err = errors.Errorf("error receiving BulkRegisterNSE request : %v", err)
+				err = errors.Wrapf(err, "error receiving BulkRegisterNSE request : %v", err)
 				logger.Errorf("%s: %v", NSRegistryForwarderLogPrefix, err)
 				return err
 			}
@@ -161,12 +161,12 @@ func (rs *nseRegistryService) BulkRegisterNSE(srv registry.NetworkServiceRegistr
 func requestBulkRegisterNSEStream(ctx context.Context, remoteRegistry serviceregistry.ServiceRegistry, nsmrsURL string) (registry.NetworkServiceRegistry_BulkRegisterNSEClient, error) {
 	nseRegistryClient, err := remoteRegistry.NseRegistryClient(ctx)
 	if err != nil {
-		return nil, errors.Errorf("error forwarding BulkRegisterNSE request to %s : %v", nsmrsURL, err)
+		return nil, errors.Wrapf(err, "error forwarding BulkRegisterNSE request to %s : %v", nsmrsURL, err)
 	}
 
 	stream, err := nseRegistryClient.BulkRegisterNSE(ctx)
 	if err != nil {
-		return nil, errors.Errorf("error forwarding BulkRegisterNSE request to %s : %v", nsmrsURL, err)
+		return nil, errors.Wrapf(err, "error forwarding BulkRegisterNSE request to %s : %v", nsmrsURL, err)
 	}
 
 	return stream, nil
@@ -191,7 +191,7 @@ func (rs *nseRegistryService) RemoveNSE(ctx context.Context, request *registry.R
 
 	nseRegistryClient, err := remoteRegistry.NseRegistryClient(context.Background())
 	if err != nil {
-		logger.Warnf(fmt.Sprintf("%s: Cannot register network service endpoint in NSMRS: %v", NSRegistryForwarderLogPrefix, err))
+		logger.Warnf("%s: Cannot register network service endpoint in NSMRS: %v", NSRegistryForwarderLogPrefix, err)
 		return &empty.Empty{}, err
 	}
 

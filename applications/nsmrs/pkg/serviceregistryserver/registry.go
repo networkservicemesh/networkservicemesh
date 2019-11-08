@@ -76,7 +76,7 @@ func (rs *nseRegistryService) BulkRegisterNSE(srv registry.NetworkServiceRegistr
 	for {
 		request, err := srv.Recv()
 		if err != nil {
-			err = errors.Errorf("error receiving BulkRegisterNSE request : %v", err)
+			err = errors.Wrapf(err, "error receiving BulkRegisterNSE request : %v", err)
 			return err
 		}
 
@@ -86,7 +86,7 @@ func (rs *nseRegistryService) BulkRegisterNSE(srv registry.NetworkServiceRegistr
 
 		_, err = rs.cache.UpdateNetworkServiceEndpoint(request)
 		if err != nil {
-			err = errors.Errorf("error processing BulkRegisterNSE request: %v", err)
+			err = errors.Wrapf(err, "error processing BulkRegisterNSE request: %v", err)
 			return err
 		}
 	}

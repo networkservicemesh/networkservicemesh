@@ -144,7 +144,7 @@ func (rs *nseRegistryService) BulkRegisterNSE(srv registry.NetworkServiceRegistr
 		for {
 			request, err := srv.Recv()
 			if err != nil {
-				err = errors.Errorf("error receiving BulkRegisterNSE request : %v", err)
+				err = errors.Wrapf(err, "error receiving BulkRegisterNSE request : %v", err)
 				return err
 			}
 
@@ -163,13 +163,13 @@ func (rs *nseRegistryService) BulkRegisterNSE(srv registry.NetworkServiceRegistr
 func requestBulkRegisterNSEStream(ctx context.Context, remoteRegistry serviceregistry.ServiceRegistry, nsrURL string) (registry.NetworkServiceRegistry_BulkRegisterNSEClient, error) {
 	nseRegistryClient, err := remoteRegistry.NseRegistryClient(ctx)
 	if err != nil {
-		err = errors.Errorf("error forwarding BulkRegisterNSE request to %s : %v", nsrURL, err)
+		err = errors.Wrapf(err, "error forwarding BulkRegisterNSE request to %s : %v", nsrURL, err)
 		return nil, err
 	}
 
 	stream, err := nseRegistryClient.BulkRegisterNSE(ctx)
 	if err != nil {
-		err = errors.Errorf("error forwarding BulkRegisterNSE request to %s : %v", nsrURL, err)
+		err = errors.Wrapf(err, "error forwarding BulkRegisterNSE request to %s : %v", nsrURL, err)
 		return nil, err
 	}
 

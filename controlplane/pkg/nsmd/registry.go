@@ -162,13 +162,13 @@ func (es *registryServer) startNSETracking(request *registry.NSERegistration) er
 	client, err := es.nsm.serviceRegistry.NseRegistryClient(ctx)
 	if err != nil {
 		cancel()
-		return errors.Errorf("cannot start NSE tracking : %v", err)
+		return errors.Wrapf(err, "cannot start NSE tracking : %v", err)
 	}
 
 	stream, err := client.BulkRegisterNSE(ctx)
 	if err != nil {
 		cancel()
-		return errors.Errorf("cannot start NSE tracking : %v", err)
+		return errors.Wrapf(err, "cannot start NSE tracking : %v", err)
 	}
 
 	trackingInterval := NSETrackingIntervalSecondsEnv.GetOrDefaultDuration(NSETrackingIntervalDefault)
