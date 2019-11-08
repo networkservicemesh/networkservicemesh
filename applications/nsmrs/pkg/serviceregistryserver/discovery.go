@@ -36,7 +36,7 @@ func newDiscoveryService(cache NSERegistryCache) *discoveryService {
 }
 
 func (d *discoveryService) FindNetworkService(ctx context.Context, request *registry.FindNetworkServiceRequest) (*registry.FindNetworkServiceResponse, error) {
-	networkServiceEnpoints := d.cache.GetEndpointsByNs(request.NetworkServiceName)
+	networkServiceEnpoints := d.cache.GetEndpoints(request.NetworkServiceName)
 	if len(networkServiceEnpoints) == 0 {
 		err := errors.Errorf("no NetworkService with name: %v", request.NetworkServiceName)
 		logrus.Errorf("Cannot find Network Service: %v", err)

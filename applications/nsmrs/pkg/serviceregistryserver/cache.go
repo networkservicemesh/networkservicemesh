@@ -44,7 +44,7 @@ type NSERegistryCache interface {
 	AddNetworkServiceEndpoint(nse *registry.NSERegistration) (*registry.NSERegistration, error)
 	UpdateNetworkServiceEndpoint(nse *registry.NSERegistration) (*registry.NSERegistration, error)
 	DeleteNetworkServiceEndpoint(endpointName string) (*registry.NSERegistration, error)
-	GetEndpointsByNs(networkServiceName string) []*registry.NSERegistration
+	GetEndpoints(networkServiceName string) []*registry.NSERegistration
 	StartNSMDTracking()
 }
 
@@ -77,7 +77,7 @@ func (rc *nseRegistryCache) addNetworkServiceEndpoint(entry *registry.NSERegistr
 		return nil, errors.Errorf("network service endpoint with name %s already exists: old: %v; new: %v", endpoint.NetworkServiceEndpoint.Name, endpoint, entry)
 	}
 
-	existingEndpoints := rc.GetEndpointsByNs(entry.NetworkService.Name)
+	existingEndpoints := rc.GetEndpoints(entry.NetworkService.Name)
 	for _, endpoint := range existingEndpoints {
 		if !proto.Equal(endpoint.NetworkService, entry.NetworkService) {
 			return nil, errors.Errorf("network service already exists with different parameters: old: %v; new: %v", endpoint, entry)
@@ -127,8 +127,8 @@ func (rc *nseRegistryCache) DeleteNetworkServiceEndpoint(endpointName string) (*
 	return nil, errors.Errorf("endpoint %s not found", endpointName)
 }
 
-// GetEndpointsByNs - get Endpoints list from cache by Name
-func (rc *nseRegistryCache) GetEndpointsByNs(networkServiceName string) []*registry.NSERegistration {
+// GetEndpoints - get Endpoints list from cache by Name
+func (rc *nseRegistryCache) GetEndpoints(networkServiceName string) []*registry.NSERegistration {
 	return rc.networkServiceEndpoints[networkServiceName]
 }
 

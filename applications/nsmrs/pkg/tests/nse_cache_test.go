@@ -34,7 +34,7 @@ func TestNSMRSCacheAdd(t *testing.T) {
 	_, err := cache.AddNetworkServiceEndpoint(nse)
 	g.Expect(err).To(BeNil())
 
-	endpointList := cache.GetEndpointsByNs("ns1")
+	endpointList := cache.GetEndpoints("ns1")
 	g.Expect(len(endpointList)).To(Equal(1))
 	g.Expect(endpointList[0].NetworkServiceEndpoint.Name).To(Equal("nse1"))
 }
@@ -48,14 +48,14 @@ func TestNSMRSCacheDelete(t *testing.T) {
 
 	_, err := cache.AddNetworkServiceEndpoint(nse)
 	g.Expect(err).To(BeNil())
-	endpointList := cache.GetEndpointsByNs("ns1")
+	endpointList := cache.GetEndpoints("ns1")
 	g.Expect(len(endpointList)).To(Equal(1))
 
 	endpoint, err := cache.DeleteNetworkServiceEndpoint("nse1")
 	g.Expect(err).To(BeNil())
 	g.Expect(endpoint.NetworkServiceEndpoint.Name).To(Equal("nse1"))
 
-	endpointList = cache.GetEndpointsByNs("ns1")
+	endpointList = cache.GetEndpoints("ns1")
 	g.Expect(len(endpointList)).To(Equal(0))
 }
 
