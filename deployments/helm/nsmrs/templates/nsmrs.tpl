@@ -1,17 +1,18 @@
 ---
 apiVersion: apps/v1
-kind: DaemonSet
+kind: Deployment
 metadata:
   name: nsmrs
   namespace: {{ .Release.Namespace }}
 spec:
   selector:
     matchLabels:
-      app: nsmrs-daemonset
+      run: nsmrs
+  replicas: 1
   template:
     metadata:
       labels:
-        app: nsmrs-daemonset
+        run: nsmrs
     spec:
       serviceAccount: nsmrs-acc
       containers:
