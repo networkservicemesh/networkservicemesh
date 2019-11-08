@@ -42,11 +42,11 @@ import (
 
 const (
 	// PodStartTimeout - Default pod startup time
-	PodStartTimeout  = 3 * time.Minute
-	podDeleteTimeout = 15 * time.Second
-	podExecTimeout   = 1 * time.Minute
-	podGetLogTimeout = 1 * time.Minute
-	roleWaitTimeout  = 1 * time.Minute
+	PodStartTimeout    = 3 * time.Minute
+	podDeleteTimeout   = 15 * time.Second
+	podExecTimeout     = 1 * time.Minute
+	podGetLogTimeout   = 1 * time.Minute
+	accountWaitTimeout = 1 * time.Minute
 )
 
 const (
@@ -249,6 +249,37 @@ func isPodReady(pod *v1.Pod) bool {
 	return true
 }
 
+func (k8s *K8s) waitForServiceAccountCreated(timeout time.Duration, serviceAccountName string) error {
+	err := waitFor(accountWaitTimeout, func() bool {
+		sa, getErr := k8s.clientset.CoreV1().ServiceAccounts(k8s.namespace).Get(serviceAccountName, metaV1.GetOptions{})
+		if getErr != nil {
+			logrus.Errorf("An error during get service account: %v, err: %v", sa.Name, getErr.Error())
+			return false
+		}
+		logrus.Info(sa)
+		return len(sa.Secrets) != 0
+	})
+	if err != nil {
+		err = errors.Wrapf(err, "account: %v, secrets == 0", serviceAccountName)
+	}
+	return err
+}
+
+func waitFor(timeout time.Duration, condition func() bool) error {
+	timeoutCh := time.After(timeout)
+	for {
+		select {
+		case <-timeoutCh:
+			return errors.New("time out for wait condition true")
+		default:
+			if condition() {
+				return nil
+			}
+			<-time.After(100 * time.Millisecond)
+		}
+	}
+}
+
 func blockUntilPodWorking(client kubernetes.Interface, context context.Context, pod *v1.Pod) error {
 	exists := make(chan error)
 	go func() {
@@ -441,8 +472,8 @@ func NewK8sWithoutRolesForConfig(g *WithT, prepare bool, kubeconfigPath string) 
 		logrus.Printf("Cleanup done: %v", time.Since(start))
 	}
 
-	_, err = client.CreateServiceAccounts()
-	g.Expect(err).To(BeNil())
+	client.CreateServiceAccounts()
+
 	return &client, nil
 }
 
@@ -1230,31 +1261,36 @@ func (k8s *K8s) CreateTestNamespace(namespace string) (string, error) {
 }
 
 // CreateServiceAccounts create service accounts with passed names
-func (k8s *K8s) CreateServiceAccounts() ([]*v1.ServiceAccount, error) {
-	rv := make([]*v1.ServiceAccount, 0, len(k8s.sa))
-	for _, n := range k8s.sa {
-		sa, err := k8s.clientset.CoreV1().ServiceAccounts(k8s.namespace).Create(&v1.ServiceAccount{
-			ObjectMeta: metaV1.ObjectMeta{
-				Name: n,
-			},
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		for len(sa.Secrets) == 0 {
-			sa, err = k8s.clientset.CoreV1().ServiceAccounts(k8s.namespace).Get(n, metaV1.GetOptions{})
+func (k8s *K8s) CreateServiceAccounts() {
+	accountCount := len(k8s.sa) + 1 //1 means default acc
+	errs := make(chan error, accountCount)
+	for i := range k8s.sa {
+		index := i
+		go func() {
+			n := k8s.sa[index]
+			_, err := k8s.clientset.CoreV1().ServiceAccounts(k8s.namespace).Create(&v1.ServiceAccount{
+				ObjectMeta: metaV1.ObjectMeta{
+					Name: n,
+				},
+			})
 			if err != nil {
-				return nil, err
+				errs <- err
+				return
 			}
-			logrus.Info(sa)
-			<-time.After(10 * time.Millisecond)
-		}
-
-		rv = append(rv, sa)
+			errs <- k8s.waitForServiceAccountCreated(accountWaitTimeout, n)
+		}()
 	}
 
-	return rv, nil
+	go func() {
+		errs <- k8s.waitForServiceAccountCreated(accountWaitTimeout, pods.DefaultAccount)
+	}()
+	for i := 0; i < accountCount; i++ {
+		err := <-errs
+		if err != nil {
+			logrus.Error(err)
+			k8s.g.Expect(true).Should(BeFalse())
+		}
+	}
 }
 
 // DeleteServiceAccounts deletes passed service accounts from cluster
@@ -1302,9 +1338,6 @@ func (k8s *K8s) GetK8sNamespace() string {
 
 // CreateRoles create roles
 func (k8s *K8s) CreateRoles(rolesList ...string) ([]nsmrbac.Role, error) {
-	timeout := time.Duration(len(rolesList)) * roleWaitTimeout
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
 	createdRoles := []nsmrbac.Role{}
 	for _, kind := range rolesList {
 		role := nsmrbac.Roles[kind](nsmrbac.RoleNames[kind], k8s.GetK8sNamespace())
@@ -1319,11 +1352,6 @@ func (k8s *K8s) CreateRoles(rolesList ...string) ([]nsmrbac.Role, error) {
 			defer wg.Done()
 			if err := role.Create(k8s.clientset); err != nil {
 				logrus.Errorf("failed creating role: %v %v", role, err)
-				roleError = err
-				return
-			}
-			if err := role.Wait(ctx, k8s.clientset); err != nil {
-				logrus.Errorf("failed waiting role: %v %v", role, err)
 				roleError = err
 				return
 			}
