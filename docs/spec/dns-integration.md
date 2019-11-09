@@ -13,13 +13,13 @@ The DNS integration capability is performed by running a DNS server co-resident 
 
 The NSM provided SDK provides a capability to read environmental varibles to determine additional DNS servers and domains that should be added to the DNScontext.  These variables are: DNS_SEARCH_DOMAINS and DNS_SERVER_IPS.
 
-Note:  Some of the additional DNS configuration capabilites K8s offers are overridden adn not availabel when these additional containers are inserted.  
+Note:  Some of the additional DNS configuration capabilites K8s offers are overridden adn not availabel when these additional containers are inserted.
 
 Implementation details (optional)
---------------------------------- 
+---------------------------------
 
 ### nsm-coredns
-`nsm-corends` is a docker image based on [coredns](https://github.com/coredns/coredns.io/blob/master/content/manual/what.md). The difference with the original `coredns` is the set of plug-ins. 
+`nsm-corends` is a docker image based on [coredns](https://github.com/coredns/coredns.io/blob/master/content/manual/what.md). The difference with the original `coredns` is the set of plug-ins.
 The image uses only these `coredns` plugins:
 * `bind`
 * `hosts`
@@ -28,7 +28,7 @@ The image uses only these `coredns` plugins:
 Also, it includes a `fanout` plugin defined in the NSM tree (see below).	
 ### Fanout plugin
 `fanout` is a custom [plugin for coredns](https://coredns.io/manual/plugins/).
-The fanout plugin re-uses already opened sockets to the upstreams. It supports TCP and DNS-over-TLS and uses in-band health checking.  The config provided to nsm-coredns may include multiple IPs based on the services a pod attachs to. 
+The fanout plugin re-uses already opened sockets to the upstreams. It supports TCP and DNS-over-TLS and uses in-band health checking.  The config provided to nsm-coredns may include multiple IPs based on the services a pod attachs to.
 Each incoming DNS query that hits the CoreDNS fanout plugin will be replicated in parallel to each listed IP (i.e. the DNS servers). The first non-negative response from any of the queried DNS Servers will be forwarded as a response to the application's DNS request.
 
 ### Using nsm-coredns as the default name server for the pod
@@ -94,10 +94,10 @@ Make sure that your application pod includes the `nsm-coredns` and `nsm-coredns`
 See an example of usage `nsm-dns-monitor` in `test/applications/cmd/monitoring-dns-nsc`
 
 ### Using nsm-coredns and nsm-dns-monitor without changing the client's deployment configuration
-To inject the `nsm-coredns` and `nsm-dns-monitor` containers into a client's pod during deployment, you can simply deploy the [admission webhook](https://github.com/networkservicemesh/networkservicemesh/blob/master/docs/spec/admission.md). `Admission webhook` will automatically append the DNS specific containers to your `Network Service Client`.  When using the admission webhook there is no way to disable the insertion of these additional containers. 
+To inject the `nsm-coredns` and `nsm-dns-monitor` containers into a client's pod during deployment, you can simply deploy the [admission webhook](https://github.com/networkservicemesh/networkservicemesh/blob/master/docs/spec/admission.md). `Admission webhook` will automatically append the DNS specific containers to your `Network Service Client`.  When using the admission webhook there is no way to disable the insertion of these additional containers.
 
 ## NSE Requirements
-In order for the application pod to try multiple DNS servers the NSEs must populate the DNScontext.   The SDK provides a means to populate the DNScontext based on environmental variables provided to the NSE container. These variables are: DNS_SEARCH_DOMAINS and DNS_SERVER_IPS.  The [icmp-responer](test/applications/cmd/icmp-responder-nse/main.go) has an example implementation. 
+In order for the application pod to try multiple DNS servers the NSEs must populate the DNScontext.   The SDK provides a means to populate the DNScontext based on environmental variables provided to the NSE container. These variables are: DNS_SEARCH_DOMAINS and DNS_SERVER_IPS.  The [icmp-responer](test/applications/cmd/icmp-responder-nse/main.go) has an example implementation.
 
 
 Disabling NSM DNS resolution
