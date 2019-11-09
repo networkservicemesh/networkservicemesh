@@ -6,7 +6,6 @@
 [![GitHub license](https://img.shields.io/badge/license-Apache%20license%202.0-blue.svg)](https://github.com/networkservicemesh/networkservicemesh/blob/master/LICENSE)
 [![Slack Channel](https://img.shields.io/badge/Slack:-%23nsm%20on%20CNCF%20Slack-blue.svg?style=plastic&logo=slack)](https://cloud-native.slack.com/messages/CHQNNUPN1/files/FHU5KB3PW/#nsm)
 [![Slack Invite](https://img.shields.io/badge/Slack-CNCF%20Slack%20Invite-blue.svg?style=plastic&logo=slack)](https://slack.cncf.io/)
-[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fnetworkservicemesh%2Fnetworkservicemesh.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fnetworkservicemesh%2Fnetworkservicemesh?ref=badge_shield)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/2725/badge)](https://bestpractices.coreinfrastructure.org/projects/2725)
 
 <p align="center">
@@ -81,5 +80,3 @@ If you run into problems, check the [docs](/docs/README.md) and feel free to pos
 
 This project is released under the Apache 2.0 License. Please review the [License file](LICENSE) for more details.
 
-
-[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fnetworkservicemesh%2Fnetworkservicemesh.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fnetworkservicemesh%2Fnetworkservicemesh?ref=badge_large)
