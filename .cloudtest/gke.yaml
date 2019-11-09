@@ -22,7 +22,6 @@ providers:
       - CIRCLE_BUILD_NUM
       - CONTAINER_REPO
       - CONTAINER_TAG
-      - COMMIT
     scripts:
       install: ./.cloudtest/gke/init.sh
       zone-selector: ./.cloudtest/gke/list_zones.sh ci-management  # List zones, but it need GKE_PROJECT_ID to be passed.
