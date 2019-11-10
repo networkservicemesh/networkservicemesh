@@ -20,7 +20,8 @@ CLUSTER_CONFIG_NAMESPACE = namespace-nsm
 CLUSTER_CONFIGS = $(CLUSTER_CONFIG_ROLE) $(CLUSTER_CONFIG_CRD) $(CLUSTER_CONFIG_NAMESPACE)
 
 NSM_NAMESPACE = `cat "${K8S_CONF_DIR}/${CLUSTER_CONFIG_NAMESPACE}.yaml" | awk '/name:/ {print $$2}'`
-
+CONTAINER_REPO?=networkservicemesh
+CONTAINER_TAG?=master
 # All of the rules that use vagrant are intentionally written in such a way
 # That you could set the CLUSTER_RULES_PREFIX different and introduce
 # a new platform to run on with k8s by adding a new include ${method}.mk
@@ -44,13 +45,6 @@ include .mk/kind.mk
 include .mk/null.mk
 
 include .mk/gke.mk
-
-ifeq ($(CONTAINER_REPO),)
-CONTAINER_REPO=networkservicemesh
-endif
-ifeq ($(CONTAINER_TAG),)
-CONTAINER_TAG=latest
-endif
 
 SPIRE_ENABLED?=true
 
