@@ -227,12 +227,13 @@ func verifySingleJWT(ctx context.Context, s *Signature, ca *x509.CertPool, idx i
 	}
 
 	var jwk []jose.JSONWebKey
-
+	ts := time.Now()
 	for _, key := range s.JWKS.Keys {
 		if strings.Split(key.KeyID, " ")[0] == s.Claims.Subject {
 			jwk = append(jwk, key)
 		}
 	}
+	span.Logger().Infof("jwk search by key takes %v", time.Since(ts))
 
 	if len(jwk) == 0 {
 		return errors.Errorf("no JWK with keyID = %s, found in JWKS", s.Claims.Subject)
@@ -247,10 +248,12 @@ func verifySingleJWT(ctx context.Context, s *Signature, ca *x509.CertPool, idx i
 		leaf := jwk[k].Certificates[0]
 
 		// we iterate over all JWK with provided SpiffeID and try to verify JWT
+		tv := time.Now()
 		if err := s.Token.Method.Verify(strings.Join(s.Parts[0:2], "."), s.Parts[2], leaf.PublicKey); err != nil {
 			span.Logger().Info("Wrong JWK, trying next one...")
 			continue
 		}
+		span.Logger().Infof("s.Token.Verify takes %v", time.Since(tv))
 
 		// if we manage to find appropriate JWK, we will check it with our CA
 		if err := verifyJWK(ctx, s.GetSpiffeID(), &jwk[k], ca); err != nil {
@@ -274,6 +277,7 @@ func verifyJWK(ctx context.Context, spiffeID string, jwk *jose.JSONWebKey, caBun
 		return errors.New("spiffeID provided with JWT not equal to spiffeID from x509 TLS certificate")
 	}
 
+	tp := time.Now()
 	interm := x509.NewCertPool()
 	for i, c := range jwk.Certificates {
 		if i == 0 {
@@ -281,11 +285,15 @@ func verifyJWK(ctx context.Context, spiffeID string, jwk *jose.JSONWebKey, caBun
 		}
 		interm.AddCert(c)
 	}
+	span.Logger().Infof("adding certs to pool takes %v", time.Since(tp))
 
+	tv := time.Now()
 	_, err := leaf.Verify(x509.VerifyOptions{
 		Roots:         caBundle,
 		Intermediates: interm,
 	})
+
+	span.Logger().Infof("leaf.Verify takes %v", time.Since(tv))
 
 	if err != nil {
 		return errors.Wrap(err, "certificate is signed by untrusted authority: %s")
