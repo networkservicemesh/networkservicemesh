@@ -19,6 +19,9 @@ package security
 import (
 	"context"
 	"crypto/x509"
+	"encoding/base64"
+	"fmt"
+	"hash/fnv"
 	"strings"
 	"time"
 
@@ -73,6 +76,14 @@ func WithLifetime(t time.Duration) SignOption {
 	})
 }
 
+func hash(s string) (uint32, error) {
+	h := fnv.New32a()
+	if _, err := h.Write([]byte(s)); err != nil {
+		return 0, nil
+	}
+	return h.Sum32(), nil
+}
+
 func GenerateSignature(ctx context.Context, msg interface{}, claimsSetter ClaimsSetter, p Provider, opts ...SignOption) (string, error) {
 	span := spanhelper.FromContext(ctx, "security.GenerateSignature")
 	defer span.Finish()
@@ -120,11 +131,16 @@ func GenerateSignature(ctx context.Context, msg interface{}, claimsSetter Claims
 		jwks.Keys = cfg.obo.JWKS.Keys
 	}
 
-	jwks.Keys = append(jwks.Keys, jose.JSONWebKey{
-		KeyID:        p.GetSpiffeID(),
-		Key:          xcerts[0].PublicKey,
-		Certificates: xcerts,
-	})
+	h, _ := hash(base64.StdEncoding.EncodeToString(xcerts[0].Raw))
+	key := fmt.Sprintf("%s %v", p.GetSpiffeID(), h)
+
+	if len(jwks.Key(key)) == 0 {
+		jwks.Keys = append(jwks.Keys, jose.JSONWebKey{
+			KeyID:        key,
+			Key:          xcerts[0].PublicKey,
+			Certificates: xcerts,
+		})
+	}
 
 	claims.Subject = p.GetSpiffeID()
 
@@ -171,12 +187,14 @@ func verifyChainJWT(ctx context.Context, s *Signature, ca *x509.CertPool) error 
 	defer span.Finish()
 
 	current := s
+	idxMap := map[string]int{}
 
 	for current != nil {
-		err := verifySingleJWT(ctx, current, ca)
+		err := verifySingleJWT(ctx, current, ca, idxMap[current.GetSpiffeID()])
 		if err != nil {
 			return err
 		}
+		idxMap[current.GetSpiffeID()]++
 
 		if current.Claims != nil && current.Claims.Obo == "" {
 			return nil
@@ -198,7 +216,7 @@ func verifyChainJWT(ctx context.Context, s *Signature, ca *x509.CertPool) error 
 	return nil
 }
 
-func verifySingleJWT(ctx context.Context, s *Signature, ca *x509.CertPool) error {
+func verifySingleJWT(ctx context.Context, s *Signature, ca *x509.CertPool, idx int) error {
 	span := spanhelper.FromContext(ctx, "security.verifySingleJWT")
 	defer span.Finish()
 
@@ -208,15 +226,25 @@ func verifySingleJWT(ctx context.Context, s *Signature, ca *x509.CertPool) error
 		return errors.New("length of parts array is incorrect")
 	}
 
-	jwk := s.JWKS.Key(s.Claims.Subject)
+	var jwk []jose.JSONWebKey
+
+	for _, key := range s.JWKS.Keys {
+		if strings.Split(key.KeyID, " ")[0] == s.Claims.Subject {
+			jwk = append(jwk, key)
+		}
+	}
+
 	if len(jwk) == 0 {
 		return errors.Errorf("no JWK with keyID = %s, found in JWKS", s.Claims.Subject)
 	}
 
+	offset := idx % len(jwk)
 	// JWKS might contain more than one JWK for specified SpiffeID
-	span.Logger().Infof("%d JWK for %s keyID", len(jwk), s.Claims.Subject)
+	span.Logger().Infof("%d JWK for %s keyID, offset %d", len(jwk), s.Claims.Subject, offset)
+
 	for i := 0; i < len(jwk); i++ {
-		leaf := jwk[i].Certificates[0]
+		k := len(jwk) - 1 - (offset+i)%len(jwk)
+		leaf := jwk[k].Certificates[0]
 
 		// we iterate over all JWK with provided SpiffeID and try to verify JWT
 		if err := s.Token.Method.Verify(strings.Join(s.Parts[0:2], "."), s.Parts[2], leaf.PublicKey); err != nil {
@@ -225,7 +253,7 @@ func verifySingleJWT(ctx context.Context, s *Signature, ca *x509.CertPool) error
 		}
 
 		// if we manage to find appropriate JWK, we will check it with our CA
-		if err := verifyJWK(ctx, s.GetSpiffeID(), &jwk[i], ca); err != nil {
+		if err := verifyJWK(ctx, s.GetSpiffeID(), &jwk[k], ca); err != nil {
 			continue
 		}
 
