@@ -304,10 +304,17 @@ func (pi *packetInstance) createDevice(devCfg *config.DeviceConfig) (*packngo.De
 	}
 	var device *packngo.Device
 	var response *packngo.Response
-	device, response, err = pi.client.Devices.Create(devReq)
-	msg := fmt.Sprintf("HostName=%v\n%v - %v", hostName, response, err)
-	logrus.Infof(fmt.Sprintf("%s-%v (err: %v)", pi.id, hostName, err))
-	pi.manager.AddLog(pi.id, fmt.Sprintf("create-device-%s", devCfg.Name), msg)
+	for {
+		device, response, err = pi.client.Devices.Create(devReq)
+		msg := fmt.Sprintf("HostName=%v\n%v - %v", hostName, response, err)
+		logrus.Infof(fmt.Sprintf("%s-%v", pi.id, msg))
+		pi.manager.AddLog(pi.id, fmt.Sprintf("create-device-%s", devCfg.Name), msg)
+		if err == nil || err != nil && !strings.Contains(err.Error(), "has no provisionable") || len(devReq.Facility) <= 1 {
+			break
+		}
+
+		devReq.Facility = devReq.Facility[1:]
+	}
 	return device, err
 }
 
@@ -340,10 +347,6 @@ func (pi *packetInstance) findFacilities() ([]string, error) {
 			facilitiesList = append(facilitiesList, f.Code)
 		}
 	}
-	msg := fmt.Sprintf("List of facilities: %v %v", facilities, response)
-	//logrus.Infof(msg)
-	_, _ = out.WriteString(msg)
-	pi.manager.AddLog(pi.id, "list-facilities", out.String())
 
 	// Randomize facilities.
 	ind := -1
@@ -358,11 +361,13 @@ func (pi *packetInstance) findFacilities() ([]string, error) {
 	}
 
 	if ind != -1 {
-		selected := facilitiesList[ind]
-
-		facilitiesList[ind] = facilitiesList[0]
-		facilitiesList[0] = selected
+		facilitiesList[ind], facilitiesList[0] = facilitiesList[0], facilitiesList[ind]
 	}
+
+	msg := fmt.Sprintf("List of facilities: %v %v", facilities, response)
+	//logrus.Infof(msg)
+	_, _ = out.WriteString(msg)
+	pi.manager.AddLog(pi.id, "list-facilities", out.String())
 
 	return facilitiesList, nil
 }
