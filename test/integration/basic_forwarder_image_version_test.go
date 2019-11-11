@@ -1,4 +1,4 @@
-// +build basic
+// +build suite basic
 
 package nsmd_integration_tests
 
@@ -17,7 +17,7 @@ func TestForwarderVersion(t *testing.T) {
 		t.Skip("Skip, please run without -short")
 		return
 	}
-	k8s, err := kubetest.NewK8s(g, true)
+	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResouces)
 	defer k8s.Cleanup()
 
 	g.Expect(err).To(BeNil())

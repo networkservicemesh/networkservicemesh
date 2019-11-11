@@ -1,4 +1,4 @@
-// +build basic
+// +build suite basic
 
 package nsmd_integration_tests
 
@@ -34,7 +34,7 @@ func testNSMgrForwarderDeploy(t *testing.T, nsmdPodFactory func(string, *v1.Node
 
 	logrus.Print("Running NSMgr Deploy test")
 
-	k8s, err := kubetest.NewK8s(g, true)
+	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResouces)
 	defer k8s.Cleanup()
 
 	g.Expect(err).To(BeNil())

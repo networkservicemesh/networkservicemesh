@@ -15,6 +15,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest/artifact"
+
 	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
@@ -38,6 +40,14 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/namespace"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 	nsmrbac "github.com/networkservicemesh/networkservicemesh/test/kubetest/rbac"
+)
+
+type ClearOption int32
+
+const (
+	NoClear ClearOption = iota
+	DefaultClear
+	ReuseNSMResouces
 )
 
 const (
@@ -72,6 +82,39 @@ func waitTimeout(logPrefix string, wg *sync.WaitGroup, timeout time.Duration) bo
 		logrus.Errorf("%v Timeout in waitTimeout", logPrefix)
 		return false
 	}
+}
+
+func (k8s *K8s) LookupPodsByName(names ...string) []*v1.Pod {
+	var result []*v1.Pod
+	pods := k8s.ListPods()
+
+	for i := range pods {
+		pod := &pods[i]
+		for _, n := range names {
+			if strings.Contains(pod.Name, n) {
+				result = append(result, pod)
+				break
+			}
+		}
+	}
+	return result
+}
+
+func (k8s *K8s) LookupServiceAccounts(serviceAccounts ...string) []*v1.ServiceAccount {
+	exists, err := k8s.clientset.CoreV1().ServiceAccounts(k8s.namespace).List(metaV1.ListOptions{})
+	if err != nil {
+		return nil
+	}
+	var result []*v1.ServiceAccount
+	for i := range exists.Items {
+		acc := &exists.Items[i]
+		for _, sa := range serviceAccounts {
+			if strings.Contains(acc.Name, sa) {
+				result = append(result, acc)
+			}
+		}
+	}
+	return result
 }
 
 func (k8s *K8s) createAndBlock(client kubernetes.Interface, namespace string, timeout time.Duration, pods ...*v1.Pod) []*PodDeployResult {
@@ -311,9 +354,11 @@ func blockUntilPodWorking(client kubernetes.Interface, context context.Context, 
 }
 
 type K8s struct {
+	artifactConf       artifact.Config
 	clientset          kubernetes.Interface
 	versionedClientSet *versioned.Clientset
 	podLock            sync.Mutex
+	resourcesBehaviour ClearOption
 	pods               []*v1.Pod
 	config             *rest.Config
 	roles              []nsmrbac.Role
@@ -331,7 +376,7 @@ type spanRecord struct {
 }
 
 func (k8s *K8s) reportSpans() {
-	if !jaeger.IsOpentracingEnabled() || jaeger_env.StoreJaegerTraces.GetBooleanOrDefault(false) {
+	if !jaeger.IsOpentracingEnabled() || jaeger_env.ReportSpans.GetBooleanOrDefault(false) {
 		return
 	}
 	logrus.Infof("Finding spans")
@@ -350,7 +395,7 @@ func (k8s *K8s) reportSpans() {
 		}
 	}
 	for spanID, span := range spans {
-		keys := []string{}
+		var keys []string
 		for k := range span.spanPod {
 			keys = append(keys, k)
 		}
@@ -390,36 +435,39 @@ type ExtK8s struct {
 }
 
 // NewK8s - Creates a new K8s Clientset with roles for the default config
-func NewK8s(g *WithT, prepare bool) (*K8s, error) {
+func NewK8s(g *WithT, prepare ClearOption) (*K8s, error) {
 	client, err := NewK8sWithoutRoles(g, prepare)
 	if client == nil {
 		logrus.Errorf("Error Creating K8s %v", err)
 		return client, err
 	}
 	var wg sync.WaitGroup
-	wg.Add(2)
+	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		client.roles, _ = client.CreateRoles("admin", "view", "binding")
 	}()
-	go func() {
-		defer wg.Done()
-		client.cleanupFunc = InitSpireSecurity(client)
-	}()
+	if prepare != ReuseNSMResouces || len(client.LookupPodsByName("spire")) != 1 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			client.cleanupFunc = InitSpireSecurity(client)
+		}()
+	}
 	wg.Wait()
 
 	return client, err
 }
 
 // NewK8sForConfig - Creates a new K8s Clientset for the given config with creating roles
-func NewK8sForConfig(g *WithT, prepare bool, kubeconfig string) (*K8s, error) {
+func NewK8sForConfig(g *WithT, prepare ClearOption, kubeconfig string) (*K8s, error) {
 	client, err := NewK8sWithoutRolesForConfig(g, prepare, kubeconfig)
 	client.roles, _ = client.CreateRoles("admin", "view", "binding")
 	return client, err
 }
 
 // NewK8sWithoutRoles - Creates a new K8s Clientset for the default config
-func NewK8sWithoutRoles(g *WithT, prepare bool) (*K8s, error) {
+func NewK8sWithoutRoles(g *WithT, prepare ClearOption) (*K8s, error) {
 	path := os.Getenv("KUBECONFIG")
 	if len(path) == 0 {
 		path = os.Getenv("HOME") + "/.kube/config"
@@ -428,7 +476,7 @@ func NewK8sWithoutRoles(g *WithT, prepare bool) (*K8s, error) {
 }
 
 // NewK8sWithoutRolesForConfig - Creates a new K8s Clientset for the given config
-func NewK8sWithoutRolesForConfig(g *WithT, prepare bool, kubeconfigPath string) (*K8s, error) {
+func NewK8sWithoutRolesForConfig(g *WithT, prepare ClearOption, kubeconfigPath string) (*K8s, error) {
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
 	g.Expect(err).To(BeNil())
 
@@ -458,22 +506,29 @@ func NewK8sWithoutRolesForConfig(g *WithT, prepare bool, kubeconfigPath string) 
 		return nil, err
 	}
 
-	if prepare {
+	if prepare == DefaultClear || prepare == ReuseNSMResouces {
 		start := time.Now()
-		client.Prepare("nsmgr", "nsmd", "vppagent", "vpn", "icmp", "nsc", "source", "dest", "xcon", "spire-proxy", "nse")
-		client.CleanupCRDs()
+		if prepare == ReuseNSMResouces {
+			client.Prepare("vpn", "icmp", "nsc", "source", "dest", "xcon", "nse")
+		} else {
+			client.Prepare("nsmgr", "nsmd", "vppagent", "vpn", "icmp", "nsc", "source", "dest", "xcon", "spire-proxy", "nse")
+			client.CleanupConfigMaps()
+		}
+
 		client.CleanupServices("nsm-admission-webhook-svc")
 		client.CleanupDeployments()
 		client.CleanupMutatingWebhookConfigurations()
 		client.CleanupSecrets("nsm-admission-webhook-certs")
-		client.CleanupConfigMaps()
-		_ = client.DeleteServiceAccounts()
-		_ = nsmrbac.DeleteAllRoles(client.clientset)
 		logrus.Printf("Cleanup done: %v", time.Since(start))
 	}
-
-	client.CreateServiceAccounts()
-
+	if prepare != ReuseNSMResouces || len(client.sa) != len(client.LookupServiceAccounts(client.sa...)) {
+		_ = nsmrbac.DeleteAllRoles(client.clientset)
+		client.CleanupCRDs()
+		_ = client.DeleteServiceAccounts()
+		client.CreateServiceAccounts()
+	}
+	client.resourcesBehaviour = prepare
+	client.artifactConf = artifact.ConfigFromEnv()
 	return &client, nil
 }
 
@@ -520,7 +575,9 @@ func (k8s *K8s) initNamespace() {
 		logrus.Errorf("Error during create of test namespace %v", err)
 		k8s.checkAPIServerAvailable()
 	}
-	k8s.g.Expect(err).To(BeNil())
+	if k8s.resourcesBehaviour != ReuseNSMResouces {
+		k8s.g.Expect(err).To(BeNil())
+	}
 }
 
 func (k8s *K8s) describePod(pod *v1.Pod) []v1.Event {
@@ -721,19 +778,38 @@ func (k8s *K8s) Cleanup() {
 
 	k8s.reportSpans()
 	k8s.cleanups()
-
 	logrus.Infof("Cleanup time: %v", time.Since(st))
 }
 
-func (k8s *K8s) cleanups() {
-	if os.Getenv("KUBETEST_NO_CLEANUP") == "true" {
-		return
+func filterNsmInfrastructure(pods ...*v1.Pod) []*v1.Pod {
+	result := []*v1.Pod{}
+	namInfrastructurePodNames := []string{"nsmgr", "forwarder", "spire"}
+	for _, p := range pods {
+		found := false
+		for _, n := range namInfrastructurePodNames {
+			if strings.Contains(p.Name, n) {
+				found = true
+				break
+			}
+		}
+		if found {
+			continue
+		}
+		result = append(result, p)
 	}
+	return result
+}
+
+func (k8s *K8s) cleanups() {
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		_ = k8s.deletePods(k8s.pods...)
+		if k8s.resourcesBehaviour == ReuseNSMResouces {
+			_ = k8s.deletePods(filterNsmInfrastructure(k8s.pods...)...)
+		} else {
+			_ = k8s.deletePods(k8s.pods...)
+		}
 	}()
 
 	wg.Add(1)
@@ -747,23 +823,26 @@ func (k8s *K8s) cleanups() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		k8s.CleanupCRDs()
-	}()
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
 		k8s.CleanupConfigMaps()
 	}()
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		k8s.roles, _ = k8s.DeleteRoles(k8s.roles)
-	}()
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		_ = k8s.DeleteServiceAccounts()
-	}()
+
+	if k8s.resourcesBehaviour != ReuseNSMResouces {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			_ = k8s.DeleteServiceAccounts()
+		}()
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			k8s.roles, _ = k8s.DeleteRoles(k8s.roles)
+		}()
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			k8s.CleanupCRDs()
+		}()
+	}
 
 	wg.Wait()
 	k8s.pods = nil
@@ -1241,11 +1320,21 @@ func (k8s *K8s) CreateTestNamespace(namespace string) (string, error) {
 	if len(namespace) == 0 || namespace == "default" {
 		return "default", nil
 	}
-	nsTemplate := &v1.Namespace{
-		ObjectMeta: metaV1.ObjectMeta{
-			GenerateName: namespace + "-",
-		},
+	var nsTemplate *v1.Namespace
+	if os.Getenv("FIXED_NAMESPACE") == "true" {
+		nsTemplate = &v1.Namespace{
+			ObjectMeta: metaV1.ObjectMeta{
+				Name: namespace,
+			},
+		}
+	} else {
+		nsTemplate = &v1.Namespace{
+			ObjectMeta: metaV1.ObjectMeta{
+				GenerateName: namespace + "-",
+			},
+		}
 	}
+
 	nsNamespace, err := k8s.clientset.CoreV1().Namespaces().Create(nsTemplate)
 	if err != nil {
 		nsRes := ""

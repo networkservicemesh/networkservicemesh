@@ -14,19 +14,17 @@ import (
 	"os"
 	"strings"
 	"sync"
-	"testing"
 	"time"
-
-	"github.com/networkservicemesh/networkservicemesh/pkg/security"
 
 	"k8s.io/client-go/util/cert"
 	"k8s.io/client-go/util/keyutil"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/properties"
-
 	"github.com/pkg/errors"
 
+	"github.com/networkservicemesh/networkservicemesh/pkg/security"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	tools_jaeger "github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
 
 	"github.com/networkservicemesh/networkservicemesh/test/applications/cmd/icmp-responder-nse/flags"
 
@@ -112,13 +110,45 @@ func SetupNodesConfig(k8s *K8s, nodesCount int, timeout time.Duration, conf []*p
 	var jaegerPod *v1.Pod
 	k8s.g.Expect(len(nodes) >= nodesCount).To(Equal(true),
 		"At least one Kubernetes node is required for this test")
-	if jaeger.ShouldStoreJaegerTraces() {
+	if tools_jaeger.IsOpentracingEnabled() && jaeger.AgentHost.IsEmpty() && k8s.artifactConf.SaveBehavior() != 0 {
 		jaegerPod = k8s.CreatePod(pods.Jaeger())
 		k8s.WaitLogsContains(jaegerPod, jaegerPod.Spec.Containers[0].Name, "Starting HTTP server", timeout)
-		jaeger.JaegerAgentHost.Set(jaegerPod.Status.PodIP)
+		jaeger.AgentHost.Set(jaegerPod.Status.PodIP)
 	}
 	var wg sync.WaitGroup
-	confs := make([]*NodeConf, nodesCount)
+	confs := make([]*NodeConf, 2)
+	if k8s.resourcesBehaviour == ReuseNSMResouces {
+		pods := k8s.ListPods()
+		for j := range nodes {
+			node := &nodes[j]
+			confs[j] = new(NodeConf)
+			confs[j].Node = node
+			for i := range pods {
+				pod := &pods[i]
+				if pod.Spec.NodeName == node.Name {
+					if strings.Contains(pod.Name, "nsmgr") {
+						confs[j].Nsmd = pod
+					}
+				}
+				if pod.Spec.NodeName == node.Name {
+					if strings.Contains(pod.Name, "forwarder") {
+						confs[j].Forwarder = pod
+					}
+				}
+			}
+		}
+		fill := true
+		for j := 0; j < nodesCount; j++ {
+			c := confs[j]
+			if c.Forwarder == nil || c.Nsmd == nil {
+				fill = false
+				break
+			}
+		}
+		if fill {
+			return confs, nil
+		}
+	}
 	var resultError error
 	for ii := 0; ii < nodesCount; ii++ {
 		wg.Add(1)
@@ -866,17 +896,6 @@ func IsNsePinged(k8s *K8s, from *v1.Pod) (result bool) {
 	return result
 }
 
-// PrintErrors - Print errors for system NSMgr pods
-func PrintErrors(failures []string, k8s *K8s, nodesSetup []*NodeConf, nscInfo *NSCCheckInfo, t *testing.T) {
-	if len(failures) > 0 {
-		logrus.Errorf("Failures: %v", failures)
-		makeLogsSnapshot(k8s, t)
-		nscInfo.PrintLogs()
-
-		t.Fail()
-	}
-}
-
 //NSLookup invokes nslookup on pod with concrete hostname. Tries several times
 func NSLookup(k8s *K8s, pod *v1.Pod, hostname string) bool {
 	for i := 0; i < 10; i++ {
@@ -918,7 +937,7 @@ func ServiceRegistryAt(k8s *K8s, nsmgr *v1.Pod) (serviceregistry.ServiceRegistry
 	return sr, fwd.Stop
 }
 
-// PrepareRegistryClients prepare nse and nsm registry clients
+// PrepareRegistryClients resourcesBehaviour nse and nsm registry clients
 func PrepareRegistryClients(k8s *K8s, nsmd *v1.Pod) (registry.NetworkServiceRegistryClient, registry.NsmRegistryClient, func()) {
 	serviceRegistry, closeFunc := ServiceRegistryAt(k8s, nsmd)
 

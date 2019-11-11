@@ -1,4 +1,4 @@
-// +build basic
+// +build suite basic
 
 package nsmd_integration_tests
 
@@ -14,7 +14,7 @@ import (
 func Test_createNSMNamespace(t *testing.T) {
 	g := NewWithT(t)
 
-	k8s, err := kubetest.NewK8s(g, true)
+	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResouces)
 	defer k8s.Cleanup()
 	defer kubetest.MakeLogsSnapshot(k8s, t)
 

@@ -45,7 +45,7 @@ type jaegerAPIClient struct {
 
 //GetJaegerTraces rerturns map of service and traces
 func GetJaegerTraces(k8s *K8s, jaegerPod *v1.Pod) map[string]string {
-	fwd, err := k8s.NewPortForwarder(jaegerPod, jaeger.GetJaegerRestAPIPort())
+	fwd, err := k8s.NewPortForwarder(jaegerPod, jaeger.GetRestAPIPort())
 	k8s.g.Expect(err).To(gomega.BeNil())
 	err = fwd.Start()
 	k8s.g.Expect(err).To(gomega.BeNil())

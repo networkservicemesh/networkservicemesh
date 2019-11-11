@@ -89,3 +89,8 @@ func (v EnvVar) GetOrDefaultDuration(defaultValue time.Duration) time.Duration {
 func (v EnvVar) Name() string {
 	return string(v)
 }
+
+//IsEmpty returns true if value of env variable is not set
+func (v EnvVar) IsEmpty() bool {
+	return v.StringValue() == ""
+}

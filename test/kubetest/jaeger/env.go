@@ -26,26 +26,18 @@ import (
 )
 
 const (
-	jaegerPrefix = "JAEGER"
-	//StoreJaegerTraces env variable represents boolean, means store jaeger traces as files
-	StoreJaegerTraces utils.EnvVar = "STORE_JAEGER_TRACES"
-	//StoreJaegerTracesInAnyCases env variable represents boolean, means store jaeger traces if test passed
-	StoreJaegerTracesInAnyCases utils.EnvVar = "STORE_JAEGER_TRACES_IN_ANY_CASE"
-	//JaegerRestAPIPort means port of ingester api server
-	JaegerRestAPIPort utils.EnvVar = "JAEGER_REST_API_PORT"
-	//JaegerAgentHost the hostname for communicating with agent via UDP
-	JaegerAgentHost utils.EnvVar = "JAEGER_AGENT_HOST"
+	prefix = "JAEGER"
+	//RestAPIPort means port of ingester api server
+	RestAPIPort utils.EnvVar = "JAEGER_REST_API_PORT"
+	//AgentHost the hostname for communicating with agent via UDP
+	AgentHost utils.EnvVar = "JAEGER_AGENT_HOST"
+	//ReportSpans
+	ReportSpans utils.EnvVar = "REPORT_JAEGER_SPANS"
 )
 
-//ShouldStoreJaegerTraces means store jaeger traces as files
-func ShouldStoreJaegerTraces() bool {
-	return StoreJaegerTraces.GetBooleanOrDefault(false) &&
-		utils.EnvVar("TRACER_ENABLED").GetBooleanOrDefault(true)
-}
-
-//GetJaegerRestAPIPort returns jaeger API port
-func GetJaegerRestAPIPort() int {
-	return JaegerRestAPIPort.GetIntOrDefault(16686)
+//GetRestAPIPort returns jaeger API port
+func GetRestAPIPort() int {
+	return RestAPIPort.GetIntOrDefault(16686)
 }
 
 //DefaultEnvValues returns default jaeger env values
@@ -64,7 +56,7 @@ func Env() []v1.EnvVar {
 	defaultEnvs := DefaultEnvValues()
 	result := []v1.EnvVar{}
 	for _, env := range envs {
-		if strings.HasPrefix(env, jaegerPrefix) {
+		if strings.HasPrefix(env, prefix) {
 			envParts := strings.Split(env, "=")
 			if len(envParts) < 2 {
 				continue
