@@ -3,7 +3,7 @@ version: 1.0
 providers:
   - name: "packet"
     kind: "packet"
-    instances: 2
+    instances: 6
     retry: 5
     node-count: 2
     enabled: true
@@ -35,7 +35,7 @@ providers:
         - baremetal
         - layer_2
         - global_ipv4
-      preferred-facility: sea1
+      preferred-facility: sjc1
     scripts:
       install: "echo all deps installed"
       setup: |
