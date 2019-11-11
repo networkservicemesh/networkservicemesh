@@ -30,7 +30,7 @@ import (
 const (
 	containerRepoEnv                   = "CONTAINER_REPO"
 	containerTagEnv                    = "CONTAINER_TAG"
-	containerTagDefault                = "latest"
+	containerTagDefault                = "master"
 	containerForcePullEnv              = "CONTAINER_FORCE_PULL"
 	jaegerVersionEnv      utils.EnvVar = "JAEGER_IMAGE_VERSION"
 	containerRepoDefault               = "networkservicemesh"
@@ -38,7 +38,7 @@ const (
 )
 
 var containerRepo = ""
-var containerTag = "latest"
+var containerTag = containerTagDefault
 var containerForcePull = false
 var jaegerVersion = ""
 
