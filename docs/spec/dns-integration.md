@@ -11,9 +11,7 @@ Overview
 
 The DNS integration capability is performed by running a DNS server co-resident with the application pod that can direct requests to multiple DNS servers. The DNS servers that should be sent requests is controlled by the NSEs that create connections into that application pod.  If the NSEs populate the DNSContext with a DNS server appropriate for this connection then additional containers in the application pod will ensure those DNS servers are consulted. The additional containers are nsm-coredns and nsm-dns-monitor.  They can be inserted directly or via the admission webhook.  The nsm-coredns container is responsible for handling the DNS resolution mechanics. The nsm-dns-monitor container is responsible for updating the configuration that the nsm-coredns container acts on based on DNS information in the connection contexts provided by the NSEs.
 
-The NSM provided SDK provides a capability to read environmental varibles to determine additional DNS servers and domains that should be added to the DNScontext.  These variables are: DNS_SEARCH_DOMAINS and DNS_SERVER_IPS.
-
-Note:  Some of the additional DNS configuration capabilites K8s offers are overridden adn not availabel when these additional containers are inserted.
+The NSM endpoint SDK provides two functions `NewAddDNSConfigs` and  `NewAddDnsConfigDstIp` to update the connection context so the nsm-dns-monitor can update the coredns configuration.
 
 Implementation details (optional)
 ---------------------------------
@@ -97,12 +95,8 @@ See an example of usage `nsm-dns-monitor` in `test/applications/cmd/monitoring-d
 To inject the `nsm-coredns` and `nsm-dns-monitor` containers into a client's pod during deployment, you can simply deploy the [admission webhook](https://github.com/networkservicemesh/networkservicemesh/blob/master/docs/spec/admission.md). `Admission webhook` will automatically append the DNS specific containers to your `Network Service Client`.  When using the admission webhook there is no way to disable the insertion of these additional containers.
 
 ## NSE Requirements
-In order for the application pod to try multiple DNS servers the NSEs must populate the DNScontext.   The SDK provides a means to populate the DNScontext based on environmental variables provided to the NSE container. These variables are: DNS_SEARCH_DOMAINS and DNS_SERVER_IPS.  The [icmp-responer](test/applications/cmd/icmp-responder-nse/main.go) has an example implementation.
-
-
-Disabling NSM DNS resolution
-----------------------------
-TODO
+In order for the application pod to try multiple DNS servers the NSEs must populate the DNScontext.
+The SDK provides functions that the NSE can call to populate the DNScontext.  An example on how this is done using environmental variables is available here: [icmp-responder](test/applications/cmd/icmp-responder-nse/main.go). The environmental variables used are DNS_SEARCH_DOMAINS and DNS_SERVER_IPS.
 
 Example usage (optional)
 ------------------------
