@@ -307,6 +307,10 @@ func (ctx *executionContext) assignTasks() {
 		// Check if we have cluster we could assign.
 		newTasks := []*testTask{}
 		for _, task := range ctx.tasks {
+			if task.test.Status == model.StatusSkipped {
+				logrus.Infof("Ignoring skipped task:  %s", task.test.Name)
+				continue
+			}
 			clustersAvailable, clustersToUse, assigned := ctx.selectClusterForTask(task)
 			if assigned {
 				// Start task execution.
@@ -569,8 +573,10 @@ func (ctx *executionContext) createTasks() {
 			}
 		}
 
-		if task != nil && len(task.clusters) < test.ExecutionConfig.ClusterCount {
-			logrus.Errorf("not all clusters are defined for test %v %v", test.Name, task)
+		if task == nil {
+			logrus.Errorf("%s: no clusters defined of required %v", test.Name, selector)
+		} else if len(task.clusters) < test.ExecutionConfig.ClusterCount {
+			logrus.Errorf("%s: not all clusters defined of required %v", test.Name, selector)
 			task.test.Status = model.StatusSkipped
 		}
 	}
