@@ -108,11 +108,14 @@ func DeployCorefile(k8s *K8s, name, content string) error {
 
 // SetupNodesConfig - Setup NSMgr and Forwarder for particular number of nodes in cluster
 func SetupNodesConfig(k8s *K8s, nodesCount int, timeout time.Duration, conf []*pods.NSMgrPodConfig, namespace string) ([]*NodeConf, error) {
+	if k8s.resourcesBehaviour == ReuseNSMResouces {
+		nodesCount = 2
+	}
 	nodes := k8s.GetNodesWait(nodesCount, timeout)
 	var jaegerPod *v1.Pod
 	k8s.g.Expect(len(nodes) >= nodesCount).To(Equal(true),
 		"At least one Kubernetes node is required for this test")
-	if tools_jaeger.IsOpentracingEnabled() && jaeger.AgentHost.IsEmpty() && k8s.artifactConf.SaveBehavior() != 0 {
+	if tools_jaeger.IsOpentracingEnabled() && jaeger.AgentHost.IsEmpty() && k8s.artifactsConfig.SaveBehavior() != 0 {
 		jaegerPod = k8s.CreatePod(pods.Jaeger())
 		k8s.WaitLogsContains(jaegerPod, jaegerPod.Spec.Containers[0].Name, "Starting HTTP server", timeout)
 		jaeger.AgentHost.Set(jaegerPod.Status.PodIP)

@@ -354,7 +354,7 @@ func blockUntilPodWorking(client kubernetes.Interface, context context.Context, 
 }
 
 type K8s struct {
-	artifactConf       artifact.Config
+	artifactsConfig    artifact.Config
 	clientset          kubernetes.Interface
 	versionedClientSet *versioned.Clientset
 	podLock            sync.Mutex
@@ -506,15 +506,14 @@ func NewK8sWithoutRolesForConfig(g *WithT, prepare ClearOption, kubeconfigPath s
 		return nil, err
 	}
 
-	if prepare == DefaultClear || prepare == ReuseNSMResouces {
+	if prepare != NoClear {
 		start := time.Now()
 		if prepare == ReuseNSMResouces {
 			client.Prepare("vpn", "icmp", "nsc", "source", "dest", "xcon", "nse")
 		} else {
 			client.Prepare("nsmgr", "nsmd", "vppagent", "vpn", "icmp", "nsc", "source", "dest", "xcon", "spire-proxy", "nse")
-			client.CleanupConfigMaps()
 		}
-
+		client.CleanupConfigMaps()
 		client.CleanupServices("nsm-admission-webhook-svc")
 		client.CleanupDeployments()
 		client.CleanupMutatingWebhookConfigurations()
@@ -528,7 +527,7 @@ func NewK8sWithoutRolesForConfig(g *WithT, prepare ClearOption, kubeconfigPath s
 		client.CreateServiceAccounts()
 	}
 	client.resourcesBehaviour = prepare
-	client.artifactConf = artifact.ConfigFromEnv()
+	client.artifactsConfig = artifact.ConfigFromEnv()
 	return &client, nil
 }
 
@@ -571,11 +570,12 @@ func (k8s *K8s) initNamespace() {
 	var err error
 	nsmNamespace := namespace.GetNamespace()
 	k8s.namespace, err = k8s.CreateTestNamespace(nsmNamespace)
-	if err != nil {
-		logrus.Errorf("Error during create of test namespace %v", err)
-		k8s.checkAPIServerAvailable()
-	}
-	if k8s.resourcesBehaviour != ReuseNSMResouces {
+	if os.Getenv("FIXED_NAMESPACE") == "" {
+		if err != nil {
+			logrus.Errorf("Error during create of test namespace %v", err)
+			k8s.checkAPIServerAvailable()
+		}
+
 		k8s.g.Expect(err).To(BeNil())
 	}
 }
@@ -846,7 +846,9 @@ func (k8s *K8s) cleanups() {
 
 	wg.Wait()
 	k8s.pods = nil
-	_ = k8s.DeleteTestNamespace(k8s.namespace)
+	if k8s.resourcesBehaviour != ReuseNSMResouces {
+		_ = k8s.DeleteTestNamespace(k8s.namespace)
+	}
 }
 
 // Prepare prepares the pods
