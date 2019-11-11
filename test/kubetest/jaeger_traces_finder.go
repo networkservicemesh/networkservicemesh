@@ -19,9 +19,10 @@ package kubetest
 import (
 	"sync"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/artifact"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/jaeger"
-	"github.com/sirupsen/logrus"
 )
 
 type jaegerTracesFinder struct {

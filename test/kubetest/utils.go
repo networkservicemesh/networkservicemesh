@@ -22,6 +22,8 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/properties"
 	"github.com/pkg/errors"
 
+	"github.com/pkg/errors"
+
 	"github.com/networkservicemesh/networkservicemesh/pkg/security"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	tools_jaeger "github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
