@@ -16,6 +16,7 @@ If you have another Linux distribution or prefer to go with the upstream, make s
 * [Vagrant](https://www.vagrantup.com/docs/installation/)
 * [Docker](https://docs.docker.com/install/)
 * [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
+* [helm](https://helm.sh/)
 
 ### Getting the Network Service Mesh project
 
@@ -93,7 +94,7 @@ nsmgr   2         2         2       2            2           <none>          19m
 ## Deploy the Monitoring components
 
 ```bash
-helm-install-nsm-monitoring
+make helm-install-nsm-monitoring
 ```
 
 When deployed successfully two `skydive-agent`, one `skydive-analyzer`, one `crossconnect-monitor` and one `jaeger` pod will be running in the nsm-system namespace.
