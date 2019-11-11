@@ -1,4 +1,4 @@
-DNS Integration for NSM
+DNS integration for NSM
 ============================
 
 Specification
@@ -9,7 +9,7 @@ Network Service Mesh needs to be able to provide a workload with DNS resolution 
 Overview
 --------
 
-The DNS integration capability is performed by running a DNS server co-resident with the application pod that can direct requests to multiple DNS servers. The DNS servers that should be sent requests is controlled by the NSEs that create connections into that application pod.  If the NSEs populate the DNSContext with a DNS server appropriate for this connection then additional containers in the application pod will ensure those DNS servers are consulted. The additional containers are nsm-coredns and nsm-dns-monitor.  They can be inserted directly or via the admission webhook.  The nsm-coredns container is responsible for handling the DNS resolution mechanics. The nsm-dns-monitor container is responsible for updating the configuration that the nsm-coredns container acts on based on DNS information in the connection contexts provided by the NSEs.
+The DNS integration capability is performed by running a DNS server co-resident with the application pod that can direct requests to multiple DNS servers. The DNS servers that should be sent requests are controlled by the NSEs that create connections into that application pod.  If the NSEs populate the DNSContext with a DNS server appropriate for this connection then additional containers in the application pod will ensure those DNS servers are consulted. The additional containers are nsm-coredns and nsm-dns-monitor.  They can be inserted directly or via the admission webhook.  The nsm-coredns container is responsible for handling the DNS resolution mechanics. The nsm-dns-monitor container is responsible for updating the configuration that the nsm-coredns container acts on based on DNS information in the connection contexts provided by the NSEs.
 
 The NSM endpoint SDK provides two functions `NewAddDNSConfigs` and  `NewAddDnsConfigDstIp` to update the connection context so the nsm-dns-monitor can update the coredns configuration.
 
@@ -96,7 +96,7 @@ To inject the `nsm-coredns` and `nsm-dns-monitor` containers into a client's pod
 
 ## NSE Requirements
 In order for the application pod to try multiple DNS servers the NSEs must populate the DNScontext.
-The SDK provides functions that the NSE can call to populate the DNScontext.  An example on how this is done using environmental variables is available here: [icmp-responder](test/applications/cmd/icmp-responder-nse/main.go). The environmental variables used are DNS_SEARCH_DOMAINS and DNS_SERVER_IPS.
+The SDK provides functions that the NSE can call to populate the DNScontext.  An example of how this is done using environmental variables is available here: [icmp-responder](test/applications/cmd/icmp-responder-nse/main.go). The environmental variables used are DNS_SEARCH_DOMAINS and DNS_SERVER_IPS.
 
 Example usage (optional)
 ------------------------
