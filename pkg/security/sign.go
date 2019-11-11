@@ -293,6 +293,8 @@ func verifyJWK(ctx context.Context, spiffeID string, jwk *jose.JSONWebKey, caBun
 		Intermediates: interm,
 	})
 
+	span.Logger().Infof("len(caBundle.Subjects()) = %v", len(caBundle.Subjects()))
+	span.Logger().Infof("len(jwk.Certificates) = %v", len(jwk.Certificates))
 	span.Logger().Infof("leaf.Verify takes %v", time.Since(tv))
 
 	if err != nil {
