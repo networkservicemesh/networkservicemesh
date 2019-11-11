@@ -18,6 +18,7 @@ func NewNetworkServiceServer(model model.Model, ws *Workspace,
 		local.NewConnectionService(model),
 		local.NewForwarderService(model, nsmManager.ServiceRegistry()),
 		local.NewEndpointSelectorService(nsmManager.NseManager()),
+		common.NewExcludedPrefixesService(),
 		local.NewEndpointService(nsmManager.NseManager(), nsmManager.GetHealProperties(), nsmManager.Model()),
 		common.NewCrossConnectService(),
 	)

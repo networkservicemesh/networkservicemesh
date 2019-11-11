@@ -17,7 +17,8 @@ K8S_CONF_DIR = k8s/conf
 CLUSTER_CONFIG_ROLE = cluster-role-admin cluster-role-binding cluster-role-view
 CLUSTER_CONFIG_CRD = crd-networkservices crd-networkserviceendpoints crd-networkservicemanagers
 CLUSTER_CONFIG_NAMESPACE = namespace-nsm
-CLUSTER_CONFIGS = $(CLUSTER_CONFIG_ROLE) $(CLUSTER_CONFIG_CRD) $(CLUSTER_CONFIG_NAMESPACE)
+CLUSTER_CONFIGS = $(CLUSTER_CONFIG_ROLE) $(CLUSTER_CONFIG_CRD) $(CLUSTER_CONFIG_NAMESPACE) \
+	nsm-configmap
 
 ifeq ($(NSM_NAMESPACE),)
 NSM_NAMESPACE = `cat "${K8S_CONF_DIR}/${CLUSTER_CONFIG_NAMESPACE}.yaml" | awk '/name:/ {print $$2}'`
@@ -61,7 +62,7 @@ k8s-%-load-images:  k8s-start $(CLUSTER_RULES_PREFIX)-%-load-images
 	@echo "Delegated to $(CLUSTER_RULES_PREFIX)-$*-load-images"
 
 .PHONY: k8s-%-config
-k8s-%-config:  k8s-start
+k8s-%-config:  k8s-start ${K8S_CONF_DIR}/%.yaml
 	@$(kubectl) apply -f ${K8S_CONF_DIR}/$*.yaml
 
 .PHONY: k8s-%-deconfig
