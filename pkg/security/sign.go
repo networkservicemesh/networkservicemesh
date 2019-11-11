@@ -22,6 +22,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"hash/fnv"
+	"reflect"
 	"strings"
 	"time"
 
@@ -113,6 +114,7 @@ func GenerateSignature(ctx context.Context, msg interface{}, claimsSetter Claims
 	}
 
 	var xcerts []*x509.Certificate
+	span.Logger().Infof("Private key type = %v", reflect.TypeOf(p.GetCertificate().PrivateKey))
 
 	for _, c := range p.GetCertificate().Certificate {
 		crt, err := x509.ParseCertificate(c)

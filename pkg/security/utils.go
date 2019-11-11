@@ -19,6 +19,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"reflect"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/pkg/errors"
@@ -180,6 +181,7 @@ func spiffeIDFromPeer(p *peer.Peer) (string, error) {
 
 func certToPemBlocks(data []byte) ([]byte, error) {
 	certs, err := x509.ParseCertificates(data)
+	logrus.Infof("CA BUNDLE TYPE = %v %v", reflect.TypeOf(certs[0].PublicKey), certs[0].PublicKeyAlgorithm)
 	if err != nil {
 		return nil, err
 	}

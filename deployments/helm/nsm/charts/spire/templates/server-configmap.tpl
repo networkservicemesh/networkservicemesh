@@ -19,6 +19,7 @@ data:
       log_level = "DEBUG"
       svid_ttl = "1h"
       upstream_bundle = true
+      ca_key_type = "rsa-2048"
       ca_subject = {
         Country = ["US"],
         Organization = ["SPIFFE"],
