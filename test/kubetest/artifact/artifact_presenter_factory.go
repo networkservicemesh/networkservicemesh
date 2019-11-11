@@ -29,15 +29,18 @@ type defaultFactory struct {
 }
 
 func (f *defaultFactory) Hooks(config Config) []Hook {
-	return []Hook{Archivator(config)}
+	if config.SaveBehavior()&SaveAsArchive != 0 {
+		return []Hook{Archivator(config)}
+	}
+	return nil
 }
 
 func (f *defaultFactory) Presenter(config Config) Presenter {
 	combined := &combinedPresenter{}
-	if config.SaveBehavior()&SaveAsDir == 1 {
+	if config.SaveBehavior()&SaveAsDir != 0 {
 		combined.presenters = append(combined.presenters, &filePresenter{path: config.OutputPath()})
 	}
-	if config.SaveBehavior()&PrintToConsole == 1 {
+	if config.SaveBehavior()&PrintToConsole != 0 {
 		combined.presenters = append(combined.presenters, &consolePresnter{})
 	}
 	return combined
