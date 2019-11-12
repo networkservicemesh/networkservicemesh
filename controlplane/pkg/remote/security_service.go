@@ -18,8 +18,9 @@ package remote
 
 import (
 	"context"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 
-	"github.com/networkservicemesh/networkservicemesh/sdk/common"
+	sdkcommon "github.com/networkservicemesh/networkservicemesh/sdk/common"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/sirupsen/logrus"
@@ -43,7 +44,7 @@ func NewSecurityService(provider security.Provider) *securityService {
 func (s *securityService) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 	span := spanhelper.GetSpanHelper(ctx)
 
-	conn, err := ProcessNext(ctx, request)
+	conn, err := common.ProcessNext(ctx, request)
 	if err != nil {
 		span.LogError(err)
 		return nil, err
@@ -54,7 +55,7 @@ func (s *securityService) Request(ctx context.Context, request *networkservice.N
 		return conn, nil
 	}
 
-	sign, err := security.GenerateSignature(ctx, conn, common.ConnectionFillClaimsFunc, s.provider, security.WithObo(security.SecurityContext(ctx).GetResponseOboToken()))
+	sign, err := security.GenerateSignature(ctx, conn, sdkcommon.ConnectionFillClaimsFunc, s.provider, security.WithObo(security.SecurityContext(ctx).GetResponseOboToken()))
 	if err != nil {
 		span.LogError(err)
 		return nil, err
@@ -65,5 +66,5 @@ func (s *securityService) Request(ctx context.Context, request *networkservice.N
 }
 
 func (s *securityService) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
-	return ProcessClose(ctx, connection)
+	return common.ProcessClose(ctx, connection)
 }
