@@ -66,8 +66,7 @@ jobs:
       - run: mkdir -p ~/junit/
       - run:
           command: |
-            export COMMIT="ci_${CIRCLE_WORKFLOW_ID}_${CIRCLE_SHA1:8:8}"
-            export CONTAINER_TAG="${COMMIT}"
+            export CONTAINER_TAG="ci_${CIRCLE_WORKFLOW_ID}_${CIRCLE_SHA1:8:8}"
             export CONTAINER_REPO="networkservicemeshci"
             export CONTAINER_FORCE_PULL="true"
             export INSECURE="true"
@@ -142,8 +141,7 @@ jobs:
       - run:
           name: Downloading go deps
           command: |
-            export COMMIT="ci_${CIRCLE_WORKFLOW_ID}_${CIRCLE_SHA1:8:8}"
-            export CONTAINER_TAG="${COMMIT}"
+            export CONTAINER_TAG="ci_${CIRCLE_WORKFLOW_ID}_${CIRCLE_SHA1:8:8}"
             ./scripts/go-mod-download.sh
           no_output_timeout: 40m
       - run:
@@ -154,11 +152,10 @@ jobs:
       - run:
           name: Running integration tests
           command: |
-            export COMMIT="ci_${CIRCLE_WORKFLOW_ID}_${CIRCLE_SHA1:8:8}"
-            export CONTAINER_TAG="${COMMIT}"
+            export CONTAINER_TAG="ci_${CIRCLE_WORKFLOW_ID}_${CIRCLE_SHA1:8:8}"
             export REPO="networkservicemeshci"
             export CONTAINER_REPO=${REPO}
-            echo "CONTAINER_REPO=${CONTAINER_REPO} COMMIT=${COMMIT}"
+            echo "CONTAINER_REPO=${CONTAINER_REPO}"
             if [ "${CIRCLE_BRANCH}" == "master" ]; then
               export STORE_LOGS_IN_ANY_CASES=true
             fi
@@ -191,8 +188,7 @@ jobs:
       - run:
           name: Build containers
           command: |
-            export COMMIT="ci_${CIRCLE_WORKFLOW_ID}_${CIRCLE_SHA1:8:8}"
-            export TAG="${COMMIT}"
+            export CONTAINER_TAG="ci_${CIRCLE_WORKFLOW_ID}_${CIRCLE_SHA1:8:8}"
             export CONTAINER_REPO="networkservicemeshci"
             export GOPROXY=https://proxy.golang.org,direct
             # resource_class xlarge has 8 core, multiple by 1.5 for hyperthreading for -j factor
@@ -211,9 +207,8 @@ jobs:
           docker_layer_caching: true
       - run:
           command: |
-            export COMMIT="ci_${CIRCLE_WORKFLOW_ID}_${CIRCLE_SHA1:8:8}"
-            export PULL_TAG="${COMMIT}"
-            export TAG="<< parameters.tag >>"
+            export PULL_TAG="ci_${CIRCLE_WORKFLOW_ID}_${CIRCLE_SHA1:8:8}"
+            export CONTAINER_TAG="<< parameters.tag >>"
             export REPO="networkservicemesh"
             export PULL_REPO="networkservicemeshci"
             export CONTAINERS=(nsmd nsmd-k8s nsmdp)
@@ -226,8 +221,8 @@ jobs:
             echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
             for c in ${CONTAINERS[@]}; do
               docker pull ${PULL_REPO}/${c}:${PULL_TAG}
-              docker tag ${PULL_REPO}/${c}:${PULL_TAG} ${REPO}/${c}:${TAG}
-              docker push ${REPO}/${c}:${TAG}
+              docker tag ${PULL_REPO}/${c}:${PULL_TAG} ${REPO}/${c}:${CONTAINER_TAG}
+              docker push ${REPO}/${c}:${CONTAINER_TAG}
             done
 
 # helm

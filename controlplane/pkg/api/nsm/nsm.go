@@ -17,11 +17,12 @@ package nsm
 import (
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/properties"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/plugins"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
@@ -85,7 +86,7 @@ type MonitorManager interface {
 
 //NetworkServiceManager - hold useful nsm structures
 type NetworkServiceManager interface {
-	GetHealProperties() *nsm.Properties
+	GetHealProperties() *properties.Properties
 	WaitForForwarder(ctx context.Context, duration time.Duration) error
 	RemoteConnectionLost(ctx context.Context, clientConnection ClientConnection)
 	NotifyRenamedEndpoint(nseOldName, nseNewName string)

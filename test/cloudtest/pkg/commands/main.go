@@ -288,7 +288,7 @@ func (ctx *executionContext) performExecution() error {
 			}
 		case <-timectx.Done():
 			ctx.printStatistics()
-			timectx, cancelfunc = context.WithTimeout(context.Background(), 30*time.Second)
+			timectx, cancelfunc = context.WithTimeout(context.Background(), 1*time.Minute)
 			defer cancelfunc()
 		case <-termChannel:
 			return errors.New("termination request is received")
@@ -307,6 +307,10 @@ func (ctx *executionContext) assignTasks() {
 		// Check if we have cluster we could assign.
 		newTasks := []*testTask{}
 		for _, task := range ctx.tasks {
+			if task.test.Status == model.StatusSkipped {
+				logrus.Infof("Ignoring skipped task:  %s", task.test.Name)
+				continue
+			}
 			clustersAvailable, clustersToUse, assigned := ctx.selectClusterForTask(task)
 			if assigned {
 				// Start task execution.
@@ -375,9 +379,9 @@ func (ctx *executionContext) processTaskUpdate(event operationEvent) {
 		logrus.Infof("Complete task: %s Status: %v on cluster: %s, Elapsed: %v (%d) Remaining: %v (%d)",
 			event.task.test.Name,
 			statusName(event.task.test.Status),
-			event.task.clusterTaskID, elapsed,
+			event.task.clusterTaskID, elapsed.Round(time.Second),
 			len(ctx.completed),
-			time.Duration(len(ctx.tasks)+len(ctx.running))*oneTask,
+			(time.Duration(len(ctx.tasks)+len(ctx.running)) * oneTask).Round(time.Second),
 			len(ctx.running)+len(ctx.tasks))
 
 		for ind, cl := range event.task.clusters {
@@ -455,7 +459,7 @@ func (ctx *executionContext) printStatistics() {
 	elapsedRunning = time.Since(ctx.clusterReadyTime)
 	running := ""
 	for _, r := range ctx.running {
-		running += fmt.Sprintf("\t\t%s on cluster %v elapsed: %v\n", r.test.Name, r.clusterTaskID, time.Since(r.test.Started))
+		running += fmt.Sprintf("\t\t%s on cluster %v elapsed: %v\n", r.test.Name, r.clusterTaskID, time.Since(r.test.Started).Round(time.Second))
 	}
 	ctx.RUnlock()
 
@@ -471,7 +475,7 @@ func (ctx *executionContext) printStatistics() {
 		ctx.RLock()
 		for _, inst := range cl.instances {
 			_, _ = clustersMsg.WriteString(fmt.Sprintf("\t\t\t%s %v uptime: %v\n", inst.id, fromClusterState(inst.state),
-				time.Since(inst.startTime)))
+				time.Since(inst.startTime).Round(time.Second)))
 		}
 		ctx.RUnlock()
 	}
@@ -479,7 +483,7 @@ func (ctx *executionContext) printStatistics() {
 	remaining := ""
 	if len(ctx.completed) > 0 {
 		oneTask := elapsed / time.Duration(len(ctx.completed))
-		remaining = fmt.Sprintf("%v", time.Duration(len(ctx.tasks)+len(ctx.running))*oneTask)
+		remaining = fmt.Sprintf("%v", (time.Duration(len(ctx.tasks)+len(ctx.running)) * oneTask).Round(time.Second))
 	}
 
 	successTests := 0
@@ -506,8 +510,8 @@ func (ctx *executionContext) printStatistics() {
 	}
 
 	logrus.Infof("Statistics:" +
-		fmt.Sprintf("\n\tElapsed total: %v", elapsed) +
-		fmt.Sprintf("\n\tTests time: %v", elapsedRunning) +
+		fmt.Sprintf("\n\tElapsed total: %v", elapsed.Round(time.Second)) +
+		fmt.Sprintf("\n\tTests time: %v", elapsedRunning.Round(time.Second)) +
 		fmt.Sprintf("\n\tTasks  Completed: %d", len(ctx.completed)) +
 		fmt.Sprintf("\n\t		Remaining: %v (%d).\n", remaining, len(ctx.running)+len(ctx.tasks)) +
 		fmt.Sprintf("%s%s", running, clustersMsg.String()) +
@@ -569,8 +573,10 @@ func (ctx *executionContext) createTasks() {
 			}
 		}
 
-		if task != nil && len(task.clusters) < test.ExecutionConfig.ClusterCount {
-			logrus.Errorf("not all clusters are defined for test %v %v", test.Name, task)
+		if task == nil {
+			logrus.Errorf("%s: no clusters defined of required %v", test.Name, selector)
+		} else if len(task.clusters) < test.ExecutionConfig.ClusterCount {
+			logrus.Errorf("%s: not all clusters defined of required %v", test.Name, selector)
 			task.test.Status = model.StatusSkipped
 		}
 	}

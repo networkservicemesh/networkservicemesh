@@ -6,6 +6,8 @@ import (
 )
 
 const (
+	//DefaultAccount creates on namespace creating
+	DefaultAccount = "default"
 	// EnvForwardingPlane is the environment variable for configuring the forwarding plane
 	EnvForwardingPlane = "FORWARDING_PLANE"
 	// EnvForwardingPlaneVPP is the VPP forwarding plane

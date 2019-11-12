@@ -5,11 +5,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/properties"
+
 	"github.com/golang/protobuf/ptypes/empty"
 
 	unified "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	nsm_api "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
-
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 
 	"github.com/gogo/protobuf/proto"
@@ -108,7 +108,7 @@ func newHealTestData() *healTestData {
 	data.healProcessor = &healProcessor{
 		serviceRegistry: data.serviceRegistry,
 		model:           data.model,
-		properties: &nsm_api.Properties{
+		props: &properties.Properties{
 			HealEnabled:               true,
 			HealRetryCount:            1,
 			HealRequestConnectTimeout: 15 * time.Second,

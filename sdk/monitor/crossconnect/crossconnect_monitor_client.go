@@ -20,7 +20,6 @@ func (s *eventStream) Recv() (interface{}, error) {
 
 func newEventStream(ctx context.Context, cc *grpc.ClientConn) (monitor.EventStream, error) {
 	stream, err := crossconnect.NewMonitorCrossConnectClient(cc).MonitorCrossConnects(ctx, &empty.Empty{})
-
 	return &eventStream{
 		MonitorCrossConnect_MonitorCrossConnectsClient: stream,
 	}, err

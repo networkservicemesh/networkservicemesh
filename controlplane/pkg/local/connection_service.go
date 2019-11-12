@@ -46,10 +46,10 @@ func (cce *connectionService) Request(ctx context.Context, request *networkservi
 	span := spanhelper.GetSpanHelper(ctx)
 	span.Logger().Infof("Received request from client to connect to NetworkService: %v", request)
 
-	workspaceName := common.WorkspaceName(ctx)
-
 	id := request.GetRequestConnection().GetId()
 	span.LogValue("connection-id", id)
+
+	workspaceName := common.WorkspaceName(ctx)
 	span.LogValue("workspace", workspaceName)
 
 	// We need to take updated connection in case of updates
@@ -86,7 +86,7 @@ func (cce *connectionService) Request(ctx context.Context, request *networkservi
 	clientConnection.Request = request
 	ctx = common.WithModelConnection(ctx, clientConnection)
 
-	conn, err := ProcessNext(ctx, request)
+	conn, err := common.ProcessNext(ctx, request)
 	if err != nil {
 		if !healing {
 			// In case of error we need to remove it from model
@@ -132,12 +132,13 @@ func (cce *connectionService) createClientConnection(ctx context.Context, reques
 }
 
 func (cce *connectionService) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
-	logrus.Infof("Closing connection: %v", connection)
+	logger := common.Log(ctx)
+	logger.Infof("Closing connection: %v", connection)
 
 	clientConnection := cce.model.GetClientConnection(connection.GetId())
 	if clientConnection == nil {
 		err := errors.Errorf("there is no such client connection %v", connection)
-		logrus.Error(err)
+		logger.Error(err)
 		return nil, err
 	}
 	if clientConnection.ConnectionState == model.ClientConnectionClosing {
@@ -151,9 +152,13 @@ func (cce *connectionService) Close(ctx context.Context, connection *connection.
 	// Pass model connection with context
 	ctx = common.WithModelConnection(ctx, clientConnection)
 
-	_, err := ProcessClose(ctx, connection)
+	_, err := common.ProcessClose(ctx, connection)
 
+	if err != nil {
+		logger.Error(err)
+	}
 	cce.model.DeleteClientConnection(ctx, clientConnection.GetID())
 
+	// Return empty to send update
 	return &empty.Empty{}, err
 }

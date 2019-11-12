@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package local
+package common
 
 import (
 	"context"
@@ -24,12 +24,12 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 )
 
 // CompositeNetworkService is the base service composition struct
 type CompositeNetworkService struct {
-	services []networkservice.NetworkServiceServer
+	services    []networkservice.NetworkServiceServer
+	factoryName string
 }
 
 // Request implements a dummy request handler
@@ -37,10 +37,10 @@ func (cns *CompositeNetworkService) Request(ctx context.Context, request *networ
 	if len(cns.services) == 0 {
 		return request.Connection, nil
 	}
-	ctx = WithNext(ctx, &nextEndpoint{composite: cns, index: 0})
+	ctx = WithNext(ctx, &nextEndpoint{factoryName: cns.factoryName, composite: cns, index: 0})
 
 	if opentracing.IsGlobalTracerRegistered() {
-		ctx = common.WithOriginalSpan(ctx, spanhelper.GetSpanHelper(ctx))
+		ctx = WithOriginalSpan(ctx, spanhelper.GetSpanHelper(ctx))
 	}
 	return cns.services[0].Request(ctx, request)
 }
@@ -55,8 +55,9 @@ func (cns *CompositeNetworkService) Close(ctx context.Context, connection *conne
 }
 
 // NewCompositeService creates a new composed endpoint
-func NewCompositeService(services ...networkservice.NetworkServiceServer) networkservice.NetworkServiceServer {
+func NewCompositeService(factoryName string, services ...networkservice.NetworkServiceServer) networkservice.NetworkServiceServer {
 	return &CompositeNetworkService{
-		services: services,
+		factoryName: factoryName,
+		services:    services,
 	}
 }

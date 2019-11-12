@@ -12,30 +12,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package remote
+package common
 
 import (
 	"context"
 
-	"github.com/pkg/errors"
-
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 )
 
-// сrossConnectService - makes basic Mechanism selection for the incoming connection
+// ConnectionService makes basic Mechanism selection for the incoming connection
 type сrossConnectService struct {
 }
 
 func (cce *сrossConnectService) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
-	logger := common.Log(ctx)
-	endpointConnection := common.EndpointConnection(ctx)
-	endpoint := common.Endpoint(ctx)
-	clientConnection := common.ModelConnection(ctx)
+	logger := Log(ctx)
+	endpointConnection := EndpointConnection(ctx)
+	endpoint := Endpoint(ctx)
+	clientConnection := ModelConnection(ctx)
 
 	if endpointConnection == nil || endpoint == nil || clientConnection == nil {
 		err := errors.Errorf("endpoint connection/Endpoint/ClientConnection should be specified with context")

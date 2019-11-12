@@ -8,9 +8,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/properties"
+
 	v1 "k8s.io/api/core/v1"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 
@@ -21,9 +22,9 @@ import (
 
 var nseNoHealPodConfig = &pods.NSMgrPodConfig{
 	Variables: map[string]string{
-		nsmd.NsmdDeleteLocalRegistry: "true", // Do not use local registry restore for clients/NSEs
-		nsm.NsmdHealDSTWaitTimeout:   "1",    // 1 second
-		nsm.NsmdHealEnabled:          "true",
+		nsmd.NsmdDeleteLocalRegistry:      "true", // Do not use local registry restore for clients/NSEs
+		properties.NsmdHealDSTWaitTimeout: "1",    // 1 second
+		properties.NsmdHealEnabled:        "true",
 	},
 }
 

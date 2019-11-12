@@ -17,6 +17,8 @@ package remote
 import (
 	"context"
 
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
+
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
@@ -56,6 +58,7 @@ func (cce *endpointSelectorService) updateConnection(ctx context.Context, conn *
 
 func (cce *endpointSelectorService) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 	logger := common.Log(ctx)
+	span := spanhelper.GetSpanHelper(ctx)
 	clientConnection := common.ModelConnection(ctx)
 
 	if clientConnection == nil {
@@ -65,8 +68,8 @@ func (cce *endpointSelectorService) Request(ctx context.Context, request *networ
 	// 4. Check if Heal/Update if we need to ask remote NSM or it is a just local mechanism change requested.
 	// true if we detect we need to request NSE to upgrade/update connection.
 	// 4.1 New Network service is requested, we need to close current connection and do re-request of NSE.
-	requestNSEOnUpdate := cce.checkNSERequestIsRequired(ctx, clientConnection, request, logger)
-
+	requestNSEOnUpdate := cce.checkNSEUpdateIsRequired(ctx, clientConnection, request, logger)
+	span.LogObject("requestNSEOnUpdate", requestNSEOnUpdate)
 	// 7. do a Request() on NSE and select it.
 	if clientConnection.ConnectionState == model.ClientConnectionHealing && !requestNSEOnUpdate {
 		return cce.checkUpdateConnectionContext(ctx, request, clientConnection)
@@ -90,14 +93,16 @@ func (cce *endpointSelectorService) Request(ctx context.Context, request *networ
 	// 7.1.6 Update Request with exclude_prefixes, etc
 	nseConn, err := cce.updateConnection(ctx, nseConn)
 	if err != nil {
-		return nil, errors.Errorf("error NSM:(7.1.6) Failed to update connection: %v", err)
+		err = errors.WithMessagef(err, "error NSM:(7.1.6) Failed to update connection")
+		span.LogError(err)
+		return nil, err
 	}
 
 	// 7.1.7 perform request to NSE/remote NSMD/NSE
 	ctx = common.WithEndpoint(ctx, endpoint.Endpoint)
-
+	// Perform passing execution to next chain element.
 	newRequest.Connection = nseConn
-	conn, err := ProcessNext(ctx, newRequest)
+	conn, err := common.ProcessNext(ctx, newRequest)
 
 	// 7.1.8 in case of error we put NSE into ignored list to check another one.
 	if err != nil {
@@ -111,7 +116,7 @@ func (cce *endpointSelectorService) Request(ctx context.Context, request *networ
 	return conn, nil
 }
 
-func (cce *endpointSelectorService) checkNSERequestIsRequired(ctx context.Context, clientConnection *model.ClientConnection, request *networkservice.NetworkServiceRequest, logger logrus.FieldLogger) bool {
+func (cce *endpointSelectorService) checkNSEUpdateIsRequired(ctx context.Context, clientConnection *model.ClientConnection, request *networkservice.NetworkServiceRequest, logger logrus.FieldLogger) bool {
 	requestNSEOnUpdate := false
 	if clientConnection.ConnectionState == model.ClientConnectionHealing {
 		if request.Connection.GetNetworkService() != clientConnection.GetNetworkService() ||
@@ -120,7 +125,7 @@ func (cce *endpointSelectorService) checkNSERequestIsRequired(ctx context.Contex
 
 			// Just close, since client connection already passed with context.
 			// Network service is closing, we need to close remote NSM and re-program local one.
-			if _, err := ProcessClose(ctx, request.GetConnection()); err != nil {
+			if _, err := common.ProcessClose(ctx, request.GetConnection()); err != nil {
 				logger.Errorf("NSM:(4.1) Error during close of NSE during Request.Upgrade %v Existing connection: %v error %v", request, clientConnection, err)
 			}
 		} else if !proto.Equal(request.Connection.GetContext(), clientConnection.GetConnectionSource().GetContext()) {
@@ -172,7 +177,7 @@ func (cce *endpointSelectorService) findMechanism(mechanismPreferences []*connec
 }
 
 func (cce *endpointSelectorService) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
-	return ProcessClose(ctx, connection)
+	return common.ProcessClose(ctx, connection)
 }
 
 func (cce *endpointSelectorService) checkUpdateConnectionContext(ctx context.Context, request *networkservice.NetworkServiceRequest, clientConnection *model.ClientConnection) (*connection.Connection, error) {
@@ -187,7 +192,7 @@ func (cce *endpointSelectorService) checkUpdateConnectionContext(ctx context.Con
 		err = errors.Errorf("NSM:(7.3) Failed to update source connection context: %v", err)
 
 		// Just close since client connection is already passed with context
-		if _, closeErr := ProcessClose(ctx, request.GetConnection()); closeErr != nil {
+		if _, closeErr := common.ProcessClose(ctx, request.GetConnection()); closeErr != nil {
 			logger.Errorf("Failed to perform close: %v", closeErr)
 		}
 		return nil, err
@@ -195,7 +200,7 @@ func (cce *endpointSelectorService) checkUpdateConnectionContext(ctx context.Con
 	return request.Connection, nil
 }
 
-// NewEndpointSelectorService -  creates a service to select remote endpoint.
+// NewEndpointSelectorService -  creates a service to select endpoint.
 func NewEndpointSelectorService(nseManager nsm.NetworkServiceEndpointManager,
 	pluginRegistry plugins.PluginRegistry, model model.Model) networkservice.NetworkServiceServer {
 	return &endpointSelectorService{

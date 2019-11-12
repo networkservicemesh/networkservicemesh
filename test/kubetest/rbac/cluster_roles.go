@@ -16,11 +16,6 @@
 package rbac
 
 import (
-	"context"
-	"sync"
-	"time"
-
-	"github.com/sirupsen/logrus"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -30,8 +25,6 @@ type Role interface {
 	Create(kubernetes.Interface) error
 	Delete(kubernetes.Interface, string) error
 	GetName() string
-	//Wait - workaround for https://github.com/kubernetes/kubernetes/issues/66689
-	Wait(context.Context, kubernetes.Interface) error
 }
 
 type ClusterRole struct {
@@ -51,45 +44,10 @@ func (r *ClusterRole) GetName() string {
 	return r.ObjectMeta.Name
 }
 
-func (r *ClusterRole) Wait(ctx context.Context, client kubernetes.Interface) error {
-	return waitFor(ctx, func() bool {
-		_, err := client.RbacV1().ClusterRoles().Get(r.Name, metav1.GetOptions{})
-		if err != nil {
-			logrus.Infof("An error during get cluster role: %v", err)
-			return false
-		}
-		return true
-	})
-}
-
 type ClusterRoleBinding struct {
 	rbacv1.ClusterRoleBinding
 }
 
-func (r *ClusterRoleBinding) Wait(ctx context.Context, client kubernetes.Interface) error {
-	return waitFor(ctx, func() bool {
-		role, err := client.RbacV1().ClusterRoleBindings().Get(r.Name, metav1.GetOptions{})
-		if err != nil {
-			logrus.Infof("An error during get clustr role bindings: %v", err)
-			return false
-		}
-		if len(role.Subjects) != len(r.Subjects) {
-			logrus.Infof("Incomming role binding has incorrect size, %v != %v", r.ClusterRoleBinding, role)
-			return false
-		}
-		subject := &role.Subjects[0]
-		if subject.Namespace != r.Subjects[0].Namespace {
-			logrus.Infof("Incomming role binding has wrong subject, %v != %v", r.ClusterRoleBinding.Subjects, role.Subjects)
-			return false
-		}
-
-		if _, err = client.CoreV1().ServiceAccounts(subject.Namespace).Get(subject.Name, metav1.GetOptions{}); err != nil {
-			logrus.Infof("Service account not created, err: %v", err)
-			return false
-		}
-		return true
-	})
-}
 func (r *ClusterRoleBinding) Create(clientset kubernetes.Interface) error {
 	_, err := clientset.RbacV1().ClusterRoleBindings().Create(&r.ClusterRoleBinding)
 	return err
@@ -229,27 +187,4 @@ func DeleteAllRoles(clientset kubernetes.Interface) error {
 	(&ClusterRoleBinding{}).Delete(clientset, RoleNames["binding"])
 
 	return nil
-}
-
-func waitFor(ctx context.Context, exit func() bool) error {
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-	var err error
-	go func() {
-		defer wg.Done()
-		for {
-			select {
-			case <-ctx.Done():
-				err = ctx.Err()
-				return
-			default:
-				if exit() {
-					return
-				}
-				<-time.After(time.Millisecond * 200)
-			}
-		}
-	}()
-	wg.Wait()
-	return err
 }

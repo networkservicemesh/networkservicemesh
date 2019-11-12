@@ -119,7 +119,7 @@ func (cce *forwarderService) Request(ctx context.Context, request *networkservic
 	span.LogObject("dataplane", dp)
 
 	ctx = common.WithForwarder(ctx, dp)
-	conn, connErr := ProcessNext(ctx, request)
+	conn, connErr := common.ProcessNext(ctx, request)
 	if connErr != nil {
 		return conn, connErr
 	}
@@ -148,7 +148,7 @@ func (cce *forwarderService) doFailureClose(ctx context.Context) {
 func (cce *forwarderService) Close(ctx context.Context, conn *connection.Connection) (*empty.Empty, error) {
 	cc := common.ModelConnection(ctx)
 	logger := common.Log(ctx)
-	empt, err := ProcessClose(ctx, conn)
+	empt, err := common.ProcessClose(ctx, conn)
 	if closeErr := cce.performClose(ctx, cc, logger); closeErr != nil {
 		logger.Errorf("Failed to close: %v", closeErr)
 	}

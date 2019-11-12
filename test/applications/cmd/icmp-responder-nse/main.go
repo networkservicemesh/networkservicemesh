@@ -18,7 +18,6 @@ package main
 import (
 	"context"
 	"net"
-	"strings"
 	"time"
 
 	connectionMonitor "github.com/networkservicemesh/networkservicemesh/sdk/monitor/connectionmonitor"
@@ -74,7 +73,14 @@ func main() {
 
 	if flags.DNS {
 		logrus.Info("Adding dns endpoint to chain")
-		endpoints = append(endpoints, endpoint.NewCustomFuncEndpoint("dns", dnsMutator))
+		if len(ServerIPsEnv.GetStringListValueOrDefault("")) == 1 && ServerIPsEnv.GetStringListValueOrDefault("")[0] == "" {
+			endpoints = append(endpoints, endpoint.NewAddDnsConfigDstIp(SearchDomainsEnv.GetStringListValueOrDefault("icmp.app")...))
+		} else {
+			endpoint.NewAddDNSConfigs(&connectioncontext.DNSConfig{
+				DnsServerIps:  ServerIPsEnv.GetStringListValueOrDefault(""),
+				SearchDomains: SearchDomainsEnv.GetStringListValueOrDefault("icmp.app"),
+			})
+		}
 	}
 
 	podName := endpoint.CreatePodNameMutator()
@@ -111,19 +117,6 @@ func main() {
 
 	// Capture signals to cleanup before exiting
 	<-c
-}
-
-func dnsMutator(ctc context.Context, c *connection.Connection) error {
-	defaultIP := strings.Split(c.Context.IpContext.DstIpAddr, "/")[0]
-	c.Context.DnsContext = &connectioncontext.DNSContext{
-		Configs: []*connectioncontext.DNSConfig{
-			{
-				DnsServerIps:  ServerIPsEnv.GetStringListValueOrDefault(defaultIP),
-				SearchDomains: SearchDomainsEnv.GetStringListValueOrDefault("icmp.app"),
-			},
-		},
-	}
-	return nil
 }
 
 func ipNeighborMutator(ctc context.Context, c *connection.Connection) error {
