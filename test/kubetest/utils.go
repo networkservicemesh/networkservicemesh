@@ -133,11 +133,13 @@ func SetupNodesConfig(k8s *K8s, nodesCount int, timeout time.Duration, conf []*p
 				if pod.Spec.NodeName == node.Name {
 					if strings.Contains(pod.Name, "nsmgr") {
 						confs[j].Nsmd = pod
+						continue
 					}
 				}
 				if pod.Spec.NodeName == node.Name {
 					if strings.Contains(pod.Name, "forwarder") {
 						confs[j].Forwarder = pod
+						continue
 					}
 				}
 			}

@@ -1,4 +1,4 @@
-// +build suite basic
+// +build basic
 
 package nsmd_integration_tests
 
@@ -23,7 +23,7 @@ func TestSimpleMetrics(t *testing.T) {
 		t.Skip("Skip, please run without -short")
 		return
 	}
-	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResouces)
+	k8s, err := kubetest.NewK8s(g, kubetest.DefaultClear)
 	g.Expect(err).To(BeNil())
 
 	defer k8s.Cleanup()

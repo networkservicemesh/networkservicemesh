@@ -1,4 +1,4 @@
-// +build suite basic
+// +build basic
 
 package nsmd_integration_tests
 
@@ -146,7 +146,7 @@ func createFixture(test *testing.T, timeout time.Duration) *standaloneForwarderF
 		test:    test,
 	}
 
-	k8s, err := kubetest.NewK8s(wt, kubetest.ReuseNSMResouces)
+	k8s, err := kubetest.NewK8s(wt, kubetest.DefaultClear)
 	wt.Expect(err).To(BeNil())
 
 	// prepare node
