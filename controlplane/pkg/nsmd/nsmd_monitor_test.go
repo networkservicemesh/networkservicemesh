@@ -51,7 +51,7 @@ func TestNsmdMonitorShouldHandleServerShutdown(t *testing.T) {
 }
 
 func startClient(g *gomega.WithT, timeout time.Duration, serverPort int) error {
-	conn, err := tools.DialTCP(fmt.Sprintf(":%v", serverPort))
+	conn, err := tools.DialTCP(context.Background(), fmt.Sprintf(":%v", serverPort))
 	g.Expect(err).Should(gomega.BeNil())
 	client, err := connectionmonitor.NewMonitorClient(conn, &connection.MonitorScopeSelector{})
 	g.Expect(err).Should(gomega.BeNil())
