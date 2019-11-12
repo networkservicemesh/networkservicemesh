@@ -18,6 +18,7 @@ package local
 
 import (
 	"context"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 
 	sdkcommon "github.com/networkservicemesh/networkservicemesh/sdk/common"
