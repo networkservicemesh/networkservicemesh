@@ -1398,6 +1398,9 @@ func (k8s *K8s) DeleteServiceAccounts() error {
 
 // DeleteTestNamespace deletes a test namespace
 func (k8s *K8s) DeleteTestNamespace(namespace string) error {
+	if os.Getenv("FIXED_NAMESPACE") == "true" {
+		return nil
+	}
 	if namespace == "default" {
 		return nil
 	}
