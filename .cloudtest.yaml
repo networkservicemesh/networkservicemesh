@@ -26,8 +26,6 @@ executions:
     cluster-count: 1
     kubernetes-env:
       - KUBECONFIG
-    on_fail: |
-      make k8s-delete-nsm-namespaces
 #  - name: "Single cluster tests"
 #    env:
 #      - STORE_POD_LOGS_IN_FILES=true
