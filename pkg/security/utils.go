@@ -75,7 +75,7 @@ func ClientInterceptor(securityProvider Provider, cfg TokenConfig) grpc.UnaryCli
 			logrus.Error(err)
 			return err
 		}
-		//logrus.Infof("ClientInterceptor before 'invoke' took %v", time.Since(t))
+
 		p := new(peer.Peer)
 		err = invoker(ctx, method, req, reply, cc, append(opts, grpc.PerRPCCredentials(&NSMToken{Token: token}), grpc.Peer(p))...)
 		if err != nil {

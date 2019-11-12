@@ -626,7 +626,3 @@ func CreateRequest() *networkservice.NetworkServiceRequest {
 
 	return request
 }
-
-func Insecure() {
-	tools.InitConfig(tools.DialConfig{})
-}

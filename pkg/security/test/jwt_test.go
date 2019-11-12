@@ -41,7 +41,7 @@ func TestSign(t *testing.T) {
 	sc, err := newTestSecurityContext(SpiffeID1)
 	Expect(err).To(BeNil())
 
-	signature, err := security.GenerateSignature(context.Background(), msg, testClaimsSetter, sc)
+	signature, err := security.GenerateSignature(context.Background(), msg, testFillClaimsFunc, sc)
 	Expect(err).To(BeNil())
 
 	// checking generated signature
@@ -165,7 +165,7 @@ func chainRequest(g *WithT, p []security.Provider) {
 		}
 
 		t := time.Now()
-		signature, err := security.GenerateSignature(context.Background(), msg, testClaimsSetter, p[i],
+		signature, err := security.GenerateSignature(context.Background(), msg, testFillClaimsFunc, p[i],
 			security.WithObo(previousSignature))
 		g.Expect(err).To(BeNil())
 		logrus.Infof("Perf: Generate on %d iteration: %v, length = %d", i, time.Since(t), len(signature))

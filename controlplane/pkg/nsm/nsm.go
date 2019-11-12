@@ -78,7 +78,7 @@ func (srv *networkServiceManager) Context() context.Context {
 
 func (srv *networkServiceManager) LocalManager(clientConnection nsm.ClientConnection) networkservice.NetworkServiceServer {
 	return common.NewCompositeService("LocalHeal",
-		local.NewSecurityService(tools.GetConfig().SecurityProvider),
+		common.NewSecurityService(tools.GetConfig().SecurityProvider),
 		common.NewRequestValidator(),
 		common.NewMonitorService(clientConnection.(*model.ClientConnection).Monitor),
 		local.NewConnectionService(srv.model),

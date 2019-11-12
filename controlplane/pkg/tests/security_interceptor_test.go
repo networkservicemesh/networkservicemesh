@@ -115,9 +115,6 @@ func (d *dummyNetworkService) Request(ctx context.Context, r *networkservice.Net
 		},
 	})
 
-	//logrus.Info(security.SecurityContext(ctx).GetRequestOboToken())
-	//logrus.Info(security.SecurityContext(ctx).GetResponseOboToken())
-
 	sign, err := security.GenerateSignature(ctx, reply, common.ConnectionFillClaimsFunc, d.provider,
 		security.WithObo(security.SecurityContext(ctx).GetResponseOboToken()))
 	if err != nil {
@@ -126,8 +123,6 @@ func (d *dummyNetworkService) Request(ctx context.Context, r *networkservice.Net
 	reply.ResponseToken = sign
 
 	return reply, nil
-
-	//return rv, nil
 }
 
 func (d *dummyNetworkService) Close(context.Context, *connection.Connection) (*empty.Empty, error) {

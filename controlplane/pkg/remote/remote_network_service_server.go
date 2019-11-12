@@ -25,7 +25,7 @@ import (
 // NewRemoteNetworkServiceServer -  creates a new remote.NetworkServiceServer
 func NewRemoteNetworkServiceServer(manager nsm.NetworkServiceManager, connectionMonitor connectionmonitor.MonitorServer) networkservice.NetworkServiceServer {
 	return common.NewCompositeService("Remote",
-		NewSecurityService(tools.GetConfig().SecurityProvider),
+		common.NewSecurityService(tools.GetConfig().SecurityProvider),
 		common.NewRequestValidator(),
 		common.NewMonitorService(connectionMonitor),
 		NewConnectionService(manager.Model()),

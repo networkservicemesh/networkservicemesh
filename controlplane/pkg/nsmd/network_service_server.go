@@ -13,7 +13,7 @@ import (
 func NewNetworkServiceServer(model model.Model, ws *Workspace,
 	nsmManager nsm.NetworkServiceManager) networkservice.NetworkServiceServer {
 	return common.NewCompositeService("Local",
-		local.NewSecurityService(tools.GetConfig().SecurityProvider),
+		common.NewSecurityService(tools.GetConfig().SecurityProvider),
 		common.NewRequestValidator(),
 		common.NewMonitorService(ws.MonitorConnectionServer()),
 		local.NewWorkspaceService(ws.Name()),

@@ -1,6 +1,4 @@
-// Copyright (c) 2019 Cisco Systems, Inc.
-//
-// SPDX-License-Identifier: Apache-2.0
+// Copyright (c) 2019 Cisco and/or its affiliates.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,12 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package remote
+package common
 
 import (
 	"context"
-
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 
 	sdkcommon "github.com/networkservicemesh/networkservicemesh/sdk/common"
 
@@ -45,7 +41,7 @@ func NewSecurityService(provider security.Provider) *securityService {
 func (s *securityService) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 	span := spanhelper.GetSpanHelper(ctx)
 
-	conn, err := common.ProcessNext(ctx, request)
+	conn, err := ProcessNext(ctx, request)
 	if err != nil {
 		span.LogError(err)
 		return nil, err
@@ -63,9 +59,10 @@ func (s *securityService) Request(ctx context.Context, request *networkservice.N
 	}
 
 	conn.SetSignature(sign)
+
 	return conn, nil
 }
 
 func (s *securityService) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
-	return common.ProcessClose(ctx, connection)
+	return ProcessClose(ctx, connection)
 }

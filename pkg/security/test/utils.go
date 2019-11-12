@@ -38,7 +38,7 @@ func (m *testMsg) GetSignature() string {
 	return m.token
 }
 
-func testClaimsSetter(claims *security.ChainClaims, msg interface{}) error {
+func testFillClaimsFunc(claims *security.ChainClaims, msg interface{}) error {
 	claims.Audience = msg.(*testMsg).testAud
 	return nil
 }
