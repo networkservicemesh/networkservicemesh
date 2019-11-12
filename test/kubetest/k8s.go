@@ -447,13 +447,13 @@ func NewK8s(g *WithT, prepare ClearOption) (*K8s, error) {
 		defer wg.Done()
 		client.roles, _ = client.CreateRoles("admin", "view", "binding")
 	}()
-	if prepare != ReuseNSMResouces || len(client.LookupPodsByName("spire")) != 1 {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			client.cleanupFunc = InitSpireSecurity(client)
-		}()
-	}
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		client.cleanupFunc = InitSpireSecurity(client)
+	}()
+
 	wg.Wait()
 
 	return client, err
@@ -509,7 +509,7 @@ func NewK8sWithoutRolesForConfig(g *WithT, prepare ClearOption, kubeconfigPath s
 	if prepare != NoClear {
 		start := time.Now()
 		if prepare == ReuseNSMResouces {
-			client.Prepare("vpn", "icmp", "nsc", "source", "dest", "xcon", "nse")
+			client.Prepare("vpn", "icmp", "nsc", "source", "dest", "xcon", "nse", "spire-proxy")
 		} else {
 			client.Prepare("nsmgr", "nsmd", "vppagent", "vpn", "icmp", "nsc", "source", "dest", "xcon", "spire-proxy", "nse")
 		}
