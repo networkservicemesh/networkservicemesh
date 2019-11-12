@@ -1,14 +1,8 @@
 ---
-# Default values for nsm-monitoring.
+# Default values for skydive.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-registry: docker.io
-org: networkservicemesh
-tag: master
-pullPolicy: IfNotPresent
-image: jaegertracing/all-in-one:1.14.0
-
-# The type for monitoring services, i.e. Jaeger
+# The type for monitoring services, i.e. Skydive
 # May be set to valid Kubernetes ServiceTypes values--ClusterIP, NodePort, LoadBalancer, ExternalName
 monSvcType: ClusterIP
