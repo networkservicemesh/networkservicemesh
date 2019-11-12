@@ -4,10 +4,11 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"strings"
+
 	"github.com/dgrijalva/jwt-go"
 	"github.com/pkg/errors"
 	"gopkg.in/square/go-jose.v2"
-	"strings"
 )
 
 type Signature struct {
