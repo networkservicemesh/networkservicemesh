@@ -1,4 +1,4 @@
-// +build usecase
+// +build suite usecase
 
 package nsmd_integration_tests
 
@@ -21,7 +21,7 @@ func TestDeployWrongNsc(t *testing.T) {
 		return
 	}
 
-	k8s, err := kubetest.NewK8s(g, true)
+	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResources)
 	defer k8s.Cleanup()
 	g.Expect(err).To(BeNil())
 

@@ -22,7 +22,7 @@ func TestDeleteDirtyNSE(t *testing.T) {
 
 	logrus.Print("Running delete dirty NSE test")
 
-	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResouces)
+	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResources)
 	g.Expect(err).To(BeNil())
 	defer k8s.Cleanup()
 
@@ -49,7 +49,7 @@ func TestDeleteDirtyNSEWithClient(t *testing.T) {
 
 	logrus.Print("Running delete dirty NSE with client test")
 
-	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResouces)
+	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResources)
 	g.Expect(err).To(BeNil())
 	defer k8s.Cleanup()
 

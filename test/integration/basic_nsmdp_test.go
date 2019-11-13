@@ -20,7 +20,7 @@ func TestNSMDDP(t *testing.T) {
 		return
 	}
 
-	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResouces)
+	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResources)
 	defer k8s.Cleanup()
 
 	g.Expect(err).To(BeNil())
@@ -46,7 +46,7 @@ func TestNSMDRecoverNSE(t *testing.T) {
 		return
 	}
 
-	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResouces)
+	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResources)
 	defer k8s.Cleanup()
 
 	g.Expect(err).To(BeNil())

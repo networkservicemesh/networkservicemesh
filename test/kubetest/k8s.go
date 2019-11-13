@@ -48,7 +48,7 @@ type ClearOption int32
 const (
 	NoClear ClearOption = iota
 	DefaultClear
-	ReuseNSMResouces
+	ReuseNSMResources
 )
 
 const (
@@ -509,7 +509,7 @@ func NewK8sWithoutRolesForConfig(g *WithT, prepare ClearOption, kubeconfigPath s
 
 	if prepare != NoClear {
 		start := time.Now()
-		if prepare == ReuseNSMResouces {
+		if prepare == ReuseNSMResources {
 			client.Prepare("vpn", "icmp", "nsc", "source", "dest", "xcon", "nse", "spire-proxy")
 		} else {
 			client.Prepare("nsmgr", "nsmd", "vppagent", "vpn", "icmp", "nsc", "source", "dest", "xcon", "spire-proxy", "nse")
@@ -521,7 +521,7 @@ func NewK8sWithoutRolesForConfig(g *WithT, prepare ClearOption, kubeconfigPath s
 		client.CleanupSecrets("nsm-admission-webhook-certs")
 		logrus.Printf("Cleanup done: %v", time.Since(start))
 	}
-	if prepare != ReuseNSMResouces || len(client.sa) != len(client.LookupServiceAccounts(client.sa...)) {
+	if prepare != ReuseNSMResources || len(client.sa) != len(client.LookupServiceAccounts(client.sa...)) {
 		_ = nsmrbac.DeleteAllRoles(client.clientset)
 		client.CleanupCRDs()
 		_ = client.DeleteServiceAccounts()
@@ -686,6 +686,17 @@ func (k8s *K8s) ListPods() []v1.Pod {
 	return podList.Items
 }
 
+// ListPods lists the pods
+func (k8s *K8s) ListRefPods() []*v1.Pod {
+	pods := k8s.ListPods()
+	var result []*v1.Pod
+	for i := range pods {
+		p := &pods[i]
+		result = append(result, p)
+	}
+	return result
+}
+
 //ListPodsByNs returns pod list by specific namespace
 func (k8s *K8s) ListPodsByNs(ns string) []v1.Pod {
 	podList, err := k8s.clientset.CoreV1().Pods(ns).List(metaV1.ListOptions{})
@@ -782,6 +793,7 @@ func (k8s *K8s) ProcessArtifacts(t *testing.T) {
 		panic(exception)
 	} else if t.Failed() || k8s.artifactManager.Config().SaveInAnyCase() {
 		k8s.artifactManager.ProcessArtifacts()
+		k8s.resourcesBehaviour = DefaultClear
 	}
 }
 
@@ -794,7 +806,7 @@ func (k8s *K8s) Cleanup() {
 }
 
 func filterNsmInfrastructure(pods ...*v1.Pod) []*v1.Pod {
-	result := []*v1.Pod{}
+	var result []*v1.Pod
 	namInfrastructurePodNames := []string{"nsmgr", "forwarder", "spire"}
 	for _, p := range pods {
 		found := false
@@ -817,10 +829,11 @@ func (k8s *K8s) cleanups() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if k8s.resourcesBehaviour == ReuseNSMResouces {
-			_ = k8s.deletePods(filterNsmInfrastructure(k8s.pods...)...)
+		pods := k8s.ListRefPods()
+		if k8s.resourcesBehaviour == ReuseNSMResources {
+			_ = k8s.deletePods(filterNsmInfrastructure(pods...)...)
 		} else {
-			_ = k8s.deletePods(k8s.pods...)
+			_ = k8s.deletePods(pods...)
 		}
 	}()
 
@@ -838,7 +851,7 @@ func (k8s *K8s) cleanups() {
 		k8s.CleanupConfigMaps()
 	}()
 
-	if k8s.resourcesBehaviour != ReuseNSMResouces {
+	if k8s.resourcesBehaviour != ReuseNSMResources {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -858,7 +871,7 @@ func (k8s *K8s) cleanups() {
 
 	wg.Wait()
 	k8s.pods = nil
-	if k8s.resourcesBehaviour != ReuseNSMResouces {
+	if k8s.resourcesBehaviour != ReuseNSMResources {
 		_ = k8s.DeleteTestNamespace(k8s.namespace)
 	}
 }

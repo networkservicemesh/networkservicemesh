@@ -1,4 +1,4 @@
-// +build usecase
+// +build suite usecase
 
 package nsmd_integration_tests
 
@@ -156,7 +156,7 @@ func testDeploymentOrder(t *testing.T, order []Deployment) {
 		return
 	}
 
-	k8s, err := kubetest.NewK8s(g, true)
+	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResources)
 	defer k8s.Cleanup()
 	defer k8s.ProcessArtifacts(t)
 

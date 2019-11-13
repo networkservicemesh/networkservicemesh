@@ -14,7 +14,7 @@ import (
 func Test_createNSMNamespace(t *testing.T) {
 	g := NewWithT(t)
 
-	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResouces)
+	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResources)
 	defer k8s.Cleanup()
 	defer k8s.ProcessArtifacts(t)
 

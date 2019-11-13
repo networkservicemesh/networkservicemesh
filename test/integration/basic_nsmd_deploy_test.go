@@ -25,6 +25,7 @@ func TestNSMgrForwarderDeployLiveCheck(t *testing.T) {
 }
 
 func testNSMgrForwarderDeploy(t *testing.T, nsmdPodFactory func(string, *v1.Node, string) *v1.Pod, forwarderPodFactory func(string, *v1.Node, string) *v1.Pod) {
+	t.Skip("skip for a while")
 	g := NewWithT(t)
 
 	if testing.Short() {

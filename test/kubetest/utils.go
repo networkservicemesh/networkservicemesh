@@ -106,7 +106,7 @@ func DeployCorefile(k8s *K8s, name, content string) error {
 
 // SetupNodesConfig - Setup NSMgr and Forwarder for particular number of nodes in cluster
 func SetupNodesConfig(k8s *K8s, nodesCount int, timeout time.Duration, conf []*pods.NSMgrPodConfig, namespace string) ([]*NodeConf, error) {
-	if k8s.resourcesBehaviour == ReuseNSMResouces {
+	if k8s.resourcesBehaviour == ReuseNSMResources {
 		nodesCount = 2
 	}
 	nodes := k8s.GetNodesWait(nodesCount, timeout)
@@ -121,7 +121,7 @@ func SetupNodesConfig(k8s *K8s, nodesCount int, timeout time.Duration, conf []*p
 	//}
 	var wg sync.WaitGroup
 	confs := make([]*NodeConf, 2)
-	if k8s.resourcesBehaviour == ReuseNSMResouces {
+	if k8s.resourcesBehaviour == ReuseNSMResources {
 		pods := k8s.ListPods()
 		for j := range nodes {
 			node := &nodes[j]

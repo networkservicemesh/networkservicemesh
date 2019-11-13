@@ -29,7 +29,7 @@ func testProxyNSMgrDeploy(t *testing.T, proxyNsmdPodFactory func(string, *v1.Nod
 
 	logrus.Print("Running NSMgr Deploy test")
 
-	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResouces)
+	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResources)
 	defer k8s.Cleanup()
 
 	g.Expect(err).To(BeNil())

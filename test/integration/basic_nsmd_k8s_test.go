@@ -27,7 +27,7 @@ func TestNSMDDRegistryNSE(t *testing.T) {
 		return
 	}
 
-	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResouces)
+	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResources)
 	defer k8s.Cleanup()
 	defer k8s.ProcessArtifacts(t)
 	g.Expect(err).To(BeNil())
@@ -133,7 +133,7 @@ func TestUpdateNSM(t *testing.T) {
 		return
 	}
 
-	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResouces)
+	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResources)
 	defer k8s.Cleanup()
 	g.Expect(err).To(BeNil())
 
@@ -206,7 +206,7 @@ func TestGetEndpoints(t *testing.T) {
 		return
 	}
 
-	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResouces)
+	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResources)
 	defer k8s.Cleanup()
 	g.Expect(err).To(BeNil())
 
@@ -266,7 +266,7 @@ func TestDuplicateEndpoint(t *testing.T) {
 		return
 	}
 
-	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResouces)
+	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResources)
 	defer k8s.Cleanup()
 	g.Expect(err).To(BeNil())
 
@@ -350,7 +350,7 @@ func TestLostUpdate(t *testing.T) {
 		return
 	}
 
-	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResouces)
+	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResources)
 	defer k8s.Cleanup()
 	g.Expect(err).To(BeNil())
 
@@ -426,7 +426,7 @@ func TestRegistryConcurrentModification(t *testing.T) {
 		return
 	}
 
-	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResouces)
+	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResources)
 	defer k8s.Cleanup()
 	g.Expect(err).To(BeNil())
 

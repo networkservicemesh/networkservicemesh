@@ -19,7 +19,7 @@ func TestKubernetesAreOk(t *testing.T) {
 		return
 	}
 
-	k8s, err := kubetest.NewK8sWithoutRoles(g, kubetest.NoClear)
+	k8s, err := kubetest.NewK8sWithoutRoles(g, kubetest.ReuseNSMResources)
 	defer k8s.Cleanup()
 	g.Expect(err).To(BeNil())
 	defer k8s.ProcessArtifacts(t)

@@ -23,7 +23,7 @@ func TestDeployPodIntoInvalidEnv(t *testing.T) {
 
 	logrus.Print("Running NSMD Deploy test")
 
-	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResouces)
+	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResources)
 	defer k8s.Cleanup()
 	g.Expect(err).To(BeNil())
 	defer k8s.ProcessArtifacts(t)
