@@ -36,8 +36,7 @@ func NewK8sLogFinder(k8s *K8s) artifact.Finder {
 }
 
 func (k *k8sLogFinder) Find() []artifact.Artifact {
-	k.k8s.podLock.Lock()
-	defer k.k8s.podLock.Unlock()
+	pods := k.k8s.ListPods()
 	ch := make(chan *v1.Pod, artifactFinderWorkerCount)
 	wg := sync.WaitGroup{}
 	wg.Add(1)
@@ -50,9 +49,9 @@ func (k *k8sLogFinder) Find() []artifact.Artifact {
 	}
 	go func() {
 		defer wg.Done()
-		for i := range k.k8s.pods {
+		for i := range pods {
 			wg.Add(1)
-			ch <- k.k8s.pods[i]
+			ch <- &pods[i]
 		}
 	}()
 	for i := 0; i < artifactFinderWorkerCount; i++ {
@@ -69,7 +68,7 @@ func (k *k8sLogFinder) Find() []artifact.Artifact {
 						addArtifact(artifact.New(nameForArtifact(p, c, prev), "log", []byte(logs)))
 					}
 					for j := 0; j < len(p.Spec.InitContainers); j++ {
-						c := &p.Spec.Containers[j]
+						c := &p.Spec.InitContainers[j]
 						logs, err := k.k8s.GetFullLogs(p, c.Name, prev)
 						if err != nil {
 							logrus.Errorf("Can not get logs for init container: %v. Error: %v", c.Name, err)
