@@ -81,9 +81,10 @@ spec:
         app: skydive
         tier: analyzer
     spec:
+      serviceAccount: nsmgr-acc
       containers:
         - name: skydive-analyzer
-          image: skydive/skydive:0.23.0
+          image: matrohon/skydive:latest
           imagePullPolicy: {{ .Values.pullPolicy }}
           args:
             - analyzer
@@ -149,7 +150,7 @@ spec:
       hostPID: true
       containers:
         - name: skydive-agent
-          image: skydive/skydive:0.24.0
+          image: matrohon/skydive:latest
           imagePullPolicy: {{ .Values.pullPolicy }}
           args:
             - agent
