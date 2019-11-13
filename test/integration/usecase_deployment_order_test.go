@@ -1,4 +1,4 @@
-// +build suite usecase
+// +build usecase
 
 package nsmd_integration_tests
 
