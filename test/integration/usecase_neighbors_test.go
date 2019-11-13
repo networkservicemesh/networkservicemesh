@@ -6,8 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 	. "github.com/onsi/gomega"
+
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 )
 
 func TestNSCAndICMPNeighbors(t *testing.T) {
