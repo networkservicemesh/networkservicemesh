@@ -293,7 +293,7 @@ func (fixture *standaloneForwarderFixture) handleFailures(failures []string) {
 		fixture.printLogs(fixture.sourcePod)
 		fixture.printLogs(fixture.destPod)
 		fixture.test.Fail()
-		kubetest.MakeLogsSnapshot(fixture.k8s, fixture.test)
+		fixture.k8s.ProcessArtifacts(fixture.test)
 	}
 }
 

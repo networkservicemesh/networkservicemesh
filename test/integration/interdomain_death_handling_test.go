@@ -58,7 +58,7 @@ func testInterdomainNSMDies(t *testing.T, clustersCount int, killSrc bool) {
 		k8s, err := kubetest.NewK8sForConfig(g, true, kubeconfig)
 		g.Expect(err).To(BeNil())
 		defer k8s.Cleanup()
-		defer kubetest.MakeLogsSnapshot(k8s, t)
+		defer k8s.ProcessArtifacts(t)
 
 		nseNoHealPodConfig.Namespace = k8s.GetK8sNamespace()
 		nseNoHealPodConfig.ForwarderVariables = kubetest.DefaultForwarderVariables(k8s.GetForwardingPlane())

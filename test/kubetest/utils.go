@@ -26,7 +26,6 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/security"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	tools_jaeger "github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
 
 	"github.com/networkservicemesh/networkservicemesh/test/applications/cmd/icmp-responder-nse/flags"
 
@@ -42,7 +41,6 @@ import (
 	nsmd2 "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/networkservicemesh/networkservicemesh/sdk/prefix_pool"
-	"github.com/networkservicemesh/networkservicemesh/test/kubetest/jaeger"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 )
 
@@ -112,14 +110,15 @@ func SetupNodesConfig(k8s *K8s, nodesCount int, timeout time.Duration, conf []*p
 		nodesCount = 2
 	}
 	nodes := k8s.GetNodesWait(nodesCount, timeout)
-	var jaegerPod *v1.Pod
+	//var jaegerPod *v1.Pod
 	k8s.g.Expect(len(nodes) >= nodesCount).To(Equal(true),
 		"At least one Kubernetes node is required for this test")
-	if tools_jaeger.IsOpentracingEnabled() && jaeger.AgentHost.IsEmpty() && k8s.artifactsConfig.SaveBehavior() != 0 {
-		jaegerPod = k8s.CreatePod(pods.Jaeger())
-		k8s.WaitLogsContains(jaegerPod, jaegerPod.Spec.Containers[0].Name, "Starting HTTP server", timeout)
-		jaeger.AgentHost.Set(jaegerPod.Status.PodIP)
-	}
+	//if tools_jaeger.IsOpentracingEnabled() && jaeger.AgentHost.IsEmpty() &&
+	//	(k8s.artifactManager.Config().SaveBehavior()&(artifact.SaveAsDir|artifact.SaveAsArchive)) > 0 {
+	//	jaegerPod = k8s.CreatePod(pods.Jaeger())
+	//	k8s.WaitLogsContains(jaegerPod, jaegerPod.Spec.Containers[0].Name, "Starting HTTP server", timeout)
+	//	jaeger.AgentHost.Set(jaegerPod.Status.PodIP)
+	//}
 	var wg sync.WaitGroup
 	confs := make([]*NodeConf, 2)
 	if k8s.resourcesBehaviour == ReuseNSMResouces {

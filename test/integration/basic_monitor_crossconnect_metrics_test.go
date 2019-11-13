@@ -44,7 +44,7 @@ func TestSimpleMetrics(t *testing.T) {
 	k8s.WaitLogsContains(nodes[0].Forwarder, nodes[0].Forwarder.Spec.Containers[0].Name, "Metrics collector: creating notification client", time.Minute)
 	g.Expect(err).To(BeNil())
 	kubetest.DeployICMP(k8s, nodes[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
-	defer kubetest.MakeLogsSnapshot(k8s, t)
+	defer k8s.ProcessArtifacts(t)
 
 	eventCh, closeFunc := kubetest.CrossConnectClientAt(k8s, nodes[0].Nsmd)
 	defer closeFunc()

@@ -41,7 +41,7 @@ func ConfigFromEnv() Config {
 	if processInToDir.GetBooleanOrDefault(false) {
 		b |= SaveAsDir
 	}
-	dir := dir.StringValue()
+	dir := dir.GetStringOrDefault(defaultOutputPath)
 	saveInAnyCase := processInAnyCase.GetBooleanOrDefault(false)
 	return &config{
 		behavior:      b,

@@ -53,7 +53,7 @@ func testInterdomainNSCAndICMP(t *testing.T, clustersCount int, nodesCount int, 
 		k8s, err := kubetest.NewK8sForConfig(g, true, kubeconfig)
 		g.Expect(err).To(BeNil())
 		defer k8s.Cleanup()
-		defer kubetest.MakeLogsSnapshot(k8s, t)
+		defer k8s.ProcessArtifacts(t)
 
 		config := []*pods.NSMgrPodConfig{}
 

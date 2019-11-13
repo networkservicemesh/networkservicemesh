@@ -23,7 +23,7 @@ func TestExec(t *testing.T) {
 	k8s, err := kubetest.NewK8sWithoutRoles(g, kubetest.ReuseNSMResouces)
 	defer k8s.Cleanup()
 	g.Expect(err).To(BeNil())
-	defer kubetest.MakeLogsSnapshot(k8s, t)
+	defer k8s.ProcessArtifacts(t)
 
 	k8s.Prepare("alpine-pod")
 

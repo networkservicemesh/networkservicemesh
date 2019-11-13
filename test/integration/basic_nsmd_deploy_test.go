@@ -38,7 +38,7 @@ func testNSMgrForwarderDeploy(t *testing.T, nsmdPodFactory func(string, *v1.Node
 	defer k8s.Cleanup()
 
 	g.Expect(err).To(BeNil())
-	defer kubetest.MakeLogsSnapshot(k8s, t)
+	defer k8s.ProcessArtifacts(t)
 
 	nodes := k8s.GetNodesWait(1, defaultTimeout)
 

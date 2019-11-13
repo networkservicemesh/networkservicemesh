@@ -22,6 +22,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"sync"
 
@@ -48,6 +49,12 @@ func (aa *artifactArchivator) Started() {
 }
 
 func (aa *artifactArchivator) Finished() {
+	dir, _ := path.Split(aa.c.OutputPath())
+	if dir != "" {
+		if _, err := os.Stat(dir); os.IsNotExist(err) {
+			_ = os.MkdirAll(dir, os.ModePerm)
+		}
+	}
 	outfile := filepath.Join(aa.c.OutputPath() + ".zip")
 	if _, err := os.Stat(outfile); err == nil {
 		zr, err := zip.OpenReader(outfile)

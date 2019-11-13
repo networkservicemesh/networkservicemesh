@@ -36,7 +36,9 @@ func NewGoTestRunner(ids string, test *model.TestEntry, timeout time.Duration) T
 		timeout, test.Name, test.Tags)
 
 	envMgr := shell.NewEnvironmentManager()
-	_ = envMgr.ProcessEnvironment(ids, "gotest", os.TempDir(), test.ExecutionConfig.Env, map[string]string{})
+	_ = envMgr.ProcessEnvironment(ids, "gotest", os.TempDir(), test.ExecutionConfig.Env, map[string]string{
+		"test-name": test.Name,
+	})
 
 	return &goTestRunner{
 		test:    test,

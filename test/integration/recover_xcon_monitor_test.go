@@ -32,7 +32,7 @@ func TestXconMonitorSingleNodeHealFailed(t *testing.T) {
 	}, k8s.GetK8sNamespace())
 	g.Expect(err).To(BeNil())
 
-	defer kubetest.MakeLogsSnapshot(k8s, t)
+	defer k8s.ProcessArtifacts(t)
 
 	icmpPod := kubetest.DeployICMP(k8s, nodesConf[0].Node, "icmp-0", defaultTimeout)
 	g.Expect(icmpPod).ToNot(BeNil())
@@ -86,7 +86,7 @@ func TestXconMonitorSingleNodeHealSuccess(t *testing.T) {
 	}, k8s.GetK8sNamespace())
 	g.Expect(err).To(BeNil())
 
-	defer kubetest.MakeLogsSnapshot(k8s, t)
+	defer k8s.ProcessArtifacts(t)
 
 	icmp0 := kubetest.DeployICMP(k8s, nodesConf[0].Node, "icmp-0", defaultTimeout)
 	g.Expect(icmp0).ToNot(BeNil())
@@ -144,7 +144,7 @@ func TestXconMonitorMultiNodeHealFail(t *testing.T) {
 	}, k8s.GetK8sNamespace())
 	g.Expect(err).To(BeNil())
 
-	//defer kubetest.MakeLogsSnapshot(k8s, t)
+	//defer k8s.ProcessArtifacts(t)
 
 	icmp := kubetest.DeployICMP(k8s, nodesConf[1].Node, "icmp-0", defaultTimeout)
 	g.Expect(icmp).ToNot(BeNil())
@@ -230,7 +230,7 @@ func TestXconMonitorMultiNodeHealSuccess(t *testing.T) {
 	}, k8s.GetK8sNamespace())
 	g.Expect(err).To(BeNil())
 
-	defer kubetest.MakeLogsSnapshot(k8s, t)
+	defer k8s.ProcessArtifacts(t)
 
 	icmp0 := kubetest.DeployICMP(k8s, nodesConf[1].Node, "icmp-0", defaultTimeout)
 	g.Expect(icmp0).ToNot(BeNil())
@@ -318,7 +318,7 @@ func TestXconMonitorNsmgrRestart(t *testing.T) {
 	}, k8s.GetK8sNamespace())
 	g.Expect(err).To(BeNil())
 
-	defer kubetest.MakeLogsSnapshot(k8s, t)
+	defer k8s.ProcessArtifacts(t)
 
 	icmp0 := kubetest.DeployICMP(k8s, nodesConf[0].Node, "icmp-0", defaultTimeout)
 	g.Expect(icmp0).ToNot(BeNil())

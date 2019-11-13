@@ -20,6 +20,7 @@ import "sync"
 
 type Manager interface {
 	ProcessArtifacts()
+	Config() Config
 }
 
 func NewManager(c Config, factory PresenterFactory, finders []Finder, hooks []Hook) Manager {
@@ -27,6 +28,7 @@ func NewManager(c Config, factory PresenterFactory, finders []Finder, hooks []Ho
 		presenter: factory.Presenter(c),
 		finders:   finders,
 		hooks:     append(hooks, factory.Hooks(c)...),
+		config:    c,
 	}
 }
 
@@ -34,6 +36,11 @@ type manager struct {
 	finders   []Finder
 	hooks     []Hook
 	presenter Presenter
+	config    Config
+}
+
+func (m *manager) Config() Config {
+	return m.config
 }
 
 func (m *manager) ProcessArtifacts() {

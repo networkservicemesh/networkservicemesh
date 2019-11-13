@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"testing"
 	"time"
 
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/artifact"
@@ -354,7 +355,7 @@ func blockUntilPodWorking(client kubernetes.Interface, context context.Context, 
 }
 
 type K8s struct {
-	artifactsConfig    artifact.Config
+	artifactManager    artifact.Manager
 	clientset          kubernetes.Interface
 	versionedClientSet *versioned.Clientset
 	podLock            sync.Mutex
@@ -527,7 +528,10 @@ func NewK8sWithoutRolesForConfig(g *WithT, prepare ClearOption, kubeconfigPath s
 		client.CreateServiceAccounts()
 	}
 	client.resourcesBehaviour = prepare
-	client.artifactsConfig = artifact.ConfigFromEnv()
+	client.artifactManager = artifact.NewManager(artifact.ConfigFromEnv(), artifact.DefaultPresenterFactory(), []artifact.Finder{
+		NewK8sLogFinder(&client),
+		//		NewJaegerTracesFinder(client)
+	}, nil)
 	return &client, nil
 }
 
@@ -772,10 +776,18 @@ func (k8s *K8s) CleanupEndpointsCRDs() {
 	}
 }
 
+func (k8s *K8s) ProcessArtifacts(t *testing.T) {
+	if exception := recover(); exception != nil {
+		k8s.artifactManager.ProcessArtifacts()
+		panic(exception)
+	} else if t.Failed() || k8s.artifactManager.Config().SaveInAnyCase() {
+		k8s.artifactManager.ProcessArtifacts()
+	}
+}
+
 // Cleanup cleans up
 func (k8s *K8s) Cleanup() {
 	st := time.Now()
-
 	k8s.reportSpans()
 	k8s.cleanups()
 	logrus.Infof("Cleanup time: %v", time.Since(st))

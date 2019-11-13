@@ -22,7 +22,7 @@ func TestKubernetesAreOk(t *testing.T) {
 	k8s, err := kubetest.NewK8sWithoutRoles(g, kubetest.NoClear)
 	defer k8s.Cleanup()
 	g.Expect(err).To(BeNil())
-	defer kubetest.MakeLogsSnapshot(k8s, t)
+	defer k8s.ProcessArtifacts(t)
 	v := k8s.GetVersion()
 	g.Expect(strings.Contains(v, "1.")).To(Equal(true))
 

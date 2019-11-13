@@ -15,8 +15,8 @@ reporting:
 executions:
   - name: "Single cluster tests uses shared nsm infrastructure"
     env:
-      - STORE_POD_LOGS_IN_FILES=true
-      - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)
+      - PROCESS_ARTIFACTS_IN_TO_ARCHIVE=true
+      - ARTIFACTS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/$(test-name)
       - FIXED_NAMESPACE=true
       - NSM_NAMESPACE=suite-ns
     tags:

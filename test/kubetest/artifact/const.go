@@ -19,6 +19,7 @@ package artifact
 const (
 	startLogsOf             = "Start logs of"
 	endLogsOf               = "End logs of"
+	defaultOutputPath       = "logs/last"
 	maxTransactionLineWidth = 128
 	transactionLogUnit      = '#'
 	artifactWorkerCount     = 4
