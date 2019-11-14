@@ -28,6 +28,9 @@ jobs:
           name: Install Shellcheck
           command: ./.circleci/install-shellcheck.sh
       - run:
+          name: Install golangci-lint
+          command: ./.circleci/install-golangci-lint.sh
+      - run:
           name: Run Shellcheck
           command: make check
       - run:
@@ -50,6 +53,10 @@ jobs:
             make install-formatter
             make format
             git diff --exit-code || (echo 'Seems like your Go files are not properly formatted. Run `make format` in your branch and commit the changes.' && exit 1)
+      - run:
+          name: Check linters
+          command: |
+            make lint
       - run: ./scripts/prepare-generate.sh
       - run: sudo ./scripts/install-protoc.sh
       - run: ./scripts/for-each-module.sh "go generate ./..."
