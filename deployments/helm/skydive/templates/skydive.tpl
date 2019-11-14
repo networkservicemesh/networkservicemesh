@@ -86,6 +86,13 @@ spec:
         - name: skydive-analyzer
           image: {{ .Values.registry }}/{{ .Values.org }}/skydive:{{ .Values.tag }}
           imagePullPolicy: {{ .Values.pullPolicy }}
+          env:
+            - name: INSECURE
+{{- if .Values.insecure }}
+              value: "true"
+{{- else }}
+              value: "false"
+{{- end }}
           args:
             - analyzer
           ports:
@@ -159,6 +166,13 @@ spec:
         - name: skydive-agent
           image: {{ .Values.registry }}/{{ .Values.org }}/skydive:{{ .Values.tag }}
           imagePullPolicy: {{ .Values.pullPolicy }}
+          env:
+            - name: INSECURE
+{{- if .Values.insecure }}
+              value: "true"
+{{- else }}
+              value: "false"
+{{- end }}
           args:
             - agent
           ports:
