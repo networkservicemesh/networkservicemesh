@@ -167,6 +167,8 @@ github.com/sirupsen/logrus v1.4.2 h1:SPIRibHv4MatM3XXNO2BJeFLZwZ2LvZgfQ5+UNI2im4
 github.com/sirupsen/logrus v1.4.2/go.mod h1:tLMulIdttU9McNUspp0xgXVQah82FyeX6MwdIuYE2rE=
 github.com/spf13/pflag v1.0.3/go.mod h1:DYY7MBk1bdzusC3SYhjObp+wFpr4gzcvqqNjLnInEg4=
 github.com/spiffe/go-spiffe v0.0.0-20181210192309-b261e4202fec/go.mod h1:q0X9/v75lQ+eeb7Sp2P/FJvmfm9MT7RLmnZS2Gidvns=
+github.com/spiffe/go-spiffe v0.0.0-20191104192205-d29ac0a1ba99 h1:wFJS4JjfgJvzSCSIl24wzPgiX+hk2bj0gozEV6Za6RY=
+github.com/spiffe/go-spiffe v0.0.0-20191104192205-d29ac0a1ba99/go.mod h1:HyNeJnVYkDyQgB2qcSPxVYkAA2F3lQu51bDxNpFcKxY=
 github.com/spiffe/spire v0.0.0-20190515205011-c8123525fba8 h1:jKLRfsf3zbeop1Y6I16ex6F2eOQOfzaDdb7AU1SXTW4=
 github.com/spiffe/spire v0.0.0-20190515205011-c8123525fba8/go.mod h1:TEh3PlgBYlwKt4dDIhFo5v1Cro5W6QkwXUg1EzUcbj8=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
@@ -250,6 +252,7 @@ google.golang.org/grpc v1.15.0/go.mod h1:0JHn/cJsOMiMfNA9+DeHDlAU7KAAB5GDlYFpa9M
 google.golang.org/grpc v1.16.0/go.mod h1:0JHn/cJsOMiMfNA9+DeHDlAU7KAAB5GDlYFpa9MZMio=
 google.golang.org/grpc v1.17.0/go.mod h1:6QZJwpn2B+Zp71q/5VxRsJ6NXXVCE5NRUHRo+f3cWCs=
 google.golang.org/grpc v1.19.0/go.mod h1:mqu4LbDTu4XGKhr4mRzUsmM4RtVoemTSY81AxZiDr8c=
+google.golang.org/grpc v1.22.0/go.mod h1:Y5yQAOtifL1yxbo5wqy6BxZv8vAUGQwXBOALyacEbxg=
 google.golang.org/grpc v1.23.1 h1:q4XQuHFC6I28BKZpo6IYyb3mNO+l7lSOxRuYTCiDfXk=
 google.golang.org/grpc v1.23.1/go.mod h1:Y5yQAOtifL1yxbo5wqy6BxZv8vAUGQwXBOALyacEbxg=
 gopkg.in/alecthomas/kingpin.v2 v2.2.6/go.mod h1:FMv+mEhP44yOT+4EoQTLFTRgOQ1FBLkstjWtayDeSgw=

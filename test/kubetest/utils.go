@@ -17,6 +17,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/pkg/security"
+
 	"k8s.io/client-go/util/cert"
 	"k8s.io/client-go/util/keyutil"
 
@@ -24,7 +26,6 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/networkservicemesh/networkservicemesh/pkg/security"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 
 	"github.com/networkservicemesh/networkservicemesh/test/applications/cmd/icmp-responder-nse/flags"
@@ -383,14 +384,14 @@ func InitSpireSecurity(k8s *K8s) func() {
 	addr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("localhost:%d", fwd.ListenPort))
 	k8s.g.Expect(err).To(BeNil())
 
-	obt := security.NewSpireObtainerWithAddress(addr)
-	mgr := security.NewManagerWithCertObtainer(obt)
+	provider, err := security.NewSpireProvider("tcp://" + addr.String())
+	k8s.g.Expect(err).To(BeNil())
+
 	tools.InitConfig(tools.DialConfig{
-		SecurityManager: mgr,
+		SecurityProvider: provider,
 	})
 
 	return func() {
-		obt.Stop()
 		fwd.Stop()
 	}
 }

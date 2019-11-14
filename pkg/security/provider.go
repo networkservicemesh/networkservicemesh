@@ -1,5 +1,7 @@
 // Copyright (c) 2019 Cisco and/or its affiliates.
 //
+// SPDX-License-Identifier: Apache-2.0
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at:
@@ -15,32 +17,10 @@
 package security
 
 import (
-	"crypto/x509"
-	"encoding/pem"
+	"context"
+	"crypto/tls"
 )
 
-func certToPemBlocks(data []byte) ([]byte, error) {
-	certs, err := x509.ParseCertificates(data)
-	if err != nil {
-		return nil, err
-	}
-
-	pemData := []byte{}
-	for _, cert := range certs {
-		b := &pem.Block{
-			Type:  "CERTIFICATE",
-			Bytes: cert.Raw,
-		}
-		pemData = append(pemData, pem.EncodeToMemory(b)...)
-	}
-
-	return pemData, nil
-}
-
-func keyToPem(data []byte) []byte {
-	b := &pem.Block{
-		Type:  "EC PRIVATE KEY",
-		Bytes: data,
-	}
-	return pem.EncodeToMemory(b)
+type Provider interface {
+	GetTLSConfig(ctx context.Context) (*tls.Config, error)
 }
