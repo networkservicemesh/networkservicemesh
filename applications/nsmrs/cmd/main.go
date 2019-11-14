@@ -22,15 +22,11 @@ import (
 	"net"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
-
-	"github.com/networkservicemesh/networkservicemesh/utils"
-
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
-
 	"github.com/networkservicemesh/networkservicemesh/applications/nsmrs/pkg/serviceregistryserver"
-
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
+	"github.com/networkservicemesh/networkservicemesh/utils"
 )
 
 const (
