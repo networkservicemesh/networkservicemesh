@@ -64,6 +64,8 @@ func main() {
 
 	startAPIServerAt(span.Context(), sock)
 
+	span.Finish()
+
 	<-c
 }
 

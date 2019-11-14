@@ -127,7 +127,7 @@ func (rs *nseRegistryService) BulkRegisterNSE(srv registry.NetworkServiceRegistr
 		nsrURL = ProxyNsmdK8sAddressDefaults
 	}
 
-	ctx, cancel := context.WithCancel(srv.Context())
+	ctx, cancel := context.WithCancel(span.Context())
 	defer cancel()
 
 	remoteRegistry := nsmd.NewServiceRegistryAt(nsrURL)
@@ -190,7 +190,7 @@ func (rs *nseRegistryService) RemoveNSE(ctx context.Context, request *registry.R
 	}
 
 	go func() {
-		if forwardErr := rs.forwardRemoveNSE(ctx, request); forwardErr != nil {
+		if forwardErr := rs.forwardRemoveNSE(span.Context(), request); forwardErr != nil {
 			logger.Errorf("Cannot forward Remove NSE: %v", forwardErr)
 		}
 	}()
@@ -211,7 +211,7 @@ func (rs *nseRegistryService) forwardRegisterNSE(ctx context.Context, request *r
 		nsrURL = ProxyNsmdK8sAddressDefaults
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), ForwardingTimeout)
+	spanCtx, cancel := context.WithTimeout(span.Context(), ForwardingTimeout)
 	defer cancel()
 
 	done := make(chan registry.NetworkServiceRegistryClient)
@@ -221,7 +221,7 @@ func (rs *nseRegistryService) forwardRegisterNSE(ctx context.Context, request *r
 	defer remoteRegistry.Stop()
 
 	go func() {
-		nseRegistryClient, err := remoteRegistry.NseRegistryClient(ctx)
+		nseRegistryClient, err := remoteRegistry.NseRegistryClient(spanCtx)
 		if err != nil {
 			quit <- err
 			return
@@ -265,7 +265,7 @@ func (rs *nseRegistryService) forwardRegisterNSE(ctx context.Context, request *r
 		request.NetworkService.Matches = append(request.NetworkService.Matches, match)
 	}
 
-	_, err = nseRegistryClient.RegisterNSE(ctx, request)
+	_, err = nseRegistryClient.RegisterNSE(spanCtx, request)
 	if err != nil {
 		return err
 	}
@@ -285,7 +285,7 @@ func (rs *nseRegistryService) forwardRemoveNSE(ctx context.Context, request *reg
 		nsrURL = ProxyNsmdK8sAddressDefaults
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), ForwardingTimeout)
+	spanCtx, cancel := context.WithTimeout(span.Context(), ForwardingTimeout)
 	defer cancel()
 
 	done := make(chan registry.NetworkServiceRegistryClient)
@@ -295,7 +295,7 @@ func (rs *nseRegistryService) forwardRemoveNSE(ctx context.Context, request *reg
 	defer remoteRegistry.Stop()
 
 	go func() {
-		nseRegistryClient, err := remoteRegistry.NseRegistryClient(ctx)
+		nseRegistryClient, err := remoteRegistry.NseRegistryClient(spanCtx)
 		if err != nil {
 			quit <- err
 			return
@@ -314,7 +314,7 @@ func (rs *nseRegistryService) forwardRemoveNSE(ctx context.Context, request *reg
 		return errors.Errorf("timeout requesting NseRegistryClient")
 	}
 
-	_, err := nseRegistryClient.RemoveNSE(ctx, request)
+	_, err := nseRegistryClient.RemoveNSE(spanCtx, request)
 	if err != nil {
 		return err
 	}

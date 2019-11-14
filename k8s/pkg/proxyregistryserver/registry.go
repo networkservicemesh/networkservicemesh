@@ -71,7 +71,7 @@ func (rs *nseRegistryService) RegisterNSE(ctx context.Context, request *registry
 		return request, err
 	}
 
-	nodeConfiguration, cErr := rs.clusterInfoService.GetNodeIPConfiguration(ctx, &clusterinfo.NodeIPConfiguration{NodeName: request.NetworkServiceManager.Name})
+	nodeConfiguration, cErr := rs.clusterInfoService.GetNodeIPConfiguration(span.Context(), &clusterinfo.NodeIPConfiguration{NodeName: request.NetworkServiceManager.Name})
 	if cErr != nil {
 		err := errors.Wrapf(cErr, "cannot get Network Service Manager's IP address: %s", cErr)
 		logger.Errorf("%s: %v", NSRegistryForwarderLogPrefix, err)
@@ -94,13 +94,13 @@ func (rs *nseRegistryService) RegisterNSE(ctx context.Context, request *registry
 	remoteRegistry := nsmd.NewServiceRegistryAt(nsmrsURL)
 	defer remoteRegistry.Stop()
 
-	nseRegistryClient, err := remoteRegistry.NseRegistryClient(context.Background())
+	nseRegistryClient, err := remoteRegistry.NseRegistryClient(span.Context())
 	if err != nil {
 		logger.Warnf(fmt.Sprintf("%s: Cannot register network service endpoint in NSMRS: %v", NSRegistryForwarderLogPrefix, err))
 		return request, err
 	}
 
-	_, err = nseRegistryClient.RegisterNSE(ctx, request)
+	_, err = nseRegistryClient.RegisterNSE(span.Context(), request)
 	if err != nil {
 		errIn := errors.Wrapf(err, "failed register NSE in NSMRS: %v", err)
 		logger.Errorf("%s: %v", NSRegistryForwarderLogPrefix, errIn)
@@ -124,7 +124,7 @@ func (rs *nseRegistryService) BulkRegisterNSE(srv registry.NetworkServiceRegistr
 		return err
 	}
 
-	ctx, cancel := context.WithCancel(srv.Context())
+	ctx, cancel := context.WithCancel(span.Context())
 	defer cancel()
 
 	remoteRegistry := nsmd.NewServiceRegistryAt(nsmrsURL)
@@ -189,7 +189,7 @@ func (rs *nseRegistryService) RemoveNSE(ctx context.Context, request *registry.R
 	remoteRegistry := nsmd.NewServiceRegistryAt(nsmrsURL)
 	defer remoteRegistry.Stop()
 
-	nseRegistryClient, err := remoteRegistry.NseRegistryClient(context.Background())
+	nseRegistryClient, err := remoteRegistry.NseRegistryClient(span.Context())
 	if err != nil {
 		logger.Warnf("%s: Cannot register network service endpoint in NSMRS: %v", NSRegistryForwarderLogPrefix, err)
 		return &empty.Empty{}, err
