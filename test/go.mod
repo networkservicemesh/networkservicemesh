@@ -22,7 +22,6 @@ require (
 	github.com/sirupsen/logrus v1.4.2
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/viper v1.4.0
-	github.com/spiffe/go-spiffe v0.0.0-20191104192205-d29ac0a1ba99
 	github.com/spiffe/spire v0.0.0-20190515205011-c8123525fba8
 	google.golang.org/grpc v1.23.1
 	gopkg.in/yaml.v2 v2.2.4
