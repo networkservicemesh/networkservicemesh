@@ -50,80 +50,74 @@ func NewProxyNetworkServiceServer(serviceRegistry serviceregistry.ServiceRegistr
 func (srv *proxyNetworkServiceServer) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 	logrus.Infof("ProxyNSMD: Received request from client to connect to NetworkService: %v", request)
 
-	destNsmName := request.Connection.GetDestinationNetworkServiceManagerName() //DestinationNetworkServiceManagerName
+	destNsmName := request.Connection.GetDestinationNetworkServiceManagerName()
+	dNsmName, _, err := interdomain.ParseNsmURL(destNsmName)
+	if err != nil {
+		return nil, errors.New("ProxyNSMD: Failed to extract destination nsm address")
+	}
+
+	// Check point is final
+	_, _, err = interdomain.ParseNsmURL(dNsmName)
+	if err != nil {
+		return srv.request(ctx, request, destNsmName, true)
+	}
+
+	return srv.request(ctx, request, destNsmName, false)
+}
+
+func (srv *proxyNetworkServiceServer) request(ctx context.Context, request *networkservice.NetworkServiceRequest, destNsmName string, isRemoteSide bool) (*connection.Connection, error) {
 	dNsmName, dNsmAddress, err := interdomain.ParseNsmURL(destNsmName)
 	if err != nil {
 		return nil, errors.New("ProxyNSMD: Failed to extract destination nsm address")
 	}
+
 	request.Connection.NetworkServiceManagers[1] = dNsmName
 
 	dNsm := srv.newManager(dNsmName, dNsmAddress)
 	client, conn, err := srv.connectNSM(ctx, dNsm)
 	if err != nil {
-		logrus.Errorf("ProxyNSMD: Failed connect to Network Service Client (%s): %v", destNsmName, err)
+		logrus.Errorf("ProxyNSMD: Failed connect to Network Service Client (%s): %v", dNsmAddress, err)
 		return nil, err
 	}
 	defer func() {
 		if e := conn.Close(); e != nil {
-			logrus.Errorf("ProxyNSMD: Failed to close Network Service Client (%s): %v", destNsmName, e)
+			logrus.Errorf("ProxyNSMD: Failed to close Network Service Client (%s): %v", dNsmAddress, e)
 		}
 	}()
-	localNsrURL := srv.getLocalNsrURL()
-	localClusterInfoClient, localConn, err := createClusterInfoClient(ctx, localNsrURL)
+	nsrURL := srv.getLocalNsrURL()
+	clusterInfoClient, localConn, err := createClusterInfoClient(ctx, nsrURL)
 	if err != nil {
 		return nil, err
 	}
 	defer func() {
 		if err = localConn.Close(); err != nil {
-			logrus.Errorf("ProxyNSMD: Failed to close the local Cluster Info Client (%s). %v", localNsrURL, err)
+			logrus.Errorf("ProxyNSMD: Failed to close the local Cluster Info Client (%s). %v", nsrURL, err)
 		}
 	}()
 
-	remoteNsrPort := srv.getRemoteNsrPort()
-	remoteRegistryAddress := dNsmAddress[:strings.Index(dNsmAddress, ":")] + ":" + remoteNsrPort
-	logrus.Infof("ProxyNSMD: Connecting to remote service registry at %v", remoteRegistryAddress)
-	remoteClusterInfoClient, remoteConn, err := createClusterInfoClient(ctx, remoteRegistryAddress)
-	if err != nil {
-		logrus.Errorf("ProxyNSMD: Failed connecting to remote service registry at %v: %v", remoteRegistryAddress, err)
-		return nil, err
-	}
-	defer func() {
-		if err = remoteConn.Close(); err != nil {
-			logrus.Errorf("ProxyNSMD: Failed to close the remote Cluster Info Client (%s). %v", remoteRegistryAddress, err)
+	var response *connection.Connection
+
+	if isRemoteSide {
+		logrus.Infof("ProxyNSMD: Sending request to remote network service: %v", request)
+		response, err = client.Request(ctx, request)
+		if err != nil {
+			return response, err
 		}
-	}()
-	localSrcIP, originalNetworkService := srv.updateParameters(ctx, request, dNsmAddress, localClusterInfoClient)
-	logrus.Infof("ProxyNSMD: Sending request to remote network service: %v", request)
-	response, err := client.Request(ctx, request)
-	if err != nil {
-		return response, err
+		srv.updateResponseRemote(ctx, response, clusterInfoClient)
+	} else {
+		localSrcIP, originalNetworkService := srv.updateParametersLocal(ctx, request, dNsmAddress, clusterInfoClient)
+		logrus.Infof("ProxyNSMD: Sending request to remote network service: %v", request)
+		response, err = client.Request(ctx, request)
+		if err != nil {
+			return response, err
+		}
+		srv.updateResponseLocal(response, localSrcIP, destNsmName, originalNetworkService)
 	}
-	srv.updatereResponse(ctx, remoteClusterInfoClient, response, localSrcIP, destNsmName, originalNetworkService)
 	logrus.Infof("ProxyNSMD: Received response from remote network service: %v", response)
 	return response, err
 }
 
-func (srv *proxyNetworkServiceServer) updatereResponse(ctx context.Context, remoteClusterInfoClient clusterinfo.ClusterInfoClient, response *connection.Connection, localSrcIP, destNsmName, originalNetworkService string) {
-	remoteNodeIPConfiguration, err := remoteClusterInfoClient.GetNodeIPConfiguration(ctx, &clusterinfo.NodeIPConfiguration{InternalIP: response.Mechanism.Parameters["dst_ip"]})
-	if err == nil {
-		if len(remoteNodeIPConfiguration.ExternalIP) > 0 {
-			response.Mechanism.Parameters[vxlan.DstIP] = remoteNodeIPConfiguration.ExternalIP
-		}
-	}
-
-	response.Mechanism.Parameters[vxlan.SrcIP] = localSrcIP
-	response.NetworkServiceManagers[1] = destNsmName
-	response.NetworkService = originalNetworkService
-}
-
-func (srv *proxyNetworkServiceServer) newManager(dNsmName, dNsmAddress string) *registry.NetworkServiceManager {
-	return &registry.NetworkServiceManager{
-		Name: dNsmName,
-		Url:  dNsmAddress,
-	}
-}
-
-func (srv *proxyNetworkServiceServer) updateParameters(ctx context.Context, request *networkservice.NetworkServiceRequest, dNsmAddress string, localClusterInfoClient clusterinfo.ClusterInfoClient) (string, string) {
+func (srv *proxyNetworkServiceServer) updateParametersLocal(ctx context.Context, request *networkservice.NetworkServiceRequest, dNsmAddress string, localClusterInfoClient clusterinfo.ClusterInfoClient) (string, string) {
 	localSrcIP := request.MechanismPreferences[0].Parameters[vxlan.SrcIP]
 	request.MechanismPreferences[0].Parameters[vxlan.DstExternalIP] = dNsmAddress[:strings.Index(dNsmAddress, ":")]
 
@@ -144,6 +138,28 @@ func (srv *proxyNetworkServiceServer) updateParameters(ctx context.Context, requ
 		logrus.Warnf("Cannot parse Network Service name %s, keep original", originalNetworkService)
 	}
 	return localSrcIP, originalNetworkService
+}
+
+func (srv *proxyNetworkServiceServer) updateResponseLocal(response *connection.Connection, localSrcIP, destNsmName, originalNetworkService string) {
+	response.Mechanism.Parameters[vxlan.SrcIP] = localSrcIP
+	response.NetworkServiceManagers[1] = destNsmName
+	response.NetworkService = originalNetworkService
+}
+
+func (srv *proxyNetworkServiceServer) updateResponseRemote(ctx context.Context, response *connection.Connection, clusterInfoClient clusterinfo.ClusterInfoClient) {
+	remoteNodeIPConfiguration, err := clusterInfoClient.GetNodeIPConfiguration(ctx, &clusterinfo.NodeIPConfiguration{InternalIP: response.Mechanism.Parameters["dst_ip"]})
+	if err == nil {
+		if len(remoteNodeIPConfiguration.ExternalIP) > 0 {
+			response.Mechanism.Parameters[vxlan.DstIP] = remoteNodeIPConfiguration.ExternalIP
+		}
+	}
+}
+
+func (srv *proxyNetworkServiceServer) newManager(dNsmName, dNsmAddress string) *registry.NetworkServiceManager {
+	return &registry.NetworkServiceManager{
+		Name: dNsmName,
+		Url:  dNsmAddress,
+	}
 }
 
 func (srv *proxyNetworkServiceServer) connectNSM(ctx context.Context, dNsm *registry.NetworkServiceManager) (networkservice.NetworkServiceClient, *grpc.ClientConn, error) {
@@ -170,14 +186,6 @@ func (srv *proxyNetworkServiceServer) getLocalNsrURL() string {
 	return localNsrURL
 }
 
-func (srv *proxyNetworkServiceServer) getRemoteNsrPort() string {
-	remoteNsrPort := os.Getenv(ProxyNsmdK8sRemotePortEnv)
-	if strings.TrimSpace(remoteNsrPort) == "" {
-		remoteNsrPort = ProxyNsmdK8sRemotePortDefaults
-	}
-	return remoteNsrPort
-}
-
 func (srv *proxyNetworkServiceServer) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
 	logrus.Infof("ProxyNSMD: Proxy closing connection: %v", *connection)
 
@@ -202,6 +210,8 @@ func (srv *proxyNetworkServiceServer) Close(ctx context.Context, connection *con
 			logrus.Errorf("ProxyNSMD: Failed to close NSE Client. %v", err)
 		}
 	}()
+
+	connection.NetworkServiceManagers[1] = dNsmName
 
 	return client.Close(ctx, connection)
 }

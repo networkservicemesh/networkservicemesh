@@ -13,5 +13,5 @@ func (nse *NSERegistration) GetEndpointNSMName() EndpointNSMName {
 
 //NewEndpointNSMName - construct an NewEndpointNSMName from endpoint and manager
 func NewEndpointNSMName(endpoint *NetworkServiceEndpoint, manager *NetworkServiceManager) EndpointNSMName {
-	return EndpointNSMName(endpoint.Name + ":" + manager.Url)
+	return EndpointNSMName(endpoint.Name + ":" + manager.Name + "@" + manager.Url)
 }

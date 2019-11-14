@@ -104,7 +104,7 @@ func (d *discoveryService) FindNetworkService(ctx context.Context, request *regi
 		if idx := strings.Index(url, ":"); idx > -1 {
 			externalIP += url[idx:]
 		}
-		response.NetworkServiceManagers[nsmName].Url = externalIP
+		response.NetworkServiceManagers[nsmName].Url = response.NetworkServiceManagers[nsmName].Url + "@" + externalIP
 	}
 	return response, err
 }

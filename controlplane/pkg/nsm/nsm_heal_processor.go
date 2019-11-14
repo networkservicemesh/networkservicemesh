@@ -341,7 +341,6 @@ func (p *healProcessor) healDstMgrDown(ctx context.Context, cc *model.ClientConn
 		if attempt+1 < p.props.HealRetryCount {
 			attemptSpan.Finish()
 			<-time.After(p.props.HealRetryDelay)
-			continue
 		}
 	}
 

@@ -53,7 +53,7 @@ func ProxyNSMgrPodWithConfig(name string, node *v1.Node, config *NSMgrPodConfig)
 					Resources:       createDefaultResources(),
 					Ports: []v1.ContainerPort{
 						{
-							HostPort:      5006,
+							HostPort:      5001,
 							ContainerPort: 5006,
 						},
 					},

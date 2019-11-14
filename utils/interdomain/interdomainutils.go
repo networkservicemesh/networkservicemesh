@@ -13,8 +13,8 @@ func ParseNsmURL(nsmURL string) (nsmName, nsmAddress string, err error) {
 		return nsmURL, "", errors.Errorf("cannot parse Network Service Manager URL: %s", nsmURL)
 	}
 
-	t := strings.SplitN(nsmURL, "@", 2)
-	return t[0], t[1], nil
+	t := strings.Split(nsmURL, "@")
+	return strings.Join(t[:len(t)-1], "@"), t[len(t)-1], nil
 }
 
 // ResolveDomain translates network service domain name to an IP address

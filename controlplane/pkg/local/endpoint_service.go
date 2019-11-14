@@ -107,7 +107,9 @@ func (cce *endpointService) Request(ctx context.Context, request *networkservice
 	defer span.Finish()
 	span.LogObject("nse.request", message)
 
-	nseConn, e := client.Request(ctx, message)
+	requestContext, cancel := context.WithTimeout(ctx, cce.props.HealRequestConnectTimeout)
+	defer cancel()
+	nseConn, e := client.Request(requestContext, message)
 	span.LogObject("nse.response", nseConn)
 	if e != nil {
 		e = errors.Errorf("NSM:(7.2.6.2.1) error requesting networkservice from %+v with message %#v error: %s", endpoint, message, e)

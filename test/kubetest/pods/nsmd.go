@@ -156,12 +156,6 @@ func NSMgrPodWithConfig(name string, node *v1.Node, config *NSMgrPodConfig) *v1.
 					LivenessProbe:   config.liveness,
 					ReadinessProbe:  config.readiness,
 					Resources:       createDefaultResources(),
-					Ports: []v1.ContainerPort{
-						{
-							HostPort:      5001,
-							ContainerPort: 5001,
-						},
-					},
 				}),
 				containerMod(&v1.Container{
 					Name:            "nsmd-k8s",
