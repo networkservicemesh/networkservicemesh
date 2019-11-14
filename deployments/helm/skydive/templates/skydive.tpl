@@ -81,9 +81,10 @@ spec:
         app: skydive
         tier: analyzer
     spec:
+      serviceAccount: nsmgr-acc
       containers:
         - name: skydive-analyzer
-          image: skydive/skydive:0.23.0
+          image: {{ .Values.registry }}/{{ .Values.org }}/skydive:{{ .Values.tag }}
           imagePullPolicy: {{ .Values.pullPolicy }}
           args:
             - analyzer
@@ -104,10 +105,17 @@ spec:
             - mountPath: /etc/skydive.yml
               subPath: skydive.yml
               name: skydive-analyzer-config-file
+            - name: spire-agent-socket
+              mountPath: /run/spire/sockets
+              readOnly: true
       volumes:
         - name: skydive-analyzer-config-file
           configMap:
             name: skydive-analyzer-config-file
+        - hostPath:
+            path: /run/spire/sockets
+            type: DirectoryOrCreate
+          name: spire-agent-socket
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -149,7 +157,7 @@ spec:
       hostPID: true
       containers:
         - name: skydive-agent
-          image: skydive/skydive:0.24.0
+          image: {{ .Values.registry }}/{{ .Values.org }}/skydive:{{ .Values.tag }}
           imagePullPolicy: {{ .Values.pullPolicy }}
           args:
             - agent
@@ -168,6 +176,9 @@ spec:
             - name: skydive-agent-config-file
               mountPath: /etc/skydive.yml
               subPath: skydive.yml
+            - name: spire-agent-socket
+              mountPath: /run/spire/sockets
+              readOnly: true
       volumes:
         - name: docker
           hostPath:
@@ -178,3 +189,7 @@ spec:
         - name: skydive-agent-config-file
           configMap:
             name: skydive-agent-config-file
+        - hostPath:
+            path: /run/spire/sockets
+            type: DirectoryOrCreate
+          name: spire-agent-socket
