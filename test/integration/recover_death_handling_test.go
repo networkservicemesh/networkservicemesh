@@ -77,7 +77,7 @@ func testDie(t *testing.T, killSrc bool, nodesCount int) {
 
 	pingResponse, errOut, err := k8s.Exec(nsc, nsc.Spec.Containers[0].Name, "ping", "172.16.1.2", "-A", "-c", "5")
 	g.Expect(err).To(BeNil())
-	g.Expect(strings.Contains(pingResponse, "5 packets transmitted, 5 packets received, 0% packet loss")).To(Equal(true))
+	g.Expect(strings.Contains(pingResponse, "100% packet loss")).To(Equal(false))
 	logrus.Printf("NSC Ping is success:%s", pingResponse)
 
 	var podToKill *v1.Pod
