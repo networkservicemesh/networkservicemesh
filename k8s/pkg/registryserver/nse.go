@@ -106,7 +106,7 @@ func (rs *nseRegistryService) RegisterNSE(ctx context.Context, request *registry
 		request.NetworkServiceManager = mapNsmFromCustomResource(nsm)
 
 		go func() {
-			if forwardErr := rs.forwardRegisterNSE(ctx, request); forwardErr != nil {
+			if forwardErr := rs.forwardRegisterNSE(context.Background(), request); forwardErr != nil {
 				logger.Errorf("Cannot forward NSE Registration: %v", forwardErr)
 			}
 		}()
@@ -190,7 +190,7 @@ func (rs *nseRegistryService) RemoveNSE(ctx context.Context, request *registry.R
 	}
 
 	go func() {
-		if forwardErr := rs.forwardRemoveNSE(span.Context(), request); forwardErr != nil {
+		if forwardErr := rs.forwardRemoveNSE(context.Background(), request); forwardErr != nil {
 			logger.Errorf("Cannot forward Remove NSE: %v", forwardErr)
 		}
 	}()
@@ -200,7 +200,7 @@ func (rs *nseRegistryService) RemoveNSE(ctx context.Context, request *registry.R
 }
 
 func (rs *nseRegistryService) forwardRegisterNSE(ctx context.Context, request *registry.NSERegistration) error {
-	span := spanhelper.FromContext(ctx, "ProxyNsmgr.BulkRegisterNSE")
+	span := spanhelper.FromContext(ctx, "ProxyNsmgr.forwardRegisterNSE")
 	defer span.Finish()
 	logger := span.Logger()
 
@@ -274,7 +274,7 @@ func (rs *nseRegistryService) forwardRegisterNSE(ctx context.Context, request *r
 }
 
 func (rs *nseRegistryService) forwardRemoveNSE(ctx context.Context, request *registry.RemoveNSERequest) error {
-	span := spanhelper.FromContext(ctx, "ProxyNsmgr.BulkRegisterNSE")
+	span := spanhelper.FromContext(ctx, "ProxyNsmgr.forwardRemoveNSE")
 	defer span.Finish()
 	logger := span.Logger()
 
