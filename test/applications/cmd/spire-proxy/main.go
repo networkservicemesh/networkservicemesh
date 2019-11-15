@@ -6,12 +6,13 @@ import (
 
 	"github.com/pkg/errors"
 
+	"github.com/networkservicemesh/networkservicemesh/pkg/security"
+
 	"github.com/sirupsen/logrus"
 	"github.com/spiffe/spire/api/workload"
 	proto "github.com/spiffe/spire/proto/spire/api/workload"
 	"google.golang.org/grpc"
 
-	"github.com/networkservicemesh/networkservicemesh/pkg/security"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/utils"
 )
@@ -23,7 +24,7 @@ type spireProxy struct {
 func newSpireProxy() *spireProxy {
 	workloadAPIClient := workload.NewX509Client(
 		&workload.X509ClientConfig{
-			Addr: &net.UnixAddr{Net: "unix", Name: security.DefaultAgentAddress},
+			Addr: &net.UnixAddr{Net: "unix", Name: security.SpireAgentUnixSocket},
 			Log:  logrus.StandardLogger(),
 		})
 
