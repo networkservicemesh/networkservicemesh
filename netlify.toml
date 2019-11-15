@@ -14,11 +14,14 @@
                TAGS=(master v0.1.0)
                for TAG in "${TAGS[@]}"
                do
+                   echo "Creating helm repo for ${TAG}"
                    git checkout ${TAG}
+                   git log -1
                    mkdir -p ./helm-output/${TAG}
                    helm repo index ./helm-output/${TAG}
                    helm package -d ./helm-output/${TAG} ./deployments/helm/*
                    helm repo index ./helm-output/${TAG}
+                   cat ./helm-output/${TAG}/index.yaml
                done
                rm -r ./helm-output/bin"""
 
