@@ -28,7 +28,7 @@ spec:
           args: ["-t", "30", "spire-server:8081"]
       containers:
         - name: spire-agent
-          image: gcr.io/spiffe-io/spire-agent:1c28d02f1ac980cf0fb42de78b1fea9c2f172e4d # master on Nov 12, 2019
+          image: gcr.io/spiffe-io/spire-agent:0.8.4
           args: ["-config", "/run/spire/config/agent.conf"]
           volumeMounts:
             - name: spire-config
