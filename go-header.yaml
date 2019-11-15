@@ -6,7 +6,7 @@ goroutine-count: 6
 show-only-first-error: true
 scope:
   policy: "new"
-  master-branch: "origin/master"
+  master-branch: "origin/release-0.2"
 rules:
   - template: |-
       {NSM COPYRIHT HOLDERS}// SPDX-License-Identifier: Apache-2.0
