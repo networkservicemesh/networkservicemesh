@@ -53,5 +53,5 @@ spec:
             limits:
               networkservicemesh.io/socket: 1
 metadata:
-  name: vppagent-icmp-responder-nse
+  name: vpp-icmp-responder-nse
   namespace: {{ .Release.Namespace }}
