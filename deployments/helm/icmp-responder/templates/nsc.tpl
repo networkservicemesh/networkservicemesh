@@ -17,7 +17,7 @@ spec:
           image: alpine:latest
           command: ['tail', '-f', '/dev/null']
 metadata:
-  name: alpine-nsc
+  name: icmp-responder-nsc
   namespace: {{ .Release.Namespace }}
   annotations:
     ns.networkservicemesh.io: icmp-responder?app=icmp
