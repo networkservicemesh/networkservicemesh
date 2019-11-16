@@ -47,16 +47,16 @@ packet-stop:
 
 .PHONY: packet-%-load-images
 packet-%-load-images:
-	@if [ -e "scripts/vagrant/images/$*.tar" ]; then \
+	@if [ -e "$(IMAGE_DIR)/$*.tar" ]; then \
 		pushd scripts/terraform; \
 		echo "Loading image $*.tar to master and worker"; \
-		scp ${SSH_OPTS} ../vagrant/images/$*.tar root@`terraform output master${PACKET_CLUSTER_ID}.public_ip`:~/ & \
-		scp ${SSH_OPTS} ../vagrant/images/$*.tar root@`terraform output worker${PACKET_CLUSTER_ID}_1.public_ip`:~/ 
+		scp ${SSH_OPTS} ../../$(IMAGE_DIR)/$*.tar root@`terraform output master${PACKET_CLUSTER_ID}.public_ip`:~/ & \
+		scp ${SSH_OPTS} ../../$(IMAGE_DIR)/$*.tar root@`terraform output worker${PACKET_CLUSTER_ID}_1.public_ip`:~/
 		ssh ${SSH_OPTS} root@`terraform output master${PACKET_CLUSTER_ID}.public_ip` "sudo docker rmi networkservicemesh/$* -f && docker load -i $*.tar" > /dev/null 2>&1; \
 		ssh ${SSH_OPTS} root@`terraform output worker${PACKET_CLUSTER_ID}_1.public_ip` "sudo docker rmi networkservicemesh/$* -f && docker load -i $*.tar" > /dev/null 2>&1; \
 		popd ; \
 	else \
-		echo "Cannot load $*.tar: scripts/vagrant/images/$*.tar does not exist.  Try running 'make k8s-$*-save'"; \
+		echo "Cannot load $*.tar: $(IMAGE_DIR)/$*.tar does not exist.  Try running 'make k8s-$*-save'"; \
 		exit 1; \
 	fi
 

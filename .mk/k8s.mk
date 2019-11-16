@@ -26,18 +26,12 @@ CONTAINER_TAG?=master
 # That you could set the CLUSTER_RULES_PREFIX different and introduce
 # a new platform to run on with k8s by adding a new include ${method}.mk
 # and setting CLUSTER_RULES_PREFIX to a different value
-ifeq ($(CLUSTER_RULES_PREFIX),)
-CLUSTER_RULES_PREFIX := vagrant
-endif
+CLUSTER_RULES_PREFIX ?= kind
+include .mk/kind.mk
 include .mk/vagrant.mk
 include .mk/packet.mk
 include .mk/aws.mk
 include .mk/azure.mk
-
-# .kind.mk enables the kind.sigs.k8s.io docker based K8s install:
-# export CLUSTER_RULES_PREFIX=kind
-# before running make
-include .mk/kind.mk
 
 # .null.mk allows you to skip the vagrant machinery with:
 # export CLUSTER_RULES_PREFIX=null
@@ -47,9 +41,10 @@ include .mk/null.mk
 include .mk/gke.mk
 
 SPIRE_ENABLED?=true
+IMAGE_DIR=build/images/
 
 kubectl = kubectl -n ${NSM_NAMESPACE}
-images_tar = $(subst .tar,,$(filter %.tar, $(shell mkdir -p ./scripts/vagrant/images;ls ./scripts/vagrant/images)))
+images_tar = $(subst .tar,,$(filter %.tar, $(shell mkdir -p ./build/images;ls ./build/images)))
 
 export ORG=$(CONTAINER_REPO)
 
