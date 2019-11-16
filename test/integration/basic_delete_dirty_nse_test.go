@@ -58,11 +58,11 @@ func TestDeleteDirtyNSEWithClient(t *testing.T) {
 	defer k8s.ProcessArtifacts(t)
 
 	nsePod := kubetest.DeployDirtyICMP(k8s, nodesConf[0].Node, "dirty-icmp-responder-nse", defaultTimeout)
-	kubetest.DeployNSC(k8s, nodesConf[0].Node, "nsc-1", defaultTimeout)
+	nscPod := kubetest.DeployNSC(k8s, nodesConf[0].Node, "nsc-1", defaultTimeout)
 
 	kubetest.ExpectNSEsCountToBe(k8s, 0, 1)
-
-	k8s.DeletePods(nsePod)
-
+	k8s.DeletePods(nscPod)
 	kubetest.ExpectNSEsCountToBe(k8s, 1, 1)
+	k8s.DeletePods(nsePod)
+	kubetest.ExpectNSEsCountToBe(k8s, 1, 0)
 }
