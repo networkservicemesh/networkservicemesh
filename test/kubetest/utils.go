@@ -20,7 +20,6 @@ import (
 	"k8s.io/client-go/util/keyutil"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/properties"
-	"github.com/pkg/errors"
 
 	"github.com/pkg/errors"
 
