@@ -270,3 +270,13 @@ workflows:
           filters:
             branches:
               only: master
+
+      - docker-push-tag:
+          tag: "v0.2.0"
+          requires:
+            - test-integration
+          filters:
+            branches:
+              only: release-0.2
+            tags:
+              only: "v0.2.0"
