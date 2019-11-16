@@ -2,10 +2,11 @@ package tools
 
 import (
 	"context"
-	"crypto/tls"
 	"net"
 	"sync"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/security"
 
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 
@@ -17,8 +18,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
-
-	"github.com/networkservicemesh/networkservicemesh/pkg/security"
 )
 
 const (
@@ -178,14 +177,12 @@ func (b *DialBuilder) DialContextFunc() DialContextFunc {
 					otgrpc.OpenTracingClientInterceptor(opentracing.GlobalTracer())))
 		}
 
-		if !b.insecure && b.cfg.SecurityProvider != nil {
-			cred := credentials.NewTLS(&tls.Config{
-				InsecureSkipVerify: true,
-				Certificates:       []tls.Certificate{*b.cfg.SecurityProvider.GetCertificate()},
-				RootCAs:            b.cfg.SecurityProvider.GetCABundle(),
-			})
-			b.opts = append(b.opts, grpc.WithTransportCredentials(cred))
-			//unaryInts = append(unaryInts, security.ClientInterceptor(b.cfg.SecurityProvider))
+		if !b.insecure && GetConfig().SecurityProvider != nil {
+			tlscfg, err := GetConfig().SecurityProvider.GetTLSConfig(ctx)
+			if err != nil {
+				return nil, err
+			}
+			b.opts = append(b.opts, grpc.WithTransportCredentials(credentials.NewTLS(tlscfg)))
 		} else {
 			b.opts = append(b.opts, grpc.WithInsecure())
 		}
@@ -243,13 +240,12 @@ func (b *NewServerBuilder) NewServerFunc() NewServerFunc {
 
 		if !b.insecure && b.cfg.SecurityProvider != nil {
 			securitySpan := spanhelper.FromContext(span.Context(), "GetCertificate")
-			certificate := b.cfg.SecurityProvider.GetCertificate()
-			cred := credentials.NewTLS(&tls.Config{
-				ClientAuth:   tls.RequireAndVerifyClientCert,
-				Certificates: []tls.Certificate{*certificate},
-				ClientCAs:    b.cfg.SecurityProvider.GetCABundle(),
-			})
-			opts = append(opts, grpc.Creds(cred))
+			tlscfg, err := GetConfig().SecurityProvider.GetTLSConfig(ctx)
+			if err != nil {
+				span.Logger().Error(err)
+				return nil
+			}
+			opts = append(opts, grpc.Creds(credentials.NewTLS(tlscfg)))
 			securitySpan.Finish()
 		}
 
@@ -284,7 +280,10 @@ func readDialConfig() (DialConfig, error) {
 	}
 
 	if !insecure {
-		rv.SecurityProvider = security.NewProvider()
+		rv.SecurityProvider, err = security.NewSpireProvider(security.SpireAgentUnixAddr)
+		if err != nil {
+			return DialConfig{}, err
+		}
 	}
 
 	return rv, nil

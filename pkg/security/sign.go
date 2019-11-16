@@ -99,7 +99,12 @@ func GenerateSignature(ctx context.Context, msg interface{}, fillFunc FillClaims
 		return "", err
 	}
 
-	if cfg.obo != nil && cfg.obo.GetSpiffeID() == p.GetSpiffeID() {
+	id, err := p.GetID(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	if cfg.obo != nil && cfg.obo.GetSpiffeID() == id {
 		span.Logger().Info("GeneratingSignature: claims.Obo.Subject equals current SpiffeID")
 		return cfg.obo.ToString()
 	}
@@ -113,10 +118,15 @@ func GenerateSignature(ctx context.Context, msg interface{}, fillFunc FillClaims
 		claims.ExpiresAt = time.Now().Add(cfg.expiresAt).Unix()
 	}
 
-	var xcerts []*x509.Certificate
-	span.Logger().Infof("Private key type = %v", reflect.TypeOf(p.GetCertificate().PrivateKey))
+	tlscrt, err := p.GetCertificate(ctx)
+	if err != nil {
+		return "", err
+	}
 
-	for _, c := range p.GetCertificate().Certificate {
+	span.Logger().Infof("Private key type = %v", reflect.TypeOf(tlscrt.PrivateKey))
+
+	var xcerts []*x509.Certificate
+	for _, c := range tlscrt.Certificate {
 		crt, err := x509.ParseCertificate(c)
 		if err != nil {
 			return "", err
@@ -134,7 +144,7 @@ func GenerateSignature(ctx context.Context, msg interface{}, fillFunc FillClaims
 	}
 
 	h, _ := hash(base64.StdEncoding.EncodeToString(xcerts[0].Raw))
-	key := fmt.Sprintf("%s %v", p.GetSpiffeID(), h)
+	key := fmt.Sprintf("%s %v", id, h)
 
 	if len(jwks.Key(key)) == 0 {
 		jwks.Keys = append(jwks.Keys, jose.JSONWebKey{
@@ -144,9 +154,9 @@ func GenerateSignature(ctx context.Context, msg interface{}, fillFunc FillClaims
 		})
 	}
 
-	claims.Subject = p.GetSpiffeID()
+	claims.Subject = id
 
-	token, err := jwt.NewWithClaims(jwt.SigningMethodES256, claims).SignedString(p.GetCertificate().PrivateKey)
+	token, err := jwt.NewWithClaims(jwt.SigningMethodES256, claims).SignedString(tlscrt.PrivateKey)
 	if err != nil {
 		return "", err
 	}

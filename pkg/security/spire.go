@@ -1,5 +1,7 @@
 // Copyright (c) 2019 Cisco and/or its affiliates.
 //
+// SPDX-License-Identifier: Apache-2.0
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at:
@@ -15,21 +17,23 @@
 package security
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"net"
-
 	"github.com/pkg/errors"
-
 	"github.com/sirupsen/logrus"
-	"github.com/spiffe/spire/api/workload"
+	"net/url"
+	"sync"
 
-	proto "github.com/spiffe/spire/proto/spire/api/workload"
+	"github.com/spiffe/go-spiffe/spiffe"
 )
 
 const (
-	// DefaultAgentAddress points to unix socket used by default
-	DefaultAgentAddress = "/run/spire/sockets/agent.sock"
+	// SpireAgentUnixSocket points to unix socket used by default
+	SpireAgentUnixSocket = "/run/spire/sockets/agent.sock"
+
+	// SpireAgentUnixAddr is unix socket address with specified scheme
+	SpireAgentUnixAddr = "unix://" + SpireAgentUnixSocket
 )
 
 type TokenConfig interface {
@@ -37,117 +41,127 @@ type TokenConfig interface {
 	RequestFilter(req interface{}) bool
 }
 
-type spireObtainer struct {
-	errCh             chan error
-	responseCh        <-chan *Response
-	workloadAPIClient workload.X509Client
+type spireProvider struct {
+	sync.RWMutex
+	spiffeID    *url.URL
+	trustDomain string
+	peer        *spiffe.TLSPeer
 }
 
-// NewSpireObtainer creates CertificateObtainer that fetch certificates from spire-agent
-func NewSpireObtainer() CertificateObtainer {
-	return NewSpireObtainerWithAddress(&net.UnixAddr{
-		Net:  "unix",
-		Name: DefaultAgentAddress,
-	})
-}
+func NewSpireProvider(addr string) (Provider, error) {
+	p, err := spiffe.NewTLSPeer(spiffe.WithWorkloadAPIAddr(addr))
+	if err != nil {
+		return nil, err
+	}
 
-// NewSpireObtainerWithAddress create CertificateObtainer to passed addr
-func NewSpireObtainerWithAddress(addr net.Addr) CertificateObtainer {
-	workloadAPIClient := workload.NewX509Client(
-		&workload.X509ClientConfig{
-			Addr: addr,
-			Log:  logrus.StandardLogger(),
-		})
-
-	errCh := make(chan error)
+	rv := &spireProvider{
+		peer: p,
+	}
 
 	go func() {
-		if err := workloadAPIClient.Start(); err != nil {
-			errCh <- err
+		spiffeID, err := rv.GetID(context.Background())
+		if err != nil {
+			logrus.Error(err)
 			return
 		}
-	}()
+		logrus.Infof("Issued certificate with id: %v", spiffeID)
 
-	responseCh := certsFromSpireCh(workloadAPIClient.UpdateChan(), errCh)
-
-	return &spireObtainer{
-		errCh:             errCh,
-		responseCh:        responseCh,
-		workloadAPIClient: workloadAPIClient,
-	}
-}
-
-func (o *spireObtainer) Stop() {
-	o.workloadAPIClient.Stop()
-}
-
-func (o *spireObtainer) ErrorCh() <-chan error {
-	return o.errCh
-}
-
-func (o *spireObtainer) CertificateCh() <-chan *Response {
-	return o.responseCh
-}
-
-func certsFromSpireCh(spireCh <-chan *proto.X509SVIDResponse, errCh chan<- error) <-chan *Response {
-	responseCh := make(chan *Response)
-
-	go func() {
-		defer close(responseCh)
-
-		for svidResponse := range spireCh {
-			response, err := newResponse(svidResponse)
-			if err != nil {
-				errCh <- err
-				return
-			}
-			responseCh <- response
+		tlscrt, err := rv.GetRootCA(context.Background())
+		if err != nil {
+			logrus.Error(err)
+			return
 		}
+		logrus.Infof("crt %v", tlscrt)
 	}()
 
-	return responseCh
+	return rv, nil
 }
 
-func newResponse(svidResponse *proto.X509SVIDResponse) (*Response, error) {
-	if len(svidResponse.Svids) == 0 {
-		return nil, errors.New("X509SVIDResponse.Svids is empty")
+func (p *spireProvider) GetTLSConfig(ctx context.Context) (*tls.Config, error) {
+	return p.peer.GetConfig(ctx, spiffe.ExpectAnyPeer())
+}
+
+func (p *spireProvider) GetCertificate(ctx context.Context) (*tls.Certificate, error) {
+	if err := p.peer.WaitUntilReady(ctx); err != nil {
+		return nil, err
 	}
 
-	svid := svidResponse.Svids[0]
-	logrus.Infof("Received new SVID: %v", svid.SpiffeId)
+	return p.peer.GetCertificate()
+}
 
-	crt, err := certToPemBlocks(svid.GetX509Svid())
+func (p *spireProvider) GetRootCA(ctx context.Context) (*x509.CertPool, error) {
+	if err := p.peer.WaitUntilReady(ctx); err != nil {
+		return nil, err
+	}
+
+	roots, err := p.peer.GetRoots()
+	logrus.Infof("roots - %v", roots)
 	if err != nil {
 		return nil, err
 	}
 
-	key := keyToPem(svid.GetX509SvidKey())
-	keyPair, err := tls.X509KeyPair(crt, key)
+	spiffeID, err := p.GetID(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	x509crt, err := x509.ParseCertificate(keyPair.Certificate[0])
+	trustDomain := spiffe.TrustDomainID(spiffeID)
+	cp, ok := roots[trustDomain]
+	if !ok {
+		return nil, errors.Errorf("no root certificates for %v", trustDomain)
+	}
+
+	return cp, nil
+}
+
+func (p *spireProvider) GetID(ctx context.Context) (string, error) {
+	p.RLock()
+	if p.spiffeID != nil {
+		rv := p.spiffeID.String()
+		p.RUnlock()
+		return rv, nil
+	}
+	p.RUnlock()
+
+	if err := p.peer.WaitUntilReady(ctx); err != nil {
+		return "", err
+	}
+
+	tlscrt, err := p.peer.GetCertificate()
 	if err != nil {
-		logrus.Error(err)
+		return "", err
+	}
+
+	x509crt, err := x509.ParseCertificate(tlscrt.Certificate[0])
+	if err != nil {
+		return "", err
+	}
+
+	p.Lock()
+	p.spiffeID, err = getIDsFromCertificate(x509crt)
+	if err != nil {
+		p.Unlock()
+		return "", err
+	}
+	rv := p.spiffeID.String()
+	p.Unlock()
+
+	return rv, nil
+}
+
+func getIDsFromCertificate(peer *x509.Certificate) (*url.URL, error) {
+	switch {
+	case len(peer.URIs) == 0:
+		return nil, errors.New("peer certificate contains no URI SAN")
+	case len(peer.URIs) > 1:
+		return nil, errors.New("peer certificate contains more than one URI SAN")
+	}
+
+	id := peer.URIs[0]
+
+	if err := spiffe.ValidateURI(id, spiffe.AllowAny()); err != nil {
 		return nil, err
 	}
 
-	logrus.Infof("Length of URIs = %v", len(x509crt.URIs))
-	logrus.Infof("URIs[0] = %v", *x509crt.URIs[0])
-
-	caBundle, err := certToPemBlocks(svid.GetBundle())
-	if err != nil {
-		return nil, err
-	}
-
-	caPool := x509.NewCertPool()
-	if ok := caPool.AppendCertsFromPEM(caBundle); !ok {
-		return nil, errors.New("failed to append ca cert to pool")
-	}
-
-	return &Response{
-		TLSCert:  &keyPair,
-		CABundle: caPool,
-	}, nil
+	return id, nil
 }

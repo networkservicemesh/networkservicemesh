@@ -1,5 +1,7 @@
 // Copyright (c) 2019 Cisco and/or its affiliates.
 //
+// SPDX-License-Identifier: Apache-2.0
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at:
@@ -98,7 +100,12 @@ func ClientInterceptor(securityProvider Provider, cfg TokenConfig) grpc.UnaryCli
 			return err
 		}
 
-		if err := verifySignatureParsed(ctx, s, securityProvider.GetCABundle(), transportSpiffeID); err != nil {
+		rootCA, err := securityProvider.GetRootCA(ctx)
+		if err != nil {
+			return err
+		}
+
+		if err := verifySignatureParsed(ctx, s, rootCA, transportSpiffeID); err != nil {
 			return status.Errorf(codes.Unauthenticated, "response jwt is not valid: %v", err)
 		}
 
@@ -142,7 +149,13 @@ func ServerInterceptor(securityProvider Provider, cfg TokenConfig) grpc.UnarySer
 			return nil, status.Errorf(codes.Unauthenticated, "signature parse error")
 		}
 
-		if err := verifySignatureParsed(ctx, s, securityProvider.GetCABundle(), spiffeID); err != nil {
+		rootCA, err := securityProvider.GetRootCA(ctx)
+		if err != nil {
+			logrus.Error(err)
+			return nil, status.Errorf(codes.Unauthenticated, "no root ca provided")
+		}
+
+		if err := verifySignatureParsed(ctx, s, rootCA, spiffeID); err != nil {
 			logrus.Error(err)
 			return nil, status.Errorf(codes.Unauthenticated, fmt.Sprintf("token is not valid: %v", err))
 		}

@@ -1,5 +1,7 @@
 // Copyright (c) 2019 Cisco and/or its affiliates.
 //
+// SPDX-License-Identifier: Apache-2.0
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at:
@@ -15,112 +17,14 @@
 package security
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"sync"
-
-	"github.com/sirupsen/logrus"
 )
 
-// Provider provides methods for secure grpc communication
 type Provider interface {
-	GetCertificate() *tls.Certificate
-	GetCABundle() *x509.CertPool
-	GetSpiffeID() string
-}
-
-// CertificateObtainer abstracts certificates obtaining
-type CertificateObtainer interface {
-	Stop()
-	ErrorCh() <-chan error
-	CertificateCh() <-chan *Response
-}
-
-// Response represents pair - TLSCert and CABundle that are returned from CertificateObtainer
-type Response struct {
-	TLSCert  *tls.Certificate
-	CABundle *x509.CertPool
-}
-
-type certificateManager struct {
-	sync.RWMutex
-	caBundle *x509.CertPool
-	cert     *tls.Certificate
-	readyCh  chan struct{}
-	spiffeID string
-}
-
-// NewProvider creates new security.Manager using SpireCertObtainer
-func NewProvider() Provider {
-	return NewProviderWithCertObtainer(NewSpireObtainer())
-}
-
-// NewProviderWithCertObtainer creates new security.Manager with passed CertificateObtainer
-func NewProviderWithCertObtainer(obtainer CertificateObtainer) Provider {
-	cm := &certificateManager{
-		readyCh: make(chan struct{}),
-	}
-	go cm.exchangeCertificates(obtainer)
-	return cm
-}
-
-func (m *certificateManager) GetCertificate() *tls.Certificate {
-	<-m.readyCh
-
-	m.RLock()
-	defer m.RUnlock()
-	return m.cert
-}
-
-func (m *certificateManager) GetCABundle() *x509.CertPool {
-	<-m.readyCh
-
-	m.RLock()
-	defer m.RUnlock()
-	return m.caBundle
-}
-
-func (m *certificateManager) GetSpiffeID() string {
-	m.RLock()
-	if m.spiffeID != "" {
-		rv := m.spiffeID
-		m.RUnlock()
-		return rv
-	}
-	m.RUnlock()
-
-	crtBytes := m.GetCertificate().Certificate[0]
-	x509crt, err := x509.ParseCertificate(crtBytes)
-	if err != nil {
-		logrus.Error(err)
-		return ""
-	}
-
-	m.Lock()
-	m.spiffeID = x509crt.URIs[0].String()
-	m.Unlock()
-
-	return x509crt.URIs[0].String()
-}
-
-func (m *certificateManager) exchangeCertificates(obtainer CertificateObtainer) {
-	for {
-		select {
-		case r := <-obtainer.CertificateCh():
-			m.setCertificates(r)
-		case err := <-obtainer.ErrorCh():
-			logrus.Errorf("security.Manager error: %v", err)
-		}
-	}
-}
-
-func (m *certificateManager) setCertificates(r *Response) {
-	m.Lock()
-	defer m.Unlock()
-
-	if m.cert == nil {
-		close(m.readyCh)
-	}
-	m.cert = r.TLSCert
-	m.caBundle = r.CABundle
+	GetTLSConfig(ctx context.Context) (*tls.Config, error)
+	GetCertificate(ctx context.Context) (*tls.Certificate, error)
+	GetRootCA(ctx context.Context) (*x509.CertPool, error)
+	GetID(ctx context.Context) (string, error)
 }
