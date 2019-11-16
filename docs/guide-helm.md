@@ -6,9 +6,11 @@ This document will show you how to use `Helm` for `NSM` installation.
 [Helm Installation Guide](https://helm.sh/docs/using_helm/#quickstart-guide)
 
 ## Useful Helm commands
-* `$ helm install PATH_TO_CHART` - install specified chart on cluster
+* `$ helm install CHART` - install specified chart on cluster
 * `$ helm ls` - list of deployed releases and their states
 * `$ helm delete RELEASE_NAME` - delete release
+
+## 
 
 ## Using Helm for NSM installation
 
@@ -20,9 +22,9 @@ $ helm install --namespace=nsm-system deployments/helm/nsm
 
 *Note: in case of `Error: no available release name found` do (according to [issue](https://github.com/helm/helm/issues/4412)):*
 ```bash
-$ kubectl create serviceaccount --namespace kube-system tiller
-$ kubectl create clusterrolebinding tiller-cluster-rule --clusterrole=cluster-admin --serviceaccount=kube-system:tiller
-$ kubectl patch deploy --namespace kube-system tiller-deploy -p '{"spec":{"template":{"spec":{"serviceAccount":"tiller"}}}}'
+kubectl create serviceaccount --namespace kube-system tiller
+kubectl create clusterrolebinding tiller-cluster-rule --clusterrole=cluster-admin --serviceaccount=kube-system:tiller
+kubectl patch deploy --namespace kube-system tiller-deploy -p '{"spec":{"template":{"spec":{"serviceAccount":"tiller"}}}}'
 ```
 
 ## Using Helm to install examples
@@ -62,3 +64,10 @@ tag: master
 For developers' and testing convenience, we have added a number of make targets to support helm chart deployments.
 Initialisation of Helm, including the creation fo the service account for tiler is wrappen in `make helm-init`.
 The targets to deploy software are in the form `helm-install-<chart>` and `helm-delete-<chart>`. For example a basic NSM infra installation can be achieved by issuing `make helm-install-nsm` in the root folder. It will use the default values except for `org` and `tag` which can be overwritten by setting `CONTAINER_REPO` (defaults to `networkservicemesh`) and `CONTAINER_TAG` (defaults to `latest`). The defaults allow for easy local development. Cleaning up is also easy with the `make helm-delete-nsm` command.
+
+## Network Service Mesh helm repos
+
+Network Service Mesh publishes a number of helm repos:
+
+* ```helm repo add nsm https://helm.nsm.dev/``` - Add the latest release Network Service Mesh helm repo 
+* ```helm repo add nsm https://helm.nsm.dev/master``` - Add the Network Service Mesh helm repo that tracks HEAD on master
