@@ -44,16 +44,14 @@ make docker-save
 Will create docker images (and docker images for the forwarder) and put them in
 
 ```
-scripts/vagrant/images/
+build/images/
 ```
 
 If you already have a Vagrant image, you can get those images imported into your
 local docker by running
 
 ```
-cd scripts/vagrant/
-vagrant ssh
-bash /vagrant/scripts/load_images.sh
+make k8s-load-images
 ```
 
 If you have yet to create a Vagrant image, the images will be loaded into the Vagrants docker automatically
@@ -71,9 +69,9 @@ If you want to deploy skydive to monitor the networking in kubernetes, use the f
 
 ```bash
 docker pull skydive/skydive
-docker save -o scripts/vagrant/images/skydive.tar skydive/skydive
+docker save -o build/images/skydive.tar skydive/skydive
 vagrant ssh -c 'sh /vagrant/scripts/load_images.sh'
-kubectl create -f scripts/vagrant/skydive.yaml
+kubectl create -f build/skydive.yaml
 ```
 
 The skydive analyzer is accessable thanks to a kubernetes service of type 'NodePort'

@@ -43,7 +43,6 @@ Vagrant.configure("2") do |config|
   # config.vm.provision "shell", path: "scripts/setup_hugepages.sh"
   config.vm.provision "shell", path: "scripts/install_docker.sh"
   config.vm.provision "shell", path: "scripts/install_kubernetes.sh", env: {KUBERNETES_VERSION:KUBERNETES_VERSION_OR_DEFAULT}
-  config.vm.provision "shell", path: "scripts/load_images.sh"
   config.vm.provision "shell", inline: "sudo usermod -a -G docker vagrant"
   config.vm.provision "shell", inline: "mkdir -p /var/lib/networkservicemesh"
   config.vm.define "master" do |master|
