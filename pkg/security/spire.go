@@ -20,10 +20,11 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"net/url"
 	"sync"
+
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 
 	"github.com/spiffe/go-spiffe/spiffe"
 )
