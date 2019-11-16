@@ -1,6 +1,6 @@
 #!/bin/bash
 
-kubectl="kubectl -n ${NSM_NAMESPACE}"
+kubectl="kubectl -n ${NSM_NAMESPACE:-default}"
 
 #  Ping all the things!
 EXIT_VAL=0
