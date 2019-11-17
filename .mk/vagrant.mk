@@ -50,7 +50,9 @@ vagrant-restart-kubelet:
 
 .PHONY: vagrant-%-load-images
 vagrant-%-load-images:
-	@if [ -e "scripts/vagrant/images/$*.tar" ]; then \
+	@if [ -e "$(IMAGE_DIR)/$*.tar" ]; then \
+		mkdir -p scripts/vagrant/images
+		cp build/images/* scripts/vagrant/images/
 		cd scripts/vagrant; \
 		echo "Loading image $*.tar to master"; \
 		vagrant ssh master -c "sudo docker rmi networkservicemesh/$* -f && docker load -i /vagrant/images/$*.tar" > /dev/null 2>&1; \
@@ -60,7 +62,7 @@ vagrant-%-load-images:
 			((number++)) ; \
 		done; \
 	else \
-		echo "Cannot load $*.tar: scripts/vagrant/images/$*.tar does not exist.  Try running 'make k8s-$*-save'"; \
+		echo "Cannot load $*.tar: $(IMAGE_DIR)/$*.tar does not exist.  Try running 'make k8s-$*-save'"; \
 		exit 1; \
 	fi
 
