@@ -147,5 +147,5 @@ kubectl get pods
 To see the vpn example in action, you can run:
 
 ```bash
-curl -s https://raw.githubusercontent.com/networkservicemesh/networkservicemesh/master/scripts/verify_vpn_gateway.sh | bash
+curl -s https://raw.githubusercontent.com/networkservicemesh/networkservicemesh/release-0.2/scripts/verify_vpn_gateway.sh | bash
 ```
