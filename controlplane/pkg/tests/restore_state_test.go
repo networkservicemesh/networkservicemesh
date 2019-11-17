@@ -120,7 +120,6 @@ func TestRestoreConnectionStateWrongDst(t *testing.T) {
 			Id:          "1",
 		},
 	}
-	xcons = xcons
 	srv.nsmServer.Manager().RestoreConnections(xcons, "dp1", srv.nsmServer)
 	g.Expect(srv.nsmServer.Manager().WaitForForwarder(context.Background(), waitTime)).To(BeNil())
 	g.Expect(len(srv.TestModel.GetAllClientConnections())).To(Equal(0))

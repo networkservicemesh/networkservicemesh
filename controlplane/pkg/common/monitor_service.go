@@ -15,7 +15,7 @@
 package common
 
 import (
-	"errors"
+	"github.com/pkg/errors"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/sirupsen/logrus"
