@@ -41,5 +41,5 @@ kubectl get pods | grep icmp-responder
 To see the icmp-responder example in action, you can run:
 
 ```bash
-curl -s https://raw.githubusercontent.com/networkservicemesh/networkservicemesh/master/scripts/nsc_ping_all.sh | bash
+curl -s https://raw.githubusercontent.com/networkservicemesh/networkservicemesh/release-0.2/scripts/nsc_ping_all.sh | bash
 ```
