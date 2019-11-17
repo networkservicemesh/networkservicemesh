@@ -25,6 +25,7 @@ import (
 type contextKey int
 
 const (
+	Authorization                 = "authorization"
 	securityContextKey contextKey = iota
 )
 
@@ -36,7 +37,7 @@ type NSMToken struct {
 // GetRequestMetadata implements methods from PerRPCCredentials
 func (t *NSMToken) GetRequestMetadata(ctx context.Context, in ...string) (map[string]string, error) {
 	return map[string]string{
-		"authorization": t.Token,
+		Authorization: t.Token,
 	}, nil
 }
 

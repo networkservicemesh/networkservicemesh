@@ -18,11 +18,7 @@ package security
 
 import (
 	"context"
-	"crypto/x509"
-	"encoding/pem"
 	"fmt"
-	"reflect"
-
 	"github.com/dgrijalva/jwt-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -139,12 +135,12 @@ func ServerInterceptor(securityProvider Provider, cfg TokenConfig) grpc.UnarySer
 			return nil, status.Errorf(codes.InvalidArgument, "missing metadata")
 		}
 
-		if len(md["authorization"]) == 0 {
+		if len(md[Authorization]) == 0 {
 			return nil, status.Errorf(codes.Unauthenticated, "no token provided")
 		}
 
 		s := &Signature{}
-		err = s.Parse(md["authorization"][0])
+		err = s.Parse(md[Authorization][0])
 		if err != nil {
 			return nil, status.Errorf(codes.Unauthenticated, "signature parse error")
 		}
@@ -190,31 +186,4 @@ func spiffeIDFromPeer(p *peer.Peer) (string, error) {
 	}
 
 	return tlsInfo.State.PeerCertificates[0].URIs[0].String(), nil
-}
-
-func certToPemBlocks(data []byte) ([]byte, error) {
-	certs, err := x509.ParseCertificates(data)
-	logrus.Infof("CA BUNDLE TYPE = %v %v", reflect.TypeOf(certs[0].PublicKey), certs[0].PublicKeyAlgorithm)
-	if err != nil {
-		return nil, err
-	}
-
-	pemData := []byte{}
-	for _, cert := range certs {
-		b := &pem.Block{
-			Type:  "CERTIFICATE",
-			Bytes: cert.Raw,
-		}
-		pemData = append(pemData, pem.EncodeToMemory(b)...)
-	}
-
-	return pemData, nil
-}
-
-func keyToPem(data []byte) []byte {
-	b := &pem.Block{
-		Type:  "EC PRIVATE KEY",
-		Bytes: data,
-	}
-	return pem.EncodeToMemory(b)
 }
