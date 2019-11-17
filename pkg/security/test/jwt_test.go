@@ -38,7 +38,7 @@ func TestSign(t *testing.T) {
 		testAud: aud,
 	}
 
-	sc, err := newTestSecurityContext(SpiffeID1)
+	sc, err := newTestSecurityProvider(SpiffeID1)
 	Expect(err).To(BeNil())
 
 	signature, err := security.GenerateSignature(context.Background(), msg, testFillClaimsFunc, sc)
@@ -49,7 +49,10 @@ func TestSign(t *testing.T) {
 	Expect(err).To(BeNil())
 	Expect(claims.Audience).To(Equal(aud))
 
-	Expect(security.VerifySignature(context.Background(), signature, sc.GetCABundle(), SpiffeID1)).To(BeNil())
+	root, err := sc.GetRootCA(context.Background())
+	Expect(err).To(BeNil())
+
+	Expect(security.VerifySignature(context.Background(), signature, root, SpiffeID1)).To(BeNil())
 }
 
 func TestJWTChain_DistinctProviders(t *testing.T) {
@@ -62,7 +65,7 @@ func TestJWTChain_DistinctProviders(t *testing.T) {
 
 	for i := 0; i < numberOfProviders; i++ {
 		// all providers have different spiffeID
-		sc, err := newTestSecurityContextWithCA(fmt.Sprintf("spiffe://test.com/%d", i), &ca)
+		sc, err := NewTestSecurityProviderWithCA(fmt.Sprintf("spiffe://test.com/%d", i), &ca)
 		g.Expect(err).To(BeNil())
 
 		providers = append(providers, sc)
@@ -81,7 +84,7 @@ func TestJWTChain_EqualPairProviders(t *testing.T) {
 
 	for i := 0; i < numberOfProviders; i++ {
 		// spiffe://test.com/0, spiffe://test.com/0, spiffe://test.com/2, spiffe://test.com/2 ...
-		sc, err := newTestSecurityContextWithCA(fmt.Sprintf("spiffe://test.com/%d", i-i%2), &ca)
+		sc, err := NewTestSecurityProviderWithCA(fmt.Sprintf("spiffe://test.com/%d", i-i%2), &ca)
 		g.Expect(err).To(BeNil())
 
 		providers = append(providers, sc)
@@ -100,7 +103,7 @@ func TestJWTChain_RepeatedSeq(t *testing.T) {
 
 	for i := 0; i < numberOfProviders; i++ {
 		// spiffe://test.com/0, ..., spiffe://test.com/4, spiffe://test.com/0, ..., spiffe://test.com/4
-		sc, err := newTestSecurityContextWithCA(fmt.Sprintf("spiffe://test.com/%d", i%5), &ca)
+		sc, err := NewTestSecurityProviderWithCA(fmt.Sprintf("spiffe://test.com/%d", i%5), &ca)
 		logrus.Info(fmt.Sprintf("spiffe://test.com/%d", i%5))
 		g.Expect(err).To(BeNil())
 
@@ -135,7 +138,7 @@ func TestJWTChain_VPNFirewall(t *testing.T) {
 	providers := make([]security.Provider, 0, len(ids))
 
 	for i := 0; i < len(ids); i++ {
-		sc, err := newTestSecurityContextWithCA(ids[i], &ca)
+		sc, err := NewTestSecurityProviderWithCA(ids[i], &ca)
 		logrus.Info(fmt.Sprintf("spiffe://test.com/%d", i%5))
 		g.Expect(err).To(BeNil())
 
@@ -156,11 +159,20 @@ func chainRequest(g *WithT, p []security.Provider) {
 	previousSignature := &security.Signature{}
 
 	for i := 0; i < len(p); i++ {
-		logrus.Infof("Provider %d, spiffeID = %s", i, p[i].GetSpiffeID())
+		spiffeID, err := p[i].GetID(context.Background())
+		g.Expect(err).To(BeNil())
+
+		logrus.Infof("Provider %d, spiffeID = %s", i, spiffeID)
 
 		if previousSignatureStr != "" {
 			t := time.Now()
-			g.Expect(security.VerifySignature(context.Background(), previousSignatureStr, p[i].GetCABundle(), p[i-1].GetSpiffeID())).To(BeNil())
+			root, err := p[i].GetRootCA(context.Background())
+			g.Expect(err).To(BeNil())
+
+			prevSpiffeID, err := p[i-1].GetID(context.Background())
+			g.Expect(err).To(BeNil())
+
+			g.Expect(security.VerifySignature(context.Background(), previousSignatureStr, root, prevSpiffeID)).To(BeNil())
 			logrus.Infof("Perf: Validate on %d iteration: %v", i-1, time.Since(t))
 		}
 

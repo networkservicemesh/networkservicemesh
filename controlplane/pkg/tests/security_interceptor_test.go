@@ -18,15 +18,12 @@ package tests
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
-	"net"
-	"testing"
-	"time"
-
 	"github.com/golang/protobuf/ptypes/empty"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
+	"net"
+	"testing"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
@@ -129,11 +126,6 @@ func (d *dummyNetworkService) Close(context.Context, *connection.Connection) (*e
 	panic("implement me")
 }
 
-func newTestSecurityProvider(ca *tls.Certificate, spiffeID string) security.Provider {
-	obt := testsec.NewTestCertificateObtainerWithCA(spiffeID, ca, 1*time.Second)
-	return security.NewProviderWithCertObtainer(obt)
-}
-
 func TestSecurityInterceptor_Chain(t *testing.T) {
 	g := NewWithT(t)
 
@@ -200,15 +192,18 @@ func TestSecurityInterceptor_Chain(t *testing.T) {
 
 	// start all services
 	for name, ipaddr := range ipaddrs {
-		srv := newDummyNetworkService(
-			name, newTestSecurityProvider(&ca, fmt.Sprintf("spiffe://test.com/%s", ids[name])),
-			transitions, ipaddrs)
+		sp, err := testsec.NewTestSecurityProviderWithCA(fmt.Sprintf("spiffe://test.com/%s", ids[name]), &ca)
+		g.Expect(err).To(BeNil())
+
+		srv := newDummyNetworkService(name, sp, transitions, ipaddrs)
 		closeFunc, err := srv.start(ipaddr)
 		g.Expect(err).To(BeNil())
 		defer closeFunc()
 	}
 
-	nscProvider := newTestSecurityProvider(&ca, "spiffe://test.com/nsc")
+	nscProvider, err := testsec.NewTestSecurityProviderWithCA("spiffe://test.com/nsc", &ca)
+	g.Expect(err).To(BeNil())
+
 	dialContextFunc := testDialFunc(nscProvider)
 	conn, err := dialContextFunc(context.Background(), "localhost:5252")
 	g.Expect(err).To(BeNil())

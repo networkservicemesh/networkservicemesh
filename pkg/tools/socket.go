@@ -177,8 +177,8 @@ func (b *DialBuilder) DialContextFunc() DialContextFunc {
 					otgrpc.OpenTracingClientInterceptor(opentracing.GlobalTracer())))
 		}
 
-		if !b.insecure && GetConfig().SecurityProvider != nil {
-			tlscfg, err := GetConfig().SecurityProvider.GetTLSConfig(ctx)
+		if !b.insecure && b.cfg.SecurityProvider != nil {
+			tlscfg, err := b.cfg.SecurityProvider.GetTLSConfig(ctx)
 			if err != nil {
 				return nil, err
 			}
@@ -240,7 +240,7 @@ func (b *NewServerBuilder) NewServerFunc() NewServerFunc {
 
 		if !b.insecure && b.cfg.SecurityProvider != nil {
 			securitySpan := spanhelper.FromContext(span.Context(), "GetCertificate")
-			tlscfg, err := GetConfig().SecurityProvider.GetTLSConfig(ctx)
+			tlscfg, err := b.cfg.SecurityProvider.GetTLSConfig(ctx)
 			if err != nil {
 				span.Logger().Error(err)
 				return nil
