@@ -19,6 +19,7 @@ package security
 import (
 	"context"
 	"fmt"
+
 	"github.com/dgrijalva/jwt-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
