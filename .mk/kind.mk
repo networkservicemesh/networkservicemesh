@@ -14,7 +14,7 @@
 # limitations under the License.
 
 KIND_CLUSTER_NAME="nsm"
-KIND_IMAGE_PATH=./scripts/vagrant/images/
+KIND_IMAGE_PATH=$(IMAGE_DIR)
 
 .PHONY: kind-config
 kind-config:
@@ -52,6 +52,6 @@ kind-%-load-images:
 		echo "Loading image $*.tar to kind"; \
 		kind load image-archive --name="$(KIND_CLUSTER_NAME)" $(KIND_IMAGE_PATH)$*.tar ; \
 	else \
-		echo "Cannot load $*.tar: scripts/vagrant/images/$*.tar does not exist.  Try running 'make k8s-$*-save'"; \
+		echo "Cannot load $*.tar: $(IMAGE_DIR)/$*.tar does not exist.  Try running 'make k8s-$*-save'"; \
 		exit 1; \
 	fi

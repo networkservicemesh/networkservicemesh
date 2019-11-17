@@ -32,6 +32,7 @@ BUILD_CONTAINERS=test-common nsm-generate-sriov-configmap
 RUN_CONTAINERS=forwarder $(BUILD_CONTAINERS)
 KILL_CONTAINERS=$(BUILD_CONTAINERS)
 LOG_CONTAINERS=$(KILL_CONTAINERS)
+IMAGE_DIR=build/images
 
 # Export some of the above variables so they persist for the shell scripts
 # which are run from the Makefiles
@@ -75,8 +76,8 @@ docker-save: $(addsuffix -save,$(addprefix docker-,$(BUILD_CONTAINERS)))
 .PHONY: docker-%-save
 docker-%-save:
 	@echo "Saving $*"
-	@mkdir -p ../scripts/vagrant/images/
-	@docker save -o ../scripts/vagrant/images/$*.tar $*/$*
+	@mkdir -p ../$(IMAGE_DIR=build/images)
+	@docker save -o ../$(IMAGE_DIR=build/images)/$*.tar $*/$*
 
 .PHONY: docker-run
 docker-run: $(addsuffix -run,$(addprefix docker-,$(RUN_CONTAINERS)))
