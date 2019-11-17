@@ -30,5 +30,5 @@ spec:
             limits:
               networkservicemesh.io/socket: 1
 metadata:
-  name: vppagent-nsc
+  name: vpp-icmp-responder-nsc
   namespace: {{ .Release.Namespace }}
