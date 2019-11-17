@@ -96,23 +96,25 @@ func (p *spireProvider) GetRootCA(ctx context.Context) (*x509.CertPool, error) {
 	}
 
 	roots, err := p.peer.GetRoots()
+	if err != nil {
+		return nil, err
+	}
 	logrus.Infof("roots - %v", roots)
-	if err != nil {
-		return nil, err
-	}
 
-	spiffeID, err := p.GetID(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	trustDomain := spiffe.TrustDomainID(spiffeID)
+	trustDomain := p.getTrustDomain()
 	cp, ok := roots[trustDomain]
 	if !ok {
 		return nil, errors.Errorf("no root certificates for %v", trustDomain)
 	}
 
 	return cp, nil
+}
+
+func (p *spireProvider) getTrustDomain() string {
+	p.RLock()
+	defer p.RUnlock()
+
+	return spiffe.TrustDomainID(p.spiffeID.Host)
 }
 
 func (p *spireProvider) GetID(ctx context.Context) (string, error) {
