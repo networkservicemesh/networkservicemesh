@@ -19,11 +19,12 @@ package tests
 import (
 	"context"
 	"fmt"
+	"net"
+	"testing"
+
 	"github.com/golang/protobuf/ptypes/empty"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-	"net"
-	"testing"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
