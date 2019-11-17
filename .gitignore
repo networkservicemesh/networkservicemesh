@@ -46,6 +46,7 @@ scripts/vagrant/.kube/
 ./cloudtest
 vendor
 examples/
+!docs/examples/
 
 # Miscellaneous build artifacts
 build/dist
