@@ -28,7 +28,7 @@ func TestNSMHealRemoteDieNSMD_NSE(t *testing.T) {
 		return
 	}
 
-	k8s, err := kubetest.NewK8s(g, true)
+	k8s, err := kubetest.NewK8s(g, kubetest.DefaultClear)
 	defer k8s.Cleanup()
 
 	g.Expect(err).To(BeNil())
@@ -91,7 +91,7 @@ func TestNSMHealRemoteDieNSMD(t *testing.T) {
 		return
 	}
 
-	k8s, err := kubetest.NewK8s(g, true)
+	k8s, err := kubetest.NewK8s(g, kubetest.DefaultClear)
 	defer k8s.Cleanup()
 
 	g.Expect(err).To(BeNil())
@@ -137,7 +137,7 @@ func TestNSMHealRemoteDieNSMDFakeEndpoint(t *testing.T) {
 		return
 	}
 
-	k8s, err := kubetest.NewK8s(g, true)
+	k8s, err := kubetest.NewK8s(g, kubetest.DefaultClear)
 	defer k8s.Cleanup()
 
 	g.Expect(err).To(BeNil())

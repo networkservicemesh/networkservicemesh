@@ -1,4 +1,4 @@
-// +build recover
+// +build recover suite
 
 package nsmd_integration_tests
 
@@ -20,7 +20,7 @@ func TestUpdateConnectionOnNSEChange(t *testing.T) {
 		return
 	}
 
-	k8s, err := kubetest.NewK8s(g, true)
+	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResources)
 	g.Expect(err).To(BeNil())
 	defer k8s.Cleanup()
 
@@ -57,7 +57,7 @@ func TestUpdateConnectionOnNSEUpdate(t *testing.T) {
 		return
 	}
 
-	k8s, err := kubetest.NewK8s(g, true)
+	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResources)
 	g.Expect(err).To(BeNil())
 	defer k8s.Cleanup()
 

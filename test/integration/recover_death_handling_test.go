@@ -1,4 +1,4 @@
-// +build recover
+// +build recover suite
 
 package nsmd_integration_tests
 
@@ -52,7 +52,7 @@ func testDie(t *testing.T, killSrc bool, nodesCount int) {
 
 	g.Expect(nodesCount > 0).Should(BeTrue())
 
-	k8s, err := kubetest.NewK8s(g, true)
+	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResources)
 
 	defer k8s.Cleanup()
 	g.Expect(err).To(BeNil())

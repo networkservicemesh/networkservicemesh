@@ -1,4 +1,4 @@
-// +build recover
+// +build recover suite
 
 package nsmd_integration_tests
 
@@ -88,7 +88,7 @@ If passed 1 both will be on same node, if not on different.
 func testNSEHeal(t *testing.T, nodesCount int, affinity map[string]int, fixture kubetest.TestingPodFixture) {
 	g := NewWithT(t)
 
-	k8s, err := kubetest.NewK8s(g, true)
+	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResources)
 	defer k8s.Cleanup()
 	g.Expect(err).To(BeNil())
 

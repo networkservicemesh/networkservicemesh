@@ -25,7 +25,7 @@ func TestNSMHealLocalDieNSMD(t *testing.T) {
 		return
 	}
 
-	k8s, err := kubetest.NewK8s(g, true)
+	k8s, err := kubetest.NewK8s(g, kubetest.DefaultClear)
 	defer k8s.Cleanup()
 
 	g.Expect(err).To(BeNil())
@@ -90,11 +90,11 @@ func TestNSMHealLocalDieNSMDOneNodeCleanedEndpoints(t *testing.T) {
 func testNSMHealLocalDieNSMDOneNode(t *testing.T, deployNsc, deployNse kubetest.PodSupplier, nscCheck kubetest.NscChecker, cleanupEndpointsCRDs bool) {
 	g := NewWithT(t)
 
-	k8s, err := kubetest.NewK8s(g, true)
+	k8s, err := kubetest.NewK8s(g, kubetest.DefaultClear)
 	defer k8s.Cleanup()
 
 	g.Expect(err).To(BeNil())
-	kubetest.MakeLogsSnapshot(k8s, t)
+	defer k8s.ProcessArtifacts(t)
 	// Deploy open tracing to see what happening.
 	nodes_setup, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
 	g.Expect(err).To(BeNil())
@@ -139,7 +139,7 @@ func TestNSMHealLocalDieNSMDOneNodeFakeEndpoint(t *testing.T) {
 func testNSMHealLocalDieNSMDTwoNodes(t *testing.T, deployNsc, deployNse kubetest.PodSupplier, nscCheck kubetest.NscChecker) {
 	g := NewWithT(t)
 
-	k8s, err := kubetest.NewK8s(g, true)
+	k8s, err := kubetest.NewK8s(g, kubetest.DefaultClear)
 	defer k8s.Cleanup()
 
 	g.Expect(err).To(BeNil())
