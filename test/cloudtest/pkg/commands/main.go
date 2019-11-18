@@ -268,8 +268,10 @@ func (ctx *executionContext) performExecution() error {
 	defer cancelFunc()
 
 	termChannel := tools.NewOSSignalChannel()
-	timectx, cancelfunc := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancelfunc()
+	defer ctx.printStatistics()
+
+	statTicker := time.NewTicker(60 * time.Second)
+	defer statTicker.Stop()
 
 	for len(ctx.tasks) > 0 || len(ctx.running) > 0 {
 		// WE take 1 test task from list and do execution.
@@ -281,23 +283,20 @@ func (ctx *executionContext) performExecution() error {
 			switch event.kind {
 			case eventClusterUpdate:
 				ctx.performClusterUpdate(event)
-				ctx.printStatistics()
 			case eventTaskUpdate:
 				// Remove from running onces.
 				ctx.processTaskUpdate(event)
 			}
-		case <-timectx.Done():
-			ctx.printStatistics()
-			timectx, cancelfunc = context.WithTimeout(context.Background(), 1*time.Minute)
-			defer cancelfunc()
 		case <-termChannel:
 			return errors.New("termination request is received")
 		case <-timeoutCtx.Done():
-			ctx.printStatistics()
 			return errors.Errorf("global timeout elapsed: %v seconds", ctx.cloudTestConfig.Timeout)
+		case <-statTicker.C:
+			ctx.printStatistics()
 		}
 	}
-	logrus.Infof("Completed tasks %v Tasks left: %v", len(ctx.completed), len(ctx.tasks))
+
+	logrus.Info("Finished test execution")
 	return nil
 }
 
@@ -374,15 +373,11 @@ func (ctx *executionContext) processTaskUpdate(event operationEvent) {
 		ctx.Lock()
 		ctx.completed = append(ctx.completed, event.task)
 		ctx.Unlock()
-		elapsed := time.Since(ctx.startTime)
-		oneTask := elapsed / time.Duration(len(ctx.completed))
-		logrus.Infof("Complete task: %s Status: %v on cluster: %s, Elapsed: %v (%d) Remaining: %v (%d)",
+		logrus.Infof("Completed %s on %s, %s, runtime: %v",
 			event.task.test.Name,
+			event.task.clusterTaskID,
 			statusName(event.task.test.Status),
-			event.task.clusterTaskID, elapsed.Round(time.Second),
-			len(ctx.completed),
-			(time.Duration(len(ctx.tasks)+len(ctx.running)) * oneTask).Round(time.Second),
-			len(ctx.running)+len(ctx.tasks))
+			event.task.test.Duration.Round(time.Second))
 
 		for ind, cl := range event.task.clusters {
 			delete(cl.tasks, event.task.test.Key)
@@ -459,7 +454,7 @@ func (ctx *executionContext) printStatistics() {
 	elapsedRunning = time.Since(ctx.clusterReadyTime)
 	running := ""
 	for _, r := range ctx.running {
-		running += fmt.Sprintf("\t\t%s on cluster %v elapsed: %v\n", r.test.Name, r.clusterTaskID, time.Since(r.test.Started).Round(time.Second))
+		running += fmt.Sprintf("\t\t%s on %v, %v\n", r.test.Name, r.clusterTaskID, time.Since(r.test.Started).Round(time.Second))
 	}
 	ctx.RUnlock()
 
@@ -513,7 +508,7 @@ func (ctx *executionContext) printStatistics() {
 		fmt.Sprintf("\n\tElapsed total: %v", elapsed.Round(time.Second)) +
 		fmt.Sprintf("\n\tTests time: %v", elapsedRunning.Round(time.Second)) +
 		fmt.Sprintf("\n\tTasks  Completed: %d", len(ctx.completed)) +
-		fmt.Sprintf("\n\t		Remaining: %v (%d).\n", remaining, len(ctx.running)+len(ctx.tasks)) +
+		fmt.Sprintf("\n\t       Remaining: %d (~%v)\n", len(ctx.running)+len(ctx.tasks), remaining) +
 		fmt.Sprintf("%s%s", running, clustersMsg.String()) +
 		fmt.Sprintf("\n\tStatus  Passed: %d"+
 			"\n\tStatus  Failed: %d%v"+
@@ -658,11 +653,11 @@ func (ctx *executionContext) startTask(task *testTask, instances []*clusterInsta
 		return errors.New("invalid task runner")
 	}
 
-	ctx.executeTask(task, clusterConfigs, file, ids, runner, timeout, instances, err, fileName)
+	ctx.executeTask(task, clusterConfigs, file, runner, timeout, instances, err, fileName)
 	return nil
 }
 
-func (ctx *executionContext) executeTask(task *testTask, clusterConfigs []string, file io.Writer, ids string, runner runners.TestRunner, timeout time.Duration, instances []*clusterInstance, err error, fileName string) {
+func (ctx *executionContext) executeTask(task *testTask, clusterConfigs []string, file io.Writer, runner runners.TestRunner, timeout time.Duration, instances []*clusterInstance, err error, fileName string) {
 	go func() {
 		testDelay := func() int {
 			first := true
@@ -710,8 +705,9 @@ func (ctx *executionContext) executeTask(task *testTask, clusterConfigs []string
 
 		writer := bufio.NewWriter(file)
 
-		logrus.Infof(fmt.Sprintf("Running test %s on cluster's %v \n", task.test.Name, ids))
-		_, _ = writer.WriteString(fmt.Sprintf("Running test %s on cluster's %v \n", task.test.Name, ids))
+		msg := fmt.Sprintf("Starting %s on %v\n", task.test.Name, task.clusterTaskID)
+		logrus.Info(msg)
+		_, _ = writer.WriteString(msg)
 		_, _ = writer.WriteString(fmt.Sprintf("Command line %v\nenv==%v \n\n", runner.GetCmdLine(), env))
 		_ = writer.Flush()
 		timeoutCtx, cancel := context.WithTimeout(context.Background(), timeout)
