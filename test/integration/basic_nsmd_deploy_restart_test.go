@@ -16,11 +16,6 @@ import (
 func TestNSMgrRestartDeploy(t *testing.T) {
 	g := NewWithT(t)
 
-	if !kubetest.IsBrokeTestsEnabled() {
-		t.Skip("https://github.com/networkservicemesh/networkservicemesh/issues/1895")
-		return
-	}
-
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
