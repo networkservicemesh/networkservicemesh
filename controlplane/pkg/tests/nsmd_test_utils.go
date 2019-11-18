@@ -460,12 +460,12 @@ func (srv *nsmdFullServerImpl) StopNoClean() {
 	}
 }
 
-func (impl *nsmdFullServerImpl) AddFakeForwarder(dp_name string, dp_addr string) {
-	impl.TestModel.AddForwarder(context.Background(), &model.Forwarder{
+func (srv *nsmdFullServerImpl) AddFakeForwarder(dp_name string, dp_addr string) {
+	srv.TestModel.AddForwarder(context.Background(), &model.Forwarder{
 		RegisteredName: dp_name,
 		SocketLocation: dp_addr,
 		LocalMechanisms: []*connection.Mechanism{
-			&connection.Mechanism{
+			{
 				Type: kernel.MECHANISM,
 			},
 		},
