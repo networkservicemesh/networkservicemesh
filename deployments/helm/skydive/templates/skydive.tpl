@@ -187,6 +187,8 @@ spec:
           securityContext:
             privileged: true
           volumeMounts:
+            - name: runc
+              mountPath: /var/run/containerd/runc
             - name: docker
               mountPath: /var/run/docker.sock
             - name: run
@@ -199,6 +201,9 @@ spec:
               mountPath: /run/spire/sockets
               readOnly: true
       volumes:
+        - name: runc
+          hostPath:
+            path: /var/run/containerd/runc
         - name: docker
           hostPath:
             path: /var/run/docker.sock
