@@ -37,7 +37,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/forwarder/api/forwarder"
 	"github.com/networkservicemesh/networkservicemesh/forwarder/pkg/common"
 	sdk "github.com/networkservicemesh/networkservicemesh/forwarder/sdk/vppagent"
-	"github.com/networkservicemesh/networkservicemesh/forwarder/vppagent/pkg/vppagent/nsmonitor"
+	"github.com/networkservicemesh/networkservicemesh/forwarder/vppagent/pkg/vppagent/kvschedclient"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/utils"
 )
@@ -271,13 +271,13 @@ func (v *VPPAgent) endpoint() string {
 
 func (v *VPPAgent) configureVPPAgent() error {
 	logrus.Infof("vppAgentEndpoint: %s", v.endpoint())
-	var kvSchedulerClient *nsmonitor.KVSchedulerClient
+	var kvSchedulerClient *kvschedclient.KVSchedulerClient
 	var err error
 
-	if kvSchedulerClient, err = nsmonitor.NewKVSchedulerClient(v.endpoint()); err != nil {
+	if kvSchedulerClient, err = kvschedclient.NewKVSchedulerClient(v.endpoint()); err != nil {
 		return err
 	}
-	if err := nsmonitor.CreateMonitorNetNsInodeServer(v.common.Monitor, kvSchedulerClient.DownstreamResync); err != nil {
+	if err := common.CreateNSMonitor(v.common.Monitor, kvSchedulerClient.DownstreamResync); err != nil {
 		return err
 	}
 

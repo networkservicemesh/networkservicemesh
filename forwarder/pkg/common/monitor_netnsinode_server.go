@@ -1,4 +1,4 @@
-package nsmonitor
+package common
 
 import (
 	"context"
@@ -18,19 +18,19 @@ import (
 )
 
 type MonitorNetNsInodeServer struct {
-	forwarderHandler    func()
+	notifyForwarder     func()
 	crossConnectServer  monitor_crossconnect.MonitorServer
 	crossConnects       map[string]*crossconnect.CrossConnect
 	crossConnectEventCh chan *crossconnect.CrossConnectEvent
 }
 
-// NewMonitorNetNsInodeServer creates a new MonitorNetNsInodeServer
-func CreateMonitorNetNsInodeServer(crossConnectServer monitor_crossconnect.MonitorServer, handle func()) error {
+// CreateNSMonitor creates a new MonitorNetNsInodeServer
+func CreateNSMonitor(crossConnectServer monitor_crossconnect.MonitorServer, handler func()) error {
 	rv := &MonitorNetNsInodeServer{
 		crossConnectServer:  crossConnectServer,
 		crossConnects:       make(map[string]*crossconnect.CrossConnect),
 		crossConnectEventCh: make(chan *crossconnect.CrossConnectEvent, 10),
-		forwarderHandler:    handle,
+		notifyForwarder:     handler,
 	}
 
 	crossConnectServer.AddRecipient(rv)
@@ -123,7 +123,9 @@ func (m *MonitorNetNsInodeServer) checkConnectionLiveness(xcon *crossconnect.Cro
 	if !inodeSet.Contains(inode) && conn.State == connection.State_UP {
 		logrus.Infof("Connection is down")
 		conn.State = connection.State_DOWN
-		m.forwarderHandler()
+		if m.notifyForwarder != nil {
+			m.notifyForwarder()
+		}
 		m.crossConnectServer.Update(context.Background(), xcon)
 	}
 

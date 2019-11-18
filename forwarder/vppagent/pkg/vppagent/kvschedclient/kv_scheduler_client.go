@@ -1,4 +1,4 @@
-package nsmonitor
+package kvschedclient
 
 import (
 	"fmt"

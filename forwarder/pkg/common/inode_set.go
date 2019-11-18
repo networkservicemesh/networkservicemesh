@@ -1,4 +1,4 @@
-package nsmonitor
+package common
 
 type InodeSet struct {
 	inodes map[uint64]bool
