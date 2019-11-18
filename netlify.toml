@@ -11,10 +11,10 @@
                helm init --client-only
                git remote add upstream https://github.com/networkservicemesh/networkservicemesh.git
                git fetch upstream
-               TAGS=(master v0.1.0)
+               TAGS=(master v0.1.0 v0.2.0)
                for TAG in "${TAGS[@]}"
                do
-                   git checkout ${TAG}
+                   git checkout ${TAG} || continue
                    mkdir -p ./helm-output/${TAG}
                    helm repo index ./helm-output/${TAG}
                    helm package -d ./helm-output/${TAG} ./deployments/helm/*
@@ -24,6 +24,6 @@
 
 [[redirects]]
     from = "/*"
-    to = "/v0.1.0/:splat"
+    to = "/v0.2.0/:splat"
     status = 200
     force = false
