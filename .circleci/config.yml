@@ -280,3 +280,12 @@ workflows:
               only: release-0.2
             tags:
               only: "v0.2.0"
+      - docker-push-tag:
+          tag: "latest"
+          requires:
+            - test-integration
+          filters:
+            branches:
+              only: release-0.2
+            tags:
+              only: "v0.2.0"
