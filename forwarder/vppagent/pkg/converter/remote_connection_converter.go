@@ -16,6 +16,7 @@
 package converter
 
 import (
+	vpp_l3 "github.com/ligato/vpp-agent/api/models/vpp/l3"
 	"math"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/srv6"
@@ -164,6 +165,14 @@ func (c *RemoteConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 		}
 
 		if connect {
+			rv.VppConfig.Vrfs = []* vpp_l3.VrfTable{
+				{
+					Id:                   math.MaxUint32,
+					Protocol:             vpp_l3.VrfTable_IPV6,
+					Label:                "SRv6 steering of IP6 prefixes through BSIDs",
+				},
+			}
+
 			rv.VppConfig.Arps = append(rv.VppConfig.Arps, &vpp.ARPEntry{
 				Interface:   "mgmt",
 				IpAddress:   dstHostIP,
