@@ -50,6 +50,7 @@ examples/
 
 # Miscellaneous build artifacts
 build/dist
+build/images/*
 scripts/aws/aws
 controllers/sriov-controller/sriov-controller
 cmd
