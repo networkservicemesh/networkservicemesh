@@ -351,8 +351,6 @@ type K8s struct {
 	sa                 []string
 	g                  *WithT
 	cleanupFunc        func()
-
-	describeHook func(*v1.Pod, []v1.Event) []v1.Event
 }
 
 type spanRecord struct {
@@ -565,9 +563,6 @@ func (k8s *K8s) describePod(pod *v1.Pod) []v1.Event {
 		if pod.UID == events.Items[i].InvolvedObject.UID {
 			result = append(result, events.Items[i])
 		}
-	}
-	if k8s.describeHook != nil {
-		return k8s.describeHook(pod, result)
 	}
 	return result
 }
@@ -1489,11 +1484,6 @@ func (k8s *K8s) DeleteNetworkServices(names ...string) error {
 	return nil
 }
 
-//SetDescribeHook - set hook to update events, require to test logic.
-func (k8s *K8s) SetDescribeHook(hook func(*v1.Pod, []v1.Event) []v1.Event) {
-	k8s.describeHook = hook
-}
-
 //IsNetworkProblem - return error if pod has deploy network problems detected in events.
 func (k8s *K8s) IsNetworkProblem(pod *v1.Pod) error {
 	// Check if we have CNI issue and try to re-create pod.
@@ -1501,7 +1491,7 @@ func (k8s *K8s) IsNetworkProblem(pod *v1.Pod) error {
 	for index := range events {
 		msg := &events[index]
 		if k8s.isNetworkProblemEvent(msg) {
-			return errors.Errorf("pod %s deploy error: %v.", pod.Name, msg)
+			return errors.Errorf("pod %s deploy error: %v.", pod.Name, msg.Message)
 		}
 	}
 	return nil
