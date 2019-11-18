@@ -16,8 +16,9 @@
 package converter
 
 import (
-	vpp_l3 "github.com/ligato/vpp-agent/api/models/vpp/l3"
 	"math"
+
+	vpp_l3 "github.com/ligato/vpp-agent/api/models/vpp/l3"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/srv6"
 
@@ -51,6 +52,16 @@ func NewRemoteConnectionConverter(c *connection.Connection, name, tapName string
 	}
 }
 
+func (c *RemoteConnectionConverter) checkMechanism() bool {
+	mechanisms := []string{vxlan.MECHANISM, srv6.MECHANISM}
+	for _, m := range mechanisms {
+		if m == c.GetMechanism().GetType() {
+			return true
+		}
+	}
+	return false
+}
+
 // ToDataRequest handles the data request
 func (c *RemoteConnectionConverter) ToDataRequest(rv *configurator.Config, connect bool) (*configurator.Config, error) {
 	if c == nil {
@@ -59,9 +70,11 @@ func (c *RemoteConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 	if err := c.IsComplete(); err != nil {
 		return rv, err
 	}
-	if c.GetMechanism().GetType() != vxlan.MECHANISM {
+
+	if !c.checkMechanism() {
 		return rv, errors.Errorf("attempt to use not supported Connection.Mechanism.Type %s", c.GetMechanism().GetType())
 	}
+
 	if rv == nil {
 		rv = &configurator.Config{}
 	}
@@ -165,11 +178,11 @@ func (c *RemoteConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 		}
 
 		if connect {
-			rv.VppConfig.Vrfs = []* vpp_l3.VrfTable{
+			rv.VppConfig.Vrfs = []*vpp_l3.VrfTable{
 				{
-					Id:                   math.MaxUint32,
-					Protocol:             vpp_l3.VrfTable_IPV6,
-					Label:                "SRv6 steering of IP6 prefixes through BSIDs",
+					Id:       math.MaxUint32,
+					Protocol: vpp_l3.VrfTable_IPV6,
+					Label:    "SRv6 steering of IP6 prefixes through BSIDs",
 				},
 			}
 

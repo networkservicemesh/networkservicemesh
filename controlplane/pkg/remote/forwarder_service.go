@@ -21,6 +21,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/srv6"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
 
 	"github.com/pkg/errors"
@@ -79,13 +81,13 @@ func (cce *forwarderService) findMechanism(mechanismPreferences []*connection.Me
 }
 
 func (cce *forwarderService) selectRemoteMechanism(conn *connection.Connection, request *networkservice.NetworkServiceRequest, dp *model.Forwarder) (*connection.Mechanism, error) {
-	var mechanism unifiedconnection.Mechanism
-	var dpMechanism unifiedconnection.Mechanism
+	var mechanism *connection.Mechanism
+	var dpMechanism *connection.Mechanism
 
 	if preferredMechanismName := os.Getenv(PreferredRemoteMechanism); len(preferredMechanismName) > 0 {
 		for _, m := range request.GetRequestMechanismPreferences() {
-			if m.GetMechanismType() == preferredMechanismName {
-				if dpm := cce.findMechanism(dp.RemoteMechanisms, m.GetMechanismType()); dpm != nil {
+			if m.GetType() == preferredMechanismName {
+				if dpm := cce.findMechanism(dp.RemoteMechanisms, m.GetType()); dpm != nil {
 					mechanism = m
 					dpMechanism = dpm
 				}
@@ -95,7 +97,7 @@ func (cce *forwarderService) selectRemoteMechanism(conn *connection.Connection, 
 
 	if mechanism == nil {
 		for _, m := range request.GetRequestMechanismPreferences() {
-			dpm := cce.findMechanism(dp.RemoteMechanisms, m.GetMechanismType())
+			dpm := cce.findMechanism(dp.RemoteMechanisms, m.GetType())
 			if dpm != nil {
 				mechanism = m
 				dpMechanism = dpm
@@ -135,20 +137,20 @@ func (cce *forwarderService) selectRemoteMechanism(conn *connection.Connection, 
 			vni = cce.serviceRegistry.VniAllocator().Vni(dstIP, srcIP)
 		}
 
-		parameters[connection.VXLANVNI] = strconv.FormatUint(uint64(vni), 10)
+		parameters[vxlan.VNI] = strconv.FormatUint(uint64(vni), 10)
 
-	case connection.MechanismType_SRV6:
+	case srv6.MECHANISM:
 		parameters := mechanism.GetParameters()
 		dpParameters := dpMechanism.GetParameters()
 
-		parameters[connection.SRv6DstHardwareAddress] = dpParameters[connection.SRv6SrcHardwareAddress]
-		parameters[connection.SRv6DstHostIP] = dpParameters[connection.SRv6SrcHostIP]
-		parameters[connection.SRv6DstBSID] = cce.serviceRegistry.SIDAllocator().SID(conn.GetId())
-		parameters[connection.SRv6DstLocalSID] = cce.serviceRegistry.SIDAllocator().SID(conn.GetId())
+		parameters[srv6.DstHardwareAddress] = dpParameters[srv6.SrcHardwareAddress]
+		parameters[srv6.DstHostIP] = dpParameters[srv6.SrcHostIP]
+		parameters[srv6.DstBSID] = cce.serviceRegistry.SIDAllocator().SID(conn.GetId())
+		parameters[srv6.DstLocalSID] = cce.serviceRegistry.SIDAllocator().SID(conn.GetId())
 	}
 
 	logrus.Infof("NSM:(5.1) Remote mechanism selected %v", mechanism)
-	return mechanism.(*connection.Mechanism), nil
+	return mechanism, nil
 
 }
 

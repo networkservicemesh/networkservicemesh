@@ -24,6 +24,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/srv6"
 	mechanismCommon "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
@@ -361,7 +362,8 @@ func (srv *networkServiceManager) getConnectionParameters(xcon *crossconnect.Cro
 			} else {
 				srv.serviceRegistry.VniAllocator().Restore(srcIp, dstIp, vni)
 			}
-		case remote_connection.MechanismType_SRV6:
+		case srv6.MECHANISM:
+			m := srv6.ToMechanism(mm)
 			hardwareAddress, err := m.DstHardwareAddress()
 			srcLocalSID, err2 := m.SrcLocalSID()
 			if err != nil || err2 != nil {
