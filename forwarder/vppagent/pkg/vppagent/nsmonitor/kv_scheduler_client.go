@@ -15,43 +15,39 @@ const (
 	downStreamResync  = "/downstream-resync"
 )
 
-// KVSchedulerClient - Client to vpp KVScheduler server.
-type KVSchedulerClient interface {
-	//DownstreamResync - Calls downstream-resync in KVScheduler
-	DownstreamResync()
-}
-
-type kvSchedulerClient struct {
+// KVSchedulerClient - Client to vpp KVScheduler server
+type KVSchedulerClient struct {
 	httpClient          http.Client
 	kvSchedulerEndpoint string
 }
 
-//NewKVSchedulerClient - Creates a new client for KVScheduelr. Can return an error if vppAgentEndpoint has an incorrect format.
-func NewKVSchedulerClient(vppAgentEndpoint string) (KVSchedulerClient, error) {
+// NewKVSchedulerClient - Creates a new client for KVScheduler. Can return an error if vppAgentEndpoint has an incorrect format.
+func NewKVSchedulerClient(vppAgentEndpoint string) (*KVSchedulerClient, error) {
 	kvSchedulerEndpoint, err := buildKvSchedulerDownStreamPath(vppAgentEndpoint)
 	if err != nil {
 		return nil, err
 	}
-	return &kvSchedulerClient{
+	return &KVSchedulerClient{
 		kvSchedulerEndpoint: kvSchedulerEndpoint,
 	}, nil
 }
 
-func (c *kvSchedulerClient) DownstreamResync() {
+// DownstreamResync - Calls downstream-resync in KVScheduler
+func (c *KVSchedulerClient) DownstreamResync() {
 	downSteamResyncPath := c.kvSchedulerEndpoint + kvSchedulerPrefix + downStreamResync
 	request, err := http.NewRequest("POST", downSteamResyncPath, nil)
 	if err != nil {
-		logrus.Errorf("kvSchedulerClient:, can't create request %v", err)
+		logrus.Errorf("KVSchedulerClient:, can't create request %v", err)
 	}
 	resp, err := c.httpClient.Do(request)
 	if err != nil {
-		logrus.Errorf("kvSchedulerClient:, can't do request %v, error: %v", resp, err)
+		logrus.Errorf("KVSchedulerClient:, can't do request %v, error: %v", resp, err)
 	}
 	err = resp.Body.Close()
 	if err != nil {
-		logrus.Errorf("kvSchedulerClient:, can't close response body: %v", err)
+		logrus.Errorf("KVSchedulerClient:, can't close response body: %v", err)
 	}
-	logrus.Infof("kvSchedulerClient: response %v from %v", resp, downSteamResyncPath)
+	logrus.Infof("KVSchedulerClient: response %v from %v", resp, downSteamResyncPath)
 }
 
 func buildKvSchedulerDownStreamPath(vppAgentEndpoint string) (string, error) {

@@ -18,22 +18,19 @@ import (
 )
 
 type MonitorNetNsInodeServer struct {
-	kvSchedulerClient   KVSchedulerClient
+	forwarderHandler    func()
 	crossConnectServer  monitor_crossconnect.MonitorServer
 	crossConnects       map[string]*crossconnect.CrossConnect
 	crossConnectEventCh chan *crossconnect.CrossConnectEvent
 }
 
 // NewMonitorNetNsInodeServer creates a new MonitorNetNsInodeServer
-func CreateMonitorNetNsInodeServer(crossConnectServer monitor_crossconnect.MonitorServer, vppEndpoint string) error {
-	var err error
+func CreateMonitorNetNsInodeServer(crossConnectServer monitor_crossconnect.MonitorServer, handle func()) error {
 	rv := &MonitorNetNsInodeServer{
 		crossConnectServer:  crossConnectServer,
 		crossConnects:       make(map[string]*crossconnect.CrossConnect),
 		crossConnectEventCh: make(chan *crossconnect.CrossConnectEvent, 10),
-	}
-	if rv.kvSchedulerClient, err = NewKVSchedulerClient(vppEndpoint); err != nil {
-		return err
+		forwarderHandler:    handle,
 	}
 
 	crossConnectServer.AddRecipient(rv)
@@ -126,7 +123,7 @@ func (m *MonitorNetNsInodeServer) checkConnectionLiveness(xcon *crossconnect.Cro
 	if !inodeSet.Contains(inode) && conn.State == connection.State_UP {
 		logrus.Infof("Connection is down")
 		conn.State = connection.State_DOWN
-		m.kvSchedulerClient.DownstreamResync()
+		m.forwarderHandler()
 		m.crossConnectServer.Update(context.Background(), xcon)
 	}
 
