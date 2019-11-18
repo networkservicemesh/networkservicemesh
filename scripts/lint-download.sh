@@ -1,11 +1,17 @@
 #!/bin/bash
-version=1.20.0
+version=v1.21.0
+
+function get_linter() {
+    echo "Installing golangci-lint: ${1}"
+    wget -O - -q ${1} | sh -s -- ${version}
+    sudo cp ./bin/golangci-lint "$(go env GOPATH)"/bin/
+    sudo rm -rf ./bin/golangci-lint
+}
+
 {
-    wget -O - -q https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- v${version}
-    sudo cp ./bin/golangci-lint "$(go env GOPATH)"/bin/
+  get_linter https://install.goreleaser.com/github.com/golangci/golangci-lint.sh
 } || {
-    wget -O - -q https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- v${version}
-    sudo cp ./bin/golangci-lint "$(go env GOPATH)"/bin/
+  get_linter https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh
 } || {
-    make lint-install 1.21.0
+  GO111MODULE=on go get github.com/golangci/golangci-lint/cmd/golangci-lint@${version}
 }
