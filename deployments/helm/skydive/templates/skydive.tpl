@@ -57,8 +57,8 @@ data:
     ui:
       topology:
         favorites:
-          nsm-filter: "G.V()"
-          nsm-filter-secure-intranet-connectivity: "G.V()"
+          nsm-filter: "G.V().Has('Type', 'netns').Descendants().As('namespaces').G.V().Has('Type', 'host').As('hosts').Select('namespaces', 'hosts')"
+          nsm-filter-secure-intranet-connectivity: "G.V().Has('Type', 'netns').Descendants().As('namespaces').G.V().Has('Type', 'host').As('hosts').Select('namespaces', 'hosts')"
           nsm-edges: "G.E().HasKey('NSM')"
 
         default_filter: "nsm-filter"
