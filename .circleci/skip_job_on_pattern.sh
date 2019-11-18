@@ -1,7 +1,7 @@
 #!/bin/bash
 set -eo pipefail
 BRANCH="${1}"
-PATTERN=".md$|netlify.toml|.png$|.circleci/skip_job_on_pattern.sh"
+PATTERN=".md$|netlify.toml|scripts/netlify.sh|.png$|.circleci/skip_job_on_pattern.sh"
 
 if echo "${CIRCLE_BRANCH}" | grep -q -v "^pull/" ; then echo Do not skip on non pull branch: "${CIRCLE_BRANCH}";exit 0;fi
 FILES_CHANGED=$(git diff "${BRANCH}"... --name-only)
