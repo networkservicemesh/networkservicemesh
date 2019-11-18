@@ -3,7 +3,7 @@ version=v1.21.0
 
 function get_linter() {
     echo "Installing golangci-lint: ${1}"
-    wget -O - -q ${1} | sh -s -- ${version}
+    wget -O - -q "${1}" | sh -s -- ${version}
     sudo cp ./bin/golangci-lint "$(go env GOPATH)"/bin/
     sudo rm -rf ./bin/golangci-lint
 }
