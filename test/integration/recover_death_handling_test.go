@@ -1,4 +1,4 @@
-// +build recover suite
+// +build recover
 
 package nsmd_integration_tests
 
@@ -52,7 +52,7 @@ func testDie(t *testing.T, killSrc bool, nodesCount int) {
 
 	g.Expect(nodesCount > 0).Should(BeTrue())
 
-	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResources)
+	k8s, err := kubetest.NewK8s(g, kubetest.DefaultClear)
 
 	defer k8s.Cleanup()
 	g.Expect(err).To(BeNil())
@@ -99,5 +99,5 @@ func testDie(t *testing.T, killSrc bool, nodesCount int) {
 	ipResponse, errOut, err = k8s.Exec(podToCheck, podToCheck.Spec.Containers[0].Name, "ip", "addr")
 	g.Expect(err).To(BeNil())
 	g.Expect(errOut).To(Equal(""))
-	g.Expect(strings.Contains(ipResponse, "nsm")).To(Equal(false))
+	g.Expect(ipResponse).ShouldNot(ContainSubstring("nsm"))
 }
