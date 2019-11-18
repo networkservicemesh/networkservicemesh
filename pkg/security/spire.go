@@ -66,13 +66,6 @@ func NewSpireProvider(addr string) (Provider, error) {
 			return
 		}
 		logrus.Infof("Issued certificate with id: %v", spiffeID)
-
-		tlscrt, err := rv.GetRootCA(context.Background())
-		if err != nil {
-			logrus.Error(err)
-			return
-		}
-		logrus.Infof("crt %v", tlscrt)
 	}()
 
 	return rv, nil
