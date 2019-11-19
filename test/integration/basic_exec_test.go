@@ -25,7 +25,7 @@ func TestExec(t *testing.T) {
 	g.Expect(err).To(BeNil())
 	defer kubetest.MakeLogsSnapshot(k8s, t)
 
-	k8s.Prepare("alpine-pod")
+	k8s.DeletePodsByName("alpine-pod")
 
 	alpinePod := k8s.CreatePod(pods.AlpinePod("alpine-pod", nil))
 

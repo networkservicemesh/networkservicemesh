@@ -770,8 +770,8 @@ func (k8s *K8s) cleanups() {
 	_ = k8s.DeleteTestNamespace(k8s.namespace)
 }
 
-// Prepare prepares the pods
-func (k8s *K8s) Prepare(noPods ...string) {
+// DeletePodsByName deletes pod if a pod's name contains one of the given strings
+func (k8s *K8s) DeletePodsByName(noPods ...string) {
 	pods := k8s.ListPods()
 	podsList := []*v1.Pod{}
 	for _, podName := range noPods {
