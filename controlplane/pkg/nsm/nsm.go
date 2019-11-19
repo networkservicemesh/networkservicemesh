@@ -354,13 +354,13 @@ func (srv *networkServiceManager) getConnectionParameters(xcon *crossconnect.Cro
 		switch mm.GetType() {
 		case vxlan.MECHANISM:
 			m := vxlan.ToMechanism(mm)
-			srcIp, err := m.SrcIP()
-			dstIp, err2 := m.DstIP()
+			srcIP, err := m.SrcIP()
+			dstIP, err2 := m.DstIP()
 			vni, err3 := m.VNI()
 			if err != nil || err2 != nil || err3 != nil {
 				logrus.Errorf("Error retrieving SRC/DST IP or VNI from Remote connection %v %v", err, err2)
 			} else {
-				srv.serviceRegistry.VniAllocator().Restore(srcIp, dstIp, vni)
+				srv.serviceRegistry.VniAllocator().Restore(srcIP, dstIP, vni)
 			}
 		case srv6.MECHANISM:
 			m := srv6.ToMechanism(mm)
