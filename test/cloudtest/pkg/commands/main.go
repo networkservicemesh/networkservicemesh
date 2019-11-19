@@ -52,6 +52,7 @@ const (
 	clusterReady
 	clusterBusy
 	clusterStarting
+	clusterStopping
 	clusterCrashed
 	clusterNotAvailable
 	clusterShutdown
@@ -530,6 +531,8 @@ func fromClusterState(state clusterState) string {
 		return "not available"
 	case clusterStarting:
 		return "starting"
+	case clusterStopping:
+		return "stopping"
 	case clusterShutdown:
 		return "shutdown"
 	}
@@ -925,7 +928,7 @@ func (ctx *executionContext) destroyCluster(ci *clusterInstance, sendUpdate, for
 		return nil
 	}
 	ctx.Lock()
-	ci.state = clusterBusy
+	ci.state = clusterStopping
 	if ci.cancelMonitor != nil {
 		ci.cancelMonitor()
 	}
