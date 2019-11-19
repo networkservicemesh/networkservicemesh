@@ -107,7 +107,7 @@ func (cce *forwarderService) selectRemoteMechanism(conn *connection.Connection, 
 	}
 
 	if mechanism == nil || dpMechanism == nil {
-		return nil, fmt.Errorf("failed to select mechanism, no matched mechanisms found")
+		return nil, errors.Errorf("failed to select mechanism, no matched mechanisms found")
 	}
 
 	switch mechanism.GetType() {
