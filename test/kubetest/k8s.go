@@ -713,18 +713,22 @@ func (k8s *K8s) CleanupCRDs() {
 	for _, service := range services.Items {
 		_ = k8s.versionedClientSet.NetworkservicemeshV1alpha1().NetworkServices(k8s.namespace).Delete(service.Name, &metaV1.DeleteOptions{})
 	}
+	k8s.DeleteAllNSECustomResources()
+	// Clean up Network Service Managers
+	managers, _ := k8s.versionedClientSet.NetworkservicemeshV1alpha1().NetworkServiceManagers(k8s.namespace).List(metaV1.ListOptions{})
+	for _, mgr := range managers.Items {
+		_ = k8s.versionedClientSet.NetworkservicemeshV1alpha1().NetworkServiceManagers(k8s.namespace).Delete(mgr.Name, &metaV1.DeleteOptions{})
+	}
+}
 
+//DeleteAllNSECustomResources deletes all NSEs custom resources
+func (k8s *K8s) DeleteAllNSECustomResources() {
 	// Clean up Network Service Endpoints
 	endpoints, _ := k8s.versionedClientSet.NetworkservicemeshV1alpha1().NetworkServiceEndpoints(k8s.namespace).List(metaV1.ListOptions{})
 	for _, ep := range endpoints.Items {
 		_ = k8s.versionedClientSet.NetworkservicemeshV1alpha1().NetworkServiceEndpoints(k8s.namespace).Delete(ep.Name, &metaV1.DeleteOptions{})
 	}
 
-	// Clean up Network Service Managers
-	managers, _ := k8s.versionedClientSet.NetworkservicemeshV1alpha1().NetworkServiceManagers(k8s.namespace).List(metaV1.ListOptions{})
-	for _, mgr := range managers.Items {
-		_ = k8s.versionedClientSet.NetworkservicemeshV1alpha1().NetworkServiceManagers(k8s.namespace).Delete(mgr.Name, &metaV1.DeleteOptions{})
-	}
 }
 
 // DescribePod describes a pod

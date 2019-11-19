@@ -69,14 +69,15 @@ type clusterOperationRecord struct {
 }
 
 type clusterInstance struct {
-	instance      providers.ClusterInstance
-	state         clusterState
-	group         *clustersGroup
-	startCount    int
-	id            string
-	taskCancel    context.CancelFunc
-	cancelMonitor context.CancelFunc
-	startTime     time.Time
+	lastExecutionConfig *config.ExecutionConfig
+	instance            providers.ClusterInstance
+	state               clusterState
+	group               *clustersGroup
+	startCount          int
+	id                  string
+	taskCancel          context.CancelFunc
+	cancelMonitor       context.CancelFunc
+	startTime           time.Time
 
 	executions []*clusterOperationRecord
 }
@@ -142,7 +143,6 @@ func CloudTestRun(cmd *cloudTestCmd) {
 		logrus.Errorf("Failed to read config file %v", err)
 		return
 	}
-
 	// Root config
 	testConfig := &config.CloudTestConfig{}
 	err = parseConfig(testConfig, configFileContent)
@@ -269,10 +269,10 @@ func (ctx *executionContext) performExecution() error {
 	defer cancelFunc()
 
 	termChannel := tools.NewOSSignalChannel()
+
 	defer ctx.printStatistics()
 
 	statTicker := time.NewTicker(60 * time.Second)
-	defer statTicker.Stop()
 
 	for len(ctx.tasks) > 0 || len(ctx.running) > 0 {
 		// WE take 1 test task from list and do execution.
@@ -305,7 +305,7 @@ func (ctx *executionContext) assignTasks() {
 	if len(ctx.tasks) > 0 {
 		// Lets check if we have cluster required and start it
 		// Check if we have cluster we could assign.
-		newTasks := []*testTask{}
+		var newTasks []*testTask
 		for _, task := range ctx.tasks {
 			if task.test.Status == model.StatusSkipped {
 				logrus.Infof("Ignoring skipped task:  %s", task.test.Name)
@@ -630,7 +630,7 @@ func (ctx *executionContext) startTask(task *testTask, instances []*clusterInsta
 		return err
 	}
 
-	clusterConfigs := []string{}
+	var clusterConfigs []string
 
 	for _, inst := range instances {
 		var clusterConfig string
@@ -689,7 +689,7 @@ func (ctx *executionContext) executeTask(task *testTask, clusterConfigs []string
 		}
 
 		st := time.Now()
-		env := []string{}
+		var env []string
 		// Fill Kubernetes environment variables.
 
 		if len(task.test.ExecutionConfig.KubernetesEnv) > 0 {
@@ -719,6 +719,10 @@ func (ctx *executionContext) executeTask(task *testTask, clusterConfigs []string
 		ctx.Lock()
 		for _, inst := range instances {
 			inst.taskCancel = cancel
+			if task != nil && task.test != nil && inst.lastExecutionConfig != task.test.ExecutionConfig {
+				ctx.handleOnExecutionConfigFinished(inst.lastExecutionConfig, inst.id, env, writer)
+				inst.lastExecutionConfig = task.test.ExecutionConfig
+			}
 		}
 		task.test.Started = time.Now()
 		ctx.Unlock()
@@ -762,28 +766,38 @@ func (ctx *executionContext) executeTask(task *testTask, clusterConfigs []string
 	}()
 }
 
+func (ctx *executionContext) handleOnExecutionConfigFinished(executionConfig *config.ExecutionConfig, clusterID string, env []string, writer *bufio.Writer) error {
+	if executionConfig == nil {
+		return nil
+	}
+	return ctx.runScript(executionConfig.OnFinish, "OnFinish", clusterID, append(env, executionConfig.Env...), writer)
+}
+
+func (ctx *executionContext) runScript(script, name, clusterID string, env []string, writer *bufio.Writer) error {
+	if strings.TrimSpace(script) == "" {
+		logrus.Infof("%v: passed empty script: %v", name, script)
+		return nil
+	}
+	mgr := shell_mgr.NewEnvironmentManager()
+	if err := mgr.ProcessEnvironment(clusterID, "shellrun", os.TempDir(), env, nil); err != nil {
+		logrus.Errorf("OnFail: an error during process env: %v", err)
+		return err
+	}
+	context, cancel := context.WithTimeout(context.Background(), time.Minute*3)
+	defer cancel()
+	return runScript(context, script, name, mgr.GetProcessedEnv(), writer)
+}
+
 func (ctx *executionContext) handleOnFailTask(task *testTask, env []string, writer *bufio.Writer) error {
 	config := task.test.ExecutionConfig
 	if config == nil {
 		logrus.Warnf("OnFail: no execution config for %v", task.test.Name)
 		return nil
 	}
-	if strings.TrimSpace(config.OnFail) == "" {
-		logrus.Infof("OnFail: not provided OnFail script for config %v", config.Name)
-		return nil
-	}
-	mgr := shell_mgr.NewEnvironmentManager()
-	if err := mgr.ProcessEnvironment(task.clusterTaskID, "shellrun", os.TempDir(), append(env, config.Env...), nil); err != nil {
-		logrus.Errorf("OnFail: an error during process env: %v", err)
-		return err
-	}
-	timeout := ctx.getTestTimeout(task)
-	context, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	return runOnFailScript(context, config.OnFail, mgr.GetProcessedEnv(), writer)
+	return ctx.runScript(config.OnFail, "OnFail", task.clusterTaskID, env, writer)
 }
 
-func runOnFailScript(ctx context.Context, script string, env []string, writer *bufio.Writer) error {
+func runScript(ctx context.Context, script, name string, env []string, writer *bufio.Writer) error {
 	logger := func(s string) {
 	}
 	root, err := os.Getwd()
@@ -793,7 +807,7 @@ func runOnFailScript(ctx context.Context, script string, env []string, writer *b
 	for _, cmd := range utils.ParseScript(script) {
 		_, err := utils.RunCommand(ctx, cmd, root, logger, writer, env, map[string]string{}, false)
 		if err != nil {
-			logrus.Errorf("OnFail: an error during run cmd: %v, err: %v", cmd, err.Error())
+			logrus.Errorf("%v: an error during run cmd: %v, err: %v", name, cmd, err.Error())
 			return err
 		}
 	}

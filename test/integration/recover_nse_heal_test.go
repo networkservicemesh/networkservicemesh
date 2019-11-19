@@ -1,4 +1,4 @@
-// +build recover suite
+// +build recover_suite
 
 package nsmd_integration_tests
 

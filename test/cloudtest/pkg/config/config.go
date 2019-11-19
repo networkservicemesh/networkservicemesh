@@ -40,13 +40,13 @@ type ExecutionConfig struct {
 	OnlyRun         []string `yaml:"only-run"`         // If non-empty, only run the listed tests
 	PackageRoot     string   `yaml:"root"`             // A package root for this test execution, default .
 	Timeout         int64    `yaml:"timeout"`          // Invidiaul test timeout, "60" passed to gotest, in seconds
-	ExtraOptions    []string `yaml:"extra-options"`    // Extra options to pass to gotest
 	ClusterCount    int      `yaml:"cluster-count"`    // A number of clusters required for this execution, default 1
 	KubernetesEnv   []string `yaml:"kubernetes-env"`   // Names of environment variables to put cluster names inside.
 	ClusterSelector []string `yaml:"cluster-selector"` // A cluster name to execute this tests on.
 	Env             []string `yaml:"env"`              // Additional environment variables
 	Run             string   `yaml:"run"`              // A script to execute against required cluster
 	OnFail          string   `yaml:"on_fail"`          // A script to execute against required cluster, called if task failed
+	OnFinish        string   `yaml:"on-finish"`        // A script to execute against required cluster, called when execution config is done on cluster instance.
 }
 
 type CloudTestConfig struct {

@@ -1,4 +1,4 @@
-// +build usecase
+// +build usecase_suite
 
 package nsmd_integration_tests
 
@@ -10,6 +10,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
+	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	nsapiv1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1alpha1"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
@@ -111,6 +112,7 @@ func testVPN(t *testing.T, ptnum, nodesCount int, affinity map[string]int, verbo
 		result, err = nscrd.Get(nsSecureIntranetConnectivity.ObjectMeta.Name)
 		g.Expect(err).To(BeNil())
 		logrus.Printf("Registered CRD is: %v", result)
+		defer nscrd.Delete(nsSecureIntranetConnectivity.Name, &metaV1.DeleteOptions{})
 	}
 
 	pingCommand := "ping"

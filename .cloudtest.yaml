@@ -20,18 +20,21 @@ executions:
       - FIXED_NAMESPACE=true
       - NSM_NAMESPACE=suite-ns
     tags:
-      - suite
+      - usecase_suite
+      - recover_suite
+      - basic_suite
     root: ./test/integration
     timeout: 300
     cluster-count: 1
     kubernetes-env:
       - KUBECONFIG
+    on-finish:
+      kubectl delete ns ${NSM_NAMESPACE}
 #  - name: "Single cluster tests"
 #    env:
-#      - STORE_POD_LOGS_IN_FILES=true
-#      - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)
+#      - PROCESS_ARTIFACTS_IN_TO_ARCHIVE=true
+#      - ARTIFACTS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/$(test-name)
 #    tags:
-#      - !suite
 #      - basic
 #      - recover
 #      - usecase
