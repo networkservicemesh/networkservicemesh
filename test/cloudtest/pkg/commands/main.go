@@ -345,7 +345,7 @@ func (ctx *executionContext) assignTasks() {
 func (ctx *executionContext) performClusterUpdate(event operationEvent) {
 	ctx.Lock()
 	defer ctx.Unlock()
-	logrus.Infof("Instance for cluster %s is updated %v", event.clusterInstance.group.config.Name, event.clusterInstance)
+	logrus.Infof("Cluster instance %s is updated: %v", event.clusterInstance.id, event.clusterInstance)
 	if event.clusterInstance.taskCancel != nil && event.clusterInstance.state == clusterCrashed {
 		// We have task running on cluster
 		event.clusterInstance.taskCancel()
@@ -470,7 +470,7 @@ func (ctx *executionContext) printStatistics() {
 		_, _ = clustersMsg.WriteString(fmt.Sprintf("\t\tCluster: %v Tasks left: %v\n", cl.config.Name, len(cl.tasks)))
 		ctx.RLock()
 		for _, inst := range cl.instances {
-			_, _ = clustersMsg.WriteString(fmt.Sprintf("\t\t\t%s %v uptime: %v\n", inst.id, fromClusterState(inst.state),
+			_, _ = clustersMsg.WriteString(fmt.Sprintf("\t\t\t%s: %v, uptime: %v\n", inst.id, fromClusterState(inst.state),
 				time.Since(inst.startTime).Round(time.Second)))
 		}
 		ctx.RUnlock()
@@ -893,7 +893,7 @@ func (ctx *executionContext) monitorCluster(context context.Context, ci *cluster
 	for {
 		err := ci.instance.CheckIsAlive()
 		if err != nil {
-			logrus.Errorf("Failed to interact with cluster %v %v", ci.id, err)
+			logrus.Errorf("Failed to interact with %s: %v", ci.id, err)
 			ctx.destroyCluster(ci, true, false)
 			break
 		}
@@ -908,7 +908,7 @@ func (ctx *executionContext) monitorCluster(context context.Context, ci *cluster
 				kind:            eventClusterUpdate,
 				clusterInstance: ci,
 			}
-			logrus.Infof("cluster started...")
+			logrus.Infof("Cluster instance started: %s", ci.id)
 		}
 		checks++
 		select {
