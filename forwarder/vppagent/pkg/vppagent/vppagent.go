@@ -277,9 +277,7 @@ func (v *VPPAgent) configureVPPAgent() error {
 	if kvSchedulerClient, err = kvschedclient.NewKVSchedulerClient(v.endpoint()); err != nil {
 		return err
 	}
-	if err := common.CreateNSMonitor(v.common.Monitor, kvSchedulerClient.DownstreamResync); err != nil {
-		return err
-	}
+	common.CreateNSMonitor(v.common.Monitor, kvSchedulerClient.DownstreamResync)
 
 	v.common.MechanismsUpdateChannel = make(chan *common.Mechanisms, 1)
 	v.common.Mechanisms = &common.Mechanisms{
