@@ -370,6 +370,7 @@ type K8s struct {
 	sa                 []string
 	g                  *WithT
 	cleanupFunc        func()
+	startTime          metaV1.Time
 }
 
 type spanRecord struct {
@@ -497,6 +498,7 @@ func NewK8sWithoutRolesForConfig(g *WithT, prepare ClearOption, kubeconfigPath s
 	if err != nil {
 		return nil, err
 	}
+	client.startTime = metaV1.Now()
 
 	client.apiServerHost = config.Host
 	client.initNamespace()
@@ -1109,20 +1111,11 @@ func (k8s *K8s) fixContainer(pod *v1.Pod, container string) string {
 
 func (k8s *K8s) waitLogsMatch(ctx context.Context, pod *v1.Pod, container string, matcher func(string) bool, description string) {
 	container = k8s.fixContainer(pod, container)
-
-	var options *v1.PodLogOptions
-
-	if container != "" {
-		options = &v1.PodLogOptions{
-			Container: container,
-			Follow:    true,
-		}
-	} else {
-		options = &v1.PodLogOptions{
-			Follow: true,
-		}
+	var options = &v1.PodLogOptions{
+		Follow:    true,
+		Container: container,
+		SinceTime: &k8s.startTime,
 	}
-
 	var builder strings.Builder
 	for linesChan, errChan := k8s.GetLogsChannel(ctx, pod, options); ; {
 		select {

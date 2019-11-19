@@ -54,27 +54,29 @@ func (k *k8sLogFinder) Find() []artifact.Artifact {
 			ch <- &pods[i]
 		}
 	}()
+	addArtifactFromContainer := func(p *v1.Pod, c *v1.Container, prev bool) {
+		logs, err := k.k8s.GetLogsWithOptions(p, &v1.PodLogOptions{
+			Previous:  prev,
+			Container: c.Name,
+			SinceTime: &k.k8s.startTime,
+		})
+		if err != nil {
+			logrus.Errorf("Can not get logs for container: %v, Error: %v", c.Name, err)
+			return
+		}
+		addArtifact(artifact.New(nameForArtifact(p, c, prev), "log", []byte(logs)))
+	}
 	for i := 0; i < artifactFinderWorkerCount; i++ {
 		go func() {
 			for p := range ch {
 				for _, prev := range []bool{false, true} {
 					for j := 0; j < len(p.Spec.Containers); j++ {
-						c := &p.Spec.Containers[j]
-						logs, err := k.k8s.GetFullLogs(p, c.Name, prev)
-						if err != nil {
-							logrus.Errorf("Can not get logs for container: %v, Error: %v", c.Name, err)
-							continue
-						}
-						addArtifact(artifact.New(nameForArtifact(p, c, prev), "log", []byte(logs)))
+						c := &p.Spec.InitContainers[j]
+						addArtifactFromContainer(p, c, prev)
 					}
 					for j := 0; j < len(p.Spec.InitContainers); j++ {
 						c := &p.Spec.InitContainers[j]
-						logs, err := k.k8s.GetFullLogs(p, c.Name, prev)
-						if err != nil {
-							logrus.Errorf("Can not get logs for init container: %v. Error: %v", c.Name, err)
-							continue
-						}
-						addArtifact(artifact.New(nameForArtifact(p, c, prev), "log", []byte(logs)))
+						addArtifactFromContainer(p, c, prev)
 					}
 				}
 				wg.Done()
