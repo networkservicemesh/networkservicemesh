@@ -813,16 +813,18 @@ func (k8s *K8s) Cleanup() {
 
 func filterNsmInfrastructure(pods ...*v1.Pod) []*v1.Pod {
 	var result []*v1.Pod
-	namInfrastructurePodNames := []string{"nsmgr", "forwarder", "spire"}
-	for _, p := range pods {
-		found := false
-		for _, n := range namInfrastructurePodNames {
-			if strings.Contains(p.Name, n) {
-				found = true
-				break
+	skipNames := []string{"nsmgr", "forwarder", "spire"}
+	excludeNames := []string{"pnsmgr"}
+	containsFunc := func(where string, what []string) bool {
+		for i := range what {
+			if strings.Contains(where, what[i]) {
+				return true
 			}
 		}
-		if found {
+		return false
+	}
+	for _, p := range pods {
+		if containsFunc(p.Name, skipNames) && !containsFunc(p.Name, excludeNames) {
 			continue
 		}
 		result = append(result, p)

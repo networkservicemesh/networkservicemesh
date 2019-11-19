@@ -112,7 +112,8 @@ func testVPN(t *testing.T, ptnum, nodesCount int, affinity map[string]int, verbo
 		result, err = nscrd.Get(nsSecureIntranetConnectivity.ObjectMeta.Name)
 		g.Expect(err).To(BeNil())
 		logrus.Printf("Registered CRD is: %v", result)
-		defer nscrd.Delete(nsSecureIntranetConnectivity.Name, &metaV1.DeleteOptions{})
+		defer nscrd.Delete(result.Name, &metaV1.DeleteOptions{})
+
 	}
 
 	pingCommand := "ping"
