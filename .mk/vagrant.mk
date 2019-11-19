@@ -51,14 +51,12 @@ vagrant-restart-kubelet:
 .PHONY: vagrant-%-load-images
 vagrant-%-load-images:
 	@if [ -e "$(IMAGE_DIR)/$*.tar" ]; then \
-		mkdir -p scripts/vagrant/images ; \
-		cp "$(IMAGE_DIR)/$*.tar" scripts/vagrant/images/ ; \
 		cd scripts/vagrant; \
 		echo "Loading image $*.tar to master"; \
-		vagrant ssh master -c "sudo docker rmi networkservicemesh/$* -f && docker load -i /vagrant/images/$*.tar" > /dev/null 2>&1; \
+		vagrant ssh master -c "docker load -i /images/$*.tar" > /dev/null 2>&1; \
 		number=1 ; while [[ $$number -le ${WORKER_COUNT} ]] ; do \
 			echo "Loading image $*.tar to worker$$number"; \
-			vagrant ssh worker$$number -c "sudo docker rmi networkservicemesh/$* -f && docker load -i /vagrant/images/$*.tar" > /dev/null 2>&1; \
+			vagrant ssh worker$$number -c "docker load -i /images/$*.tar" > /dev/null 2>&1; \
 			((number++)) ; \
 		done; \
 	else \
