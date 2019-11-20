@@ -1,4 +1,4 @@
-// +build basic_suite
+// +build basic
 
 package nsmd_integration_tests
 
