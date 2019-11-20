@@ -437,7 +437,7 @@ func (ctx *executionContext) selectClusterForTask(task *testTask) (int, []*clust
 				clustersToUse = append(clustersToUse, ci)
 				// We need to remove task from list
 				groupAssigned = true
-			case clusterBusy, clusterStarting:
+			case clusterBusy, clusterStarting, clusterStopping:
 				groupAvailable = true
 			}
 		}
