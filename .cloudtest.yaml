@@ -30,21 +30,21 @@ executions:
       - KUBECONFIG
     on-finish:
       kubectl delete ns ${NSM_NAMESPACE}
-#  - name: "Single cluster tests"
-#    env:
-#      - PROCESS_ARTIFACTS_IN_TO_ARCHIVE=true
-#      - ARTIFACTS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/$(test-name)
-#    tags:
-#      - basic
-#      - recover
-#      - usecase
-#    root: ./test/integration
-#    timeout: 300
-#    cluster-count: 1
-#    kubernetes-env:
-#      - KUBECONFIG
-#    on_fail: |
-#      make k8s-delete-nsm-namespaces
+  - name: "Single cluster tests"
+    env:
+      - PROCESS_ARTIFACTS_IN_TO_ARCHIVE=true
+      - ARTIFACTS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/$(test-name)
+    tags:
+      - basic
+      - recover
+      - usecase
+    root: ./test/integration
+    timeout: 300
+    cluster-count: 1
+    kubernetes-env:
+      - KUBECONFIG
+    on_fail: |
+      make k8s-delete-nsm-namespaces
 #  - name: "Benchmark tests"
 #    env:
 #      - STORE_POD_LOGS_IN_FILES=true

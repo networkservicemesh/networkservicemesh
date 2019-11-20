@@ -20,7 +20,7 @@ func TestSingleCrossConnect(t *testing.T) {
 		return
 	}
 
-	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResources)
+	k8s, err := kubetest.NewK8s(g, kubetest.DefaultClear)
 	defer k8s.Cleanup()
 	g.Expect(err).To(BeNil())
 
@@ -70,7 +70,7 @@ func TestSingleCrossConnectMonitorBeforeXcons(t *testing.T) {
 		return
 	}
 
-	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResources)
+	k8s, err := kubetest.NewK8s(g, kubetest.DefaultClear)
 	defer k8s.Cleanup()
 	g.Expect(err).To(BeNil())
 
@@ -142,7 +142,7 @@ func TestCrossConnectMonitorRestart(t *testing.T) {
 		return
 	}
 
-	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResources)
+	k8s, err := kubetest.NewK8s(g, kubetest.DefaultClear)
 	defer k8s.Cleanup()
 	g.Expect(err).To(BeNil())
 

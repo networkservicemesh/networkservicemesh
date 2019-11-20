@@ -20,7 +20,7 @@ func TestExec(t *testing.T) {
 		return
 	}
 
-	k8s, err := kubetest.NewK8sWithoutRoles(g, kubetest.ReuseNSMResources)
+	k8s, err := kubetest.NewK8sWithoutRoles(g, kubetest.DefaultClear)
 	defer k8s.Cleanup()
 	g.Expect(err).To(BeNil())
 	defer k8s.ProcessArtifacts(t)

@@ -72,7 +72,7 @@ If passed 1 both will be on same node, if not on different.
 func testNSCAndICMP(t *testing.T, nodesCount int, useWebhook bool, disableVHost bool) {
 	g := NewWithT(t)
 
-	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResources)
+	k8s, err := kubetest.NewK8s(g, kubetest.DefaultClear)
 	defer k8s.Cleanup()
 	defer k8s.ProcessArtifacts(t)
 	g.Expect(err).To(BeNil())
