@@ -1,4 +1,4 @@
-// +build recover
+// +build recover_suite
 
 package nsmd_integration_tests
 
@@ -25,7 +25,7 @@ func TestNSMHealLocalDieNSMD(t *testing.T) {
 		return
 	}
 
-	k8s, err := kubetest.NewK8s(g, kubetest.DefaultClear)
+	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResources)
 	defer k8s.Cleanup()
 
 	g.Expect(err).To(BeNil())
