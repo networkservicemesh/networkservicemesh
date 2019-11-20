@@ -5,6 +5,13 @@ Docker is the only prerequisite, it does not require any additional steps, hyper
 
 It is worth noting that `kind` as any other Kubernetes deployment tool would expect that the machine that hosts the Docker has at least 4 CPU cores and 4 GB of RAM. That is specifically pointed for OSX users in the official [docs](https://kind.sigs.k8s.io/docs/user/quick-start/).
 
+## Installing `kind`
+
+The default behaviour is to use the installed `kind` version and not update it. An update can be forces by:
+
+```shell
+make kind-install
+```
 
 ## `kind` lifecycle management
 
@@ -39,19 +46,3 @@ Deleting cluster "nsm" ...
 $KUBECONFIG is still set to use $HOME/.kube/kind-config-nsm even though that file has been deleted, remember to unset it
 ```
 
-## `kind` as a cluster provide in Network Service Mesh
-
-Enabling `kind` instead of the default `vagrant` is as easy as:
-```shell
-export CLUSTER_RULES_PREFIX=kind
-```
-
-All subsequent commands will assume `kind` as the cluster provider.
-
-## Latest `kind`
-
-The default behaviour is to use the installed `kind` version and not update it. An update can be forces by:
-
-```shell
-make kind-install
-```

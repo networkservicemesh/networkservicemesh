@@ -324,7 +324,7 @@ func TestUnusedClusterShutdownByMonitor(t *testing.T) {
 	g.Expect(logKeeper.CheckMessagesOrder([]string{
 		"All tasks for cluster group a_provider are complete. Starting cluster shutdown",
 		"Destroying cluster  a_provider-",
-		"Completed tasks 6 Tasks left: 0",
+		"Finished test execution",
 	})).To(BeTrue())
 }
 
