@@ -58,22 +58,6 @@ gke-%-load-images:
 gke-docker-login:
 	gcloud auth configure-docker --quiet
 
-
-.PHONY: gke-%-push
-gke-%-push: gke-docker-login
-	@if [ "x$${CONTAINER_TAG}" == "x" ] ; then \
-		CONTAINER_TAG=latest; \
-	fi ;\
-	if [ "x$${CONTAINER_TAG}" == "x" ] ; then \
-		CONTAINER_TAG=latest; \
-	fi ;\
-    ORG=gcr.io/$(shell gcloud config get-value project); \
-	docker push $${ORG}/$*:$${CONTAINER_TAG}
-
-gke-push: $(addsuffix -push,$(addprefix gke-,$(BUILD_CONTAINERS)))
-	@echo $(addsuffix -push,$(addprefix gke-,$(BUILD_CONTAINERS)))
-
-
 .ONESHELL:
 .PHONY: gke-download-postmortem
 gke-download-postmortem:
