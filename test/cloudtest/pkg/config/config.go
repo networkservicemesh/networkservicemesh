@@ -51,8 +51,11 @@ type ExecutionConfig struct {
 
 type RetestConfig struct {
 	// Executions, every execution execute some tests agains configured set of clusters
-	Patterns     []string `yaml:"pattern"` // Restart test output pattern, to treat as a test restart request, test will be added back for execution.
-	RestartCount int      `yaml:"count"`   // Allow to restart only few times using RestartCode check.
+	Patterns         []string `yaml:"pattern"`         // Restart test output pattern, to treat as a test restart request, test will be added back for execution.
+	RestartCount     int      `yaml:"count"`           // Allow to restart only few times using RestartCode check.
+	WarmupTimeout    int      `yaml:"warmup-time"`     // A cluster instance should warmup for some time if this is happening.
+	AllowedRetests   int      `yaml:"allowed-retests"` // A number of allowed retests for cluster, if reached, cluster instance will be restarted.
+	RetestFailResult string   `yaml:"fail-result"`     // A status if all attempts are failed, usual is skipped. if value != skip, it will be failed.
 }
 
 type CloudTestConfig struct {

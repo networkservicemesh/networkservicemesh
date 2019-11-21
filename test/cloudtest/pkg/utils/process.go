@@ -26,10 +26,10 @@ func (w *ProcWrapper) ExitCode() int {
 	err := w.Cmd.Wait()
 	if err != nil {
 		e, ok := err.(*exec.ExitError)
-		logrus.Errorf("Error during waiting for process exit code: %v %v", w.Cmd.Args, err)
 		if ok {
 			return e.ExitCode()
 		}
+		logrus.Errorf("Error during waiting for process exit code: %v %v", w.Cmd.Args, err)
 		return -1
 	}
 	return w.Cmd.ProcessState.ExitCode()

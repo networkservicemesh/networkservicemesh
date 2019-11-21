@@ -8,7 +8,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -79,7 +78,8 @@ type clusterInstance struct {
 	cancelMonitor context.CancelFunc
 	startTime     time.Time
 
-	executions []*clusterOperationRecord
+	executions    []*clusterOperationRecord
+	retestCounter int // If test is requesting retest on this cluster instance, we count how many times it is happening, it will be set to 0 if test is not request retest.
 }
 type clustersGroup struct {
 	instances []*clusterInstance
@@ -280,6 +280,11 @@ func (ctx *executionContext) performExecution() error {
 		ctx.assignTasks()
 		ctx.checkClustersUsage()
 
+		if len(ctx.tasks) == 0 && len(ctx.running) == 0 {
+			// No tasks left to execute.
+			break
+		}
+
 		select {
 		case event := <-ctx.operationChannel:
 			switch event.kind {
@@ -362,14 +367,29 @@ func (ctx *executionContext) performClusterUpdate(event operationEvent) {
 
 func (ctx *executionContext) processTaskUpdate(event operationEvent) {
 	delete(ctx.running, event.task.taskID)
-	// Make cluster as ready
-	for _, inst := range event.task.clusterInstances {
-		ctx.Lock()
-		if inst.state == clusterBusy {
-			inst.state = clusterReady
-		}
-		inst.taskCancel = nil
-		ctx.Unlock()
+
+	if event.task.test.Status == model.StatusRerunRequest && ctx.cloudTestConfig.RetestConfig.WarmupTimeout > 0 {
+		go func() {
+			ids := []string{}
+			for _, ci := range event.task.clusterInstances {
+				ids = append(ids, ci.id)
+			}
+			wtime := time.Second * time.Duration(ctx.cloudTestConfig.RetestConfig.WarmupTimeout)
+			logrus.Infof("Warmup cluster operations: %v timeout: %v", ids, wtime)
+			<-time.After(wtime)
+			// Make cluster as ready
+			ctx.makeInstancesReady(event.task.clusterInstances)
+
+			for _, ci := range event.task.clusterInstances {
+				ctx.operationChannel <- operationEvent{
+					kind:            eventClusterUpdate,
+					clusterInstance: ci,
+				}
+			}
+		}()
+	} else {
+		// Make cluster as ready
+		ctx.makeInstancesReady(event.task.clusterInstances)
 	}
 	if event.task.test.Status == model.StatusSuccess || event.task.test.Status == model.StatusFailed {
 		ctx.Lock()
@@ -392,6 +412,17 @@ func (ctx *executionContext) processTaskUpdate(event operationEvent) {
 	} else {
 		logrus.Infof("Re schedule task %v reason: %v", event.task.test.Name, statusName(event.task.test.Status))
 		ctx.tasks = append(ctx.tasks, event.task)
+	}
+}
+
+func (ctx *executionContext) makeInstancesReady(instances []*clusterInstance) {
+	for _, inst := range instances {
+		ctx.Lock()
+		if inst.state == clusterBusy {
+			inst.state = clusterReady
+		}
+		inst.taskCancel = nil
+		ctx.Unlock()
 	}
 }
 
@@ -428,8 +459,9 @@ func (ctx *executionContext) selectClusterForTask(task *testTask) (int, []*clust
 			switch state {
 			case clusterAdded, clusterCrashed:
 				// Try starting cluster
-				ctx.startCluster(ci)
-				groupAvailable = true
+				if ctx.startCluster(ci) {
+					groupAvailable = true
+				}
 			case clusterReady:
 				groupAvailable = true
 				if groupAssigned {
@@ -729,24 +761,50 @@ func (ctx *executionContext) executeTask(task *testTask, clusterConfigs []string
 
 		errCode := runner.Run(timeoutCtx, env, writer)
 
-		writer.Flush()
+		_ = writer.Flush()
 
 		// Check if test ask us restart it, and have few executions left
-		if errCode != nil && len(ctx.cloudTestConfig.RetestConfig.Patterns) > 0 {
-			writer.Flush()
-
+		if errCode != nil && len(ctx.cloudTestConfig.RetestConfig.Patterns) > 0 && ctx.cloudTestConfig.RetestConfig.RestartCount > 0 {
 			if ctx.matchRestartRequest(fileName) {
 				if len(task.test.Executions) < ctx.cloudTestConfig.RetestConfig.RestartCount {
+					// Let's check if we have same cluster instance fail few times one after another with this error.
+					for _, cinst := range task.clusterInstances {
+						cinst.retestCounter++
+						if cinst.retestCounter == ctx.cloudTestConfig.RetestConfig.AllowedRetests { // We it happened again, we need to re-start this cluster and give test one more attempt.
+							// If cluster failed with network error most of time, let's re-create it.
+							logrus.Errorf("Reached a limit of re-tests per cluster instance: %v %v %v", task.test.Name, cinst.id, ctx.cloudTestConfig.RetestConfig.AllowedRetests)
+							cinst.retestCounter = 0
+							_ = ctx.destroyCluster(cinst, true, false)
+						}
+						ctx.Lock()
+						cinst.taskCancel = nil
+						ctx.Unlock()
+					}
+
 					ctx.updateTestExecution(task, fileName, model.StatusRerunRequest)
 				} else {
-					logrus.Errorf("Test %v retry count %v exceed: err: %v", task.test.Name, ctx.cloudTestConfig.RetestConfig.RestartCount, errCode.Error())
+					msg := fmt.Sprintf("Test %v retry count %v exceed: err: %v", task.test.Name, ctx.cloudTestConfig.RetestConfig.RestartCount, errCode.Error())
+					logrus.Errorf(msg)
 					_, _ = writer.WriteString(errCode.Error())
 					_ = writer.Flush()
-					ctx.updateTestExecution(task, fileName, model.StatusFailed)
+					taskStatus := model.StatusFailed
+					if ctx.cloudTestConfig.RetestConfig.RetestFailResult == "skip" {
+						taskStatus = model.StatusSkipped
+						task.test.SkipMessage = msg
+					}
+					ctx.updateTestExecution(task, fileName, taskStatus)
 				}
 				return
 			}
 		}
+
+		// Update retestCounter if test is not retesting.
+		for _, cinst := range task.clusterInstances {
+			ctx.Lock()
+			cinst.retestCounter = 0
+			ctx.Unlock()
+		}
+
 		if errCode != nil {
 			onFailErr := ctx.handleOnFailTask(task, env, writer)
 			if err != nil {
@@ -786,13 +844,12 @@ func (ctx *executionContext) executeTask(task *testTask, clusterConfigs []string
 }
 
 func (ctx *executionContext) matchRestartRequest(fileName string) bool {
-	hasPattern := false
 	// Check if output file contains restart request marker
 	f, err := os.OpenFile(fileName, os.O_RDONLY, 0600)
 	if err != nil {
 		return false
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	reader := bufio.NewReader(f)
 	for {
@@ -800,14 +857,11 @@ func (ctx *executionContext) matchRestartRequest(fileName string) bool {
 		if err != nil {
 			break
 		}
-		for _, pp := range ctx.cloudTestConfig.RetestConfig.Patterns {
-			if matched, _ := regexp.MatchString(pp, r); matched {
-				hasPattern = true
-				break
-			}
+		if utils.MatchRetestPattern(ctx.cloudTestConfig.RetestConfig.Patterns, r) {
+			return true
 		}
 	}
-	return hasPattern
+	return false
 }
 
 func (ctx *executionContext) handleOnFailTask(task *testTask, env []string, writer *bufio.Writer) error {
@@ -870,17 +924,16 @@ func (ctx *executionContext) updateTestExecution(task *testTask, fileName string
 	}
 }
 
-func (ctx *executionContext) startCluster(ci *clusterInstance) {
-
+func (ctx *executionContext) startCluster(ci *clusterInstance) bool {
 	if ci.state != clusterAdded && ci.state != clusterCrashed {
 		// no need to start
-		return
+		return true
 	}
 
 	if ci.startCount > ci.group.config.RetryCount {
 		logrus.Infof("Marking cluster %v as not available attempts reached: %v", ci.id, ci.group.config.RetryCount)
 		ci.state = clusterNotAvailable
-		return
+		return false
 	}
 
 	ci.state = clusterStarting
@@ -925,6 +978,7 @@ func (ctx *executionContext) startCluster(ci *clusterInstance) {
 			}
 		}
 	}()
+	return true
 }
 
 func (ctx *executionContext) getClusterTimeout(group *clustersGroup) time.Duration {
@@ -1267,8 +1321,13 @@ func (ctx *executionContext) generateTestCaseReport(test *testTask, totalTests i
 			Message:  message,
 		}
 	case model.StatusSkipped:
+		msg := "By limit of number of tests to run"
+		if test.test.SkipMessage != "" {
+			msg = test.test.SkipMessage
+		}
+
 		testCase.SkipMessage = &reporting.SkipMessage{
-			Message: "By limit of number of tests to run",
+			Message: msg,
 		}
 	case model.StatusSkippedSinceNoClusters:
 		testCase.SkipMessage = &reporting.SkipMessage{

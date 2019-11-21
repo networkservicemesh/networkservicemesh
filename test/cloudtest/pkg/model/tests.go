@@ -66,6 +66,7 @@ type TestEntry struct {
 	Kind   TestEntryKind
 	Status Status
 	sync.Mutex
+	SkipMessage string
 }
 
 // GetTestConfiguration - Return list of available tests by calling of gotest --list .* $root -tag "" and parsing of output.

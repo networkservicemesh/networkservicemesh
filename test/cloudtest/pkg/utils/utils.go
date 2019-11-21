@@ -1,11 +1,30 @@
+// Copyright (c) 2019 Cisco Systems, Inc and/or its affiliates.
+//
+// SPDX-License-Identifier: Apache-2.0
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// Package utils - Utils for cloud testing tool
 package utils
 
 import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"regexp"
 	"strings"
 	"sync"
+	"testing"
 
 	"github.com/sirupsen/logrus"
 )
@@ -52,22 +71,36 @@ func (lk *logKeeper) GetMessages() []string {
 }
 
 // CheckMessagesOrder - checks that messages are present in log in given oreder.
-func (lk *logKeeper) CheckMessagesOrder(messages []string) bool {
+func (lk *logKeeper) CheckMessagesOrder(t *testing.T, messages []string) bool {
 	if len(messages) == 0 {
 		return false
 	}
 	ind := 0
 	msgs := []string{}
+	matched := []string{}
+	lastMatched := 0
 	for _, entry := range lk.loghook.AllEntries() {
 		msgs = append(msgs, fmt.Sprintf("\"%s\",\n", entry.Message))
-		if strings.Contains(entry.Message, messages[ind]) {
+		if ind < len(messages) && strings.Contains(entry.Message, messages[ind]) {
+			matched = append(matched, fmt.Sprintf("'%s' contains in '%s'", messages[ind], entry.Message))
 			ind++
+			lastMatched = len(msgs) - 1
 			if ind == len(messages) {
 				return true
 			}
 		}
 	}
-	logrus.Infof("Not matched: %v", msgs)
+
+	logrus.Infof("Matched %v", matched)
+	res := ""
+	for _, um := range messages[ind:] {
+		res += "\n" + um
+	}
+	res += "\nTail:\n"
+	for _, um := range msgs[lastMatched:] {
+		res += um
+	}
+	t.Fatalf("Unmatched: %v", res)
 	return false
 }
 
@@ -146,4 +179,19 @@ func (t *logrusHook) Stop() {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	t.stopped = true
+}
+
+// MatchRetestPattern - check if retest pattern is matched in passed string
+func MatchRetestPattern(patterns []string, line string) bool {
+	for _, pp := range patterns {
+		// Check for contains
+		if strings.Contains(line, pp) {
+			return true
+		}
+		// Check using regexp
+		if matched, _ := regexp.MatchString(pp, line); matched {
+			return true
+		}
+	}
+	return false
 }

@@ -321,11 +321,11 @@ func TestUnusedClusterShutdownByMonitor(t *testing.T) {
 	g.Expect(report.Suites[0].Tests).To(Equal(3))
 	g.Expect(len(report.Suites[0].TestCases)).To(Equal(3))
 
-	g.Expect(logKeeper.CheckMessagesOrder([]string{
+	logKeeper.CheckMessagesOrder(t, []string{
 		"All tasks for cluster group a_provider are complete. Starting cluster shutdown",
 		"Destroying cluster  a_provider-",
 		"Finished test execution",
-	})).To(BeTrue())
+	})
 }
 
 func TestMultiClusterTest(t *testing.T) {
@@ -423,46 +423,6 @@ func TestGlobalTimeout(t *testing.T) {
 	g.Expect(report.Suites[0].Failures).To(Equal(1))
 	g.Expect(report.Suites[0].Tests).To(Equal(3))
 	g.Expect(len(report.Suites[0].TestCases)).To(Equal(3))
-
-	// Do assertions
-}
-
-func TestRestartRequest(t *testing.T) {
-	g := NewWithT(t)
-
-	testConfig := &config.CloudTestConfig{
-		RetestConfig: config.RetestConfig{
-			Patterns:     []string{"#Please_RETEST#"},
-			RestartCount: 2,
-		},
-	}
-	testConfig.Timeout = 3000
-
-	tmpDir, err := ioutil.TempDir(os.TempDir(), "cloud-test-temp")
-	defer utils.ClearFolder(tmpDir, false)
-	g.Expect(err).To(BeNil())
-
-	testConfig.ConfigRoot = tmpDir
-	createProvider(testConfig, "a_provider")
-
-	testConfig.Executions = append(testConfig.Executions, &config.ExecutionConfig{
-		Name:        "simple",
-		Tags:        []string{"request_restart"},
-		Timeout:     1500,
-		PackageRoot: "./sample",
-	})
-
-	testConfig.Reporting.JUnitReportFile = JunitReport
-
-	report, err := commands.PerformTesting(testConfig, &testValidationFactory{}, &commands.Arguments{})
-	g.Expect(err.Error()).To(Equal("there is failed tests 1"))
-
-	g.Expect(report).NotTo(BeNil())
-
-	g.Expect(len(report.Suites)).To(Equal(1))
-	g.Expect(report.Suites[0].Failures).To(Equal(1))
-	g.Expect(report.Suites[0].Tests).To(Equal(2))
-	g.Expect(len(report.Suites[0].TestCases)).To(Equal(2))
 
 	// Do assertions
 }
