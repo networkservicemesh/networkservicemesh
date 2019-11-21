@@ -279,7 +279,7 @@ func RunProxyNSMgrService(k8s *K8s) func() {
 	k8s.g.Expect(err).To(BeNil())
 
 	return func() {
-		_ = k8s.DeleteService(svc, k8s.GetK8sNamespace())
+		_ = k8s.DeleteService(svc)
 	}
 }
 
@@ -528,7 +528,7 @@ func DeployAdmissionWebhook(k8s *K8s, name, image, namespace string, timeout tim
 // DeleteAdmissionWebhook - Delete admission webhook
 func DeleteAdmissionWebhook(k8s *K8s, secretName string,
 	awc *arv1beta1.MutatingWebhookConfiguration, awDeployment *appsv1.Deployment, awService *v1.Service, namespace string) {
-	err := k8s.DeleteService(awService, namespace)
+	err := k8s.DeleteService(awService)
 	k8s.g.Expect(err).To(BeNil())
 
 	err = k8s.DeleteDeployment(awDeployment, namespace)

@@ -113,7 +113,7 @@ func testNSMHealLocalDieNSMDOneNode(t *testing.T, deployNsc, deployNse kubetest.
 
 	if cleanupEndpointsCRDs {
 		logrus.Infof("Cleanup Endpoints...")
-		k8s.CleanupEndpointsCRDs()
+		k8s.DeleteEndpoints()
 	}
 
 	logrus.Infof("Starting recovered NSMD...")
@@ -170,7 +170,7 @@ func testNSMHealLocalDieNSMDTwoNodes(t *testing.T, deployNsc, deployNse kubetest
 	nsmdName := fmt.Sprintf("%s-recovered", nodes_setup[0].Nsmd.Name)
 
 	logrus.Infof("Cleanup Endpoints CRDs...")
-	k8s.CleanupEndpointsCRDs()
+	k8s.DeleteEndpoints()
 
 	nse2RegistryClient, nsm2RegistryClient, fwd2Close := kubetest.PrepareRegistryClients(k8s, nodes_setup[1].Nsmd)
 	defer fwd2Close()

@@ -3,19 +3,18 @@
 package nsmd_integration_tests
 
 import (
-	"fmt"
 	"strconv"
 	"sync"
 	"sync/atomic"
 	"testing"
 
-	nsapiv1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1alpha1"
-	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
-	"github.com/networkservicemesh/networkservicemesh/test/kubetest/crds"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
-	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	nsapiv1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1alpha1"
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest/crds"
 )
 
 type Deployment int
@@ -179,15 +178,14 @@ func testDeploymentOrder(t *testing.T, order []Deployment) {
 	var nseCount uint64
 	var nscPods []*v1.Pod
 	var nscCount uint64
-	var waitgroup sync.WaitGroup
+	var wg sync.WaitGroup
 	var scheduled = make(chan interface{})
-	var services sync.Map
 	for _, deploy := range order {
-		waitgroup.Add(1)
+		wg.Add(1)
 
 		go func() {
 			scheduled <- true
-			defer func() { waitgroup.Done() }()
+			defer func() { wg.Done() }()
 			switch deploy {
 			case DeployService:
 				nsIcmpResponder := crds.IcmpResponder(map[string]string{}, map[string]string{"app": "icmp"})
@@ -199,7 +197,6 @@ func testDeploymentOrder(t *testing.T, order []Deployment) {
 				result, err = nscrd.Get(nsIcmpResponder.ObjectMeta.Name)
 				g.Expect(err).To(BeNil())
 				logrus.Printf("Registered CRD is: %v", result)
-				services.Store(result.Name, result)
 			case DeployEndpoint:
 				kubetest.DeployICMP(k8s, nil, "nse-"+strconv.FormatUint(atomic.AddUint64(&nseCount, 1), 10), defaultTimeout)
 			case DeployClient:
@@ -213,14 +210,9 @@ func testDeploymentOrder(t *testing.T, order []Deployment) {
 	}
 
 	// wait for all deployment routines to end
-	waitgroup.Wait()
+	wg.Wait()
 
 	for _, p := range nscPods {
 		kubetest.CheckNSC(k8s, p)
 	}
-	services.Range(func(k, v interface{}) bool {
-		logrus.Infof("Deleting service: %v", k)
-		nscrd.Delete(fmt.Sprint(k), &metaV1.DeleteOptions{})
-		return true
-	})
 }

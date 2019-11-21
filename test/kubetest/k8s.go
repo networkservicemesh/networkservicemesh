@@ -708,12 +708,8 @@ func (k8s *K8s) ListPodsByNs(ns string) []v1.Pod {
 
 // CleanupCRDs cleans up CRDs
 func (k8s *K8s) CleanupCRDs() {
-	// Clean up Network Services
-	services, _ := k8s.versionedClientSet.NetworkservicemeshV1alpha1().NetworkServices(k8s.namespace).List(metaV1.ListOptions{})
-	for _, service := range services.Items {
-		_ = k8s.versionedClientSet.NetworkservicemeshV1alpha1().NetworkServices(k8s.namespace).Delete(service.Name, &metaV1.DeleteOptions{})
-	}
-	k8s.DeleteAllNSECustomResources()
+	k8s.cleanupNetworkServices()
+	k8s.DeleteEndpoints()
 	// Clean up Network Service Managers
 	managers, _ := k8s.versionedClientSet.NetworkservicemeshV1alpha1().NetworkServiceManagers(k8s.namespace).List(metaV1.ListOptions{})
 	for _, mgr := range managers.Items {
@@ -721,14 +717,11 @@ func (k8s *K8s) CleanupCRDs() {
 	}
 }
 
-//DeleteAllNSECustomResources deletes all NSEs custom resources
-func (k8s *K8s) DeleteAllNSECustomResources() {
-	// Clean up Network Service Endpoints
-	endpoints, _ := k8s.versionedClientSet.NetworkservicemeshV1alpha1().NetworkServiceEndpoints(k8s.namespace).List(metaV1.ListOptions{})
-	for _, ep := range endpoints.Items {
-		_ = k8s.versionedClientSet.NetworkservicemeshV1alpha1().NetworkServiceEndpoints(k8s.namespace).Delete(ep.Name, &metaV1.DeleteOptions{})
+func (k8s *K8s) cleanupNetworkServices() {
+	services, _ := k8s.versionedClientSet.NetworkservicemeshV1alpha1().NetworkServices(k8s.namespace).List(metaV1.ListOptions{})
+	for _, service := range services.Items {
+		_ = k8s.versionedClientSet.NetworkservicemeshV1alpha1().NetworkServices(k8s.namespace).Delete(service.Name, &metaV1.DeleteOptions{})
 	}
-
 }
 
 // DescribePod describes a pod
@@ -785,8 +778,8 @@ func (k8s *K8s) PrintImageVersion(pod *v1.Pod) {
 	logrus.Infof("Version of %v is %v", pod.Name, version)
 }
 
-// CleanupEndpointsCRDs clean Network Service Endpoints from registry
-func (k8s *K8s) CleanupEndpointsCRDs() {
+// DeleteEndpoints clean Network Service Endpoints from registry
+func (k8s *K8s) DeleteEndpoints() {
 	endpoints, _ := k8s.versionedClientSet.NetworkservicemeshV1alpha1().NetworkServiceEndpoints(k8s.namespace).List(metaV1.ListOptions{})
 	for i := range endpoints.Items {
 		_ = k8s.versionedClientSet.NetworkservicemeshV1alpha1().NetworkServiceEndpoints(k8s.namespace).Delete(endpoints.Items[i].Name, &metaV1.DeleteOptions{})
@@ -859,7 +852,7 @@ func (k8s *K8s) cleanups() {
 		k8s.CleanupConfigMaps()
 	}()
 
-	if k8s.resourcesBehaviour != ReuseNSMResources {
+	if k8s.resourcesBehaviour == DefaultClear {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -874,6 +867,14 @@ func (k8s *K8s) cleanups() {
 		go func() {
 			defer wg.Done()
 			k8s.CleanupCRDs()
+		}()
+	}
+	if k8s.resourcesBehaviour == ReuseNSMResources {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			k8s.DeleteEndpoints()
+			k8s.cleanupNetworkServices()
 		}()
 	}
 
@@ -908,7 +909,7 @@ func (k8s *K8s) CreatePods(templates ...*v1.Pod) []*v1.Pod {
 // CreatePodsRaw create raw pods
 func (k8s *K8s) CreatePodsRaw(timeout time.Duration, failTest bool, templates ...*v1.Pod) ([]*v1.Pod, error) {
 	results := k8s.createAndBlock(k8s.clientset, k8s.namespace, timeout, templates...)
-	pods := []*v1.Pod{}
+	var pods []*v1.Pod
 
 	// Add pods into managed list of created pods, do not matter about errors, since we still need to remove them.
 	errs := []error{}
@@ -1235,8 +1236,8 @@ func (k8s *K8s) CreateService(service *v1.Service, namespace string) (*v1.Servic
 }
 
 // DeleteService deletes a service
-func (k8s *K8s) DeleteService(service *v1.Service, namespace string) error {
-	return k8s.clientset.CoreV1().Services(namespace).Delete(service.GetName(), &metaV1.DeleteOptions{})
+func (k8s *K8s) DeleteService(service *v1.Service) error {
+	return k8s.clientset.CoreV1().Services(k8s.namespace).Delete(service.GetName(), &metaV1.DeleteOptions{})
 }
 
 // CleanupServices cleans up services

@@ -172,7 +172,7 @@ func TestNSMHealRemoteDieNSMDFakeEndpoint(t *testing.T) {
 	nsmdName := fmt.Sprintf("nsmd-worker-recovered-%d", 1)
 
 	logrus.Infof("Cleanup Endpoints CRDs...")
-	k8s.CleanupEndpointsCRDs()
+	k8s.DeleteEndpoints()
 
 	nse2RegistryClient, nsm2RegistryClient, fwd2Close := kubetest.PrepareRegistryClients(k8s, nodesSetup[0].Nsmd)
 	defer fwd2Close()

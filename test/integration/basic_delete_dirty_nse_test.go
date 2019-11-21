@@ -52,7 +52,6 @@ func TestDeleteDirtyNSEWithClient(t *testing.T) {
 	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResources)
 	g.Expect(err).To(BeNil())
 	defer k8s.Cleanup()
-	defer k8s.DeleteAllNSECustomResources()
 
 	nodesConf, err := kubetest.SetupNodesConfig(k8s, 1, defaultTimeout, []*pods.NSMgrPodConfig{}, k8s.GetK8sNamespace())
 	g.Expect(err).To(BeNil())

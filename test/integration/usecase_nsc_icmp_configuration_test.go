@@ -82,7 +82,7 @@ func testNSCAndICMP(t *testing.T, nodesCount int, useWebhook bool, disableVHost 
 		defer kubetest.DeleteAdmissionWebhook(k8s, "nsm-admission-webhook-certs", awc, awDeployment, awService, k8s.GetK8sNamespace())
 	}
 
-	config := []*pods.NSMgrPodConfig{}
+	var config []*pods.NSMgrPodConfig
 	for i := 0; i < nodesCount; i++ {
 		cfg := &pods.NSMgrPodConfig{
 			Variables: pods.DefaultNSMD(),
@@ -94,17 +94,17 @@ func testNSCAndICMP(t *testing.T, nodesCount int, useWebhook bool, disableVHost 
 		}
 		config = append(config, cfg)
 	}
-	nodes_setup, err := kubetest.SetupNodesConfig(k8s, nodesCount, defaultTimeout, config, k8s.GetK8sNamespace())
+	nodesSetup, err := kubetest.SetupNodesConfig(k8s, nodesCount, defaultTimeout, config, k8s.GetK8sNamespace())
 	g.Expect(err).To(BeNil())
 
 	// Run ICMP on latest node
-	_ = kubetest.DeployICMP(k8s, nodes_setup[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
+	_ = kubetest.DeployICMP(k8s, nodesSetup[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
 
 	var nscPodNode *v1.Pod
 	if useWebhook {
-		nscPodNode = kubetest.DeployNSCWebhook(k8s, nodes_setup[0].Node, "nsc-1", defaultTimeout)
+		nscPodNode = kubetest.DeployNSCWebhook(k8s, nodesSetup[0].Node, "nsc-1", defaultTimeout)
 	} else {
-		nscPodNode = kubetest.DeployNSC(k8s, nodes_setup[0].Node, "nsc-1", defaultTimeout)
+		nscPodNode = kubetest.DeployNSC(k8s, nodesSetup[0].Node, "nsc-1", defaultTimeout)
 	}
 
 	kubetest.CheckNSC(k8s, nscPodNode)

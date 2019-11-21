@@ -28,7 +28,8 @@ executions:
     cluster-count: 1
     kubernetes-env:
       - KUBECONFIG
-    on-finish:
+    on-finish: |
+      kubectl delete pods --force --grace-period 0 -n "${NSM_NAMESPACE}" --all
       kubectl delete ns ${NSM_NAMESPACE}
   - name: "Single cluster tests"
     env:
