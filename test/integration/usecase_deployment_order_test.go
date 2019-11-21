@@ -1,20 +1,21 @@
-// +build usecase
+// +build usecase_suite
 
 package nsmd_integration_tests
 
 import (
+	"fmt"
 	"strconv"
 	"sync"
 	"sync/atomic"
 	"testing"
 
-	. "github.com/onsi/gomega"
-	"github.com/sirupsen/logrus"
-	v1 "k8s.io/api/core/v1"
-
 	nsapiv1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1alpha1"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/crds"
+	. "github.com/onsi/gomega"
+	"github.com/sirupsen/logrus"
+	v1 "k8s.io/api/core/v1"
+	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type Deployment int
@@ -156,10 +157,12 @@ func testDeploymentOrder(t *testing.T, order []Deployment) {
 		return
 	}
 
-	k8s, err := kubetest.NewK8s(g, kubetest.DefaultClear)
+	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResources)
 	defer k8s.Cleanup()
 	defer k8s.ProcessArtifacts(t)
+	g.Expect(err).To(BeNil())
 
+	nscrd, err := crds.NewNSCRD(k8s.GetK8sNamespace())
 	g.Expect(err).To(BeNil())
 
 	for _, deploy := range order {
@@ -178,7 +181,7 @@ func testDeploymentOrder(t *testing.T, order []Deployment) {
 	var nscCount uint64
 	var waitgroup sync.WaitGroup
 	var scheduled = make(chan interface{})
-
+	var services sync.Map
 	for _, deploy := range order {
 		waitgroup.Add(1)
 
@@ -187,8 +190,6 @@ func testDeploymentOrder(t *testing.T, order []Deployment) {
 			defer func() { waitgroup.Done() }()
 			switch deploy {
 			case DeployService:
-				nscrd, err := crds.NewNSCRD(k8s.GetK8sNamespace())
-				g.Expect(err).To(BeNil())
 				nsIcmpResponder := crds.IcmpResponder(map[string]string{}, map[string]string{"app": "icmp"})
 				logrus.Printf("About to insert: %v", nsIcmpResponder)
 				var result *nsapiv1.NetworkService
@@ -198,6 +199,7 @@ func testDeploymentOrder(t *testing.T, order []Deployment) {
 				result, err = nscrd.Get(nsIcmpResponder.ObjectMeta.Name)
 				g.Expect(err).To(BeNil())
 				logrus.Printf("Registered CRD is: %v", result)
+				services.Store(result.Name, result)
 			case DeployEndpoint:
 				kubetest.DeployICMP(k8s, nil, "nse-"+strconv.FormatUint(atomic.AddUint64(&nseCount, 1), 10), defaultTimeout)
 			case DeployClient:
@@ -216,4 +218,9 @@ func testDeploymentOrder(t *testing.T, order []Deployment) {
 	for _, p := range nscPods {
 		kubetest.CheckNSC(k8s, p)
 	}
+	services.Range(func(k, v interface{}) bool {
+		logrus.Infof("Deleting service: %v", k)
+		nscrd.Delete(fmt.Sprint(k), &metaV1.DeleteOptions{})
+		return true
+	})
 }
