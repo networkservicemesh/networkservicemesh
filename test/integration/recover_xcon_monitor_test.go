@@ -371,3 +371,86 @@ func TestXconMonitorNsmgrRestart(t *testing.T) {
 	expectFuncR(checker)
 	waitFuncR()
 }
+
+func TestXConnMonitorDeleteNSCWhileNSEHealing(t *testing.T) {
+	g := NewWithT(t)
+
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+
+	k8s, err := kubetest.NewK8s(g, true)
+	g.Expect(err).To(BeNil())
+	defer k8s.Cleanup()
+
+	nodes, err := kubetest.SetupNodes(k8s, 2, defaultTimeout)
+	g.Expect(err).To(BeNil())
+	defer kubetest.MakeLogsSnapshot(k8s, t)
+
+	nse := kubetest.DeployICMP(k8s, nodes[0].Node, "icmp-responder-nse-1", defaultTimeout)
+	nsc := kubetest.DeployNSC(k8s, nodes[1].Node, "nsc-1", defaultTimeout)
+
+	eventCh0, closeFunc0 := kubetest.CrossConnectClientAt(k8s, nodes[0].Nsmd)
+	defer closeFunc0()
+
+	eventCh1, closeFunc1 := kubetest.CrossConnectClientAt(k8s, nodes[1].Nsmd)
+	defer closeFunc1()
+
+	expectedFunc0, waitFunc0 := kubetest.NewEventChecker(t, eventCh0)
+	expectedFunc1, waitFunc1 := kubetest.NewEventChecker(t, eventCh1)
+
+	expectedFunc0(&kubetest.MultipleEventChecker{
+		Events: []kubetest.EventChecker{
+			&kubetest.SingleEventChecker{
+				EventType: crossconnect.CrossConnectEventType_INITIAL_STATE_TRANSFER,
+				SrcUp:     true,
+				DstUp:     true,
+			},
+			&kubetest.SingleEventChecker{
+				EventType: crossconnect.CrossConnectEventType_UPDATE,
+				SrcUp:     true,
+				DstUp:     false,
+			},
+			&kubetest.SingleEventChecker{
+				EventType: crossconnect.CrossConnectEventType_DELETE,
+				SrcUp:     true,
+				DstUp:     false,
+			},
+		},
+	})
+
+	expectedFunc1(&kubetest.MultipleEventChecker{
+		Events: []kubetest.EventChecker{
+			&kubetest.SingleEventChecker{
+				EventType: crossconnect.CrossConnectEventType_INITIAL_STATE_TRANSFER,
+				SrcUp:     true,
+				DstUp:     true,
+			},
+			&kubetest.SingleEventChecker{
+				EventType: crossconnect.CrossConnectEventType_UPDATE,
+				SrcUp:     true,
+				DstUp:     false,
+			},
+			&kubetest.SingleEventChecker{
+				EventType: crossconnect.CrossConnectEventType_UPDATE,
+				SrcUp:     false,
+				DstUp:     true,
+			},
+			&kubetest.SingleEventChecker{
+				EventType: crossconnect.CrossConnectEventType_DELETE,
+				SrcUp:     false,
+				DstUp:     true,
+			},
+		},
+	})
+
+	k8s.DeletePods(nse)
+
+	k8s.WaitLogsContains(nodes[0].Nsmd, "nsmd", "ClientConnection dst state is down. calling Heal", defaultTimeout)
+
+	k8s.DeletePods(nsc)
+
+	waitFunc0()
+	waitFunc1()
+}
