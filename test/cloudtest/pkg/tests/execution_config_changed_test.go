@@ -48,8 +48,8 @@ func TestCloudTestOnExecutionConfigFinished(t *testing.T) {
 		Timeout:  15,
 		Kind:     "shell",
 		Run:      "echo first",
-		Env:      []string{"A=worked"},
-		OnFinish: "echo on finished ${A}",
+		Env:      []string{"A=worked", "B=$(test-name)"},
+		OnFinish: "echo ${B} ${A}",
 	})
 	testConfig.Executions = append(testConfig.Executions, &config.ExecutionConfig{
 		Name:    "test2",
@@ -67,5 +67,5 @@ func TestCloudTestOnExecutionConfigFinished(t *testing.T) {
 	path := path.Join(tmpDir, provider.Name+"-1", "007-test2-run.log")
 	content, err := ioutil.ReadFile(path)
 	g.Expect(err).Should(BeNil())
-	g.Expect(string(content)).Should(ContainSubstring("on finished worked"))
+	g.Expect(string(content)).Should(ContainSubstring("OnFinish worked"))
 }

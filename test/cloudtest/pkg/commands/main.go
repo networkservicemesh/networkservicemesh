@@ -779,8 +779,10 @@ func (ctx *executionContext) runScript(script, name, clusterID string, env []str
 		return nil
 	}
 	mgr := shell_mgr.NewEnvironmentManager()
-	if err := mgr.ProcessEnvironment(clusterID, "shellrun", os.TempDir(), env, nil); err != nil {
-		logrus.Errorf("OnFail: an error during process env: %v", err)
+	if err := mgr.ProcessEnvironment(clusterID, "shellrun", os.TempDir(), env, map[string]string{
+		"test-name": name,
+	}); err != nil {
+		logrus.Errorf("%v: an error during process env: %v", name, err)
 		return err
 	}
 	context, cancel := context.WithTimeout(context.Background(), time.Minute*3)
