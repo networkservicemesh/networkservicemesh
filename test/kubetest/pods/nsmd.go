@@ -170,6 +170,18 @@ func NSMgrPodWithConfig(name string, node *v1.Node, config *NSMgrPodConfig) *v1.
 					VolumeMounts:    []v1.VolumeMount{spireVolumeMount(), newNSMPluginMount()},
 					Env: []v1.EnvVar{
 						{
+							Name: "POD_UID",
+							ValueFrom: &v1.EnvVarSource{
+								FieldRef: &v1.ObjectFieldSelector{
+									FieldPath: "metadata.uid",
+								},
+							},
+						},
+						{
+							Name:  "POD_NAME",
+							Value: name,
+						},
+						{
 							Name:  "NODE_NAME",
 							Value: nodeName,
 						},
