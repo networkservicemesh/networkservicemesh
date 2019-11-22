@@ -23,7 +23,7 @@ for pod in $(${kubectl} -o=name get pods); do
     filePath=${tmp}/${pod}.log
     ${kubectl} logs --all-containers=true "${pod}" >> "${filePath}"
     echo "Saved logs for ${pod} in ${filePath}"
-    logs="$(${kubectl} logs --all-containers=true -p "${pod}")"
+    logs="$(${kubectl} logs --all-containers=true -p "${pod}" 2>/dev/null)"
     if [[ "${logs}" == "" ]]; then 
       echo "No previous logs for ${pod}"
       continue
