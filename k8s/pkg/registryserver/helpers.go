@@ -3,6 +3,11 @@ package registryserver
 import (
 	"time"
 
+	"github.com/gogo/protobuf/proto"
+	"k8s.io/apimachinery/pkg/types"
+
+	"github.com/networkservicemesh/networkservicemesh/utils"
+
 	"github.com/golang/protobuf/ptypes"
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -11,8 +16,11 @@ import (
 	v1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1alpha1"
 )
 
+const PodNameEnv = utils.EnvVar("POD_NAME")
+const PodUidEnv = utils.EnvVar("POD_UID")
+
 func mapNsmToCustomResource(nsm *registry.NetworkServiceManager) *v1.NetworkServiceManager {
-	return &v1.NetworkServiceManager{
+	nsmCr := &v1.NetworkServiceManager{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: nsm.GetName(),
 		},
@@ -24,6 +32,23 @@ func mapNsmToCustomResource(nsm *registry.NetworkServiceManager) *v1.NetworkServ
 			State:    v1.RUNNING,
 		},
 	}
+
+	podUid := types.UID(PodUidEnv.StringValue())
+	podName := PodNameEnv.StringValue()
+	if podName != "" && podUid != "" {
+		nsmCr.OwnerReferences = []metav1.OwnerReference{
+			{
+				APIVersion:         "v1",
+				Kind:               "Pod",
+				Name:               podName,
+				UID:                podUid,
+				Controller:         proto.Bool(true),
+				BlockOwnerDeletion: proto.Bool(false),
+			},
+		}
+	}
+
+	return nsmCr
 }
 
 func mapNsmFromCustomResource(cr *v1.NetworkServiceManager) *registry.NetworkServiceManager {

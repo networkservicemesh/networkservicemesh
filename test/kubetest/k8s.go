@@ -1417,6 +1417,15 @@ func (k8s *K8s) GetNSEs() ([]v1alpha1.NetworkServiceEndpoint, error) {
 	return nseList.Items, err
 }
 
+// GetNSMs returns existing 'nse' resources
+func (k8s *K8s) GetNSMList() ([]v1alpha1.NetworkServiceManager, error) {
+	nsmList, err := k8s.versionedClientSet.NetworkservicemeshV1alpha1().NetworkServiceManagers(k8s.namespace).List(metaV1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return nsmList.Items, err
+}
+
 // DeleteNSEs deletes 'nse' resources by names
 func (k8s *K8s) DeleteNSEs(names ...string) error {
 	nseClient := k8s.versionedClientSet.NetworkservicemeshV1alpha1().NetworkServiceEndpoints(k8s.namespace)
