@@ -4,7 +4,7 @@ kubectl="kubectl -n ${NSM_NAMESPACE:-default}"
 
 #  Ping all the things!
 EXIT_VAL=0
-for nsc in $(${kubectl} get pods -o=name | grep -E "alpine-nsc|vppagent-nsc" | sed 's@.*/@@'); do
+for nsc in $(${kubectl} get pods -o=name | grep "icmp-responder-nsc" | sed 's@.*/@@'); do
     echo "===== >>>>> PROCESSING ${nsc}  <<<<< ==========="
     if [[ ${nsc} == vppagent-* ]]; then
         for ip in $(${kubectl} exec "${nsc}" -- vppctl show int addr | grep L3 | awk '{print $2}'); do
