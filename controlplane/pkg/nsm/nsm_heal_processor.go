@@ -3,6 +3,7 @@ package nsm
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/properties"
@@ -29,8 +30,10 @@ type healProcessor struct {
 	model           model.Model
 	props           *properties.Properties
 
-	manager    nsm.NetworkServiceRequestManager
-	nseManager nsm.NetworkServiceEndpointManager
+	nowHealingConn map[string]func()
+	connMapMutex   sync.Mutex
+	manager        nsm.NetworkServiceRequestManager
+	nseManager     nsm.NetworkServiceEndpointManager
 
 	eventCh chan healEvent
 }
@@ -55,6 +58,7 @@ func newNetworkServiceHealProcessor(
 		manager:         manager,
 		nseManager:      nseManager,
 		eventCh:         make(chan healEvent, 1),
+		nowHealingConn:  make(map[string]func()),
 	}
 	go p.serve()
 
@@ -75,6 +79,12 @@ func (p *healProcessor) Heal(ctx context.Context, clientConnection nsm.ClientCon
 
 	logger := span.Logger()
 	ctx = common.WithLog(ctx, logger)
+
+	ctx, cancelFunc := context.WithCancel(ctx)
+
+	p.connMapMutex.Lock()
+	p.nowHealingConn[clientConnection.GetID()] = cancelFunc
+	p.connMapMutex.Unlock()
 
 	healID := create_logid()
 	logger.Infof("NSM_Heal(%v) %v", healID, cc)
@@ -108,6 +118,19 @@ func (p *healProcessor) Heal(ctx context.Context, clientConnection nsm.ClientCon
 
 func (p *healProcessor) CloseConnection(ctx context.Context, conn nsm.ClientConnection) error {
 	var err error
+
+	var contextCancelFunc func()
+	var isHealing bool
+
+	p.connMapMutex.Lock()
+	contextCancelFunc, isHealing = p.nowHealingConn[conn.GetID()]
+	delete(p.nowHealingConn, conn.GetID())
+	p.connMapMutex.Unlock()
+
+	if isHealing {
+		contextCancelFunc()
+	}
+
 	if conn.GetConnectionSource().IsRemote() {
 		_, err = p.manager.RemoteManager().Close(ctx, conn.GetConnectionSource())
 	} else {
@@ -154,6 +177,9 @@ func (p *healProcessor) serve() {
 			if healed {
 				span.LogValue("status", "healed")
 				logger.Infof("NSM_Heal(%v) Heal: Connection recovered: %v", e.healID, e.cc)
+				p.connMapMutex.Lock()
+				delete(p.nowHealingConn, e.cc.GetID())
+				p.connMapMutex.Unlock()
 			} else {
 				span.LogValue("status", "closing")
 				_ = p.CloseConnection(ctx, e.cc)
@@ -199,6 +225,12 @@ func (p *healProcessor) healDstDown(ctx context.Context, cc *model.ClientConnect
 	ctx = p.waitForNSEUpdateContext(ctx, cc.Endpoint, cc)
 	// Fallback to heal with choose of new NSE.
 	for attempt := 0; attempt < p.props.HealRetryCount; attempt++ {
+		// If client context is cancelled, we need to stop attempts.
+		if ctx.Err() != nil {
+			logger.Info("Client context is broken, stopping heal attempts")
+			break
+		}
+
 		attemptSpan := spanhelper.FromContext(ctx, fmt.Sprintf("healing-attempt-%v", attempt))
 		requestCtx, requestCancel := context.WithTimeout(attemptSpan.Context(), p.props.HealRequestTimeout)
 		defer requestCancel()
