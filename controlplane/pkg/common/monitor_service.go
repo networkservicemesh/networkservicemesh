@@ -15,6 +15,8 @@
 package common
 
 import (
+	"github.com/pkg/errors"
+
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
@@ -51,6 +53,10 @@ func (srv *monitorService) Close(ctx context.Context, connection *connection.Con
 	// Pass model connection with context
 	ctx = WithConnectionMonitor(ctx, srv.monitor)
 	conn, err := ProcessClose(ctx, connection)
+
+	if srv.monitor == nil {
+		return nil, errors.New("can not close nil monitor")
+	}
 
 	// We send update if conn != nil
 	if conn != nil {

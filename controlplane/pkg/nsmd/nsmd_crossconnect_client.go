@@ -417,7 +417,7 @@ func (client *NsmMonitorCrossConnectClient) handleXconEvent(event monitor.Event,
 	}
 
 	if xconEvent.EventType() == monitor.EventTypeInitialStateTransfer {
-		xcons := []*crossconnect.CrossConnect{}
+		var xcons []*crossconnect.CrossConnect
 		for _, entity := range event.Entities() {
 			xcons = append(xcons, entity.(*crossconnect.CrossConnect))
 		}

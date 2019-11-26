@@ -2,55 +2,55 @@
 # vi: set ft=ruby :
 
 WORKER_COUNT = ENV['WORKER_COUNT'].nil? ? 1 : ENV['WORKER_COUNT'].to_i
-KUBERNETES_VERSION_OR_DEFAULT = ENV['KUBERNETES_VERSION'] || "1.16.2-00"
-KUBERNETES_INIT_VERSION_OR_DEFAULT = ENV['KUBERNETES_INIT_VERSION'] || "1.16.2"
+KUBERNETES_VERSION_OR_DEFAULT = ENV['KUBERNETES_VERSION'] || "1.16.3-00"
+KUBERNETES_INIT_VERSION_OR_DEFAULT = ENV['KUBERNETES_INIT_VERSION'] || "1.16.3"
 
+VM_BOX = "bento/ubuntu-19.04"
+RAM_SIZE = 2048
+CPU_COUNT = 2
 Vagrant.configure("2") do |config|
 
   config.vm.synced_folder "../..", "/go/src/github.com/networkservicemesh/networkservicemesh",
     id: "source-folder"
   config.vm.synced_folder ".", "/vagrant",
     id: "vagrant"
+  config.vm.synced_folder "../../build/images", "/images",
+      id: "images"
   config.vm.allowed_synced_folder_types = [:virtualbox, :vmware, :sshfs]
 
+  config.vm.box = VM_BOX
+  config.vm.box_download_insecure = true
+
   config.vm.provider "libvirt" do |v, override|
-    override.vm.box = "generic/ubuntu1604"
-    v.memory = 4096
-    v.cpus = 2
+    v.memory = RAM_SIZE
+    v.cpus = CPU_COUNT
   end
   config.vm.provider "virtualbox" do |v, override|
-    override.vm.box = "bento/ubuntu-18.04"
-    v.memory = 4096
-    v.cpus = 2
+    v.memory = RAM_SIZE
+    v.cpus = CPU_COUNT
   end
   config.vm.provider "vmware_desktop" do |v, override|
-    override.vm.box = "bento/ubuntu-18.04"
-    v.vmx["memsize"] = "4096"
-    v.vmx["numvcpus"] = "2"
+    v.vmx["memsize"] = RAM_SIZE
+    v.vmx["numvcpus"] = CPU_COUNT
   end
   config.vm.provider "vmware_fusion" do |v, override|
-    override.vm.box = "bento/ubuntu-18.04"
-    v.vmx["memsize"] = "4096"
-    v.vmx["numvcpus"] = "2"
+    v.vmx["memsize"] = RAM_SIZE
+    v.vmx["numvcpus"] = CPU_COUNT
   end
   config.vm.network "private_network", type: "dhcp"
 
-  config.vm.provision "shell", inline: <<-EOC
-    apt-get update -qq -y
-  EOC
-
-  # If you need hugepages, this is how you get them
-  # config.vm.provision "shell", path: "scripts/setup_hugepages.sh"
+  config.vm.provision "shell", path: "scripts/install_sources.sh"
   config.vm.provision "shell", path: "scripts/install_docker.sh"
   config.vm.provision "shell", path: "scripts/install_kubernetes.sh", env: {KUBERNETES_VERSION:KUBERNETES_VERSION_OR_DEFAULT}
-  config.vm.provision "shell", path: "scripts/load_images.sh"
   config.vm.provision "shell", inline: "sudo usermod -a -G docker vagrant"
   config.vm.provision "shell", inline: "mkdir -p /var/lib/networkservicemesh"
+
   config.vm.define "master" do |master|
     master.vm.hostname = "kube-master"
     master.vm.provision "shell", path: "scripts/configureK8smaster.sh", env: {KUBERNETES_INIT_VERSION:KUBERNETES_INIT_VERSION_OR_DEFAULT}
     master.vm.provision "shell", path: "scripts/coredump.sh"
   end
+
   (1..WORKER_COUNT).each do |i|
     config.vm.define "worker#{i}" do |worker|
       worker.vm.hostname = "kube-worker#{i}"
@@ -58,5 +58,4 @@ Vagrant.configure("2") do |config|
       worker.vm.provision "shell", path: "scripts/coredump.sh"
     end
   end
-
 end

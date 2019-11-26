@@ -327,7 +327,10 @@ func (srv *networkServiceManager) getEndpoint(ctx context.Context, networkServic
 		endpoints, err := discovery.FindNetworkService(span.Context(), &registry.FindNetworkServiceRequest{
 			NetworkServiceName: networkServiceName,
 		})
-		span.LogError(err)
+		if err != nil {
+			span.LogError(err)
+			return endpoint
+		}
 		for _, ep := range endpoints.NetworkServiceEndpoints {
 			if xcon.GetRemoteDestination() != nil && ep.GetName() == xcon.GetRemoteDestination().GetNetworkServiceEndpointName() {
 				endpoint = &registry.NSERegistration{

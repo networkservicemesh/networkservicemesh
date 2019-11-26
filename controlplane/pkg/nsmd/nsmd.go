@@ -87,6 +87,8 @@ func (nsm *nsmServer) Manager() nsm.NetworkServiceManager {
 }
 
 func (nsm *nsmServer) LocalConnectionMonitor(workspace string) connectionmonitor.MonitorServer {
+	nsm.Lock()
+	defer nsm.Unlock()
 	if ws := nsm.workspaces[workspace]; ws != nil {
 		return ws.MonitorConnectionServer()
 	}
@@ -220,18 +222,18 @@ func (nsm *nsmServer) restore(ctx context.Context, registeredEndpointsList *regi
 	updatedEndpoints, err := nsm.restoreEndpoints(span.Context(), nses, registeredNSEs)
 	span.LogObject("updated-endpoints", updatedEndpoints)
 	if err != nil {
-		span.LogError(errors.Wrap(err, "rrror restoring endpoints: %v"))
+		span.LogError(errors.Wrap(err, "error restoring endpoints"))
 		return
 	}
 
 	if len(updatedClients) > 0 || len(updatedEndpoints) > 0 {
 		span.Logger().Infof("save local client/nse registry")
 		if err := nsm.localRegistry.Save(updatedClients, updatedEndpoints); err != nil {
-			span.LogError(errors.Wrap(err, "store updated NSE local registry... %v"))
+			span.LogError(errors.Wrap(err, "store updated NSE local registry..."))
 		}
 	}
 
-	span.Logger().Infof("NSMD: Restore of NSE/Clients Complete...")
+	span.Logger().Info("NSMD: Restore of NSE/Clients Complete...")
 }
 
 func (nsm *nsmServer) restoreClients(ctx context.Context, clients []string) []string {
@@ -246,6 +248,7 @@ func (nsm *nsmServer) restoreClients(ctx context.Context, clients []string) []st
 	updatedClients := make([]string, 0, len(clients))
 	for _, client := range clients {
 		if client == "" {
+			span.Logger().Info("client is empty, skip")
 			continue
 		}
 		workspace, err := NewWorkSpace(span.Context(), nsm, client, true)
@@ -285,7 +288,6 @@ func (nsm *nsmServer) restoreEndpoints(ctx context.Context, nses map[string]nser
 		}
 
 		nseSpan := spanhelper.FromContext(span.Context(), fmt.Sprintf("check-nse-%v", name))
-		defer nseSpan.Finish()
 		nseSpan.LogObject("workspace", ws)
 
 		nseSpan.Logger().Infof("Checking NSE %s is alive at %v...", name, ws.NsmClientSocket())
@@ -294,6 +296,7 @@ func (nsm *nsmServer) restoreEndpoints(ctx context.Context, nses map[string]nser
 			if err := nsm.deleteEndpointWithClient(span.Context(), name, registryClient); err != nil {
 				span.Logger().Errorf("remove NSE: NSE %v", err)
 			}
+			nseSpan.Finish()
 			continue
 		}
 
@@ -301,11 +304,13 @@ func (nsm *nsmServer) restoreEndpoints(ctx context.Context, nses map[string]nser
 		newName, newNSE, err := nsm.restoreEndpoint(span.Context(), discoveryClient, registryClient, name, nse, ws, registeredNSEs, networkServices)
 		if err != nil {
 			span.LogError(errors.Wrap(err, "failed to register NSE: %v"))
+			nseSpan.Finish()
 			continue
 		}
 
 		networkServices[newNSE.NseReg.GetNetworkService().GetName()] = true
 		updatedNSEs[newName] = newNSE
+		nseSpan.Finish()
 	}
 
 	// We need to unregister NSE's without NSM registration.
