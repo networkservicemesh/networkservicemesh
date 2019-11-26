@@ -1,16 +1,22 @@
 package prefixcollector
 
 import (
-	"context"
+	"strings"
 	"sync"
+	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-
+	"github.com/sirupsen/logrus"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/plugins"
+	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"github.com/networkservicemesh/networkservicemesh/sdk/prefix_pool"
+)
+
+const (
+	configMapName = "nsm-config"
 )
 
 type prefixService struct {
@@ -18,16 +24,16 @@ type prefixService struct {
 	excludedPrefixes prefix_pool.PrefixPool
 }
 
-// NewPrefixService creates an instance of ConnectionPluginServer
-func NewPrefixService(config *rest.Config) (plugins.ConnectionPluginServer, error) {
+// NewExcludePrefixServer creates an instance of prefixService
+func NewExcludePrefixServer(config *rest.Config) error {
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	emptyPrefixPool, err := prefix_pool.NewPrefixPool()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	rv := &prefixService{
@@ -35,78 +41,69 @@ func NewPrefixService(config *rest.Config) (plugins.ConnectionPluginServer, erro
 	}
 
 	if err := rv.monitorExcludedPrefixes(clientset); err != nil {
-		return nil, err
+		return err
 	}
 
-	return rv, nil
+	return nil
 }
 
-func (c *prefixService) getExcludedPrefixes() prefix_pool.PrefixPool {
-	c.RLock()
-	defer c.RUnlock()
+func (ps *prefixService) getExcludedPrefixes() prefix_pool.PrefixPool {
+	ps.RLock()
+	defer ps.RUnlock()
 
-	return c.excludedPrefixes
+	return ps.excludedPrefixes
 }
 
-func (c *prefixService) setExcludedPrefixes(prefixes prefix_pool.PrefixPool) {
-	c.Lock()
-	defer c.Unlock()
-
-	c.excludedPrefixes = prefixes
-}
-
-func (c *prefixService) monitorExcludedPrefixes(clientset *kubernetes.Clientset) error {
+func (ps *prefixService) monitorExcludedPrefixes(clientset *kubernetes.Clientset) error {
 	poolCh, err := getExcludedPrefixesChan(clientset)
 	if err != nil {
 		return err
 	}
 
 	go func() {
-		for pool := range poolCh {
-			c.setExcludedPrefixes(pool)
+		configMaps := clientset.CoreV1().ConfigMaps(common.GetNamespace())
+		prefixes := []string{}
+		for {
+			select {
+			case pool, ok := <-poolCh:
+				if ok {
+					prefixes = pool.GetPrefixes()
+					logrus.Infof("Excluded prefixes changed: %v", prefixes)
+				}
+			case <-time.After(5 * time.Second):
+			}
+			if len(prefixes) > 0 {
+				// there is unsaved prefixes, save them
+				if updateExcludedPrefixesConfigmap(configMaps, prefixes) {
+					prefixes = []string{}
+				}
+			}
 		}
 	}()
 
 	return nil
 }
 
-func (c *prefixService) UpdateConnection(ctx context.Context, wrapper *connection.Connection) (*connection.Connection, error) {
-	connCtx := wrapper.GetContext()
-	connCtx.GetIpContext().ExcludedPrefixes = append(connCtx.GetIpContext().GetExcludedPrefixes(), c.getExcludedPrefixes().GetPrefixes()...)
-	return wrapper, nil
+func updateExcludedPrefixesConfigmap(configMaps v1.ConfigMapInterface, prefixes []string) bool {
+	cm, err := configMaps.Get(configMapName, metav1.GetOptions{})
+	if err != nil {
+		logrus.Errorf("Failed to get ConfigMap '%s/%s': %v", common.GetNamespace(), configMapName, err)
+		return false
+	}
+	cm.Data[prefix_pool.PrefixesFile] = buildPrefixesYaml(prefixes)
+	cm, err = configMaps.Update(cm)
+	if err != nil {
+		logrus.Errorf("Failed to update ConfigMap: %v", err)
+		return false
+	}
+	logrus.Info("Successfully updated excluded prefixes config file")
+	return true
 }
 
-func (c *prefixService) ValidateConnection(ctx context.Context, wrapper *connection.Connection) (*plugins.ConnectionValidationResult, error) {
-	prefixes := c.getExcludedPrefixes()
-	connCtx := wrapper.GetContext()
-
-	if srcIP := connCtx.GetIpContext().GetSrcIpAddr(); srcIP != "" {
-		intersect, err := prefixes.Intersect(srcIP)
-		if err != nil {
-			return nil, err
-		}
-		if intersect {
-			return &plugins.ConnectionValidationResult{
-				Status:       plugins.ConnectionValidationStatus_FAIL,
-				ErrorMessage: "srcIP intersects excluded prefixes list",
-			}, nil
-		}
+func buildPrefixesYaml(prefixes []string) string {
+	marker := "prefixes:"
+	if len(prefixes) == 0 {
+		return marker + " []"
 	}
-
-	if dstIP := connCtx.GetIpContext().GetDstIpAddr(); dstIP != "" {
-		intersect, err := prefixes.Intersect(dstIP)
-		if err != nil {
-			return nil, err
-		}
-		if intersect {
-			return &plugins.ConnectionValidationResult{
-				Status:       plugins.ConnectionValidationStatus_FAIL,
-				ErrorMessage: "dstIP intersects excluded prefixes list",
-			}, nil
-		}
-	}
-
-	return &plugins.ConnectionValidationResult{
-		Status: plugins.ConnectionValidationStatus_SUCCESS,
-	}, nil
+	return strings.Join(append([]string{marker}, prefixes...), "\n- ")
 }

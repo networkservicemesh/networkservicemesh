@@ -36,6 +36,7 @@ $(INSTALL_CHARTS):
 	--set global.JaegerTracing="true" \
 	--set spire.enabled="${SPIRE_ENABLED}",spire.org="${CONTAINER_REPO}",spire.tag="${CONTAINER_TAG}" \
 	--set admission-webhook.org="${CONTAINER_REPO}",admission-webhook.tag="${CONTAINER_TAG}" \
+	--set prefix-service.org="${CONTAINER_REPO}",prefix-service.tag="${CONTAINER_TAG}" \
 	--namespace="${NSM_NAMESPACE}" \
 	deployments/helm/${CHART}
 

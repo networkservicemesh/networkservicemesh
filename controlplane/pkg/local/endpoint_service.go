@@ -31,20 +31,17 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
-	pluginapi "github.com/networkservicemesh/networkservicemesh/controlplane/api/plugins"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	unifiednsm "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/plugins"
 )
 
 // ConnectionService makes basic Mechanism selection for the incoming connection
 type endpointService struct {
-	nseManager     unifiednsm.NetworkServiceEndpointManager
-	props          *properties.Properties
-	pluginRegistry plugins.PluginRegistry
-	model          model.Model
+	nseManager unifiednsm.NetworkServiceEndpointManager
+	props      *properties.Properties
+	model      model.Model
 }
 
 func (cce *endpointService) closeEndpoint(ctx context.Context, cc *model.ClientConnection) error {
@@ -217,15 +214,6 @@ func (cce *endpointService) validateConnection(ctx context.Context, conn *connec
 		return err
 	}
 
-	result, err := cce.pluginRegistry.GetConnectionPluginManager().ValidateConnection(ctx, conn)
-	if err != nil {
-		return err
-	}
-
-	if result.GetStatus() != pluginapi.ConnectionValidationStatus_SUCCESS {
-		return errors.Errorf(result.GetErrorMessage())
-	}
-
 	return nil
 }
 
@@ -253,11 +241,10 @@ func (cce *endpointService) updateConnectionParameters(nseConn *connection.Conne
 }
 
 // NewEndpointService -  creates a service to connect to endpoint
-func NewEndpointService(nseManager unifiednsm.NetworkServiceEndpointManager, properties *properties.Properties, mdl model.Model, pluginRegistry plugins.PluginRegistry) networkservice.NetworkServiceServer {
+func NewEndpointService(nseManager unifiednsm.NetworkServiceEndpointManager, properties *properties.Properties, mdl model.Model) networkservice.NetworkServiceServer {
 	return &endpointService{
-		nseManager:     nseManager,
-		props:          properties,
-		model:          mdl,
-		pluginRegistry: pluginRegistry,
+		nseManager: nseManager,
+		props:      properties,
+		model:      mdl,
 	}
 }

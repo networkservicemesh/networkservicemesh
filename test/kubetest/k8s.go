@@ -36,8 +36,10 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1alpha1"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/namespace"
+	"github.com/networkservicemesh/networkservicemesh/sdk/prefix_pool"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 	nsmrbac "github.com/networkservicemesh/networkservicemesh/test/kubetest/rbac"
+	"github.com/networkservicemesh/networkservicemesh/utils"
 )
 
 const (
@@ -397,7 +399,7 @@ func NewK8s(g *WithT, prepare bool) (*K8s, error) {
 		return client, err
 	}
 	var wg sync.WaitGroup
-	wg.Add(2)
+	wg.Add(3)
 	go func() {
 		defer wg.Done()
 		client.roles, _ = client.CreateRoles("admin", "view", "binding")
@@ -405,6 +407,10 @@ func NewK8s(g *WithT, prepare bool) (*K8s, error) {
 	go func() {
 		defer wg.Done()
 		client.cleanupFunc = InitSpireSecurity(client)
+	}()
+	go func() {
+		defer wg.Done()
+		client.CreatePod(pods.PrefixServicePod(client.namespace))
 	}()
 	wg.Wait()
 
@@ -460,7 +466,7 @@ func NewK8sWithoutRolesForConfig(g *WithT, prepare bool, kubeconfigPath string) 
 
 	if prepare {
 		start := time.Now()
-		client.Prepare("nsmgr", "nsmd", "vppagent", "vpn", "icmp", "nsc", "source", "dest", "xcon", "spire-proxy", "nse")
+		client.DeletePodsByName("nsmgr", "nsmd", "vppagent", "vpn", "icmp", "nsc", "source", "dest", "xcon", "spire-proxy", "nse", "prefix-service")
 		client.CleanupCRDs()
 		client.CleanupServices("nsm-admission-webhook-svc")
 		client.CleanupDeployments()
@@ -473,6 +479,9 @@ func NewK8sWithoutRolesForConfig(g *WithT, prepare bool, kubeconfigPath string) 
 	}
 
 	client.CreateServiceAccounts()
+
+	_, err = client.CreateConfigMap(client.buildNSMConfigMap())
+	g.Expect(err).To(BeNil())
 
 	return &client, nil
 }
@@ -538,6 +547,22 @@ func (k8s *K8s) describePod(pod *v1.Pod) []v1.Event {
 		}
 	}
 	return result
+}
+
+func (k8s *K8s) buildNSMConfigMap() *v1.ConfigMap {
+	return &v1.ConfigMap{
+		TypeMeta: metaV1.TypeMeta{
+			Kind:       "ConfigMap",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metaV1.ObjectMeta{
+			Name:      "nsm-config",
+			Namespace: k8s.GetK8sNamespace(),
+		},
+		Data: map[string]string{
+			prefix_pool.PrefixesFile: "",
+		},
+	}
 }
 
 // Delete POD with completion check
@@ -770,8 +795,8 @@ func (k8s *K8s) cleanups() {
 	_ = k8s.DeleteTestNamespace(k8s.namespace)
 }
 
-// Prepare prepares the pods
-func (k8s *K8s) Prepare(noPods ...string) {
+// DeletePodsByName deletes pod if a pod's name contains one of the given strings
+func (k8s *K8s) DeletePodsByName(noPods ...string) {
 	pods := k8s.ListPods()
 	podsList := []*v1.Pod{}
 	for _, podName := range noPods {
@@ -1224,6 +1249,7 @@ func (k8s *K8s) IsPodReady(pod *v1.Pod) bool {
 
 // CreateConfigMap creates a configmap
 func (k8s *K8s) CreateConfigMap(cm *v1.ConfigMap) (*v1.ConfigMap, error) {
+	logrus.Infof("Creating ConfigMap '%s' in namespace'%s'...", cm.Name, cm.Namespace)
 	return k8s.clientset.CoreV1().ConfigMaps(cm.Namespace).Create(cm)
 }
 
@@ -1384,6 +1410,11 @@ func (k8s *K8s) setIPVersion() {
 	} else {
 		k8s.useIPv6, _ = strconv.ParseBool(useIPv6)
 	}
+}
+
+// UseIPv6 returns which IP version is going to be used in testing
+func UseIPv6() bool {
+	return utils.EnvVar(envUseIPv6).GetBooleanOrDefault(envUseIPv6Default)
 }
 
 // UseIPv6 returns which IP version is going to be used in testing
