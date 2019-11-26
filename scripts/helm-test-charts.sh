@@ -22,6 +22,7 @@ done
 DEPLOYED_CHARTS=''
 
 cleanup() {
+  [ "$SKIP_CLEANUP" == '1' ] && echo "Skipping cleanup by flag" && return
   charts=$(reverse $DEPLOYED_CHARTS)
   echo "Deleting chart(s): $charts"
   for ch in $charts; do
