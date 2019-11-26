@@ -106,7 +106,7 @@ func TestNSENoSrc(t *testing.T) {
 	srv := NewNSMDFullServer(Master, storage)
 	defer srv.Stop()
 
-	srv.serviceRegistry.localTestNSE = &nseWithOptions{
+	srv.serviceRegistry.localTestNSE.NetworkServiceClient = &nseWithOptions{
 		netns: "12",
 		//srcIp: "169083138/30",
 		dstIp: "10.20.1.2/30",
@@ -132,7 +132,7 @@ func TestNSEIPNeghtbours(t *testing.T) {
 	storage := NewSharedStorage()
 	srv := NewNSMDFullServer(Master, storage)
 	defer srv.Stop()
-	srv.serviceRegistry.localTestNSE = &nseWithOptions{
+	srv.serviceRegistry.localTestNSE.NetworkServiceClient = &nseWithOptions{
 		netns:             "12",
 		srcIp:             "10.20.1.1/30",
 		dstIp:             "10.20.1.2/30",
@@ -152,7 +152,7 @@ func TestNSEIPNeghtbours(t *testing.T) {
 	g.Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
 	logrus.Print("End of test")
 
-	originl, ok := srv.serviceRegistry.localTestNSE.(*nseWithOptions)
+	originl, ok := srv.serviceRegistry.localTestNSE.NetworkServiceClient.(*nseWithOptions)
 	g.Expect(ok).To(Equal(true))
 
 	g.Expect(len(originl.connection.GetContext().GetIpContext().GetIpNeighbors())).To(Equal(1))
@@ -167,7 +167,7 @@ func TestSlowNSE(t *testing.T) {
 	srv := NewNSMDFullServer(Master, storage)
 	defer srv.Stop()
 
-	srv.serviceRegistry.localTestNSE = &nseWithOptions{
+	srv.serviceRegistry.localTestNSE.NetworkServiceClient = &nseWithOptions{
 		netns: "12",
 		srcIp: "169083138/30",
 		dstIp: "169083137/30",
@@ -199,7 +199,7 @@ func TestSlowDP(t *testing.T) {
 	srv := NewNSMDFullServer(Master, storage)
 	defer srv.Stop()
 
-	srv.serviceRegistry.localTestNSE = &nseWithOptions{
+	srv.serviceRegistry.localTestNSE.NetworkServiceClient = &nseWithOptions{
 		netns: "12",
 		srcIp: "10.20.1.1/30",
 		dstIp: "10.20.1.2/30",

@@ -152,7 +152,7 @@ type nsmdTestServiceRegistry struct {
 	nseRegistry             *nsmdTestServiceDiscovery
 	apiRegistry             *testApiRegistry
 	testForwarderConnection *testForwarderConnection
-	localTestNSE            networkservice.NetworkServiceClient
+	localTestNSE            *localTestNSENetworkServiceClient
 	vniAllocator            vni.VniAllocator
 	rootDir                 string
 }
@@ -193,11 +193,14 @@ func (impl *nsmdTestServiceRegistry) RemoteNetworkServiceClient(ctx context.Cont
 }
 
 type localTestNSENetworkServiceClient struct {
-	req        *networkservice.NetworkServiceRequest
-	prefixPool prefix_pool.PrefixPool
+	networkservice.NetworkServiceClient
+	req                  *networkservice.NetworkServiceRequest
+	prefixPool           prefix_pool.PrefixPool
+	requestHandleCounter int
 }
 
 func (impl *localTestNSENetworkServiceClient) Request(ctx context.Context, in *networkservice.NetworkServiceRequest, opts ...grpc.CallOption) (*connection.Connection, error) {
+	impl.requestHandleCounter++
 	impl.req = in
 	netns, _ := tools.GetCurrentNS()
 	if netns == "" {
@@ -485,10 +488,19 @@ func NewNSMDFullServer(nsmgrName string, storage *sharedStorage) *nsmdFullServer
 		panic(err)
 	}
 
-	return newNSMDFullServerAt(context.Background(), nsmgrName, storage, rootDir)
+	return newNSMDFullServerAt(context.Background(), nsmgrName, storage, rootDir, model.NewModel())
 }
 
-func newNSMDFullServerAt(ctx context.Context, nsmgrName string, storage *sharedStorage, rootDir string) *nsmdFullServerImpl {
+func NewNSMDFullServerWithModel(nsmgrName string, storage *sharedStorage, testModel model.Model) *nsmdFullServerImpl {
+	rootDir, err := ioutil.TempDir("", "nsmd_test")
+	if err != nil {
+		panic(err)
+	}
+
+	return newNSMDFullServerAt(context.Background(), nsmgrName, storage, rootDir, testModel)
+}
+
+func newNSMDFullServerAt(ctx context.Context, nsmgrName string, storage *sharedStorage, rootDir string, testModel model.Model) *nsmdFullServerImpl {
 	srv := &nsmdFullServerImpl{}
 	srv.apiRegistry = newTestApiRegistry()
 	srv.nseRegistry = newNSMDTestServiceDiscovery(srv.apiRegistry, nsmgrName, storage)
@@ -503,13 +515,14 @@ func newNSMDFullServerAt(ctx context.Context, nsmgrName string, storage *sharedS
 		apiRegistry:             srv.apiRegistry,
 		testForwarderConnection: &testForwarderConnection{},
 		localTestNSE: &localTestNSENetworkServiceClient{
-			prefixPool: prefixPool,
+			prefixPool:           prefixPool,
+			requestHandleCounter: 0,
 		},
 		vniAllocator: vni.NewVniAllocator(),
 		rootDir:      rootDir,
 	}
 
-	srv.TestModel = model.NewModel()
+	srv.TestModel = testModel
 	srv.manager = nsm.NewNetworkServiceManager(ctx, srv.TestModel, srv.serviceRegistry)
 
 	// Choose a public API listener

@@ -1,8 +1,13 @@
 package tests
 
 import (
+	"os"
 	"testing"
 	"time"
+
+	"github.com/sirupsen/logrus"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
 
@@ -109,4 +114,91 @@ func TestHealRemoteNSE(t *testing.T) {
 	clientConnection1_1 := srv.TestModel.GetClientConnection(nsmResponse.GetId())
 	g.Expect(clientConnection1_1.GetID()).To(Equal("1"))
 	g.Expect(clientConnection1_1.Xcon.Destination.GetId()).To(Equal("4"))
+}
+
+func TestDeleteNSCWhileHealLocalNSE(t *testing.T) {
+	g := NewWithT(t)
+	_ = os.Setenv(tools.InsecureEnv, "true")
+
+	storage := NewSharedStorage()
+	signalChannel := make(chan struct{})
+
+	// We need to create server with testModel in order to synchronize with healing processor.
+	srv := NewNSMDFullServerWithModel(Worker, storage, NewTestModel(signalChannel))
+	defer srv.Stop()
+
+	srv.TestModel.AddForwarder(context.Background(), testForwarder1)
+
+	nseReg := srv.registerFakeEndpointWithName("golden_network", "test", Worker, "ep1")
+	nseReg2 := srv.registerFakeEndpointWithName("golden_network", "test", Worker, "ep2")
+
+	srv.TestModel.AddEndpoint(context.Background(), nseReg)
+	srv.TestModel.AddEndpoint(context.Background(), nseReg2)
+
+	l1 := newTestConnectionModelListener()
+	srv.TestModel.AddListener(l1)
+
+	// Now we could try to connect via Client API
+	nsmClient, conn := srv.requestNSMConnection("nsm-1")
+	defer conn.Close()
+
+	request := &networkservice.NetworkServiceRequest{
+		Connection: &connection.Connection{
+			NetworkService: "golden_network",
+			Context: &connectioncontext.ConnectionContext{
+				IpContext: &connectioncontext.IPContext{
+					DstIpRequired: true,
+					SrcIpRequired: true,
+				},
+			},
+			Labels: make(map[string]string),
+		},
+		MechanismPreferences: []*connection.Mechanism{
+			{
+				Type: kernel.MECHANISM,
+				Parameters: map[string]string{
+					common.NetNsInodeKey:    "10",
+					common.InterfaceNameKey: "icmp-responder1",
+				},
+			},
+		},
+	}
+
+	timeout := time.Second * 10
+
+	logrus.Info("Before nsmClient.Request")
+	nsmResponse, err := nsmClient.Request(context.Background(), request)
+	logrus.Infof("After nsmClient.Request err = %v", err)
+	g.Expect(err).To(BeNil())
+	g.Expect(nsmResponse.GetNetworkService()).To(Equal("golden_network"))
+
+	// We need to check for cross connections.
+	clientConnection1 := srv.TestModel.GetClientConnection(nsmResponse.GetId())
+
+	// We need to inform cross connection monitor about this connection, since forwarder is fake one.
+	l1.WaitAdd(1, timeout, t)
+
+	epName := clientConnection1.Endpoint.GetNetworkServiceEndpoint().GetName()
+	_, err = srv.nseRegistry.RemoveNSE(context.Background(), &registry.RemoveNSERequest{
+		NetworkServiceEndpointName: epName,
+	})
+	if err != nil {
+		t.Fatal("Err must be nil")
+	}
+
+	srv.TestModel.DeleteEndpoint(context.Background(), epName)
+
+	clientConnection1.Xcon.Destination.State = connection.State_DOWN
+	srv.manager.GetHealProperties().HealDSTNSEWaitTimeout = time.Second * 1
+	srv.manager.Heal(context.Background(), clientConnection1, nsm.HealStateDstDown)
+
+	// Wait for healing to begin
+	<-signalChannel
+
+	srv.manager.CloseConnection(context.Background(), clientConnection1)
+
+	l1.WaitUpdate(4, timeout, t)
+
+	g.Expect(srv.TestModel.GetClientConnection(clientConnection1.ConnectionID)).To(BeNil())
+	g.Expect(srv.serviceRegistry.localTestNSE.requestHandleCounter).To(Equal(1))
 }
