@@ -112,6 +112,7 @@ executions:
       - KUBECONFIG_CLUSTER_2
     on_fail: |
       make k8s-delete-nsm-namespaces
+
   - name: "Example-helm-vpn"
     kind: shell
     timeout: 300
@@ -124,20 +125,7 @@ executions:
     kubernetes-env:
       - KUBECONFIG
     run: |
-      make k8s-deconfig helm-install-nsm
-      make helm-install-vpn
-      make k8s-check
-      make k8s-logs-snapshot-only-master
-      make helm-delete-vpn helm-delete-nsm
-      make k8s-deconfig k8s-config
-      kubectl delete pods --force --grace-period 0 -n "${NSM_NAMESPACE}" --all
-    on_fail: |
-      kubectl get pods -n "${NSM_NAMESPACE}"
-      make k8s-logs-snapshot
-      make helm-delete-vpn helm-delete-nsm
-      make k8s-delete-nsm-namespaces
-      make k8s-deconfig k8s-config
-      kubectl delete pods --force --grace-period 0 -n "${NSM_NAMESPACE}" --all
+      scripts/helm-test-charts.sh nsm vpn
 
   - name: "Example-helm-icmp"
     kind: shell
@@ -151,20 +139,7 @@ executions:
     kubernetes-env:
       - KUBECONFIG
     run: |
-      make k8s-deconfig helm-install-nsm
-      make helm-install-icmp-responder
-      make k8s-check
-      make k8s-logs-snapshot-only-master
-      make helm-delete-icmp-responder helm-delete-nsm
-      make k8s-deconfig k8s-config
-      kubectl delete pods --force --grace-period 0 -n "${NSM_NAMESPACE}" --all
-    on_fail: |
-      kubectl get pods -n "${NSM_NAMESPACE}"
-      make k8s-logs-snapshot
-      make helm-delete-icmp-responder helm-delete-nsm
-      make k8s-delete-nsm-namespaces
-      make k8s-deconfig k8s-config
-      kubectl delete pods --force --grace-period 0 -n "${NSM_NAMESPACE}" --all
+      scripts/helm-test-charts.sh nsm icmp-responder
 
   - name: "Example-helm-icmp kernel-forwarder"
     kind: shell
@@ -179,17 +154,4 @@ executions:
     kubernetes-env:
       - KUBECONFIG
     run: |
-      make k8s-deconfig helm-install-nsm
-      make helm-install-icmp-responder
-      make k8s-check
-      make k8s-logs-snapshot-only-master
-      make helm-delete-icmp-responder helm-delete-nsm
-      make k8s-deconfig k8s-config
-      kubectl delete pods --force --grace-period 0 -n "${NSM_NAMESPACE}" --all
-    on_fail: |
-      kubectl get pods -n "${NSM_NAMESPACE}"
-      make k8s-logs-snapshot
-      make helm-delete-icmp-responder helm-delete-nsm
-      make k8s-delete-nsm-namespaces
-      make k8s-deconfig k8s-config
-      kubectl delete pods --force --grace-period 0 -n "${NSM_NAMESPACE}" --all
+      scripts/helm-test-charts.sh nsm icmp-responder
