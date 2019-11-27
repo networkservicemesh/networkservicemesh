@@ -19,6 +19,7 @@ retest:  # Allow to do test re-run if some kind of failures are detected, line C
     - "etcdserver: request timed out, possibly due to previous leader fail"  # Error in any could, reason unknown.
     - "unable to establish connection to VPP (VPP API socket file /run/vpp/api.sock does not exist)"  # a VPP is not started, it will be re-started in general, but will cause test fail.
     - "node(s) didn't have free ports for the requested pod ports"  # Could happen for interdomain
+    - "node(s) didn't match node selector"
 reporting:
   junit-report: "results/junit.xml"
 executions:
