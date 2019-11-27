@@ -152,7 +152,7 @@ type nsmdTestServiceRegistry struct {
 	nseRegistry             *nsmdTestServiceDiscovery
 	apiRegistry             *testApiRegistry
 	testForwarderConnection *testForwarderConnection
-	localTestNSE            *localTestNSENetworkServiceClient
+	localTestNSE            networkservice.NetworkServiceClient
 	vniAllocator            vni.VniAllocator
 	rootDir                 string
 }
@@ -193,14 +193,16 @@ func (impl *nsmdTestServiceRegistry) RemoteNetworkServiceClient(ctx context.Cont
 }
 
 type localTestNSENetworkServiceClient struct {
-	networkservice.NetworkServiceClient
+	sync.Mutex
 	req                  *networkservice.NetworkServiceRequest
 	prefixPool           prefix_pool.PrefixPool
 	requestHandleCounter int
 }
 
 func (impl *localTestNSENetworkServiceClient) Request(ctx context.Context, in *networkservice.NetworkServiceRequest, opts ...grpc.CallOption) (*connection.Connection, error) {
+	impl.Lock()
 	impl.requestHandleCounter++
+	impl.Unlock()
 	impl.req = in
 	netns, _ := tools.GetCurrentNS()
 	if netns == "" {

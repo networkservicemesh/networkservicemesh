@@ -22,13 +22,13 @@ import (
 
 type testModel struct {
 	model.Model
-	signalCh chan struct{}
+	healStartedCh chan struct{}
 }
 
-func NewTestModel(signalChannel chan struct{}) *testModel {
+func NewTestModel(healStartedChannel chan struct{}) *testModel {
 	return &testModel{
-		Model:    model.NewModel(),
-		signalCh: signalChannel,
+		Model:         model.NewModel(),
+		healStartedCh: healStartedChannel,
 	}
 }
 
@@ -43,7 +43,7 @@ func (m *testModel) ApplyClientConnectionChanges(ctx context.Context, connection
 	changeFunc(dummyConnection)
 
 	if dummyConnection.ConnectionState == model.ClientConnectionHealing {
-		close(m.signalCh)
+		close(m.healStartedCh)
 	}
 
 	return rv

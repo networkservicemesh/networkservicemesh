@@ -30,10 +30,10 @@ type healProcessor struct {
 	model           model.Model
 	props           *properties.Properties
 
-	nowHealingConn map[string]func()
-	connMapMutex   sync.Mutex
-	manager        nsm.NetworkServiceRequestManager
-	nseManager     nsm.NetworkServiceEndpointManager
+	healCancellers      map[string]func()
+	healCancellersMutex sync.Mutex
+	manager             nsm.NetworkServiceRequestManager
+	nseManager          nsm.NetworkServiceEndpointManager
 
 	eventCh chan healEvent
 }
@@ -58,7 +58,7 @@ func newNetworkServiceHealProcessor(
 		manager:         manager,
 		nseManager:      nseManager,
 		eventCh:         make(chan healEvent, 1),
-		nowHealingConn:  make(map[string]func()),
+		healCancellers:  make(map[string]func()),
 	}
 	go p.serve()
 
@@ -82,9 +82,9 @@ func (p *healProcessor) Heal(ctx context.Context, clientConnection nsm.ClientCon
 
 	ctx, cancelFunc := context.WithCancel(ctx)
 
-	p.connMapMutex.Lock()
-	p.nowHealingConn[clientConnection.GetID()] = cancelFunc
-	p.connMapMutex.Unlock()
+	p.healCancellersMutex.Lock()
+	p.healCancellers[clientConnection.GetID()] = cancelFunc
+	p.healCancellersMutex.Unlock()
 
 	healID := create_logid()
 	logger.Infof("NSM_Heal(%v) %v", healID, cc)
@@ -122,10 +122,10 @@ func (p *healProcessor) CloseConnection(ctx context.Context, conn nsm.ClientConn
 	var contextCancelFunc func()
 	var isHealing bool
 
-	p.connMapMutex.Lock()
-	contextCancelFunc, isHealing = p.nowHealingConn[conn.GetID()]
-	delete(p.nowHealingConn, conn.GetID())
-	p.connMapMutex.Unlock()
+	p.healCancellersMutex.Lock()
+	contextCancelFunc, isHealing = p.healCancellers[conn.GetID()]
+	delete(p.healCancellers, conn.GetID())
+	p.healCancellersMutex.Unlock()
 
 	if isHealing {
 		contextCancelFunc()
@@ -177,9 +177,9 @@ func (p *healProcessor) serve() {
 			if healed {
 				span.LogValue("status", "healed")
 				logger.Infof("NSM_Heal(%v) Heal: Connection recovered: %v", e.healID, e.cc)
-				p.connMapMutex.Lock()
-				delete(p.nowHealingConn, e.cc.GetID())
-				p.connMapMutex.Unlock()
+				p.healCancellersMutex.Lock()
+				delete(p.healCancellers, e.cc.GetID())
+				p.healCancellersMutex.Unlock()
 			} else {
 				span.LogValue("status", "closing")
 				_ = p.CloseConnection(ctx, e.cc)

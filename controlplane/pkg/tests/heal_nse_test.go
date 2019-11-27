@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/sdk/prefix_pool"
+
 	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
@@ -121,11 +123,21 @@ func TestDeleteNSCWhileHealLocalNSE(t *testing.T) {
 	_ = os.Setenv(tools.InsecureEnv, "true")
 
 	storage := NewSharedStorage()
-	signalChannel := make(chan struct{})
+	healStartedChannel := make(chan struct{})
 
 	// We need to create server with testModel in order to synchronize with healing processor.
-	srv := NewNSMDFullServerWithModel(Worker, storage, NewTestModel(signalChannel))
+	srv := NewNSMDFullServerWithModel(Worker, storage, NewTestModel(healStartedChannel))
 	defer srv.Stop()
+
+	prefixPool, err := prefix_pool.NewPrefixPool("10.20.1.0/24")
+	g.Expect(err).To(BeNil())
+
+	localTestNSEWithCounter := &localTestNSENetworkServiceClient{
+		prefixPool:           prefixPool,
+		requestHandleCounter: 0,
+	}
+
+	srv.serviceRegistry.localTestNSE = localTestNSEWithCounter
 
 	srv.TestModel.AddForwarder(context.Background(), testForwarder1)
 
@@ -182,9 +194,7 @@ func TestDeleteNSCWhileHealLocalNSE(t *testing.T) {
 	_, err = srv.nseRegistry.RemoveNSE(context.Background(), &registry.RemoveNSERequest{
 		NetworkServiceEndpointName: epName,
 	})
-	if err != nil {
-		t.Fatal("Err must be nil")
-	}
+	g.Expect(err).To(BeNil())
 
 	srv.TestModel.DeleteEndpoint(context.Background(), epName)
 
@@ -193,12 +203,12 @@ func TestDeleteNSCWhileHealLocalNSE(t *testing.T) {
 	srv.manager.Heal(context.Background(), clientConnection1, nsm.HealStateDstDown)
 
 	// Wait for healing to begin
-	<-signalChannel
+	<-healStartedChannel
 
 	srv.manager.CloseConnection(context.Background(), clientConnection1)
 
 	l1.WaitUpdate(4, timeout, t)
 
 	g.Expect(srv.TestModel.GetClientConnection(clientConnection1.ConnectionID)).To(BeNil())
-	g.Expect(srv.serviceRegistry.localTestNSE.requestHandleCounter).To(Equal(1))
+	g.Expect(localTestNSEWithCounter.requestHandleCounter).To(Equal(1))
 }
