@@ -12,10 +12,11 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	sdkcommon "github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+
+	sdkcommon "github.com/networkservicemesh/networkservicemesh/sdk/common"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
