@@ -114,7 +114,7 @@ func (c *RemoteConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 	case srv6.MECHANISM:
 		m := srv6.ToMechanism(c.GetMechanism())
 
-		dstHostIP, _ := m.DstHostIP()
+		dstHostLocalSID, _ := m.DstHostLocalSID()
 		hardwareAddress, _ := m.DstHardwareAddress()
 		srcBSID, _ := m.SrcBSID()
 		srcLocalSID, _ := m.SrcLocalSID()
@@ -122,14 +122,14 @@ func (c *RemoteConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 
 		if c.side == SOURCE {
 			// If the remote Connection is DESTINATION Side then src/dst addresses need to be flipped from the Connection
-			dstHostIP, _ = m.SrcHostIP()
+			dstHostLocalSID, _ = m.SrcHostLocalSID()
 			hardwareAddress, _ = m.SrcHardwareAddress()
 			srcBSID, _ = m.DstBSID()
 			srcLocalSID, _ = m.DstLocalSID()
 			dstLocalSID, _ = m.SrcLocalSID()
 		}
 
-		logrus.Infof("m.GetParameters()[%s]: %s", srv6.DstHostIP, dstHostIP)
+		logrus.Infof("m.GetParameters()[%s]: %s", srv6.DstHostLocalSID, dstHostLocalSID)
 		logrus.Infof("m.GetParameters()[%s]: %s", srv6.DstHardwareAddress, hardwareAddress)
 		logrus.Infof("m.GetParameters()[%s]: %s", srv6.SrcBSID, srcBSID)
 		logrus.Infof("m.GetParameters()[%s]: %s", srv6.SrcLocalSID, srcLocalSID)
@@ -146,14 +146,13 @@ func (c *RemoteConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 				},
 			},
 		}
-
 		rv.VppConfig.Srv6Policies = []*vpp_srv6.Policy{
 			{
 				Bsid: srcBSID,
 				SegmentLists: []*vpp_srv6.Policy_SegmentList{
 					{
 						Segments: []string{
-							dstHostIP,
+							dstHostLocalSID,
 							dstLocalSID,
 						},
 						Weight: 0,
@@ -186,17 +185,19 @@ func (c *RemoteConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 				},
 			}
 
-			rv.VppConfig.Arps = append(rv.VppConfig.Arps, &vpp.ARPEntry{
-				Interface:   "mgmt",
-				IpAddress:   dstHostIP,
-				PhysAddress: hardwareAddress,
-				Static:      true,
+			rv.VppConfig.Routes = append(rv.VppConfig.Routes, &vpp.Route{
+				Type:              vpp_l3.Route_INTER_VRF,
+				OutgoingInterface: "mgmt",
+				DstNetwork:        dstHostLocalSID + "/128",
+				Weight:            1,
+				NextHopAddr:       dstHostLocalSID,
 			})
 
-			rv.VppConfig.Routes = append(rv.VppConfig.Routes, &vpp.Route{
-				OutgoingInterface: "mgmt",
-				DstNetwork:        dstHostIP + "/128",
-				NextHopAddr:       dstHostIP,
+			rv.VppConfig.Arps = append(rv.VppConfig.Arps, &vpp.ARPEntry{
+				Interface:   "mgmt",
+				IpAddress:   dstHostLocalSID,
+				PhysAddress: hardwareAddress,
+				Static:      true,
 			})
 		}
 	}

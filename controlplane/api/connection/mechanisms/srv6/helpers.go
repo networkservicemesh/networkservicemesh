@@ -38,6 +38,10 @@ type Mechanism interface {
 	SrcLocalSID() (string, error)
 	// DstLocalSID - dst LocalSID
 	DstLocalSID() (string, error)
+	// SrcHostLocalSID -  src host unique LocalSID
+	SrcHostLocalSID() (string, error)
+	// DstHostLocalSID - dst host unique LocalSID
+	DstHostLocalSID() (string, error)
 	// SrcHardwareAddress -  src hw address
 	SrcHardwareAddress() (string, error)
 	// DstHardwareAddress - dst hw address
@@ -70,6 +74,14 @@ func (m mechanism) SrcLocalSID() (string, error) {
 
 func (m mechanism) DstLocalSID() (string, error) {
 	return getIPParameter(m.Mechanism, DstLocalSID)
+}
+
+func (m mechanism) SrcHostLocalSID() (string, error) {
+	return getIPParameter(m.Mechanism, SrcHostLocalSID)
+}
+
+func (m mechanism) DstHostLocalSID() (string, error) {
+	return getIPParameter(m.Mechanism, DstHostLocalSID)
 }
 
 func (m mechanism) SrcHardwareAddress() (string, error) {

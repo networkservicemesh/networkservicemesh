@@ -37,6 +37,7 @@ type ARPEntry struct {
 type EgressInterfaceType interface {
 	SrcIPNet() *net.IPNet
 	SrcIPV6Net() *net.IPNet
+	SrcLocalSID() *net.IP
 	DefaultGateway() *net.IP
 	Interface() *net.Interface
 	Name() string
@@ -49,6 +50,7 @@ type egressInterface struct {
 	EgressInterfaceType
 	srcNet            *net.IPNet
 	srcV6Net          *net.IPNet
+	localSID          *net.IP
 	iface             *net.Interface
 	defaultGateway    net.IP
 	outgoingInterface string
@@ -168,16 +170,24 @@ func NewEgressInterface(srcIP net.IP) (EgressInterfaceType, error) {
 
 	for _, iface := range ifaces {
 		addrs, err := iface.Addrs()
+		logrus.Infof("INTERFACE: %v : %v", iface.Name, addrs)
 		if err != nil {
 			return nil, err
 		}
 
 		var v6 *net.IPNet
+		var localSID net.IP
 		for _, addr := range addrs {
 			switch v := addr.(type) {
 			case *net.IPNet:
 				if strings.Contains(v.String(), ":") {
-					v6 = v
+					if !(v.IP[0] == 0xfe && v.IP[1] == 0x80) {
+						if v6 == nil {
+							v6 = v
+						} else {
+							localSID = v.IP
+						}
+					}
 				}
 			}
 		}
@@ -186,17 +196,18 @@ func NewEgressInterface(srcIP net.IP) (EgressInterfaceType, error) {
 			switch v := addr.(type) {
 			case *net.IPNet:
 				if v.IP.Equal(srcIP) {
-					if v6 == nil {
-						v6 = &net.IPNet{}
-						v6.IP = v.IP.To16()
+					if v6 != nil && localSID == nil {
+						localSID = v6.IP
+						v6.IP = make(net.IP, len(v6.IP))
+						copy(v6.IP, localSID)
+						v6.IP[0] = 0xfd
+						v6.IP[1] = 0x24
 					}
-
-					v6.IP[0] = 0xfd
-					v6.IP[1] = 0x25
 
 					return &egressInterface{
 						srcNet:            v,
 						srcV6Net:          v6,
+						localSID:          &localSID,
 						iface:             &iface,
 						defaultGateway:    gw,
 						outgoingInterface: outgoingInterface,
@@ -223,6 +234,13 @@ func (e *egressInterface) SrcIPV6Net() *net.IPNet {
 		return nil
 	}
 	return e.srcV6Net
+}
+
+func (e *egressInterface) SrcLocalSID() *net.IP {
+	if e == nil {
+		return nil
+	}
+	return e.localSID
 }
 
 func (e *egressInterface) Interface() *net.Interface {

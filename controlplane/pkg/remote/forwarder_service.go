@@ -145,6 +145,7 @@ func (cce *forwarderService) selectRemoteMechanism(conn *connection.Connection, 
 
 		parameters[srv6.DstHardwareAddress] = dpParameters[srv6.SrcHardwareAddress]
 		parameters[srv6.DstHostIP] = dpParameters[srv6.SrcHostIP]
+		parameters[srv6.DstHostLocalSID] = dpParameters[srv6.SrcHostLocalSID]
 		parameters[srv6.DstBSID] = cce.serviceRegistry.SIDAllocator().SID(conn.GetId())
 		parameters[srv6.DstLocalSID] = cce.serviceRegistry.SIDAllocator().SID(conn.GetId())
 	}

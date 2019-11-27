@@ -29,12 +29,16 @@ const (
 	DstHostIP = "dst_host_ip"
 	// SrcBSID -  src BSID
 	SrcBSID = "src_bsid"
-	// SrcLocalSID -  src LocalSID
-	SrcLocalSID = "src_localsid"
 	// DstBSID - dst BSID
 	DstBSID = "dst_bsid"
+	// SrcLocalSID -  src LocalSID
+	SrcLocalSID = "src_localsid"
 	// DstLocalSID - dst LocalSID
 	DstLocalSID = "dst_localsid"
+	// SrcLocalSID -  src host unique LocalSID
+	SrcHostLocalSID = "src_host_localsid"
+	// DstLocalSID - dst host unique LocalSID
+	DstHostLocalSID = "dst_host_localsid"
 	// SrcHardwareAddress -  src hw address
 	SrcHardwareAddress = "src_hw_addr"
 	// DstHardwareAddress - dst hw address

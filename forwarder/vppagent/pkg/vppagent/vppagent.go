@@ -183,23 +183,12 @@ func (v *VPPAgent) programMgmtInterface() error {
 						Enabled: true,
 						IpAddresses: []string{
 							v.common.EgressInterface.SrcIPNet().String(),
-							// v.common.EgressInterface.SrcIPV6Net().IP.String() + "/128", // Required for SRv6 remote mechanism
-							"fd24::1/128", // Required for SRv6 remote mechanism
 						},
 						PhysAddress: v.common.EgressInterface.HardwareAddr().String(),
 						Link: &vpp_interfaces.Interface_Afpacket{
 							Afpacket: &vpp_interfaces.AfpacketLink{
 								HostIfName: v.common.EgressInterface.Name(),
 							},
-						},
-					},
-				},
-				// Add main local SID for SRv6 to reach pod from other nodes
-				Srv6Localsids: []*vpp_srv6.LocalSID{
-					{
-						Sid: v.common.EgressInterface.SrcIPV6Net().IP.String(),
-						EndFunction: &vpp_srv6.LocalSID_BaseEndFunction{
-							BaseEndFunction: &vpp_srv6.LocalSID_End{},
 						},
 					},
 				},
@@ -265,6 +254,29 @@ func (v *VPPAgent) programMgmtInterface() error {
 			},
 		},
 	}
+
+	// Assign ip6 address, required for SRv6 remote mechanism
+	if v.common.EgressInterface.SrcIPV6Net() != nil {
+		dataRequest.Update.VppConfig.Interfaces[0].IpAddresses = append(
+			dataRequest.Update.VppConfig.Interfaces[0].IpAddresses,
+			v.common.EgressInterface.SrcIPV6Net().String(),
+		)
+	}
+	if v.common.EgressInterface.SrcLocalSID() != nil {
+		dataRequest.Update.VppConfig.Srv6Global = &vpp_srv6.SRv6Global{
+			EncapSourceAddress: v.common.EgressInterface.SrcLocalSID().String(),
+		}
+		// Add main local SID for SRv6 to reach pod from other nodes
+		dataRequest.Update.VppConfig.Srv6Localsids = []*vpp_srv6.LocalSID{
+			{
+				Sid: v.common.EgressInterface.SrcLocalSID().String(),
+				EndFunction: &vpp_srv6.LocalSID_BaseEndFunction{
+					BaseEndFunction: &vpp_srv6.LocalSID_End{},
+				},
+			},
+		}
+	}
+
 	logrus.Infof("Setting up Mgmt Interface %v", dataRequest)
 	_, err = client.Update(context.Background(), dataRequest)
 	if err != nil {
@@ -326,14 +338,19 @@ func (v *VPPAgent) configureVPPAgent() error {
 					vxlan.SrcIP: v.common.EgressInterface.SrcIPNet().IP.String(),
 				},
 			},
-			{
+
+		},
+	}
+	if v.common.EgressInterface.SrcLocalSID() != nil {
+		v.common.Mechanisms.RemoteMechanisms = append(v.common.Mechanisms.RemoteMechanisms,
+			&connection.Mechanism{
 				Type: "SRV6",
 				Parameters: map[string]string{
 					srv6.SrcHostIP:          v.common.EgressInterface.SrcIPV6Net().IP.String(),
+					srv6.SrcHostLocalSID:    v.common.EgressInterface.SrcLocalSID().String(),
 					srv6.SrcHardwareAddress: v.common.EgressInterface.HardwareAddr().String(),
 				},
-			},
-		},
+			})
 	}
 	err = v.reset()
 	if err != nil {
