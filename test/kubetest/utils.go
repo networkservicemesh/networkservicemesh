@@ -704,7 +704,7 @@ func waitWebhookPod(k8s *K8s, name string, timeout time.Duration) *v1.Pod {
 			for i := 0; i < len(list); i++ {
 				p := &list[i]
 				if strings.Contains(p.Name, name) {
-					result, err := blockUntilPodReady(k8s.clientset, timeout, p)
+					result, err := k8s.blockUntilPodReady(k8s.clientset, timeout, p)
 					k8s.g.Expect(err).Should(BeNil())
 					return result
 				}

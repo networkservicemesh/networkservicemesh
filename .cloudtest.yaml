@@ -10,6 +10,15 @@ import:
   - .cloudtest/aws.yaml
   - .cloudtest/azure.yaml
 
+retest:  # Allow to do test re-run if some kind of failures are detected, line CNI network plugin errors.
+  count: 5  # Allow 5 times to do restart
+  warmup-time: 15  # Put 15 seconds warmup for cluster instance to be used again.
+  allowed-retests: 2  # If cluster instance have few attempts with retest requests one after another, we need to restart cluster.
+  pattern:
+    - "NetworkPlugin cni failed to set up pod"    # Error in AWS dur to leak of IPs or not ability to assign them.
+    - "etcdserver: request timed out, possibly due to previous leader fail"  # Error in any could, reason unknown.
+    - "unable to establish connection to VPP (VPP API socket file /run/vpp/api.sock does not exist)"  # a VPP is not started, it will be re-started in general, but will cause test fail.
+    - "node(s) didn't have free ports for the requested pod ports"  # Could happen for interdomain
 reporting:
   junit-report: "results/junit.xml"
 executions:
