@@ -56,7 +56,7 @@ func CreateNSMonitor(crossConnectServer monitor_crossconnect.MonitorServer, hand
 func (m *MonitorNetNsInodeServer) SendMsg(msg interface{}) error {
 	event, ok := msg.(*crossconnect.CrossConnectEvent)
 	if !ok {
-		return errors.New("wrong type of msg, crossConnectEvent is needed")
+		return errors.New("nsmonitor: wrong type of msg, crossConnectEvent is needed")
 	}
 	m.crossConnectEventCh <- copyEvent(event)
 	return nil
@@ -132,11 +132,11 @@ func (m *MonitorNetNsInodeServer) checkConnectionLiveness(xcon *crossconnect.Cro
 			return err
 		}
 	default:
-		return errors.New("Wrong mechanism type passed")
+		return errors.New("nsmonitor: wrong mechanism type passed")
 	}
 
 	if !inodeSet.Contains(inode) && conn.State == connection.State_UP {
-		logrus.Infof("Connection is down")
+		logrus.Infof("nsmonitor: connection is down")
 		conn.State = connection.State_DOWN
 		if m.notifyForwarder != nil {
 			m.notifyForwarder()
