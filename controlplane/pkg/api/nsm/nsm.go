@@ -24,7 +24,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/plugins"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/connectionmonitor"
 	crossconnect_monitor "github.com/networkservicemesh/networkservicemesh/sdk/monitor/crossconnect"
@@ -98,7 +97,6 @@ type NetworkServiceManager interface {
 
 	NetworkServiceHealProcessor
 	ServiceRegistry() serviceregistry.ServiceRegistry
-	PluginRegistry() plugins.PluginRegistry
 	RestoreConnections(xcons []*crossconnect.CrossConnect, forwarder string, manager MonitorManager)
 }
 
