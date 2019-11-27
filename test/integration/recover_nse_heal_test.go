@@ -5,8 +5,9 @@ package nsmd_integration_tests
 import (
 	"testing"
 
-	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 	. "github.com/onsi/gomega"
+
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 )
 
 func TestNSEHealLocal(t *testing.T) {

@@ -338,7 +338,6 @@ func (v *VPPAgent) configureVPPAgent() error {
 					vxlan.SrcIP: v.common.EgressInterface.SrcIPNet().IP.String(),
 				},
 			},
-
 		},
 	}
 	if v.common.EgressInterface.SrcLocalSID() != nil {
