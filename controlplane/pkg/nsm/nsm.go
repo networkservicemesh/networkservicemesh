@@ -383,7 +383,7 @@ func (srv *networkServiceManager) RemoteConnectionLost(ctx context.Context, clie
 	go func() {
 		<-time.After(srv.props.HealTimeout)
 
-		if modelCC := srv.model.GetClientConnection(clientConnection.GetID()); modelCC != nil && modelCC.ConnectionState == model.ClientConnectionHealing {
+		if modelCC := srv.model.GetClientConnection(clientConnection.GetID()); modelCC != nil && modelCC.ConnectionState == model.ClientConnectionHealingBegin {
 			logrus.Errorf("NSM: Timeout happened for checking connection status from Healing.. %v. Closing connection...", clientConnection)
 			// Nobody was healed connection from Remote side.
 			if err := srv.CloseConnection(ctx, clientConnection); err != nil {
