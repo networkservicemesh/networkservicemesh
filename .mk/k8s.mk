@@ -17,29 +17,27 @@ K8S_CONF_DIR = k8s/conf
 CLUSTER_CONFIG_ROLE = cluster-role-admin cluster-role-binding cluster-role-view
 CLUSTER_CONFIG_CRD = crd-networkservices crd-networkserviceendpoints crd-networkservicemanagers
 CLUSTER_CONFIG_NAMESPACE = namespace-nsm
-CLUSTER_CONFIGS = $(CLUSTER_CONFIG_ROLE) $(CLUSTER_CONFIG_CRD) $(CLUSTER_CONFIG_NAMESPACE)
+CLUSTER_CONFIGS = $(CLUSTER_CONFIG_ROLE) $(CLUSTER_CONFIG_CRD) $(CLUSTER_CONFIG_NAMESPACE) \
+	nsm-configmap
 
 ifeq ($(NSM_NAMESPACE),)
-NSM_NAMESPACE = `cat "${K8S_CONF_DIR}/${CLUSTER_CONFIG_NAMESPACE}.yaml" | awk '/name:/ {print $$2}'`
+NSM_NAMESPACE := $(shell cat "${K8S_CONF_DIR}/${CLUSTER_CONFIG_NAMESPACE}.yaml" | awk '/name:/ {print $$2}')
 endif
 CONTAINER_REPO?=networkservicemesh
 CONTAINER_TAG?=master
+
+NSMGR_CONTAINERS := nsmd nsmd-k8s nsmdp
+
 # All of the rules that use vagrant are intentionally written in such a way
 # That you could set the CLUSTER_RULES_PREFIX different and introduce
 # a new platform to run on with k8s by adding a new include ${method}.mk
 # and setting CLUSTER_RULES_PREFIX to a different value
-ifeq ($(CLUSTER_RULES_PREFIX),)
-CLUSTER_RULES_PREFIX := vagrant
-endif
+CLUSTER_RULES_PREFIX ?= kind
+include .mk/kind.mk
 include .mk/vagrant.mk
 include .mk/packet.mk
 include .mk/aws.mk
 include .mk/azure.mk
-
-# .kind.mk enables the kind.sigs.k8s.io docker based K8s install:
-# export CLUSTER_RULES_PREFIX=kind
-# before running make
-include .mk/kind.mk
 
 # .null.mk allows you to skip the vagrant machinery with:
 # export CLUSTER_RULES_PREFIX=null
@@ -49,9 +47,10 @@ include .mk/null.mk
 include .mk/gke.mk
 
 SPIRE_ENABLED?=true
+IMAGE_DIR=build/images/
 
 kubectl = kubectl -n ${NSM_NAMESPACE}
-images_tar = $(subst .tar,,$(filter %.tar, $(shell mkdir -p ./scripts/vagrant/images;ls ./scripts/vagrant/images)))
+images_tar = $(subst .tar,,$(filter %.tar, $(shell mkdir -p ./build/images;ls ./build/images)))
 
 export ORG=$(CONTAINER_REPO)
 
@@ -63,7 +62,7 @@ k8s-%-load-images:  k8s-start $(CLUSTER_RULES_PREFIX)-%-load-images
 	@echo "Delegated to $(CLUSTER_RULES_PREFIX)-$*-load-images"
 
 .PHONY: k8s-%-config
-k8s-%-config:  k8s-start
+k8s-%-config:  k8s-start ${K8S_CONF_DIR}/%.yaml
 	@$(kubectl) apply -f ${K8S_CONF_DIR}/$*.yaml
 
 .PHONY: k8s-%-deconfig
@@ -175,10 +174,14 @@ k8s-nsmgr-worker-tlogs:
 k8s-nsmgr-build: $(addsuffix -build, $(addprefix docker-, nsmd nsmd-k8s nsmdp))
 
 .PHONY: k8s-nsmgr-save
-k8s-nsmgr-save: $(addsuffix -save, $(addprefix docker-, nsmd nsmd-k8s nsmdp))
+k8s-nsmgr-save: $(addsuffix -save, $(addprefix docker-, $(NSMGR_CONTAINERS)))
 
+.PHONY: k8s-nsmgr-load-images
+k8s-nsmgr-load-images: $(addsuffix -load-images, $(addprefix $(CLUSTER_RULES_PREFIX)-, $(NSMGR_CONTAINERS)))
 
+.PHONY: k8s-nsmgr-update
+k8s-nsmgr-update: k8s-nsmgr-save k8s-nsmgr-load-images
 
-
-
-
+.PHONY: k8s-%-update
+k8s-%-update: docker-%-save k8s-%-load-images
+	$(info Image updated in cluster: $*)

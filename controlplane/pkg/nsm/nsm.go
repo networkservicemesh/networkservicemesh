@@ -19,32 +19,25 @@ import (
 	"sync"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/properties"
-
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
-
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/local"
-	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/connectionmonitor"
-
-	mechanismCommon "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
-
 	"github.com/pkg/errors"
-
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
-
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	mechanismCommon "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/local"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/plugins"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/properties"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
+	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/connectionmonitor"
 )
 
 const (
@@ -59,7 +52,6 @@ type networkServiceManager struct {
 	sync.RWMutex
 
 	serviceRegistry  serviceregistry.ServiceRegistry
-	pluginRegistry   plugins.PluginRegistry
 	model            model.Model
 	props            *properties.Properties
 	stateRestored    chan bool
@@ -80,8 +72,8 @@ func (srv *networkServiceManager) LocalManager(clientConnection nsm.ClientConnec
 		common.NewMonitorService(clientConnection.(*model.ClientConnection).Monitor),
 		local.NewConnectionService(srv.model),
 		local.NewForwarderService(srv.model, srv.serviceRegistry),
-		local.NewEndpointSelectorService(srv.nseManager, srv.pluginRegistry),
-		local.NewEndpointService(srv.nseManager, srv.props, srv.model, srv.pluginRegistry),
+		local.NewEndpointSelectorService(srv.nseManager),
+		local.NewEndpointService(srv.nseManager, srv.props, srv.model),
 		common.NewCrossConnectService(),
 	)
 }
@@ -100,9 +92,6 @@ func (srv *networkServiceManager) ServiceRegistry() serviceregistry.ServiceRegis
 func (srv *networkServiceManager) NseManager() nsm.NetworkServiceEndpointManager {
 	return srv.nseManager
 }
-func (srv *networkServiceManager) PluginRegistry() plugins.PluginRegistry {
-	return srv.pluginRegistry
-}
 func (srv *networkServiceManager) Model() model.Model {
 	return srv.model
 }
@@ -112,7 +101,7 @@ func (srv *networkServiceManager) GetHealProperties() *properties.Properties {
 }
 
 // NewNetworkServiceManager creates an instance of NetworkServiceManager
-func NewNetworkServiceManager(ctx context.Context, model model.Model, serviceRegistry serviceregistry.ServiceRegistry, pluginRegistry plugins.PluginRegistry) nsm.NetworkServiceManager {
+func NewNetworkServiceManager(ctx context.Context, model model.Model, serviceRegistry serviceregistry.ServiceRegistry) nsm.NetworkServiceManager {
 	properties := properties.NewNsmProperties()
 	nseManager := &nseManager{
 		serviceRegistry: serviceRegistry,
@@ -122,7 +111,6 @@ func NewNetworkServiceManager(ctx context.Context, model model.Model, serviceReg
 
 	srv := &networkServiceManager{
 		serviceRegistry:  serviceRegistry,
-		pluginRegistry:   pluginRegistry,
 		model:            model,
 		props:            properties,
 		stateRestored:    make(chan bool, 1),
@@ -324,7 +312,10 @@ func (srv *networkServiceManager) getEndpoint(ctx context.Context, networkServic
 		endpoints, err := discovery.FindNetworkService(span.Context(), &registry.FindNetworkServiceRequest{
 			NetworkServiceName: networkServiceName,
 		})
-		span.LogError(err)
+		if err != nil {
+			span.LogError(err)
+			return endpoint
+		}
 		for _, ep := range endpoints.NetworkServiceEndpoints {
 			if xcon.GetRemoteDestination() != nil && ep.GetName() == xcon.GetRemoteDestination().GetNetworkServiceEndpointName() {
 				endpoint = &registry.NSERegistration{

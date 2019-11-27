@@ -49,24 +49,6 @@ aws-upload-nsm:
 	cd nsm && \
 	tar xvzf -"
 
-.PHONY: aws-build
-aws-build: $(addsuffix -build,$(addprefix aws-,$(BUILD_CONTAINERS))) 
-
-.PHONY: aws-%-build
-aws-%-build: aws-upload-nsm
-	echo ${SSH_PARAMS}
-	@ssh ${SSH_PARAMS} aws-master "\
-	cd nsm && \
-	make docker-$*-save"
-	@scp ${SSH_PARAMS} -3 aws-master:~/nsm/scripts/vagrant/images/$*.tar aws-worker:~/
-	@ssh ${SSH_PARAMS} aws-worker "sudo docker load -i $*.tar"
-
-.PHONY: aws-save
-aws-save: $(addsuffix -save,$(addprefix aws-,$(BUILD_CONTAINERS))) ;
-
-.PHONY: aws-%-save
-aws-%-save: aws-%-build ;
-
 .PHONY: aws-download-postmortem
 aws-download-postmortem:
 	@echo "Not implemented yet."
@@ -80,13 +62,13 @@ aws-print-kubelet-log:
 
 .PHONY: aws-%-load-images
 aws-%-load-images: 
-	@if [ -e "scripts/vagrant/images/$*.tar" ]; then \
+	@if [ -e "$(IMAGE_DIR)/$*.tar" ]; then \
 		echo "Loading image $*.tar to master and worker" ; \
-		scp ${SSH_PARAMS} scripts/vagrant/images/$*.tar aws-master:~/ & \
-		scp ${SSH_PARAMS} scripts/vagrant/images/$*.tar aws-worker:~/ ; \
+		scp ${SSH_PARAMS} $(IMAGE_DIR)/$*.tar aws-master:~/ & \
+		scp ${SSH_PARAMS} $(IMAGE_DIR)/$*.tar aws-worker:~/ ; \
 		ssh ${SSH_PARAMS} aws-master "sudo docker load -i $*.tar" & \
 		ssh ${SSH_PARAMS} aws-worker "sudo docker load -i $*.tar" ; \
 	else \
-		echo "Cannot load $*.tar: scripts/vagrant/images/$*.tar does not exist.  Try running 'make k8s-$*-save'"; \
+		echo "Cannot load $*.tar: $(IMAGE_DIR)/$*.tar does not exist.  Try running 'make k8s-$*-save'"; \
 		exit 1; \
 	fi

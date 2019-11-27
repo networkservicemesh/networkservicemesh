@@ -82,9 +82,9 @@ docker-save: $(addsuffix -save, $(addprefix docker-, $(images)))
 
 .PHONY: docker-%-save
 docker-%-save: docker-%-build
-	@echo "Saving $* to scripts/vagrant/images/$*.tar"
-	@mkdir -p scripts/vagrant/images/
-	@docker save -o scripts/vagrant/images/$*.tar ${ORG}/$*:$(CONTAINER_TAG)
+	@echo "Saving $* to $(IMAGE_DIR)/$*.tar"
+	@mkdir -p $(IMAGE_DIR)
+	@docker save -o $(IMAGE_DIR)/$*.tar ${ORG}/$*:$(CONTAINER_TAG)
 
 .PHONY: docker-%-push
 docker-%-push: docker-login docker-%-build

@@ -523,13 +523,13 @@ func (pi *packetInstance) createKey(keyFile string) ([]string, error) {
 	}
 	createMsg := fmt.Sprintf("Create key %v %v %v", sshKey, responseMsg, err)
 	_, _ = out.WriteString(createMsg)
-	logrus.Infof("%s-Create key %v (%v)", pi.id, sshKey.ID, sshKey.Key)
 
 	keyIds := []string{}
 	if sshKey == nil {
 		// try to find key.
 		sshKey, keyIds = pi.findKeys(&out)
 	} else {
+		logrus.Infof("%s-Create key %v (%v)", pi.id, sshKey.ID, sshKey.Key)
 		keyIds = append(keyIds, sshKey.ID)
 	}
 	pi.sshKey = sshKey

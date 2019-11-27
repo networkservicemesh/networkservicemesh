@@ -2,32 +2,23 @@
 
 ## Prerequisites
 
-You can find instructions for your operation systems in the links below:
-
-* [CentOS](prereq-centos.md)
-* [OSX](prereq-osx.md)
-* [Ubuntu](prereq-ubuntu.md)
-
-If you have another Linux distribution or prefer to go with the upstream, make sure you have the following dependencies installed:
-
-* [VirtualBox](https://www.virtualbox.org/wiki/Downloads)
-* [Vagrant](https://www.vagrantup.com/docs/installation/)
-* [Docker](https://docs.docker.com/install/)
+Make sure you have the following dependencies to run NSM:
+* A Kubernetes Cluster - good options include:
+* * [kind](guide-kind.md) - usually the easiest choice
+* * [vagrant](vagrant/guide-vagrant.md) - useful if you need to debug at the Node Level
+* * [gke](guide-gke.md)
+* * [azure](guide-azure.md)
+* * [aws](guide-aws.md)
 * [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
+* [helm](https://helm.sh/)
+
+In addition, to build NSM you will need:
+
+* [Go 1.13 or later](https://golang.org/dl/)
+* [Docker](https://docs.docker.com/install/)
+* GNU make
 
 ## Build
-
-All of the actual code in Network Service Mesh builds as pure go:
-
-```bash
-go generate ./...
-go build ./...
-```
-
-But to really do interesting things in NSM, you will want to build various Docker containers, and deploy them to K8s.
-All of this is doable via normal Docker/K8s commands, but to speed development, some make machinery has been added to make things easy.
-
-## Building and Saving container images using the Make Machinery
 
 You can build all of the containers needed for NSM, including a bunch of handle Network Service Endpoints (NSEs) and NSCs (Network Service Clients) that are useful for testing, but not part of the core with:
 
@@ -35,51 +26,46 @@ You can build all of the containers needed for NSM, including a bunch of handle 
 make k8s-build
 ```
 
-And if you are using the Vagrant machinery to run your K8s cluster (described a bit further down), you really want to use the following:
+And if you are using the Kind machinery to run your K8s cluster (described a bit further down), you really want to use the following:
 
 ```bash
 make k8s-save
 ```
 
-because ```make k8s-save``` will build your containers and save them in `scripts/vagrant/images` where they can be loaded by the Vagrant K8s cluster.
+because ```make k8s-save``` will build your containers and save them in `scripts/vagrant/images` where they can be loaded by the Kins K8s cluster.
 
-> You can also selectively rebuild any component, say the `nsmd`, with ```make k8s-nsmd-save```
-
-## Speedup build speed by enabling local Vendoring
-
-```export VENDORING="-mod vendor"
-go mod vendor
-```
-Will enable use of vendor folder to share go dependencies. 
-
-## Installing the helm
-Before run examples make sure that you have [helm](https://github.com/helm/helm). To install helm you can use prepared scripts: 
-```bash
-sh scripts/install-helm.sh
-make helm-init
-```
+You can also selectively rebuild any component, say the `nsmd`, with ```make k8s-nsmd-save```
 
 After installing you can verify it with `helm version`.
 
-## Running the NSM code
+## Install
 
-Network Service Mesh provides a handy Vagrant setup for running a two node K8s cluster. Once you've done ```make k8s-save```, you can deploy to it with:
+Network Service Mesh provides a handy [Kind](https://github.com/kubernetes-sigs/kind) setup for running a small K8s cluster. Once you've done ```make k8s-save```, you can deploy to it with:
 
 ```bash
-make k8s-save
-make k8s-load-images
-make helm-install-nsm
+make k8s-save                                                # build and save the NSM docker containers
+make kind-start                                              # start up an nsm cluster named kind
+export KUBECONFIG="$(kind get kubeconfig-path --name="nsm")" # Point kubectl at your kind instance
+make k8s-load-images                                         # load NSM docker containers into kind
+make helm-init                                               # initialize helm
+make helm-install-nsm                                        # install the nsm infrastructure
 ```
 
-By default this will:
+## Run
+* [icmp-responder](examples/icmp-responder.md) - A simple example that connects an App Pod Client to a Network Service.  
+```bash
+make helm-install-icmp-responder
+```
+* [vpp-icmp-responder](examples/vpp-icmp-example.md) - A simple example that connects a vpp based Pod to a Network Service using memif.  
+```bash
+make helm-install-vpp-icmp-responder
+```
+* [vpn](examples/vpn.md) - An example that simulates an App Pod Client connecting to a Network Service implemented as a chain simulating a [VPN Use Case](https://docs.google.com/presentation/d/1Vzmhv5vc10NyAa08ny-CCbveo0_fWkDckbkCD_N0fPg/edit#slide=id.g49bd4e8739_0_12)  
+```bash
+make helm-install-vpn
+```
 
-1. Spin up a two node K8s cluster from `scripts/vagrant` if one is not already running.
-2. Delete old instances of NSM config if present
-3. Load all images from `scripts/vagrant/images` into the `master` and `worker` node
-4. Deploy the `nsmd` and `vppagent-forwarder` Daemonsets
-5. Deploy a variety of Network Service Endpoints and Network Service Clients
-6. Deploy the `crossconnect-monitor` (a useful tool for debugging)
-
+## Verify
 You can check to see things are working properly by typing:
 
 ```bash
@@ -88,85 +74,15 @@ make k8s-check
 
 which will try pinging from NSCs to NSEs.
 
+## Uninstall
+
 You can remove the effects of helm-install-% with:
 
 ```bash
 make helm-delete-%
 ```
 
-As in the case with `save` and `build`, you can always do this for a particular component, like ```make helm-install-%``` or ```make helm-delete-%```.
-
-## Having more control over the deployment
-
-The described quick start method works for fast deployments and quick tests. However, the build infrastructure provides a fine-grained control over the deployments.
-
-### Working with the Vagrant setup
-
-To spin the default 2 node Vagrant setup with Kubernetes on top, type:
-
-```bash
-make vagrant-start
-```
-
-At any point, you can ```make vagrant-suspend``` and ```make vagrant-resume``` to pause and restore the spawn virtual nodes. If for some reason you need to rebuild or completely destroy the Vagrant environment, use ```make vagrant-restart``` and ```make vagrant-destroy```
-
-To point your host ```kubectl``` to the Kubernetes deployment in the virtual nodes, use:
-
-```bash
-source scripts/vagrant/env.sh
-```
-
-### Deploying the NSM infrastructure
-
-Network Service Mesh consists of a number of system pods, which take care of service registration, provide the forwarder functionality, do monitoring and observability.
-
-Once you have configured your ```kubectl``` to the desired Kubernetes `master` (may or may not be set through Vagrant), you can initiate the NSM infrastructure deployment and deletion using 
-```bash 
-make k8s-save
-make k8s-load-images
-make helm-install-nsm
-``` 
-and 
-```bash
-make helm-delete-nsm
-```
-
-### Deploying the ICMP example and testing it
-
-The project comes with a simple, ready to test ICMP example. It deploys a number of ICMP responder NSEs and connects NSCs to them. This shows same and cross-node communication and is good for visualising it with the provided monitoring tools.
-
-The commands to deploy and delete it are ```make helm-install-icmp``` and ```make helm-delete-icmp```. Checking the operability of the ICMP example is done through ```make k8s-check```
-
-### Deploying the VPN composed Network Service
-
-One of the big advantages on Network Service Mesh is NS composition, i.e. forming a complex service out of a number of simple NSEs. The project comes with an example that implements the "secure-intranet-connectivity" Network Service which connects together a simple ACL based packet filtering firewall and a simulated VPN gateway NSEs.
-
-Deploying it is done through ```make helm-install-vpn``` and to uninstall it - run ```make helm-delete-vpn```. Checking VPN's operability is done with ```make k8s-check```.
-
-## Trigger the integration tests on your host
-
-You can verify your changes by triggering the integration tests on your host. To do so, execute the following:
-
-If you haven't already, prepare the Vagrant environment:
-
-```bash
-make vagrant-start
-source scripts/vagrant/env.sh
-```
-
-Build the images:
-
-```bash
-make k8s-build
-```
-
-Load the images:
-
-```bash
-make k8s-load-images
-```
-
-Trigger all integration tests:
+## Integration Testing
 
 ```bash
 make k8s-integration-tests
@@ -191,15 +107,6 @@ make k8s-nsmd-logs
 will dump all the logs for all running `nsmd` Pods in the cluster (you are going to want to redirect these to a file).
 
 This works for any component in the system.
-
-For example:
-
-```bash
-make k8s-crossconnect-monitor-logs
-```
-
-dumps the logs from the `crossconnect-monitor`, which has been logging new crossconnects as they come into existence and go away throughout
-the cluster.
 
 ## Regenerating code
 

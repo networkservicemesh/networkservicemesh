@@ -6,7 +6,7 @@ then
     exit 1
 fi
 
-if [ ! -f "scripts/vagrant/images/$1" ]
+if [ ! -f "build/images/$1" ]
 then
     echo "Image $1 is not found"
     exit 1
@@ -18,6 +18,6 @@ echo "gke instances: $GKE_INSTANCES"
 for NODE in $GKE_INSTANCES 
 do
   echo "Loading image $1 to $NODE:"
-  gcloud compute scp --zone="$GKE_CLUSTER_ZONE" "scripts/vagrant/images/$1" "$NODE:~/"
+  gcloud compute scp --zone="$GKE_CLUSTER_ZONE" "build/images/$1" "$NODE:~/"
   gcloud compute ssh --zone="$GKE_CLUSTER_ZONE" "$NODE" --command="sudo docker load -i ~/$1"
 done

@@ -2,10 +2,11 @@ package tools
 
 import (
 	"context"
-	"crypto/tls"
 	"net"
 	"sync"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/security"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
@@ -15,8 +16,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
-
-	"github.com/networkservicemesh/networkservicemesh/pkg/security"
 )
 
 const (
@@ -29,8 +28,8 @@ const (
 
 // DialConfig represents configuration of grpc connection, one per instance
 type DialConfig struct {
-	OpenTracing     bool
-	SecurityManager security.Manager
+	OpenTracing      bool
+	SecurityProvider security.Provider
 }
 
 var cfg DialConfig
@@ -59,15 +58,13 @@ func InitConfig(c DialConfig) {
 func NewServer(ctx context.Context, opts ...grpc.ServerOption) *grpc.Server {
 	span := spanhelper.FromContext(ctx, "NewServer")
 	defer span.Finish()
-	if GetConfig().SecurityManager != nil {
+	if GetConfig().SecurityProvider != nil {
 		securitySpan := spanhelper.FromContext(span.Context(), "GetCertificate")
-		certificate := GetConfig().SecurityManager.GetCertificate()
-		cred := credentials.NewTLS(&tls.Config{
-			ClientAuth:   tls.RequireAndVerifyClientCert,
-			Certificates: []tls.Certificate{*certificate},
-			ClientCAs:    GetConfig().SecurityManager.GetCABundle(),
-		})
-		opts = append(opts, grpc.Creds(cred))
+		tlscfg, err := GetConfig().SecurityProvider.GetTLSConfig(ctx)
+		if err != nil {
+			return nil
+		}
+		opts = append(opts, grpc.Creds(credentials.NewTLS(tlscfg)))
 		securitySpan.Finish()
 	}
 
@@ -179,13 +176,12 @@ func (b *dialBuilder) DialContextFunc() dialContextFunc {
 			b.opts = append(b.opts, OpenTracingDialOptions()...)
 		}
 
-		if !b.insecure && GetConfig().SecurityManager != nil {
-			cred := credentials.NewTLS(&tls.Config{
-				InsecureSkipVerify: true,
-				Certificates:       []tls.Certificate{*GetConfig().SecurityManager.GetCertificate()},
-				RootCAs:            GetConfig().SecurityManager.GetCABundle(),
-			})
-			opts = append(opts, grpc.WithTransportCredentials(cred))
+		if !b.insecure && GetConfig().SecurityProvider != nil {
+			tlscfg, err := GetConfig().SecurityProvider.GetTLSConfig(ctx)
+			if err != nil {
+				return nil, err
+			}
+			opts = append(opts, grpc.WithTransportCredentials(credentials.NewTLS(tlscfg)))
 		} else {
 			opts = append(opts, grpc.WithInsecure())
 		}
@@ -224,7 +220,10 @@ func readDialConfig() (DialConfig, error) {
 	}
 
 	if !insecure {
-		rv.SecurityManager = security.NewManager()
+		rv.SecurityProvider, err = security.NewSpireProvider(security.SpireAgentUnixAddr)
+		if err != nil {
+			return DialConfig{}, err
+		}
 	}
 
 	return rv, nil
