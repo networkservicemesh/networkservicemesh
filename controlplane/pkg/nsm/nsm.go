@@ -367,11 +367,11 @@ func (srv *networkServiceManager) getConnectionParameters(xcon *crossconnect.Cro
 			hardwareAddress, err := m.DstHardwareAddress()
 			srcLocalSID, err2 := m.SrcLocalSID()
 			if err != nil || err2 != nil {
-				logrus.Errorf("Error retriving SRC/DST IP or VNI from Remote connection %v %v", err, err2)
+				logrus.Errorf("Error retrieving SRC/DST IP or VNI from Remote connection %v %v", err, err2)
 			} else {
 				srv.serviceRegistry.SIDAllocator().Restore(hardwareAddress, srcLocalSID)
 			}
-			// TODO: Add other mechanisms support
+			// Add other mechanisms support here
 		}
 	}
 	return connectionState, networkServiceName, endpointName

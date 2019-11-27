@@ -58,7 +58,7 @@ type nsmdServiceRegistry struct {
 	registryClientConnection *grpc.ClientConn
 	stopRedial               bool
 	vniAllocator             vni.VniAllocator
-	sidAllocator             sid.SIDAllocator
+	sidAllocator             sid.Allocator
 	registryAddress          string
 }
 
@@ -246,7 +246,7 @@ func (impl *nsmdServiceRegistry) VniAllocator() vni.VniAllocator {
 	return impl.vniAllocator
 }
 
-func (impl *nsmdServiceRegistry) SIDAllocator() sid.SIDAllocator {
+func (impl *nsmdServiceRegistry) SIDAllocator() sid.Allocator {
 	return impl.sidAllocator
 }
 

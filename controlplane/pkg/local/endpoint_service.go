@@ -167,7 +167,6 @@ func (cce *endpointService) createLocalNSERequest(endpoint *registry.NSERegistra
 
 func (cce *endpointService) createRemoteNSMRequest(endpoint *registry.NSERegistration,
 	requestConn *connection.Connection, remoteMechanisms []*connection.Mechanism, clientConnection *model.ClientConnection) *networkservice.NetworkServiceRequest {
-
 	// Try Heal only if endpoint are same as for existing connection.
 	if clientConnection.ConnectionState == model.ClientConnectionHealing && endpoint == clientConnection.Endpoint {
 		if remoteDst := clientConnection.Xcon.GetRemoteDestination(); remoteDst != nil {

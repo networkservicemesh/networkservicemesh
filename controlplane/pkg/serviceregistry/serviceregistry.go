@@ -43,7 +43,7 @@ type ServiceRegistry interface {
 	WaitForForwarderAvailable(ctx context.Context, model model.Model, timeout time.Duration) error
 
 	VniAllocator() vni.VniAllocator
-	SIDAllocator() sid.SIDAllocator
+	SIDAllocator() sid.Allocator
 
 	NewWorkspaceProvider() WorkspaceLocationProvider
 }

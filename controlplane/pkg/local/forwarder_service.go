@@ -133,7 +133,7 @@ func (cce *forwarderService) Request(ctx context.Context, request *networkservic
 
 // prepareRemoteMechanisms fills mechanism properties
 func (cce *forwarderService) prepareRemoteMechanisms(request *networkservice.NetworkServiceRequest, dp *model.Forwarder) []*connection.Mechanism {
-	var mechanisms []*connection.Mechanism
+	mechanisms := []*connection.Mechanism{}
 
 	for _, mechanism := range dp.RemoteMechanisms {
 		m := mechanism.Clone()

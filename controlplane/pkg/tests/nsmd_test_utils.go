@@ -155,11 +155,11 @@ type nsmdTestServiceRegistry struct {
 	testForwarderConnection *testForwarderConnection
 	localTestNSE            networkservice.NetworkServiceClient
 	vniAllocator            vni.VniAllocator
-	sidAllocator            sid.SIDAllocator
+	sidAllocator            sid.Allocator
 	rootDir                 string
 }
 
-func (impl *nsmdTestServiceRegistry) SIDAllocator() sid.SIDAllocator {
+func (impl *nsmdTestServiceRegistry) SIDAllocator() sid.Allocator {
 	return impl.sidAllocator
 }
 

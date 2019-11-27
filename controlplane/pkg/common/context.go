@@ -142,6 +142,11 @@ func ModelConnection(ctx context.Context) *model.ClientConnection {
 	return conn.(*model.ClientConnection)
 }
 
+// WithRemoteMechanisms -
+//   Wraps 'parent' in a new Context that has the remote mechanisms
+//   using Context.Value(...) and returns the result.
+//   Note: any previously existing value will be overwritten.
+//
 func WithRemoteMechanisms(parent context.Context, mechanisms []*connection.Mechanism) context.Context {
 	if parent == nil {
 		parent = context.Background()
@@ -149,6 +154,10 @@ func WithRemoteMechanisms(parent context.Context, mechanisms []*connection.Mecha
 	return context.WithValue(parent, remoteMechanisms, mechanisms)
 }
 
+// RemoteMechanisms -
+//    Returns a Mechanism from:
+//      ctx context.Context
+//    If any is present, otherwise nil
 func RemoteMechanisms(ctx context.Context) []*connection.Mechanism {
 	value := ctx.Value(remoteMechanisms)
 	if value == nil {

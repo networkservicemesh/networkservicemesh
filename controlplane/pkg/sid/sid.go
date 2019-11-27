@@ -14,6 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package sid - generate unique sid for connection (fd25::<connectionId>:<nextIndex>)
 package sid
 
 import (
@@ -25,9 +26,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// SIDPrefix - subnet for generated sid's
 const SIDPrefix = "fd25::"
 
-type SIDAllocator interface {
+// Allocator - generating unique SID for connection
+type Allocator interface {
 	SID(requestID string) string
 	Restore(hardwareAddr, sid string)
 }
@@ -37,7 +40,8 @@ type sidAllocator struct {
 	sync.Mutex
 }
 
-func NewSIDAllocator() SIDAllocator {
+// NewSIDAllocator - creates sid allocator
+func NewSIDAllocator() Allocator {
 	return &sidAllocator{
 		lastSID: make(map[string]uint32),
 	}
@@ -59,10 +63,6 @@ func (a *sidAllocator) Restore(requestID, sid string) {
 	parsedSID := net.ParseIP(sid)
 	intSID := binary.BigEndian.Uint16(parsedSID[len(parsedSID)-2:])
 	a.lastSID[requestID] = uint32(intSID)
-}
-
-func GenerateHostIP(requestID string) string {
-	return fmt.Sprintf("%s%x", transformRequestID(requestID), 1)
 }
 
 func transformRequestID(requestID string) string {

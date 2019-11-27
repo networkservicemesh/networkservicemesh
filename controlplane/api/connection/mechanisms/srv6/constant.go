@@ -35,9 +35,9 @@ const (
 	SrcLocalSID = "src_localsid"
 	// DstLocalSID - dst LocalSID
 	DstLocalSID = "dst_localsid"
-	// SrcLocalSID -  src host unique LocalSID
+	// SrcHostLocalSID -  src host unique LocalSID
 	SrcHostLocalSID = "src_host_localsid"
-	// DstLocalSID - dst host unique LocalSID
+	// DstHostLocalSID - dst host unique LocalSID
 	DstHostLocalSID = "dst_host_localsid"
 	// SrcHardwareAddress -  src hw address
 	SrcHardwareAddress = "src_hw_addr"

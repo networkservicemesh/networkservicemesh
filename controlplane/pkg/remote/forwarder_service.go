@@ -80,7 +80,7 @@ func (cce *forwarderService) findMechanism(mechanismPreferences []*connection.Me
 	return nil
 }
 
-func (cce *forwarderService) selectRemoteMechanism(conn *connection.Connection, request *networkservice.NetworkServiceRequest, dp *model.Forwarder) (*connection.Mechanism, error) {
+func (cce *forwarderService) selectRemoteMechanism(request *networkservice.NetworkServiceRequest, dp *model.Forwarder) (*connection.Mechanism, error) {
 	var mechanism *connection.Mechanism
 	var dpMechanism *connection.Mechanism
 
@@ -146,19 +146,18 @@ func (cce *forwarderService) selectRemoteMechanism(conn *connection.Connection, 
 		parameters[srv6.DstHardwareAddress] = dpParameters[srv6.SrcHardwareAddress]
 		parameters[srv6.DstHostIP] = dpParameters[srv6.SrcHostIP]
 		parameters[srv6.DstHostLocalSID] = dpParameters[srv6.SrcHostLocalSID]
-		parameters[srv6.DstBSID] = cce.serviceRegistry.SIDAllocator().SID(conn.GetId())
-		parameters[srv6.DstLocalSID] = cce.serviceRegistry.SIDAllocator().SID(conn.GetId())
+		parameters[srv6.DstBSID] = cce.serviceRegistry.SIDAllocator().SID(request.GetConnection().GetId())
+		parameters[srv6.DstLocalSID] = cce.serviceRegistry.SIDAllocator().SID(request.GetConnection().GetId())
 	}
 
 	logrus.Infof("NSM:(5.1) Remote mechanism selected %v", mechanism)
 	return mechanism, nil
-
 }
 
 func (cce *forwarderService) updateMechanism(request *networkservice.NetworkServiceRequest, dp *model.Forwarder) error {
 	conn := request.GetConnection()
 	// 5.x
-	if m, err := cce.selectRemoteMechanism(conn, request, dp); err == nil {
+	if m, err := cce.selectRemoteMechanism(request, dp); err == nil {
 		conn.Mechanism = m.Clone()
 	} else {
 		return err
