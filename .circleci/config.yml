@@ -218,6 +218,7 @@ jobs:
             export CONTAINERS=(${CONTAINERS[@]} test-common vpp-test-common nsm-coredns)
             export CONTAINERS=(${CONTAINERS[@]} kernel-forwarder)
             export CONTAINERS=(${CONTAINERS[@]} spire-registration)
+            export CONTAINERS=(${CONTAINERS[@]} prefix-service)
             echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
             for c in ${CONTAINERS[@]}; do
               docker pull ${PULL_REPO}/${c}:${PULL_TAG}

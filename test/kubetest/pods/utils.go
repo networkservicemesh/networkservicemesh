@@ -8,6 +8,11 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"github.com/networkservicemesh/networkservicemesh/sdk/prefix_pool"
+)
+
+const (
+	configVolumeName = "nsm-config-volume"
 )
 
 var ZeroGraceTimeout int64 = 0
@@ -46,6 +51,26 @@ func createDefaultForwarderResources() v1.ResourceRequirements {
 		Limits: v1.ResourceList{
 			v1.ResourceCPU: resource.NewScaledQuantity(1, 0).DeepCopy(),
 		},
+	}
+}
+
+func nsmConfigVolume() v1.Volume {
+	return v1.Volume{
+		Name: configVolumeName,
+		VolumeSource: v1.VolumeSource{
+			ConfigMap: &v1.ConfigMapVolumeSource{
+				LocalObjectReference: v1.LocalObjectReference{
+					Name: "nsm-config",
+				},
+			},
+		},
+	}
+}
+
+func nsmConfigVolumeMount() v1.VolumeMount {
+	return v1.VolumeMount{
+		Name:      configVolumeName,
+		MountPath: prefix_pool.NsmConfigDir,
 	}
 }
 

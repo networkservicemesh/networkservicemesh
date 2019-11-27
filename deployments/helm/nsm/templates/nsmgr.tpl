@@ -61,11 +61,11 @@ spec:
           volumeMounts:
             - name: nsm-socket
               mountPath: /var/lib/networkservicemesh
-            - name: nsm-plugin-socket
-              mountPath: /var/lib/networkservicemesh/plugins
             - name: spire-agent-socket
               mountPath: /run/spire/sockets
               readOnly: true
+            - name: nsm-config-volume
+              mountPath: /var/lib/networkservicemesh/config
           livenessProbe:
             httpGet:
               path: /liveness
@@ -87,8 +87,6 @@ spec:
             - name: spire-agent-socket
               mountPath: /run/spire/sockets
               readOnly: true
-            - name: nsm-plugin-socket
-              mountPath: /var/lib/networkservicemesh/plugins
           env:
             - name: INSECURE
 {{- if .Values.insecure }}
@@ -125,10 +123,9 @@ spec:
             path: /var/lib/networkservicemesh
             type: DirectoryOrCreate
           name: nsm-socket
-        - hostPath:
-            path: /var/lib/networkservicemesh/plugins
-            type: DirectoryOrCreate
-          name: nsm-plugin-socket
+        - name: nsm-config-volume
+          configMap:
+            name: nsm-config
         - hostPath:
             path: /run/spire/sockets
             type: DirectoryOrCreate

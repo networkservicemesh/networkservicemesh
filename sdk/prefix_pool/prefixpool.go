@@ -27,6 +27,7 @@ type PrefixPool interface {
 	ExcludePrefixes(excludedPrefixes []string) ([]string, error)
 	ReleaseExcludedPrefixes(excludedPrefixes []string) error
 }
+
 type prefixPool struct {
 	sync.RWMutex
 

@@ -11,38 +11,30 @@ import (
 	"sync"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
-	sdkcommon "github.com/networkservicemesh/networkservicemesh/sdk/common"
-
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
-
-	"github.com/pkg/errors"
-
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
-
 	"github.com/golang/protobuf/ptypes/empty"
+	sdkcommon "github.com/networkservicemesh/networkservicemesh/sdk/common"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 
-	"github.com/networkservicemesh/networkservicemesh/pkg/probes"
-
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsmdapi"
-	pluginsapi "github.com/networkservicemesh/networkservicemesh/controlplane/api/plugins"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	nsm2 "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/plugins"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/vni"
 	"github.com/networkservicemesh/networkservicemesh/forwarder/api/forwarder"
+	"github.com/networkservicemesh/networkservicemesh/pkg/probes"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 	"github.com/networkservicemesh/networkservicemesh/sdk/prefix_pool"
 )
 
@@ -154,61 +146,6 @@ func (impl *nsmdTestServiceDiscovery) GetEndpoints(ctx context.Context, empty *e
 			},
 		},
 	}, nil
-}
-
-type testPluginRegistry struct {
-	connectionPluginManager *testConnectionPluginManager
-}
-
-type testConnectionPluginManager struct {
-	plugins.PluginManager
-	plugins []pluginsapi.ConnectionPluginServer
-}
-
-func newTestPluginRegistry() *testPluginRegistry {
-	return &testPluginRegistry{
-		connectionPluginManager: &testConnectionPluginManager{},
-	}
-}
-
-func (pr *testPluginRegistry) Start(ctx context.Context) error {
-	return nil
-}
-
-func (pr *testPluginRegistry) Stop() error {
-	return nil
-}
-
-func (pr *testPluginRegistry) GetConnectionPluginManager() plugins.ConnectionPluginManager {
-	return pr.connectionPluginManager
-}
-
-func (cpm *testConnectionPluginManager) addPlugin(plugin pluginsapi.ConnectionPluginServer) {
-	cpm.plugins = append(cpm.plugins, plugin)
-}
-
-func (cpm *testConnectionPluginManager) UpdateConnection(ctx context.Context, wrapper *connection.Connection) (*connection.Connection, error) {
-	for _, plugin := range cpm.plugins {
-		var err error
-		wrapper, err = plugin.UpdateConnection(ctx, wrapper)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return wrapper, nil
-}
-
-func (cpm *testConnectionPluginManager) ValidateConnection(ctx context.Context, wrapper *connection.Connection) (*pluginsapi.ConnectionValidationResult, error) {
-	for _, plugin := range cpm.plugins {
-		result, err := plugin.ValidateConnection(ctx, wrapper)
-		if err != nil {
-			return nil, err
-		}
-		if result.GetStatus() != pluginsapi.ConnectionValidationStatus_SUCCESS {
-			return result, nil
-		}
-	}
-	return &pluginsapi.ConnectionValidationResult{Status: pluginsapi.ConnectionValidationStatus_SUCCESS}, nil
 }
 
 type nsmdTestServiceRegistry struct {
@@ -434,7 +371,6 @@ type nsmdFullServer interface {
 type nsmdFullServerImpl struct {
 	apiRegistry               *testApiRegistry
 	nseRegistry               *nsmdTestServiceDiscovery
-	pluginRegistry            *testPluginRegistry
 	serviceRegistry           *nsmdTestServiceRegistry
 	TestModel                 model.Model
 	manager                   nsm2.NetworkServiceManager
@@ -556,7 +492,6 @@ func newNSMDFullServerAt(ctx context.Context, nsmgrName string, storage *sharedS
 	srv := &nsmdFullServerImpl{}
 	srv.apiRegistry = newTestApiRegistry()
 	srv.nseRegistry = newNSMDTestServiceDiscovery(srv.apiRegistry, nsmgrName, storage)
-	srv.pluginRegistry = newTestPluginRegistry()
 	srv.rootDir = rootDir
 
 	prefixPool, err := prefix_pool.NewPrefixPool("10.20.1.0/24")
@@ -575,7 +510,7 @@ func newNSMDFullServerAt(ctx context.Context, nsmgrName string, storage *sharedS
 	}
 
 	srv.TestModel = model.NewModel()
-	srv.manager = nsm.NewNetworkServiceManager(ctx, srv.TestModel, srv.serviceRegistry, srv.pluginRegistry)
+	srv.manager = nsm.NewNetworkServiceManager(ctx, srv.TestModel, srv.serviceRegistry)
 
 	// Choose a public API listener
 	sock, err := srv.apiRegistry.NewPublicListener("127.0.0.1:0")

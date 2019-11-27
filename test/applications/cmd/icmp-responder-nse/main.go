@@ -63,7 +63,8 @@ func main() {
 	endpoints = append(endpoints, ipamEndpoint)
 
 	routeAddr := endpoint.CreateRouteMutator([]string{"8.8.8.8/30"})
-	if common.IsIPv6(ipamEndpoint.PrefixPool.GetPrefixes()[0]) {
+	prefixes := ipamEndpoint.PrefixPool.GetPrefixes()
+	if len(prefixes) > 0 && common.IsIPv6(prefixes[0]) {
 		routeAddr = endpoint.CreateRouteMutator([]string{"2001:4860:4860::8888/126"})
 	}
 	if flags.Routes {
