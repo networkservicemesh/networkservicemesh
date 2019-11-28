@@ -22,6 +22,12 @@ retest:  # Allow to do test re-run if some kind of failures are detected, line C
     - "node(s) didn't match node selector"
 reporting:
   junit-report: "results/junit.xml"
+health-check:
+  - message: "Branch is not up to date"
+    interval: 60  # 1 minute
+    run: |
+      git fetch --all
+      git status -uno | grep -q "Your branch is up to date"
 executions:
   - name: "Single cluster tests"
     env:

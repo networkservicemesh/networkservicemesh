@@ -275,6 +275,9 @@ func (ctx *executionContext) performExecution() error {
 	statTicker := time.NewTicker(60 * time.Second)
 	defer statTicker.Stop()
 
+	healthCheckChannel := RunHealthChecks(ctx.cloudTestConfig.HealthCheck)
+	defer close(healthCheckChannel)
+
 	for len(ctx.tasks) > 0 || len(ctx.running) > 0 {
 		// WE take 1 test task from list and do execution.
 		ctx.assignTasks()
@@ -298,6 +301,8 @@ func (ctx *executionContext) performExecution() error {
 			return errors.New("termination request is received")
 		case <-timeoutCtx.Done():
 			return errors.Errorf("global timeout elapsed: %v seconds", ctx.cloudTestConfig.Timeout)
+		case err := <-healthCheckChannel:
+			return errors.Wrapf(err, "health check probe failed : %v", err.Error())
 		case <-statTicker.C:
 			ctx.printStatistics()
 		}
@@ -1450,4 +1455,34 @@ func initCmd(rootCmd *cloudTestCmd) {
 }
 
 func initConfig() {
+}
+
+// RunHealthChecks - Start goroutines with health check probes
+func RunHealthChecks(checkConfigs []*config.HealthCheckConfig) chan error {
+	errCh := make(chan error)
+	ready := true
+
+	for i := range checkConfigs {
+		go func(c int) {
+			config := checkConfigs[c]
+			for {
+				interval := time.Duration(config.Interval) * time.Second
+				<-time.After(interval)
+
+				timeoutCtx, cancel := context.WithTimeout(context.Background(), interval)
+				defer cancel()
+
+				for _, cmd := range utils.ParseScript(config.Run) {
+					_, err := utils.RunCommand(timeoutCtx, cmd, "", func(s string) {}, bufio.NewWriter(&strings.Builder{}), nil, nil, false)
+					if ready && err != nil {
+						ready = false
+						errCh <- errors.Errorf(config.Message)
+						return
+					}
+				}
+			}
+		}(i)
+	}
+
+	return errCh
 }
