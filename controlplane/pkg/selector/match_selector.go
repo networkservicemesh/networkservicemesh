@@ -94,7 +94,7 @@ func (m *matchSelector) matchEndpoint(nsLabels map[string]string, ns *registry.N
 }
 
 func (m *matchSelector) SelectEndpoint(requestConnection *connection.Connection, ns *registry.NetworkService, networkServiceEndpoints []*registry.NetworkServiceEndpoint) *registry.NetworkServiceEndpoint {
-	logrus.Infof("Selecting endpoint for %s with %d matches. \n", requestConnection.GetNetworkService(), len(ns.GetMatches()))
+	logrus.Infof("Selecting endpoint for %s with %d matches.", requestConnection.GetNetworkService(), len(ns.GetMatches()))
 	if len(ns.GetMatches()) == 0 {
 		return m.roundRobin.SelectEndpoint(nil, ns, networkServiceEndpoints)
 	}
