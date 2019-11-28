@@ -21,7 +21,7 @@ CLUSTER_CONFIGS = $(CLUSTER_CONFIG_ROLE) $(CLUSTER_CONFIG_CRD) $(CLUSTER_CONFIG_
 	nsm-configmap
 
 ifeq ($(NSM_NAMESPACE),)
-NSM_NAMESPACE = `cat "${K8S_CONF_DIR}/${CLUSTER_CONFIG_NAMESPACE}.yaml" | awk '/name:/ {print $$2}'`
+NSM_NAMESPACE := $(shell cat "${K8S_CONF_DIR}/${CLUSTER_CONFIG_NAMESPACE}.yaml" | awk '/name:/ {print $$2}')
 endif
 CONTAINER_REPO?=networkservicemesh
 CONTAINER_TAG?=master

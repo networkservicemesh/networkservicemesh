@@ -105,13 +105,13 @@ func (s *spanHelper) LogObject(attribute string, value interface{}) {
 	}
 
 	if s.span != nil {
-		s.span.LogFields(log.Object(attribute, msg), log.String("stacktrace", string(debug.Stack())))
+		s.span.LogFields(log.Object(attribute, msg))
 	}
 	logrus.Infof(">><<%s %s=%v span=%v", getPrefix("--", traceDepth(s.ctx)), attribute, msg, s.span)
 }
 func (s *spanHelper) LogValue(attribute string, value interface{}) {
 	if s.span != nil {
-		s.span.LogFields(log.Object(attribute, value), log.String("stacktrace", string(debug.Stack())))
+		s.span.LogFields(log.Object(attribute, value))
 	}
 	logrus.Infof(">><<%s %s=%v span=%v", getPrefix("--", traceDepth(s.ctx)), attribute, value, s.span)
 }
