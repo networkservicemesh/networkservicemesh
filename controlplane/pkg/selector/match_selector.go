@@ -46,7 +46,7 @@ func isSubset(A, B, nsLabels map[string]string) bool {
 	for k, v := range B {
 		if A[k] != v {
 			result := ProcessLabels(v, nsLabels)
-			if A[k] != result{
+			if A[k] != result {
 				return false
 			}
 		}
@@ -103,20 +103,20 @@ func (m *matchSelector) SelectEndpoint(requestConnection *connection.Connection,
 }
 
 func ProcessLabels(str string, vars interface{}) string {
-    tmpl, err := template.New("tmpl").Parse(str)
+	tmpl, err := template.New("tmpl").Parse(str)
 
-    if err != nil {
-        panic(err)
-    }
-    return process(tmpl, vars)
+	if err != nil {
+		panic(err)
+	}
+	return process(tmpl, vars)
 }
 
 func process(t *template.Template, vars interface{}) string {
-    var tmplBytes bytes.Buffer
+	var tmplBytes bytes.Buffer
 
-    err := t.Execute(&tmplBytes, vars)
-    if err != nil {
-        panic(err)
-    }
-    return tmplBytes.String()
+	err := t.Execute(&tmplBytes, vars)
+	if err != nil {
+		panic(err)
+	}
+	return tmplBytes.String()
 }
