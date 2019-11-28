@@ -26,8 +26,7 @@ health-check:
   - message: "Branch is not up to date"
     interval: 60  # 1 minute
     run: |
-      git fetch --all
-      git status -uno | grep -q "Your branch is up to date"
+      ./.circleci/check_repo_uptodated.sh
 executions:
   - name: "Single cluster tests"
     env:

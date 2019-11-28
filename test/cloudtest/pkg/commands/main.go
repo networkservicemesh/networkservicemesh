@@ -302,7 +302,7 @@ func (ctx *executionContext) performExecution() error {
 		case <-timeoutCtx.Done():
 			return errors.Errorf("global timeout elapsed: %v seconds", ctx.cloudTestConfig.Timeout)
 		case err := <-healthCheckChannel:
-			return errors.Wrapf(err, "health check probe failed : %v", err.Error())
+			return errors.Wrapf(err, "health check probe failed")
 		case <-statTicker.C:
 			ctx.printStatistics()
 		}
@@ -1473,7 +1473,8 @@ func RunHealthChecks(checkConfigs []*config.HealthCheckConfig) chan error {
 				defer cancel()
 
 				for _, cmd := range utils.ParseScript(config.Run) {
-					_, err := utils.RunCommand(timeoutCtx, cmd, "", func(s string) {}, bufio.NewWriter(&strings.Builder{}), nil, nil, false)
+					builder := &strings.Builder{}
+					_, err := utils.RunCommand(timeoutCtx, cmd, "", func(s string) {}, bufio.NewWriter(builder), nil, nil, false)
 					if ready && err != nil {
 						ready = false
 						errCh <- errors.Errorf(config.Message)
