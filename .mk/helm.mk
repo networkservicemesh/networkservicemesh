@@ -16,6 +16,7 @@
 CHARTS=$(shell ls deployments/helm)
 INSTALL_CHARTS=$(addprefix helm-install-,$(CHARTS))
 DELETE_CHARTS=$(addprefix helm-delete-,$(CHARTS))
+HELM_TIMEOUT?=300
 
 .PHONY: helm-init
 helm-init:
@@ -29,7 +30,7 @@ $(INSTALL_CHARTS):
 	# but that seems more intrusive than this hack. Consider changing to global if the charts
 	# get even more complicated
 	helm install --name=${CHART} \
-	--wait --timeout 300 \
+	--atomic --timeout ${HELM_TIMEOUT} \
 	--set org="${CONTAINER_REPO}",tag="${CONTAINER_TAG}" \
 	--set forwardingPlane="${FORWARDING_PLANE}" \
 	--set insecure="${INSECURE}" \

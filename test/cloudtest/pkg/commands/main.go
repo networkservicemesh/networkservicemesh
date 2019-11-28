@@ -892,12 +892,16 @@ func runOnFailScript(ctx context.Context, script string, env []string, writer *b
 	if err != nil {
 		return err
 	}
+	var errs []string
 	for _, cmd := range utils.ParseScript(script) {
 		_, err := utils.RunCommand(ctx, cmd, root, logger, writer, env, map[string]string{}, false)
 		if err != nil {
 			logrus.Errorf("OnFail: an error during run cmd: %v, err: %v", cmd, err.Error())
-			return err
+			errs = append(errs, err.Error())
 		}
+	}
+	if len(errs) > 0 {
+		return errors.WithMessage(errors.New(strings.Join(errs, "\n")), "Error(s) from 'on fail' script")
 	}
 	return nil
 }
