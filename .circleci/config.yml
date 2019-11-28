@@ -25,6 +25,9 @@ jobs:
     steps:
       - checkout
       - run:
+          name: Check commit message for tag "[skip build]"
+          command: ./scripts/check_commit_pattern.sh '\[skip[ _-]build\]'
+      - run:
           name: Install Shellcheck
           command: ./.circleci/install-shellcheck.sh
       - run:
@@ -106,6 +109,9 @@ jobs:
       - image: circleci/golang:1.13-stretch
     steps:
       - checkout
+      - run:
+          name: Check commit message for tag "[skip tests]"
+          command: ./scripts/check_commit_pattern.sh '\[skip[ _-]tests\]'
       - setup_remote_docker:
           docker_layer_caching: true
       - skip_on_pattern
