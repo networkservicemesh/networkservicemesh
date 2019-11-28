@@ -119,17 +119,20 @@ func (p *healProcessor) Heal(ctx context.Context, clientConnection nsm.ClientCon
 func (p *healProcessor) CloseConnection(ctx context.Context, conn nsm.ClientConnection) error {
 	var err error
 
-	var contextCancelFunc func()
-	var isHealing bool
+	// Cancell context after closing.
+	defer func() {
+		var contextCancelFunc func()
+		var isHealing bool
 
-	p.healCancellersMutex.Lock()
-	contextCancelFunc, isHealing = p.healCancellers[conn.GetID()]
-	delete(p.healCancellers, conn.GetID())
-	p.healCancellersMutex.Unlock()
+		p.healCancellersMutex.Lock()
+		contextCancelFunc, isHealing = p.healCancellers[conn.GetID()]
+		delete(p.healCancellers, conn.GetID())
+		p.healCancellersMutex.Unlock()
 
-	if isHealing {
-		contextCancelFunc()
-	}
+		if isHealing {
+			contextCancelFunc()
+		}
+	}()
 
 	if conn.GetConnectionSource().IsRemote() {
 		_, err = p.manager.RemoteManager().Close(ctx, conn.GetConnectionSource())

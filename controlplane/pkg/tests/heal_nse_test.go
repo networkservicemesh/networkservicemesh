@@ -124,9 +124,10 @@ func TestDeleteNSCWhileHealLocalNSE(t *testing.T) {
 
 	storage := NewSharedStorage()
 	healStartedChannel := make(chan struct{})
+	clientConnClosedChannel := make(chan struct{})
 
 	// We need to create server with testModel in order to synchronize with healing processor.
-	srv := NewNSMDFullServerWithModel(Worker, storage, NewTestModel(healStartedChannel))
+	srv := NewNSMDFullServerWithModel(Worker, storage, NewTestModel(healStartedChannel, clientConnClosedChannel))
 	defer srv.Stop()
 
 	prefixPool, err := prefix_pool.NewPrefixPool("10.20.1.0/24")
@@ -206,6 +207,8 @@ func TestDeleteNSCWhileHealLocalNSE(t *testing.T) {
 	<-healStartedChannel
 
 	srv.manager.CloseConnection(context.Background(), clientConnection1)
+
+	close(clientConnClosedChannel)
 
 	l1.WaitUpdate(4, timeout, t)
 
