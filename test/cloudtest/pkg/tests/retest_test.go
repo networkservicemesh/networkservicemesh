@@ -186,7 +186,6 @@ func TestRestartRequestRestartCluster(t *testing.T) {
 		"Re schedule task TestRequestRestart reason: rerun-request",
 		"Starting cluster ",
 		"Starting TestRequestRestart",
-		"Re schedule task TestRequestRestart reason: rerun-request",
 		"Test TestRequestRestart retry count 3 exceed: err: failed to run go test",
 	})
 }
