@@ -72,10 +72,9 @@ func TestRestartRequest(t *testing.T) {
 	logKeeper.CheckMessagesOrder(t, []string{
 		"Starting TestRequestRestart",
 		"Re schedule task TestRequestRestart reason: rerun-request",
-		"Starting TestRequestRestart",
-		"Re schedule task TestRequestRestart reason: rerun-request",
 		"Test TestRequestRestart retry count 2 exceed: err",
 	})
+	g.Expect(logKeeper.MessageCount("Re schedule task TestRequestRestart reason: rerun-request")).To(Equal(2))
 }
 
 func TestRestartRetestDestroyCluster(t *testing.T) {
@@ -180,15 +179,12 @@ func TestRestartRequestRestartCluster(t *testing.T) {
 
 	logKeeper.CheckMessagesOrder(t, []string{
 		"Starting TestRequestRestart",
-		"Warmup cluster operations: [a_provider-1] timeout: 1s",
 		"Reached a limit of re-tests per cluster instance",
 		"Destroying cluster",
-		"Re schedule task TestRequestRestart reason: rerun-request",
 		"Starting cluster ",
-		"Starting TestRequestRestart",
-		"Re schedule task TestRequestRestart reason: rerun-request",
 		"Test TestRequestRestart retry count 3 exceed: err: failed to run go test",
 	})
+	g.Expect(logKeeper.MessageCount("Re schedule task TestRequestRestart reason: rerun-request")).To(Equal(3))
 }
 
 func TestRestartRequestSkip(t *testing.T) {
@@ -241,9 +237,8 @@ func TestRestartRequestSkip(t *testing.T) {
 	logKeeper.CheckMessagesOrder(t, []string{
 		"Starting TestRequestRestart",
 		"Re schedule task TestRequestRestart reason: rerun-request",
-		"Starting TestRequestRestart",
-		"Re schedule task TestRequestRestart reason: rerun-request",
 		"Test TestRequestRestart retry count 2 exceed: err",
 		"Re schedule task TestRequestRestart reason: skipped",
 	})
+	g.Expect(logKeeper.MessageCount("Re schedule task TestRequestRestart reason: rerun-request")).To(Equal(2))
 }

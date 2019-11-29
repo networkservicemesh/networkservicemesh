@@ -70,6 +70,19 @@ func (lk *logKeeper) GetMessages() []string {
 	return messages
 }
 
+// MessageCount - how many times a message is present in log
+func (lk *logKeeper) MessageCount(message string) (count int) {
+	if message == "" {
+		return 0
+	}
+	for _, entry := range lk.loghook.AllEntries() {
+		if strings.Contains(entry.Message, message) {
+			count++
+		}
+	}
+	return
+}
+
 // CheckMessagesOrder - checks that messages are present in log in given oreder.
 func (lk *logKeeper) CheckMessagesOrder(t *testing.T, messages []string) bool {
 	if len(messages) == 0 {
@@ -82,7 +95,7 @@ func (lk *logKeeper) CheckMessagesOrder(t *testing.T, messages []string) bool {
 	for _, entry := range lk.loghook.AllEntries() {
 		msgs = append(msgs, fmt.Sprintf("\"%s\",\n", entry.Message))
 		if ind < len(messages) && strings.Contains(entry.Message, messages[ind]) {
-			matched = append(matched, fmt.Sprintf("'%s' contains in '%s'", messages[ind], entry.Message))
+			matched = append(matched, fmt.Sprintf("'%s' found in '%s'\n", messages[ind], entry.Message))
 			ind++
 			lastMatched = len(msgs) - 1
 			if ind == len(messages) {
