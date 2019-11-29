@@ -20,22 +20,32 @@ To start a `kind` cluster, just run the below command from root networkserviceme
 ```shell
 $ make kind-start
 Creating cluster "nsm" ...
- ✓ Ensuring node image (kindest/node:v1.13.3) 🖼
- ✓ Preparing nodes 📦📦📦
- ✓ Creating kubeadm config 📜
+ ✓ Ensuring node image (kindest/node:v1.16.3) 🖼
+ ✓ Preparing nodes 📦
+ ✓ Writing configuration 📜
  ✓ Starting control-plane 🕹️
+ ✓ Installing CNI 🔌
+ ✓ Installing StorageClass 💾
  ✓ Joining worker nodes 🚜
-Cluster creation complete. You can now use the cluster with:
+ ✓ Waiting ≤ 2m0s for control-plane = Ready ⏳
+ • Ready after 7s 💚
+Set kubectl context to "kind-nsm"
+You can now use your cluster with:
 
-export KUBECONFIG="$(kind get kubeconfig-path --name="nsm")"
-kubectl cluster-info
+kubectl cluster-info --context kind-nsm
+
+Thanks for using kind! 😊
 node/nsm-control-plane untainted
 ```
 
-As seen on the last lines, to point your `kubectl` command to the new cluster one should run:
+Using `kubectl` one can verify that the context is set to `kind-nsm`.
 
 ```shell
-export KUBECONFIG="$(kind get kubeconfig-path --name="nsm")"
+$ kubectl config get-contexts
+CURRENT   NAME                 CLUSTER          AUTHINFO         NAMESPACE
+          docker-desktop       docker-desktop   docker-desktop
+          docker-for-desktop   docker-desktop   docker-desktop
+*         kind-nsm             kind-nsm         kind-nsm
 ```
 
 Deleting the cluster is as easy as:
@@ -43,6 +53,4 @@ Deleting the cluster is as easy as:
 ```shell
 $ make kind-stop
 Deleting cluster "nsm" ...
-$KUBECONFIG is still set to use $HOME/.kube/kind-config-nsm even though that file has been deleted, remember to unset it
 ```
-
