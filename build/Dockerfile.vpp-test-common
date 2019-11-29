@@ -1,8 +1,10 @@
 ARG VPP_AGENT
 FROM ${VPP_AGENT} as runtime
 RUN rm /opt/vpp-agent/dev/etcd.conf; echo "disabled: true" > /opt/vpp-agent/dev/linux-plugin.conf
+RUN  mkdir -p /run/vpp
 COPY startup.conf /etc/vpp/vpp.conf
 COPY supervisord.conf /opt/vpp-agent/dev/supervisor.conf
+COPY govpp.conf /opt/vpp-agent/dev/govpp.conf
 COPY run.sh /bin/vpp-run.sh
 
 RUN mkdir /tmp/vpp/
