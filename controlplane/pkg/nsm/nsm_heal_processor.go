@@ -121,11 +121,8 @@ func (p *healProcessor) CloseConnection(ctx context.Context, conn nsm.ClientConn
 
 	// Cancell context after closing.
 	defer func() {
-		var contextCancelFunc func()
-		var isHealing bool
-
 		p.healCancellersMutex.Lock()
-		contextCancelFunc, isHealing = p.healCancellers[conn.GetID()]
+		contextCancelFunc, isHealing := p.healCancellers[conn.GetID()]
 		delete(p.healCancellers, conn.GetID())
 		p.healCancellersMutex.Unlock()
 
