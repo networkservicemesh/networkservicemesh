@@ -46,7 +46,23 @@ type ExecutionConfig struct {
 	Env             []string `yaml:"env"`              // Additional environment variables
 	Run             string   `yaml:"run"`              // A script to execute against required cluster
 	OnFail          string   `yaml:"on_fail"`          // A script to execute against required cluster, called if task failed
-	OnFinish        string   `yaml:"on-finish"`        // A script to execute against required cluster, called when execution config is done on cluster instance.
+	BeforeAll       string   `yaml:"before-all"`       // A script to execute against required cluster, called when execution config is done on cluster instance.
+	AfterAll        string   `yaml:"after-all"`        // A script to execute against required cluster, called when execution config is done on cluster instance.
+}
+
+type RetestConfig struct {
+	// Executions, every execution execute some tests agains configured set of clusters
+	Patterns         []string `yaml:"pattern"`         // Restart test output pattern, to treat as a test restart request, test will be added back for execution.
+	RestartCount     int      `yaml:"count"`           // Allow to restart only few times using RestartCode check.
+	WarmupTimeout    int      `yaml:"warmup-time"`     // A cluster instance should warmup for some time if this is happening.
+	AllowedRetests   int      `yaml:"allowed-retests"` // A number of allowed retests for cluster, if reached, cluster instance will be restarted.
+	RetestFailResult string   `yaml:"fail-result"`     // A status if all attempts are failed, usual is skipped. if value != skip, it will be failed.
+}
+
+type HealthCheckConfig struct {
+	Interval int64  `yaml:"interval"` // Interval between Health checks in seconds
+	Run      string `yaml:"run"`      // A script to execute with health check purpose
+	Message  string `yaml:"message"`
 }
 
 type CloudTestConfig struct {
@@ -56,8 +72,10 @@ type CloudTestConfig struct {
 	Reporting  struct {
 		JUnitReportFile string `yaml:"junit-report"` // A junit report file location, relative to test root folder.
 	} `yaml:"reporting"` // A reporting options.
+	HealthCheck []*HealthCheckConfig `yaml:"health-check"` // Health checks options.
+	Executions  []*ExecutionConfig   `yaml:"executions"`
+	Timeout     int64                `yaml:"timeout"` // Global timeout in seconds
+	Imports     []string             `yaml:"import"`  // A set of configurations for import
 
-	Executions []*ExecutionConfig `yaml:"executions"`
-	Timeout    int64              `yaml:"timeout"` // Global timeout in seconds
-	Imports    []string           `yaml:"import"`  // A set of configurations for import
+	RetestConfig RetestConfig `yaml:"retest"`
 }

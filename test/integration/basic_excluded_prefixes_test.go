@@ -11,6 +11,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/prefixcollector"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
+	"github.com/networkservicemesh/networkservicemesh/utils"
 )
 
 func TestExcludePrefixCheck(t *testing.T) {
@@ -21,21 +22,24 @@ func TestExcludePrefixCheck(t *testing.T) {
 		return
 	}
 
-	k8s, err := kubetest.NewK8s(g, kubetest.DefaultClear)
+	utils.EnvVar(prefixcollector.ExcludedPrefixesEnv).Set("172.16.1.0/24")
+	if kubetest.UseIPv6() {
+		utils.EnvVar(prefixcollector.ExcludedPrefixesEnv).Set("100::/64")
+	}
+
+	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResources)
 	defer k8s.Cleanup()
 	g.Expect(err).To(BeNil())
 
 	nodesCount := 1
 
 	variables := map[string]string{
-		nsmd.NsmdDeleteLocalRegistry:        "true",
-		prefixcollector.ExcludedPrefixesEnv: "172.16.1.0/24",
+		nsmd.NsmdDeleteLocalRegistry: "true",
 	}
 
 	if k8s.UseIPv6() {
 		variables = map[string]string{
-			nsmd.NsmdDeleteLocalRegistry:        "true",
-			prefixcollector.ExcludedPrefixesEnv: "100::/64",
+			nsmd.NsmdDeleteLocalRegistry: "true",
 		}
 	}
 

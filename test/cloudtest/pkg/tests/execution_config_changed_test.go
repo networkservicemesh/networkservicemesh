@@ -13,7 +13,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/utils"
 )
 
-func TestCloudTestOnExecutionConfigFinished(t *testing.T) {
+func TestCloudTestAfterAllWorksCorrectly(t *testing.T) {
 	g := NewWithT(t)
 
 	testConfig := &config.CloudTestConfig{}
@@ -49,7 +49,7 @@ func TestCloudTestOnExecutionConfigFinished(t *testing.T) {
 		Kind:     "shell",
 		Run:      "echo first",
 		Env:      []string{"A=worked", "B=$(test-name)"},
-		OnFinish: "echo ${B} ${A}",
+		AfterAll: "echo ${B} ${A}",
 	})
 	testConfig.Executions = append(testConfig.Executions, &config.ExecutionConfig{
 		Name:    "test2",
@@ -67,5 +67,5 @@ func TestCloudTestOnExecutionConfigFinished(t *testing.T) {
 	path := path.Join(tmpDir, provider.Name+"-1", "007-test2-run.log")
 	content, err := ioutil.ReadFile(path)
 	g.Expect(err).Should(BeNil())
-	g.Expect(string(content)).Should(ContainSubstring("OnFinish worked"))
+	g.Expect(string(content)).Should(ContainSubstring("AfterAll worked"))
 }

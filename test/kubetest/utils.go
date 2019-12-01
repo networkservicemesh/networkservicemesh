@@ -739,7 +739,7 @@ func waitWebhookPod(k8s *K8s, name string, timeout time.Duration) *v1.Pod {
 			for i := 0; i < len(list); i++ {
 				p := &list[i]
 				if strings.Contains(p.Name, name) {
-					result, err := blockUntilPodReady(k8s.clientset, timeout, p)
+					result, err := k8s.blockUntilPodReady(k8s.clientset, timeout, p)
 					k8s.g.Expect(err).Should(BeNil())
 					return result
 				}
@@ -972,4 +972,23 @@ func ExpectNSEsCountToBe(k8s *K8s, countWas, countExpected int) {
 
 	k8s.g.Expect(err).To(BeNil())
 	k8s.g.Expect(len(nses)).To(Equal(countExpected), fmt.Sprint(nses))
+}
+
+// ExpectNSMsCountToBe checks if nsms count becomes 'countExpected' after a time
+func ExpectNSMsCountToBe(k8s *K8s, countWas, countExpected int) {
+	if countWas == countExpected {
+		<-time.After(10 * time.Second)
+	} else {
+		for i := 0; i < 10; i++ {
+			if nsmList, err := k8s.GetNSMList(); err == nil && len(nsmList) == countExpected {
+				break
+			}
+			<-time.After(1 * time.Second)
+		}
+	}
+
+	nsmList, err := k8s.GetNSMList()
+
+	k8s.g.Expect(err).To(BeNil())
+	k8s.g.Expect(len(nsmList)).To(Equal(countExpected), fmt.Sprint(nsmList))
 }

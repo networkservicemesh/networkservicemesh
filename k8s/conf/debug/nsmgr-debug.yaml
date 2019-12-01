@@ -20,8 +20,6 @@ spec:
           volumeMounts:
             - name: kubelet-socket
               mountPath: /var/lib/kubelet/device-plugins
-            - name: nsm-socket
-              mountPath: /var/lib/networkservicemesh
         - name: nsmd
           image: networkservicemesh/devenv:latest
           imagePullPolicy: IfNotPresent
@@ -30,15 +28,18 @@ spec:
               mountPath: /var/lib/networkservicemesh
             - name: sources
               mountPath: /go/src
-            - name: nsm-plugin-socket
-              mountPath: /var/lib/networkservicemesh/plugins
         - name: nsmd-k8s
           image: networkservicemesh/nsmd-k8s
           imagePullPolicy: IfNotPresent
-          volumeMounts:
-            - name: nsm-plugin-socket
-              mountPath: /var/lib/networkservicemesh/plugins
           env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_UID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.uid
             - name: NODE_NAME
               valueFrom:
                 fieldRef:
@@ -56,7 +57,3 @@ spec:
             path: /go/src
             type: DirectoryOrCreate
           name: sources
-        - hostPath:
-            path: /var/lib/networkservicemesh/plugins
-            type: DirectoryOrCreate
-          name: nsm-plugin-socket

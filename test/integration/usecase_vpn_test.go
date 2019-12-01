@@ -1,16 +1,16 @@
-// +build usecase_suite
+// +build usecase
 
 package nsmd_integration_tests
 
 import (
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	nsapiv1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1alpha1"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
@@ -91,8 +91,12 @@ func testVPN(t *testing.T, ptnum, nodesCount int, affinity map[string]int, verbo
 		return
 	}
 
-	nodes, err := kubetest.SetupNodes(k8s, nodesCount, defaultTimeout)
-	g.Expect(err).To(BeNil())
+	nodes := k8s.GetNodesWait(nodesCount, defaultTimeout)
+	if len(nodes) < nodesCount {
+		logrus.Printf("At least one Kubernetes node is required for this test")
+		g.Expect(len(nodes)).To(Equal(nodesCount))
+		return
+	}
 	s1 := time.Now()
 
 	_, err = kubetest.SetupNodes(k8s, nodesCount, defaultTimeout)
@@ -112,8 +116,6 @@ func testVPN(t *testing.T, ptnum, nodesCount int, affinity map[string]int, verbo
 		result, err = nscrd.Get(nsSecureIntranetConnectivity.ObjectMeta.Name)
 		g.Expect(err).To(BeNil())
 		logrus.Printf("Registered CRD is: %v", result)
-		defer nscrd.Delete(result.Name, &metaV1.DeleteOptions{})
-
 	}
 
 	pingCommand := "ping"
@@ -127,66 +129,79 @@ func testVPN(t *testing.T, ptnum, nodesCount int, affinity map[string]int, verbo
 		srcIP, dstIP = "100::1", "100::2"
 	}
 
-	s1 = time.Now()
-	node := affinity["vppagent-firewall-nse-1"]
-	logrus.Infof("Starting VPPAgent Firewall NSE on node: %d", node)
-	_, err = k8s.CreateConfigMap(pods.VppAgentFirewallNSEConfigMapICMPHTTP("vppagent-firewall-nse-1", k8s.GetK8sNamespace()))
-	g.Expect(err).To(BeNil())
-	vppagentFirewallNode := k8s.CreatePod(pods.VppAgentFirewallNSEPodWithConfigMap("vppagent-firewall-nse-1", nodes[node].Node,
-		map[string]string{
-			"ADVERTISE_NSE_NAME":   "secure-intranet-connectivity",
-			"ADVERTISE_NSE_LABELS": "app=firewall",
-			"OUTGOING_NSC_NAME":    "secure-intranet-connectivity",
-			"OUTGOING_NSC_LABELS":  "app=firewall",
-		},
-	))
-	g.Expect(vppagentFirewallNode.Name).To(Equal("vppagent-firewall-nse-1"))
-
-	k8s.WaitLogsContains(vppagentFirewallNode, "", "NSE: channel has been successfully advertised, waiting for connection from NSM...", fastTimeout)
-
-	logrus.Printf("VPN firewall started done: %v", time.Since(s1))
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		s1 = time.Now()
+		node := affinity["vppagent-firewall-nse-1"]
+		logrus.Infof("Starting VPPAgent Firewall NSE on node: %d", node)
+		_, err = k8s.CreateConfigMap(pods.VppAgentFirewallNSEConfigMapICMPHTTP("vppagent-firewall-nse-1", k8s.GetK8sNamespace()))
+		g.Expect(err).To(BeNil())
+		vppagentFirewallNode := k8s.CreatePod(pods.VppAgentFirewallNSEPodWithConfigMap("vppagent-firewall-nse-1", &nodes[node],
+			map[string]string{
+				"ADVERTISE_NSE_NAME":   "secure-intranet-connectivity",
+				"ADVERTISE_NSE_LABELS": "app=firewall",
+				"OUTGOING_NSC_NAME":    "secure-intranet-connectivity",
+				"OUTGOING_NSC_LABELS":  "app=firewall",
+			},
+		))
+		g.Expect(vppagentFirewallNode.Name).To(Equal("vppagent-firewall-nse-1"))
+		k8s.WaitLogsContains(vppagentFirewallNode, "", "NSE: channel has been successfully advertised, waiting for connection from NSM...", fastTimeout)
+		logrus.Printf("VPN firewall started done: %v", time.Since(s1))
+	}()
 
 	for i := 1; i <= ptnum; i++ {
 		s1 = time.Now()
 		id := strconv.Itoa(i)
-		node = affinity["vppagent-passthrough-nse"]
-		logrus.Infof("Starting VPPAgent Passthrough NSE on node: %d", node)
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			node := affinity["vppagent-passthrough-nse"]
+			logrus.Infof("Starting VPPAgent Passthrough NSE on node: %d", node)
 
-		vppagentPassthroughNode := k8s.CreatePod(pods.VppAgentFirewallNSEPod("vppagent-passthrough-nse-"+id, nodes[node].Node,
-			map[string]string{
-				"ADVERTISE_NSE_NAME":   "secure-intranet-connectivity",
-				"ADVERTISE_NSE_LABELS": "app=passthrough-" + id,
-				"OUTGOING_NSC_NAME":    "secure-intranet-connectivity",
-				"OUTGOING_NSC_LABELS":  "app=passthrough-" + id,
-			},
-		))
-		g.Expect(vppagentPassthroughNode.Name).To(Equal("vppagent-passthrough-nse-" + id))
+			vppagentPassthroughNode := k8s.CreatePod(pods.VppAgentFirewallNSEPod("vppagent-passthrough-nse-"+id, &nodes[node],
+				map[string]string{
+					"ADVERTISE_NSE_NAME":   "secure-intranet-connectivity",
+					"ADVERTISE_NSE_LABELS": "app=passthrough-" + id,
+					"OUTGOING_NSC_NAME":    "secure-intranet-connectivity",
+					"OUTGOING_NSC_LABELS":  "app=passthrough-" + id,
+				},
+			))
+			g.Expect(vppagentPassthroughNode.Name).To(Equal("vppagent-passthrough-nse-" + id))
 
-		k8s.WaitLogsContains(vppagentPassthroughNode, "", "NSE: channel has been successfully advertised, waiting for connection from NSM...", fastTimeout)
+			k8s.WaitLogsContains(vppagentPassthroughNode, "", "NSE: channel has been successfully advertised, waiting for connection from NSM...", fastTimeout)
 
-		logrus.Printf("VPN passthrough started done: %v", time.Since(s1))
+			logrus.Printf("VPN passthrough started done: %v", time.Since(s1))
+		}()
 	}
 
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		s1 = time.Now()
+		node := affinity["vpn-gateway-nse-1"]
+		logrus.Infof("Starting VPN Gateway NSE on node: %d", node)
+		vpnGatewayPodNode := k8s.CreatePod(pods.VPNGatewayNSEPod("vpn-gateway-nse-1", &nodes[node],
+			map[string]string{
+				"ADVERTISE_NSE_NAME":   "secure-intranet-connectivity",
+				"ADVERTISE_NSE_LABELS": "app=vpn-gateway",
+				"IP_ADDRESS":           addressPool,
+			},
+		))
+		g.Expect(vpnGatewayPodNode).ToNot(BeNil())
+		g.Expect(vpnGatewayPodNode.Name).To(Equal("vpn-gateway-nse-1"))
+
+		k8s.WaitLogsContains(vpnGatewayPodNode, "vpn-gateway", "NSE: channel has been successfully advertised, waiting for connection from NSM...", fastTimeout)
+
+		logrus.Printf("VPN Gateway started done: %v", time.Since(s1))
+	}()
+
+	wg.Wait()
+
 	s1 = time.Now()
-	node = affinity["vpn-gateway-nse-1"]
-	logrus.Infof("Starting VPN Gateway NSE on node: %d", node)
-	vpnGatewayPodNode := k8s.CreatePod(pods.VPNGatewayNSEPod("vpn-gateway-nse-1", nodes[node].Node,
-		map[string]string{
-			"ADVERTISE_NSE_NAME":   "secure-intranet-connectivity",
-			"ADVERTISE_NSE_LABELS": "app=vpn-gateway",
-			"IP_ADDRESS":           addressPool,
-		},
-	))
-	g.Expect(vpnGatewayPodNode).ToNot(BeNil())
-	g.Expect(vpnGatewayPodNode.Name).To(Equal("vpn-gateway-nse-1"))
-
-	k8s.WaitLogsContains(vpnGatewayPodNode, "vpn-gateway", "NSE: channel has been successfully advertised, waiting for connection from NSM...", fastTimeout)
-
-	logrus.Printf("VPN Gateway started done: %v", time.Since(s1))
-
-	s1 = time.Now()
-	node = affinity["vpn-gateway-nsc-1"]
-	nscPodNode := k8s.CreatePod(pods.NSCPod("vpn-gateway-nsc-1", nodes[node].Node,
+	node := affinity["vpn-gateway-nsc-1"]
+	nscPodNode := k8s.CreatePod(pods.NSCPod("vpn-gateway-nsc-1", &nodes[node],
 		map[string]string{
 			"OUTGOING_NSC_NAME": "secure-intranet-connectivity",
 		},

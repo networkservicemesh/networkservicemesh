@@ -1,4 +1,20 @@
-package nsmonitor
+// Copyright (c) 2019 Cisco and/or its affiliates.
+//
+// SPDX-License-Identifier: Apache-2.0
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package common
 
 import (
 	"context"
@@ -18,33 +34,29 @@ import (
 )
 
 type MonitorNetNsInodeServer struct {
-	kvSchedulerClient   KVSchedulerClient
+	notifyForwarder     func()
 	crossConnectServer  monitor_crossconnect.MonitorServer
 	crossConnects       map[string]*crossconnect.CrossConnect
 	crossConnectEventCh chan *crossconnect.CrossConnectEvent
 }
 
-// NewMonitorNetNsInodeServer creates a new MonitorNetNsInodeServer
-func CreateMonitorNetNsInodeServer(crossConnectServer monitor_crossconnect.MonitorServer, vppEndpoint string) error {
-	var err error
+// CreateNSMonitor creates a new MonitorNetNsInodeServer
+func CreateNSMonitor(crossConnectServer monitor_crossconnect.MonitorServer, handler func()) {
 	rv := &MonitorNetNsInodeServer{
 		crossConnectServer:  crossConnectServer,
 		crossConnects:       make(map[string]*crossconnect.CrossConnect),
 		crossConnectEventCh: make(chan *crossconnect.CrossConnectEvent, 10),
-	}
-	if rv.kvSchedulerClient, err = NewKVSchedulerClient(vppEndpoint); err != nil {
-		return err
+		notifyForwarder:     handler,
 	}
 
 	crossConnectServer.AddRecipient(rv)
 	go rv.MonitorNetNsInode()
-	return nil
 }
 
 func (m *MonitorNetNsInodeServer) SendMsg(msg interface{}) error {
 	event, ok := msg.(*crossconnect.CrossConnectEvent)
 	if !ok {
-		return errors.New("wrong type of msg, crossConnectEvent is needed")
+		return errors.New("nsmonitor: wrong type of msg, crossConnectEvent is needed")
 	}
 	m.crossConnectEventCh <- copyEvent(event)
 	return nil
@@ -120,13 +132,15 @@ func (m *MonitorNetNsInodeServer) checkConnectionLiveness(xcon *crossconnect.Cro
 			return err
 		}
 	default:
-		return errors.New("Wrong mechanism type passed")
+		return errors.New("nsmonitor: wrong mechanism type passed")
 	}
 
 	if !inodeSet.Contains(inode) && conn.State == connection.State_UP {
-		logrus.Infof("Connection is down")
+		logrus.Infof("nsmonitor: connection is down")
 		conn.State = connection.State_DOWN
-		m.kvSchedulerClient.DownstreamResync()
+		if m.notifyForwarder != nil {
+			m.notifyForwarder()
+		}
 		m.crossConnectServer.Update(context.Background(), xcon)
 	}
 

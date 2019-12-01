@@ -2,11 +2,20 @@
 
 kubectl="kubectl -n ${NSM_NAMESPACE:-default}"
 
+echo "Search and ping NSCs..."
+NSCs=$(${kubectl} get pods -o=name | grep -E "icmp-responder-nsc|vpp-icmp-responder-nsc" | sed 's@.*/@@')
+if [ -z "$NSCs" ]; then
+  echo "Zero NSCs found, nothing to ping!"
+  exit
+fi
+echo "NSCs found:"
+echo "$NSCs"
+
 #  Ping all the things!
 EXIT_VAL=0
-for nsc in $(${kubectl} get pods -o=name | grep -E "alpine-nsc|vppagent-nsc" | sed 's@.*/@@'); do
+for nsc in $NSCs; do
     echo "===== >>>>> PROCESSING ${nsc}  <<<<< ==========="
-    if [[ ${nsc} == vppagent-* ]]; then
+    if [[ ${nsc} == vpp-* ]]; then
         for ip in $(${kubectl} exec "${nsc}" -- vppctl show int addr | grep L3 | awk '{print $2}'); do
             if [[ "${ip}" == 172.16.1.* ]];then
                 lastSegment=$(echo "${ip}" | cut -d . -f 4 | cut -d / -f 1)
@@ -17,7 +26,7 @@ for nsc in $(${kubectl} get pods -o=name | grep -E "alpine-nsc|vppagent-nsc" | s
                 lastSegment=$(echo "${ip}" | cut -d . -f 4 | cut -d / -f 1)
                 nextOp=$((lastSegment + 1))
                 targetIp="10.30.1.${nextOp}"
-                endpointName="vppagent-icmp-responder-nse"
+                endpointName="vpp-icmp-responder-nse"
             fi
 
             if [ -n "${targetIp}" ]; then
@@ -48,7 +57,7 @@ for nsc in $(${kubectl} get pods -o=name | grep -E "alpine-nsc|vppagent-nsc" | s
                 lastSegment=$(echo "${ip}" | cut -d . -f 4 | cut -d / -f 1)
                 nextOp=$((lastSegment + 1))
                 targetIp="10.30.1.${nextOp}"
-                endpointName="vppagent-icmp-responder-nse"
+                endpointName="vpp-icmp-responder-nse"
             fi
 
             if [ -n "${targetIp}" ]; then
@@ -70,7 +79,7 @@ for nsc in $(${kubectl} get pods -o=name | grep -E "alpine-nsc|vppagent-nsc" | s
         echo "NSC ${nsc} failed to connect to an icmp-responder NetworkService"
         ${kubectl} get pod "${nsc}" -o wide
         echo "POD ${nsc} Network dump -------------------------------"
-        if [[ ${nsc} == vppagent-* ]]; then
+        if [[ ${nsc} == vpp-* ]]; then
             ${kubectl} exec "${nsc}" -- vppctl show int
             ${kubectl} exec "${nsc}" -- vppctl show int addr
             ${kubectl} exec "${nsc}" -- vppctl show memif

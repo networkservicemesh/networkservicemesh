@@ -1,4 +1,4 @@
-// +build usecase_suite
+// +build usecase
 
 package nsmd_integration_tests
 
@@ -159,9 +159,7 @@ func testDeploymentOrder(t *testing.T, order []Deployment) {
 	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResources)
 	defer k8s.Cleanup()
 	defer k8s.ProcessArtifacts(t)
-	g.Expect(err).To(BeNil())
 
-	nscrd, err := crds.NewNSCRD(k8s.GetK8sNamespace())
 	g.Expect(err).To(BeNil())
 
 	for _, deploy := range order {
@@ -178,16 +176,20 @@ func testDeploymentOrder(t *testing.T, order []Deployment) {
 	var nseCount uint64
 	var nscPods []*v1.Pod
 	var nscCount uint64
-	var wg sync.WaitGroup
+	var waitgroup sync.WaitGroup
 	var scheduled = make(chan interface{})
-	for _, deploy := range order {
-		wg.Add(1)
 
+	for _, deploy := range order {
+		waitgroup.Add(1)
+
+		dp := deploy
 		go func() {
 			scheduled <- true
-			defer func() { wg.Done() }()
-			switch deploy {
+			defer waitgroup.Done()
+			switch dp {
 			case DeployService:
+				nscrd, err := crds.NewNSCRD(k8s.GetK8sNamespace())
+				g.Expect(err).To(BeNil())
 				nsIcmpResponder := crds.IcmpResponder(map[string]string{}, map[string]string{"app": "icmp"})
 				logrus.Printf("About to insert: %v", nsIcmpResponder)
 				var result *nsapiv1.NetworkService
@@ -210,7 +212,7 @@ func testDeploymentOrder(t *testing.T, order []Deployment) {
 	}
 
 	// wait for all deployment routines to end
-	wg.Wait()
+	waitgroup.Wait()
 
 	for _, p := range nscPods {
 		kubetest.CheckNSC(k8s, p)

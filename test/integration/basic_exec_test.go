@@ -20,12 +20,12 @@ func TestExec(t *testing.T) {
 		return
 	}
 
-	k8s, err := kubetest.NewK8sWithoutRoles(g, kubetest.DefaultClear)
+	k8s, err := kubetest.NewK8sWithoutRoles(g, kubetest.ReuseNSMResources)
 	defer k8s.Cleanup()
 	g.Expect(err).To(BeNil())
 	defer k8s.ProcessArtifacts(t)
 
-	k8s.Prepare("alpine-pod")
+	k8s.DeletePodsByName("alpine-pod")
 
 	alpinePod := k8s.CreatePod(pods.AlpinePod("alpine-pod", nil))
 
@@ -35,5 +35,4 @@ func TestExec(t *testing.T) {
 	logrus.Printf("NSC IP status:%s", ipResponse)
 	logrus.Printf("End of test")
 	k8s.DeletePods(alpinePod)
-
 }
