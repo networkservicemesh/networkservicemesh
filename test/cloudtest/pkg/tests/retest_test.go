@@ -50,9 +50,11 @@ func TestRestartRequest(t *testing.T) {
 	testConfig.ConfigRoot = tmpDir
 	createProvider(testConfig, "a_provider")
 
-	testConfig.Executions = append(testConfig.Executions, &config.ExecutionConfig{
-		Name:        "simple",
-		Tags:        []string{"request_restart"},
+	testConfig.Executions = append(testConfig.Executions, &config.Execution{
+		Name: "simple",
+		Source: config.ExecutionSource{
+			Tags: []string{"request_restart"},
+		},
 		Timeout:     1500,
 		PackageRoot: "./sample",
 	})
@@ -102,9 +104,11 @@ func TestRestartRetestDestroyCluster(t *testing.T) {
 	p.Instances = 1
 	p.RetryCount = 1
 
-	testConfig.Executions = append(testConfig.Executions, &config.ExecutionConfig{
-		Name:        "simple",
-		Tags:        []string{"request_restart"},
+	testConfig.Executions = append(testConfig.Executions, &config.Execution{
+		Name: "simple",
+		Source: config.ExecutionSource{
+			Tags: []string{"request_restart"},
+		},
 		Timeout:     1500,
 		PackageRoot: "./sample",
 	})
@@ -158,9 +162,11 @@ func TestRestartRequestRestartCluster(t *testing.T) {
 	p.Instances = 1
 	p.RetryCount = 10
 
-	testConfig.Executions = append(testConfig.Executions, &config.ExecutionConfig{
-		Name:        "simple",
-		Tags:        []string{"request_restart"},
+	testConfig.Executions = append(testConfig.Executions, &config.Execution{
+		Name: "simple",
+		Source: config.ExecutionSource{
+			Tags: []string{"request_restart"},
+		},
 		Timeout:     1500,
 		PackageRoot: "./sample",
 	})
@@ -209,9 +215,11 @@ func TestRestartRequestSkip(t *testing.T) {
 	testConfig.ConfigRoot = tmpDir
 	createProvider(testConfig, "a_provider")
 
-	testConfig.Executions = append(testConfig.Executions, &config.ExecutionConfig{
-		Name:        "simple",
-		Tags:        []string{"request_restart"},
+	testConfig.Executions = append(testConfig.Executions, &config.Execution{
+		Name: "simple",
+		Source: config.ExecutionSource{
+			Tags: []string{"request_restart"},
+		},
 		Timeout:     1500,
 		PackageRoot: "./sample",
 	})

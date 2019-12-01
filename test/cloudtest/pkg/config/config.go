@@ -32,22 +32,27 @@ type ClusterProviderConfig struct {
 	TestDelay  int               `yaml:"test-delay"` // Delay between tests of this cluster will be executed in second.
 }
 
-type ExecutionConfig struct {
+type ExecutionSource struct {
+	Tags  []string `yaml:"tags"`  // A list of tags for this configured execution.
+	Tests []string `yaml:"tests"` // A list of tests for execution.
+}
+
+type Execution struct {
 	// Executions, every execution execute some tests agains configured set of clusters
-	Kind            string   `yaml:"kind"`             // Execution kind, default is 'gotest', 'shell' could be used for pure shell tests.
-	Name            string   `yaml:"name"`             // Execution name
-	Tags            []string `yaml:"tags"`             // A list of tags for this configured execution.
-	OnlyRun         []string `yaml:"only-run"`         // If non-empty, only run the listed tests
-	PackageRoot     string   `yaml:"root"`             // A package root for this test execution, default .
-	Timeout         int64    `yaml:"timeout"`          // Invidiaul test timeout, "60" passed to gotest, in seconds
-	ClusterCount    int      `yaml:"cluster-count"`    // A number of clusters required for this execution, default 1
-	KubernetesEnv   []string `yaml:"kubernetes-env"`   // Names of environment variables to put cluster names inside.
-	ClusterSelector []string `yaml:"cluster-selector"` // A cluster name to execute this tests on.
-	Env             []string `yaml:"env"`              // Additional environment variables
-	Run             string   `yaml:"run"`              // A script to execute against required cluster
-	OnFail          string   `yaml:"on_fail"`          // A script to execute against required cluster, called if task failed
-	BeforeAll       string   `yaml:"before-all"`       // A script to execute against required cluster, called when execution config is done on cluster instance.
-	AfterAll        string   `yaml:"after-all"`        // A script to execute against required cluster, called when execution config is done on cluster instance.
+	Kind            string          `yaml:"kind"`             // Execution kind, default is 'gotest', 'shell' could be used for pure shell tests.
+	Name            string          `yaml:"name"`             // Execution name
+	Source          ExecutionSource `yaml:"source"`           // A source for tests execution
+	OnlyRun         []string        `yaml:"only-run"`         // If non-empty, only run the listed tests
+	PackageRoot     string          `yaml:"root"`             // A package root for this test execution, default .
+	Timeout         int64           `yaml:"timeout"`          // Invidiaul test timeout, "60" passed to gotest, in seconds
+	ClusterCount    int             `yaml:"cluster-count"`    // A number of clusters required for this execution, default 1
+	KubernetesEnv   []string        `yaml:"kubernetes-env"`   // Names of environment variables to put cluster names inside.
+	ClusterSelector []string        `yaml:"cluster-selector"` // A cluster name to execute this tests on.
+	Env             []string        `yaml:"env"`              // Additional environment variables
+	Run             string          `yaml:"run"`              // A script to execute against required cluster
+	OnFail          string          `yaml:"on_fail"`          // A script to execute against required cluster, called if task failed
+	BeforeAll       string          `yaml:"before-all"`       // A script to execute against required cluster, called when execution config is done on cluster instance.
+	AfterAll        string          `yaml:"after-all"`        // A script to execute against required cluster, called when execution config is done on cluster instance.
 }
 
 type RetestConfig struct {
@@ -73,7 +78,7 @@ type CloudTestConfig struct {
 		JUnitReportFile string `yaml:"junit-report"` // A junit report file location, relative to test root folder.
 	} `yaml:"reporting"` // A reporting options.
 	HealthCheck []*HealthCheckConfig `yaml:"health-check"` // Health checks options.
-	Executions  []*ExecutionConfig   `yaml:"executions"`
+	Executions  []*Execution         `yaml:"executions"`
 	Timeout     int64                `yaml:"timeout"` // Global timeout in seconds
 	Imports     []string             `yaml:"import"`  // A set of configurations for import
 

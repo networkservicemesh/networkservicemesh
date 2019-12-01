@@ -68,7 +68,7 @@ type clusterOperationRecord struct {
 }
 
 type clusterInstance struct {
-	runningExecution *config.ExecutionConfig
+	runningExecution *config.Execution
 	instance         providers.ClusterInstance
 	state            clusterState
 	group            *clustersGroup
@@ -1164,7 +1164,7 @@ func (ctx *executionContext) findTests() error {
 	return nil
 }
 
-func (ctx *executionContext) findShellTest(exec *config.ExecutionConfig) []*model.TestEntry {
+func (ctx *executionContext) findShellTest(exec *config.Execution) []*model.TestEntry {
 	return []*model.TestEntry{
 		{
 			Name:            exec.Name,
@@ -1177,10 +1177,10 @@ func (ctx *executionContext) findShellTest(exec *config.ExecutionConfig) []*mode
 	}
 }
 
-func (ctx *executionContext) findGoTest(executionConfig *config.ExecutionConfig) ([]*model.TestEntry, error) {
+func (ctx *executionContext) findGoTest(executionConfig *config.Execution) ([]*model.TestEntry, error) {
 	st := time.Now()
-	logrus.Infof("Starting finding tests by tags %v", executionConfig.Tags)
-	execTests, err := model.GetTestConfiguration(ctx.manager, executionConfig.PackageRoot, executionConfig.Tags)
+	logrus.Infof("Starting finding tests by source %v", executionConfig.Source)
+	execTests, err := model.GetTestConfiguration(ctx.manager, executionConfig.PackageRoot, executionConfig.Source)
 	if err != nil {
 		logrus.Errorf("Failed during test lookup %v", err)
 		return nil, err

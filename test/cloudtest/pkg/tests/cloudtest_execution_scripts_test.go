@@ -43,7 +43,7 @@ func TestCloudTestAfterAllWorksCorrectly(t *testing.T) {
 	}
 	testConfig.Providers = append(testConfig.Providers, provider)
 
-	testConfig.Executions = append(testConfig.Executions, &config.ExecutionConfig{
+	testConfig.Executions = append(testConfig.Executions, &config.Execution{
 		Name:     "test1",
 		Timeout:  15,
 		Kind:     "shell",
@@ -51,7 +51,7 @@ func TestCloudTestAfterAllWorksCorrectly(t *testing.T) {
 		Env:      []string{"A=worked", "B=$(test-name)"},
 		AfterAll: "echo ${B} ${A}",
 	})
-	testConfig.Executions = append(testConfig.Executions, &config.ExecutionConfig{
+	testConfig.Executions = append(testConfig.Executions, &config.Execution{
 		Name:    "test2",
 		Timeout: 15,
 		Kind:    "shell",

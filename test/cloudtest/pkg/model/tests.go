@@ -2,9 +2,12 @@ package model
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/sirupsen/logrus"
 
@@ -55,7 +58,7 @@ type TestEntry struct {
 	Name            string // Test name
 	Tags            string // A list of tags
 	Key             string // Unique key
-	ExecutionConfig *config.ExecutionConfig
+	ExecutionConfig *config.Execution
 
 	Executions []TestEntryExecution
 	Duration   time.Duration
@@ -70,22 +73,38 @@ type TestEntry struct {
 }
 
 // GetTestConfiguration - Return list of available tests by calling of gotest --list .* $root -tag "" and parsing of output.
-func GetTestConfiguration(manager execmanager.ExecutionManager, root string, tags []string) (map[string]*TestEntry, error) {
-	noTagTests, err1 := getTests(manager, root)
-	if len(tags) > 0 {
-		tests, err := getTests(manager, root, tags...)
+func GetTestConfiguration(manager execmanager.ExecutionManager, root string, source config.ExecutionSource) (map[string]*TestEntry, error) {
+	allTests, err1 := getTests(manager, root)
+	if len(source.Tags) > 0 {
+		tests, err := getTests(manager, root, source.Tags...)
 		if err != nil {
 			return nil, err
 		}
-		for key := range noTagTests {
-			_, ok := tests[key]
-			if ok {
+		for key := range allTests {
+			if _, ok := tests[key]; ok {
 				delete(tests, key)
 			}
 		}
 		return tests, nil
+	} else if len(source.Tests) > 0 {
+		result := map[string]*TestEntry{}
+		var err error
+		for _, n := range source.Tests {
+			t := allTests[n]
+			if t != nil {
+				result[n] = t
+			} else {
+				msg := fmt.Sprintf("test %v not found", n)
+				if err == nil {
+					err = errors.New(msg)
+				} else {
+					err = errors.Wrap(err, msg)
+				}
+			}
+		}
+		return result, err
 	}
-	return noTagTests, err1
+	return allTests, err1
 }
 
 func getTests(manager execmanager.ExecutionManager, dir string, tags ...string) (map[string]*TestEntry, error) {
