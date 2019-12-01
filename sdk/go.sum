@@ -133,8 +133,8 @@ github.com/ligato/cn-infra v2.2.0+incompatible h1:VUWtnh+hUnZWAeEleKVdVROQ1GE8/r
 github.com/ligato/cn-infra v2.2.0+incompatible/go.mod h1:wBXHMbKAlgOc/MkJMy/25284ri77duvS0XlIImme7z0=
 github.com/ligato/vpp-agent v2.1.1+incompatible h1:lp1EaEtovh1si7kahvejBzVgw8p3uVz1dpbvU9rPUGU=
 github.com/ligato/vpp-agent v2.1.1+incompatible/go.mod h1:o9dJIGC/vLOSSajSGHZ6V0rvwodNMftGDB5FqfjGK6w=
-github.com/ligato/vpp-agent v2.3.0+incompatible h1:J6gV0rjMWR4+WVkVpxAXuOtax3MEIx/IBuqVT5eZX8s=
-github.com/ligato/vpp-agent v2.3.0+incompatible/go.mod h1:o9dJIGC/vLOSSajSGHZ6V0rvwodNMftGDB5FqfjGK6w=
+github.com/ligato/vpp-agent v2.5.0+incompatible h1:SR58Y6lRvBzoK3V7SbUTEYDkcCdE2k3AmExvZd2Uf1M=
+github.com/ligato/vpp-agent v2.5.0+incompatible/go.mod h1:o9dJIGC/vLOSSajSGHZ6V0rvwodNMftGDB5FqfjGK6w=
 github.com/lyft/protoc-gen-validate v0.0.13/go.mod h1:XbGvPuh87YZc5TdIa2/I4pLk0QoUACkjt2znoq26NVQ=
 github.com/magiconair/properties v1.8.1 h1:ZC2Vc7/ZFkGmsVC9KvOjumD+G5lXy2RtTKyzRKO2BQ4=
 github.com/magiconair/properties v1.8.1/go.mod h1:PppfXfuXeibc/6YijjN8zIbojt8czPbwD3XqdrwzmxQ=
