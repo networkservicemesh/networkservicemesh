@@ -96,7 +96,9 @@ docker-push: $(addsuffix -push,$(addprefix docker-,$(images)));
 
 .PHONY: docker-login
 docker-login:
-	@echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
+	@if [ -n "${DOCKER_PASSWORD}" ]; then \
+		echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin ;\
+	fi
 
 clean:
 	rm -rf $(BIN_DIR)
