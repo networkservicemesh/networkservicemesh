@@ -24,29 +24,71 @@ reporting:
   junit-report: "results/junit.xml"
 health-check:
   - message: "Branch is not up to date"
-    interval: 60  # 1 minute
+    interval: 60
     run: |
       ./.circleci/check_repo_uptodated.sh
 executions:
+  - name: "Test suite with default nsm"
+    env:
+      - ARCHIVE_ARTIFACTS=true
+      - ARTIFACTS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/$(test-name)
+      - NSM_NAMESPACE=nsm-system
+    root: ./test/integration
+    cluster-count: 1
+    kubernetes-env:
+      - KUBECONFIG
+    timeout: 300
+    before-all:
+      make helm-install-nsm
+    source:
+      tags:
+        - single_cluster_suite
+    after-all:
+      make helm-delete-nsm
+    on-test-fail: |
+      make k8s-delete-nsm-namespaces
+      make helm-install-nsm
+  - name: "Recover test suite"
+    env:
+      - ARCHIVE_ARTIFACTS=true
+      - ARTIFACTS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/$(test-name)
+      - NSM_NAMESPACE=nsm-system
+    root: ./test/integration
+    cluster-count: 1
+    kubernetes-env:
+      - KUBECONFIG
+    timeout: 300
+    before-all:
+      make helm-install-nsm
+    source:
+      tags:
+        - recover_suite
+    after-all:
+      make helm-delete-nsm
+    on-test-fail: |
+      make k8s-delete-nsm-namespaces
+      make helm-install-nsm
   - name: "Single cluster tests"
     env:
-      - STORE_POD_LOGS_IN_FILES=true
-      - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)
-    tags:
-      - basic
-      - recover
-      - usecase
+      - ARCHIVE_ARTIFACTS=true
+      - ARTIFACTS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/$(test-name)
+      - NSM_NAMESPACE=nsm-system
+    source:
+      tags:
+        - basic
+        - recover
+        - usecase
     root: ./test/integration
     timeout: 300
     cluster-count: 1
     kubernetes-env:
       - KUBECONFIG
-    on_fail: |
+    on-test-fail: |
       make k8s-delete-nsm-namespaces
   - name: "Benchmark tests"
     env:
-      - STORE_POD_LOGS_IN_FILES=true
-      - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)
+      - ARCHIVE_ARTIFACTS=true
+      - ARTIFACTS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/$(test-name)
     tags:
       - bench
     root: ./test/integration
@@ -56,15 +98,16 @@ executions:
       - packet
     kubernetes-env:
       - KUBECONFIG
-    on_fail: |
+    on-test-fail: |
       make k8s-delete-nsm-namespaces
 
   - name: "Interdomain tests packet-aws"
     env:
-      - STORE_POD_LOGS_IN_FILES=true
-      - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)
-    tags:
-      - interdomain
+      - ARCHIVE_ARTIFACTS=true
+      - ARTIFACTS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/$(test-name)
+    source:
+      tags:
+        - interdomain
     root: ./test/integration
     timeout: 600
     cluster-count: 2
@@ -74,12 +117,12 @@ executions:
     kubernetes-env:
       - KUBECONFIG_CLUSTER_1
       - KUBECONFIG_CLUSTER_2
-    on_fail: |
+    on-test-fail: |
       make k8s-delete-nsm-namespaces
   - name: "Interdomain tests gke-packet"
     env:
-      - STORE_POD_LOGS_IN_FILES=true
-      - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)
+      - ARCHIVE_ARTIFACTS=true
+      - ARTIFACTS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/$(test-name)
     tags:
       - interdomain
     root: ./test/integration
@@ -91,12 +134,12 @@ executions:
     kubernetes-env:
       - KUBECONFIG_CLUSTER_1
       - KUBECONFIG_CLUSTER_2
-    on_fail: |
+    on-test-fail: |
       make k8s-delete-nsm-namespaces
   - name: "Interdomain tests azure-gke"
     env:
       - STORE_POD_LOGS_IN_FILES=true
-      - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)
+      - ARTIFACTS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/$(test-name)
     tags:
       - interdomain
     root: ./test/integration
@@ -108,12 +151,12 @@ executions:
     kubernetes-env:
       - KUBECONFIG_CLUSTER_1
       - KUBECONFIG_CLUSTER_2
-    on_fail: |
+    on-test-fail: |
       make k8s-delete-nsm-namespaces
   - name: "Interdomain tests aws-azure"
     env:
-      - STORE_POD_LOGS_IN_FILES=true
-      - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)
+      - ARCHIVE_ARTIFACTS=true
+      - ARTIFACTS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/$(test-name)
     tags:
       - interdomain
     root: ./test/integration
@@ -125,22 +168,93 @@ executions:
     kubernetes-env:
       - KUBECONFIG_CLUSTER_1
       - KUBECONFIG_CLUSTER_2
-    on_fail: |
+    on-test-fail: |
       make k8s-delete-nsm-namespaces
-
+  - name: "Interdomain suite tests packet-aws"
+    env:
+      - ARCHIVE_ARTIFACTS=true
+      - ARTIFACTS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/$(test-name)
+    source:
+      tags:
+        - interdomain
+    root: ./test/integration
+    timeout: 600
+    cluster-count: 2
+    cluster-selector:
+      - packet
+      - aws
+    kubernetes-env:
+      - KUBECONFIG_CLUSTER_1
+      - KUBECONFIG_CLUSTER_2
+    on-test-fail: |
+      make k8s-delete-nsm-namespaces
+  - name: "Interdomain suite tests gke-packet"
+    env:
+      - ARCHIVE_ARTIFACTS=true
+      - ARTIFACTS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/$(test-name)
+    source:
+      tags:
+        - interdomain_suite
+    root: ./test/integration
+    timeout: 600
+    cluster-count: 2
+    cluster-selector:
+      - gke
+      - packet
+    kubernetes-env:
+      - KUBECONFIG_CLUSTER_1
+      - KUBECONFIG_CLUSTER_2
+    on-test-fail: |
+      make k8s-delete-nsm-namespaces
+  - name: "Interdomain suite tests azure-gke"
+    env:
+      - STORE_POD_LOGS_IN_FILES=true
+      - ARTIFACTS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/$(test-name)
+    source:
+      tags:
+        - interdomain_suite
+    root: ./test/integration
+    timeout: 600
+    cluster-count: 2
+    cluster-selector:
+      - azure
+      - gke
+    kubernetes-env:
+      - KUBECONFIG_CLUSTER_1
+      - KUBECONFIG_CLUSTER_2
+    on-test-fail: |
+      make k8s-delete-nsm-namespaces
+  - name: "Interdomain suite tests aws-azure"
+    env:
+      - ARCHIVE_ARTIFACTS=true
+      - ARTIFACTS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/$(test-name)
+    source:
+      tags:
+        - interdomain_suite
+    root: ./test/integration
+    timeout: 600
+    cluster-count: 2
+    cluster-selector:
+      - aws
+      - azure
+    kubernetes-env:
+      - KUBECONFIG_CLUSTER_1
+      - KUBECONFIG_CLUSTER_2
+    on-test-fail: |
+      make k8s-delete-nsm-namespaces
   - name: "Example-helm-vpn"
     kind: shell
     timeout: 300
     env:
       - NSM_NAMESPACE=nsm-system
       - CLUSTER_RULES_PREFIX=null
-      - STORE_POD_LOGS_IN_FILES=true
-      - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/vpn-example
+      - ARCHIVE_ARTIFACTS=true
+      - ARTIFACTS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/$(test-name)/vpn-example
       - SPIRE_ENABLED=false  # because spire is already installed
     kubernetes-env:
       - KUBECONFIG
     run: |
-      scripts/helm-test-charts.sh nsm vpn
+      scripts/helm-test-charts.sh nsm admission-webhook vpn
 
   - name: "Example-helm-icmp"
     kind: shell
@@ -148,8 +262,8 @@ executions:
     env:
       - NSM_NAMESPACE=nsm-system
       - CLUSTER_RULES_PREFIX=null
-      - STORE_POD_LOGS_IN_FILES=true
-      - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/icmp-example
+      - ARCHIVE_ARTIFACTS=true
+      - ARTIFACTS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/$(test-name)/icmp-example
       - SPIRE_ENABLED=false  # because spire is already installed
     kubernetes-env:
       - KUBECONFIG
@@ -163,13 +277,13 @@ executions:
       - FORWARDING_PLANE=kernel
       - NSM_NAMESPACE=nsm-system
       - CLUSTER_RULES_PREFIX=null
-      - STORE_POD_LOGS_IN_FILES=true
-      - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/icmp-example
+      - ARCHIVE_ARTIFACTS=true
+      - ARTIFACTS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/$(test-name)/icmp-example
       - SPIRE_ENABLED=false  # because spire is already installed
     kubernetes-env:
       - KUBECONFIG
     run: |
-      scripts/helm-test-charts.sh nsm icmp-responder
+      scripts/helm-test-charts.sh nsm admission-webhook icmp-responder
 
   - name: "Example-helm-crossconnect-monitor"
     kind: shell
@@ -177,11 +291,11 @@ executions:
     env:
       - NSM_NAMESPACE=nsm-system
       - CLUSTER_RULES_PREFIX=null
-      - STORE_POD_LOGS_IN_FILES=true
-      - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/crossconnect-monitor-example
+      - ARCHIVE_ARTIFACTS=true
+      - ARTIFACTS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/$(test-name)/crossconnect-monitor-example
       - SPIRE_ENABLED=false  # because spire is already installed
       - CHECK_CMD=scripts/verify_crossconnect_monitor.sh
     kubernetes-env:
       - KUBECONFIG
     run: |
-      scripts/helm-test-charts.sh nsm icmp-responder crossconnect-monitor
+      scripts/helm-test-charts.sh nsm admission-webhook icmp-responder crossconnect-monitor

@@ -1,4 +1,4 @@
-// +build usecase_suite
+// +build single_cluster_suite
 
 package nsmd_integration_tests
 

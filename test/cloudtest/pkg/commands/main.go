@@ -14,6 +14,10 @@ import (
 
 	"github.com/pkg/errors"
 
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v2"
+
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/config"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/execmanager"
@@ -26,9 +30,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/runners"
 	shell_mgr "github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/shell"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/utils"
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v2"
 )
 
 const (
@@ -1371,7 +1372,7 @@ func (ctx *executionContext) handleScript(args *runScriptArgs) error {
 	}
 	mgr := shell_mgr.NewEnvironmentManager()
 	if err := mgr.ProcessEnvironment(args.ClusterTaskId, "shellrun", os.TempDir(), args.Env, map[string]string{"test-name": args.Name}); err != nil {
-		logrus.Errorf("$v: an error during process env: %v", args.Name, err)
+		logrus.Errorf("%sv: an error during process env: %v", args.Name, err)
 		return err
 	}
 	context, cancel := context.WithTimeout(context.Background(), runScriptTimeout)

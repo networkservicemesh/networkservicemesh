@@ -1,4 +1,4 @@
-// +build basic
+// +build single_cluster_suite
 
 package nsmd_integration_tests
 
@@ -23,7 +23,7 @@ func TestK8sExcludedPrefixes(t *testing.T) {
 		return
 	}
 
-	k8s, err := kubetest.NewK8s(g, kubetest.DefaultClear)
+	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResources)
 	defer k8s.Cleanup()
 	g.Expect(err).To(BeNil())
 

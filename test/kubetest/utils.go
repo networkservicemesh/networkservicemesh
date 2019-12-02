@@ -16,6 +16,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/namespace"
+
 	"k8s.io/client-go/util/cert"
 	"k8s.io/client-go/util/keyutil"
 
@@ -103,8 +105,40 @@ func DeployCorefile(k8s *K8s, name, content string) error {
 	return err
 }
 
+func findNsmAndForwarder(k8s *K8s, ns string, nodes []v1.Node) []*NodeConf {
+	configs := make([]*NodeConf, len(nodes))
+	pods := k8s.ListPodsByNs(ns)
+	for j := range nodes {
+		node := &nodes[j]
+		configs[j] = new(NodeConf)
+		configs[j].Node = node
+		for i := range pods {
+			pod := &pods[i]
+			if pod.Spec.NodeName == node.Name {
+				if strings.Contains(pod.Name, "nsmgr") {
+					configs[j].Nsmd = pod
+					continue
+				}
+			}
+			if pod.Spec.NodeName == node.Name {
+				if strings.Contains(pod.Name, "forwarder") {
+					configs[j].Forwarder = pod
+					continue
+				}
+			}
+		}
+	}
+	for j := 0; j < len(nodes); j++ {
+		c := configs[j]
+		if c.Forwarder == nil || c.Nsmd == nil {
+			return nil
+		}
+	}
+	return configs
+}
+
 // SetupNodesConfig - Setup NSMgr and Forwarder for particular number of nodes in cluster
-func SetupNodesConfig(k8s *K8s, nodesCount int, timeout time.Duration, conf []*pods.NSMgrPodConfig, namespace string) ([]*NodeConf, error) {
+func SetupNodesConfig(k8s *K8s, nodesCount int, timeout time.Duration, conf []*pods.NSMgrPodConfig, ns string) ([]*NodeConf, error) {
 	if k8s.resourcesBehaviour == ReuseNSMResources {
 		nodesCount = 2
 	}
@@ -119,42 +153,16 @@ func SetupNodesConfig(k8s *K8s, nodesCount int, timeout time.Duration, conf []*p
 	//	jaeger.AgentHost.Set(jaegerPod.Status.PodIP)
 	//}
 	var wg sync.WaitGroup
-	confs := make([]*NodeConf, 2)
 	if k8s.resourcesBehaviour == ReuseNSMResources {
-		pods := k8s.ListPods()
-		for j := range nodes {
-			node := &nodes[j]
-			confs[j] = new(NodeConf)
-			confs[j].Node = node
-			for i := range pods {
-				pod := &pods[i]
-				if pod.Spec.NodeName == node.Name {
-					if strings.Contains(pod.Name, "nsmgr") {
-						confs[j].Nsmd = pod
-						continue
-					}
-				}
-				if pod.Spec.NodeName == node.Name {
-					if strings.Contains(pod.Name, "forwarder") {
-						confs[j].Forwarder = pod
-						continue
-					}
-				}
+		for _, ns := range []string{namespace.GetNamespace(), k8s.namespace} {
+			conf := findNsmAndForwarder(k8s, ns, nodes)
+			if len(conf) > 0 {
+				return conf, nil
 			}
-		}
-		fill := true
-		for j := 0; j < nodesCount; j++ {
-			c := confs[j]
-			if c.Forwarder == nil || c.Nsmd == nil {
-				fill = false
-				break
-			}
-		}
-		if fill {
-			return confs, nil
 		}
 	}
 	var resultError error
+	var confs = make([]*NodeConf, nodesCount)
 	for ii := 0; ii < nodesCount; ii++ {
 		wg.Add(1)
 		i := ii
@@ -171,7 +179,7 @@ func SetupNodesConfig(k8s *K8s, nodesCount int, timeout time.Duration, conf []*p
 				corePod = pods.NSMgrPod(nsmdName, node, k8s.GetK8sNamespace())
 				forwarderPod = pods.ForwardingPlaneWithConfig(forwarderName, node, DefaultForwarderVariables(k8s.GetForwardingPlane()), k8s.GetForwardingPlane())
 			} else {
-				conf[i].Namespace = namespace
+				conf[i].Namespace = ns
 				if conf[i].Nsmd == pods.NSMgrContainerDebug || conf[i].NsmdK8s == pods.NSMgrContainerDebug || conf[i].NsmdP == pods.NSMgrContainerDebug {
 					debug = true
 				}

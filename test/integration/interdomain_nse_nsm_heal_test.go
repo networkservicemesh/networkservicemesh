@@ -1,4 +1,4 @@
-// +build interdomain
+// +build interdomain_suite
 
 package nsmd_integration_tests
 
@@ -54,22 +54,12 @@ func testInterdomainNSMHeal(t *testing.T, clustersCount int, killIndex int, dele
 		kubeconfig := os.Getenv(fmt.Sprintf("KUBECONFIG_CLUSTER_%d", i+1))
 		g.Expect(len(kubeconfig)).ToNot(Equal(0))
 
-		k8s, err := kubetest.NewK8sForConfig(g, true, kubeconfig)
+		k8s, err := kubetest.NewK8sForConfig(g, kubetest.ReuseNSMResources, kubeconfig)
 		g.Expect(err).To(BeNil())
 		defer k8s.Cleanup()
 		defer k8s.ProcessArtifacts(t)
 
-		config := []*pods.NSMgrPodConfig{}
-
-		cfg := &pods.NSMgrPodConfig{
-			Variables: pods.DefaultNSMD(),
-		}
-		cfg.Namespace = k8s.GetK8sNamespace()
-		cfg.ForwarderVariables = kubetest.DefaultForwarderVariables(k8s.GetForwardingPlane())
-
-		config = append(config, cfg)
-
-		nodesSetup, err := kubetest.SetupNodesConfig(k8s, 1, defaultTimeout, config, k8s.GetK8sNamespace())
+		nodesSetup, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
 		g.Expect(err).To(BeNil())
 
 		k8ss = append(k8ss, &kubetest.ExtK8s{

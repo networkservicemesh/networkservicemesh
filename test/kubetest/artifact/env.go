@@ -21,7 +21,7 @@ import "github.com/networkservicemesh/networkservicemesh/utils"
 const (
 	processInAnyCase   utils.EnvVar = "PROCESS_ARTIFACTS_IN_ANY_CASE"
 	processInToConsole utils.EnvVar = "PROCESS_ARTIFACTS_IN_TO_CONSOLE"
-	processInToArchive utils.EnvVar = "PROCESS_ARTIFACTS_IN_TO_ARCHIVE"
+	processInToArchive utils.EnvVar = "ARCHIVE_ARTIFACTS"
 	processInToDir     utils.EnvVar = "PROCESS_ARTIFACTS_IN_TO_DIR"
 	dir                utils.EnvVar = "ARTIFACTS_DIR"
 )

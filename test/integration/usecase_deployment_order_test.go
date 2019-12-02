@@ -1,4 +1,4 @@
-// +build usecase
+// +build single_cluster_suite
 
 package nsmd_integration_tests
 
@@ -158,7 +158,6 @@ func testDeploymentOrder(t *testing.T, order []Deployment) {
 
 	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResources)
 	defer k8s.Cleanup()
-	defer k8s.ProcessArtifacts(t)
 
 	g.Expect(err).To(BeNil())
 
@@ -169,6 +168,7 @@ func testDeploymentOrder(t *testing.T, order []Deployment) {
 			break
 		}
 	}
+	defer k8s.ProcessArtifacts(t)
 
 	_, err = kubetest.SetupNodes(k8s, 1, defaultTimeout)
 	g.Expect(err).To(BeNil())
@@ -176,16 +176,16 @@ func testDeploymentOrder(t *testing.T, order []Deployment) {
 	var nseCount uint64
 	var nscPods []*v1.Pod
 	var nscCount uint64
-	var waitgroup sync.WaitGroup
+	var wg sync.WaitGroup
 	var scheduled = make(chan interface{})
 
 	for _, deploy := range order {
-		waitgroup.Add(1)
+		wg.Add(1)
 
 		dp := deploy
 		go func() {
 			scheduled <- true
-			defer waitgroup.Done()
+			defer wg.Done()
 			switch dp {
 			case DeployService:
 				nscrd, err := crds.NewNSCRD(k8s.GetK8sNamespace())
@@ -212,7 +212,7 @@ func testDeploymentOrder(t *testing.T, order []Deployment) {
 	}
 
 	// wait for all deployment routines to end
-	waitgroup.Wait()
+	wg.Wait()
 
 	for _, p := range nscPods {
 		kubetest.CheckNSC(k8s, p)

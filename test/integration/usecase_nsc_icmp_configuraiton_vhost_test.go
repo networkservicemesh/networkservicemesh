@@ -1,4 +1,4 @@
-// +build single_cluster_suite
+// +build usecase
 
 package nsmd_integration_tests
 
@@ -9,48 +9,31 @@ import (
 	v1 "k8s.io/api/core/v1"
 
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 )
 
-func TestNSCAndICMPLocal(t *testing.T) {
+func TestNSCAndICMPLocalVeth(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
 	}
 
-	testNSCAndICMP(t, 1, false)
+	testNSCAndICMPVhost(t, 1, false)
 }
 
-func TestNSCAndICMPRemote(t *testing.T) {
+func TestNSCAndICMPRemoteVeth(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
 	}
 
-	testNSCAndICMP(t, 2, false)
-}
-
-func TestNSCAndICMPWebhookLocal(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skip, please run without -short")
-		return
-	}
-
-	testNSCAndICMP(t, 1, true)
-}
-
-func TestNSCAndICMPWebhookRemote(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skip, please run without -short")
-		return
-	}
-
-	testNSCAndICMP(t, 2, true)
+	testNSCAndICMPVhost(t, 2, false)
 }
 
 /**
 If passed 1 both will be on same node, if not on different.
 */
-func testNSCAndICMP(t *testing.T, nodesCount int, useWebhook bool) {
+func testNSCAndICMPVhost(t *testing.T, nodesCount int, useWebhook bool) {
 	g := NewWithT(t)
 
 	k8s, err := kubetest.NewK8s(g, kubetest.DefaultClear)
@@ -63,7 +46,17 @@ func testNSCAndICMP(t *testing.T, nodesCount int, useWebhook bool) {
 		defer kubetest.DeleteAdmissionWebhook(k8s, "nsm-admission-webhook-certs", awc, awDeployment, awService, k8s.GetK8sNamespace())
 	}
 
-	nodesSetup, err := kubetest.SetupNodes(k8s, nodesCount, defaultTimeout)
+	var config []*pods.NSMgrPodConfig
+	for i := 0; i < nodesCount; i++ {
+		cfg := &pods.NSMgrPodConfig{
+			Variables: pods.DefaultNSMD(),
+		}
+		cfg.Namespace = k8s.GetK8sNamespace()
+		cfg.ForwarderVariables = kubetest.DefaultForwarderVariables(k8s.GetForwardingPlane())
+		cfg.ForwarderVariables["FORWARDER_ALLOW_VHOST"] = "false"
+		config = append(config, cfg)
+	}
+	nodesSetup, err := kubetest.SetupNodesConfig(k8s, nodesCount, defaultTimeout, config, k8s.GetK8sNamespace())
 	g.Expect(err).To(BeNil())
 
 	// Run ICMP on latest node

@@ -1,4 +1,4 @@
-// +build interdomain
+// +build interdomain_suite
 
 package nsmd_integration_tests
 
@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"os"
 	"testing"
-
-	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
@@ -66,22 +64,12 @@ func testInterdomainNSEHeal(t *testing.T, clustersCount int, nodesCount int, aff
 		kubeconfig := os.Getenv(fmt.Sprintf("KUBECONFIG_CLUSTER_%d", i+1))
 		g.Expect(len(kubeconfig)).ToNot(Equal(0))
 
-		k8s, err := kubetest.NewK8sForConfig(g, true, kubeconfig)
+		k8s, err := kubetest.NewK8sForConfig(g, kubetest.ReuseNSMResources, kubeconfig)
 		g.Expect(err).To(BeNil())
 		defer k8s.Cleanup()
 		defer k8s.ProcessArtifacts(t)
 
-		config := []*pods.NSMgrPodConfig{}
-
-		cfg := &pods.NSMgrPodConfig{
-			Variables: pods.DefaultNSMD(),
-		}
-		cfg.Namespace = k8s.GetK8sNamespace()
-		cfg.ForwarderVariables = kubetest.DefaultForwarderVariables(k8s.GetForwardingPlane())
-
-		config = append(config, cfg)
-
-		nodesSetup, err := kubetest.SetupNodesConfig(k8s, nodesCount, defaultTimeout, config, k8s.GetK8sNamespace())
+		nodesSetup, err := kubetest.SetupNodes(k8s, nodesCount, defaultTimeout)
 		g.Expect(err).To(BeNil())
 
 		k8ss = append(k8ss, &kubetest.ExtK8s{

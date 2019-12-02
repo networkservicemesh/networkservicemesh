@@ -62,7 +62,7 @@ func TestOneToOneConnectionMemif(t *testing.T) {
 func testOneTimeConnection(t *testing.T, nodeCount int, nscDeploy, icmpDeploy kubetest.PodSupplier, nsePing kubetest.NsePinger) {
 	g := NewWithT(t)
 
-	k8s, err := kubetest.NewK8s(g, true)
+	k8s, err := kubetest.NewK8s(g, kubetest.DefaultClear)
 	defer k8s.Cleanup()
 
 	g.Expect(err).To(BeNil())
@@ -85,7 +85,7 @@ func testOneTimeConnection(t *testing.T, nodeCount int, nscDeploy, icmpDeploy ku
 func testMovingConnection(t *testing.T, nodeCount int, nscDeploy, icmpDeploy kubetest.PodSupplier, pingNse kubetest.NsePinger) {
 	g := NewWithT(t)
 
-	k8s, err := kubetest.NewK8s(g, true)
+	k8s, err := kubetest.NewK8s(g, kubetest.DefaultClear)
 	defer k8s.Cleanup()
 
 	g.Expect(err).To(BeNil())
@@ -111,7 +111,7 @@ func testMovingConnection(t *testing.T, nodeCount int, nscDeploy, icmpDeploy kub
 func testOneToOneConnection(t *testing.T, nodeCount int, nscDeploy, icmpDeploy kubetest.PodSupplier, pingNse kubetest.NsePinger) {
 	g := NewWithT(t)
 
-	k8s, err := kubetest.NewK8s(g, true)
+	k8s, err := kubetest.NewK8s(g, kubetest.DefaultClear)
 	defer k8s.Cleanup()
 
 	g.Expect(err).To(BeNil())

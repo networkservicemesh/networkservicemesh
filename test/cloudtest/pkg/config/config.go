@@ -50,7 +50,7 @@ type Execution struct {
 	ClusterSelector []string        `yaml:"cluster-selector"` // A cluster name to execute this tests on.
 	Env             []string        `yaml:"env"`              // Additional environment variables
 	Run             string          `yaml:"run"`              // A script to execute against required cluster
-	OnFail          string          `yaml:"on_fail"`          // A script to execute against required cluster, called if task failed
+	OnFail          string          `yaml:"on-test-fail"`     // A script to execute against required cluster, called if task failed
 	BeforeAll       string          `yaml:"before-all"`       // A script to execute against required cluster, called when execution config is done on cluster instance.
 	AfterAll        string          `yaml:"after-all"`        // A script to execute against required cluster, called when execution config is done on cluster instance.
 }
