@@ -750,6 +750,7 @@ func (ctx *executionContext) executeTask(task *testTask, clusterConfigs []string
 		_ = writer.Flush()
 
 		timeoutCtx, cancel := context.WithTimeout(context.Background(), timeout)
+
 		defer cancel()
 
 		ctx.Lock()
@@ -762,6 +763,13 @@ func (ctx *executionContext) executeTask(task *testTask, clusterConfigs []string
 		errCode := runner.Run(timeoutCtx, env, writer)
 
 		_ = writer.Flush()
+
+		if errCode != nil {
+			onFailErr := ctx.handleOnFailTask(task, env, writer)
+			if onFailErr != nil {
+				errCode = errors.Wrap(errCode, onFailErr.Error())
+			}
+		}
 
 		// Check if test ask us restart it, and have few executions left
 		if errCode != nil && len(ctx.cloudTestConfig.RetestConfig.Patterns) > 0 && ctx.cloudTestConfig.RetestConfig.RestartCount > 0 {
@@ -803,13 +811,6 @@ func (ctx *executionContext) executeTask(task *testTask, clusterConfigs []string
 			ctx.Lock()
 			cinst.retestCounter = 0
 			ctx.Unlock()
-		}
-
-		if errCode != nil {
-			onFailErr := ctx.handleOnFailTask(task, env, writer)
-			if err != nil {
-				errCode = errors.Wrap(errCode, onFailErr.Error())
-			}
 		}
 
 		task.test.Duration = time.Since(st)
