@@ -22,33 +22,27 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 )
 
-type testModel struct {
+type testModelWithHookOnApplyClientConnChanges struct {
 	model.Model
-	healStartedCh      chan struct{}
-	clientConnClosedCh chan struct{}
+	signalChannel     chan struct{}
+	waitChannel       chan struct{}
+	neededChangeState model.ClientConnectionState
+	applyChangesFunc  func(context.Context, string, func(*model.ClientConnection)) *model.ClientConnection
 }
 
-func NewTestModel(healStartedChannel chan struct{}, clientConnClosedChanel chan struct{}) *testModel {
-	return &testModel{
-		Model:              model.NewModel(),
-		healStartedCh:      healStartedChannel,
-		clientConnClosedCh: clientConnClosedChanel,
-	}
-}
-
-func (m *testModel) ApplyClientConnectionChanges(ctx context.Context, connectionID string, changeFunc func(*model.ClientConnection)) *model.ClientConnection {
+func (m *testModelWithHookOnApplyClientConnChanges) ApplyClientConnectionChanges(ctx context.Context, connectionID string, changeFunc func(*model.ClientConnection)) *model.ClientConnection {
 	rv := m.Model.ApplyClientConnectionChanges(ctx, connectionID, changeFunc)
 
-	// Check whether changeFunc changes connection state to ClientConnectionHealing. If so, signal to the channel.
+	// Check whether changeFunc changes connection state to neededChangeState. If so, signal to the channel.
 	dummyConnection := &model.ClientConnection{
 		ConnectionState: model.ClientConnectionReady,
 	}
 
 	changeFunc(dummyConnection)
 
-	if dummyConnection.ConnectionState == model.ClientConnectionHealing {
-		close(m.healStartedCh)
-		<-m.clientConnClosedCh
+	if dummyConnection.ConnectionState == m.neededChangeState {
+		close(m.signalChannel)
+		<-m.waitChannel
 	}
 
 	return rv

@@ -119,16 +119,16 @@ func (p *healProcessor) Heal(ctx context.Context, clientConnection nsm.ClientCon
 func (p *healProcessor) CloseConnection(ctx context.Context, conn nsm.ClientConnection) error {
 	var err error
 
-	// Cancell context after closing.
+	// Cancel context after closing.
 	defer func() {
 		p.healCancellersMutex.Lock()
 		contextCancelFunc, isHealing := p.healCancellers[conn.GetID()]
-		delete(p.healCancellers, conn.GetID())
-		p.healCancellersMutex.Unlock()
-
 		if isHealing {
+			logrus.Infof("Closing client connection while healing, cancel client context")
+			delete(p.healCancellers, conn.GetID())
 			contextCancelFunc()
 		}
+		p.healCancellersMutex.Unlock()
 	}()
 
 	if conn.GetConnectionSource().IsRemote() {
@@ -448,6 +448,13 @@ func (p *healProcessor) waitNSE(ctx context.Context, endpointName, networkServic
 
 	for {
 		logger.Infof("NSM: RemoteNSE: Waiting for NSE with network service %s. Since elapsed: %v", networkService, time.Since(st))
+
+		// If client context was cancelled, we need to stop waiting.
+		if ctx.Err() != nil {
+			logger.Infof("Client context is cancelled, stop waiting for network service %s", networkService)
+			return false
+		}
+
 		endpointResponse, err := discoveryClient.FindNetworkService(ctx, nseRequest)
 		if err == nil {
 			for _, ep := range endpointResponse.NetworkServiceEndpoints {
