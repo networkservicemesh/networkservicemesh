@@ -741,8 +741,8 @@ func (ctx *executionContext) executeTask(task *testTask, clusterConfigs []string
 
 		st := time.Now()
 		env := []string{}
-		// Fill Kubernetes environment variables.
 
+		// Fill Kubernetes environment variables.
 		if len(task.test.ExecutionConfig.KubernetesEnv) > 0 {
 			for ind, envV := range task.test.ExecutionConfig.KubernetesEnv {
 				env = append(env, fmt.Sprintf("%s=%s", envV, clusterConfigs[ind]))
@@ -781,9 +781,13 @@ func (ctx *executionContext) executeTask(task *testTask, clusterConfigs []string
 		_ = writer.Flush()
 
 		if errCode != nil {
-			onFailErr := ctx.handleOnFailTask(task, env, writer)
-			if onFailErr != nil {
-				errCode = errors.Wrap(errCode, onFailErr.Error())
+			// Go over every cluster to perform cleanup
+			for i, cfg := range clusterConfigs {
+				logrus.Infof("OnFail: running on fail script operations with KUBECONFIG=%v on cloud %v", cfg, task.clusterInstances[i].id)
+				onFailErr := ctx.handleOnFailTask(task, []string{fmt.Sprintf("KUBECONFIG=%s", cfg)}, writer)
+				if onFailErr != nil {
+					errCode = errors.Wrap(errCode, onFailErr.Error())
+				}
 			}
 		}
 
