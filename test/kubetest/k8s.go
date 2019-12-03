@@ -853,6 +853,7 @@ func (k8s *K8s) CreatePodsRaw(timeout time.Duration, failTest bool, templates ..
 	for _, podResult := range results {
 		if podResult == nil {
 			logrus.Errorf("Error - Pod should have been created, but is nil: %v", podResult)
+			errs = append(errs, errors.Errorf("Pod should have been created, but is nil: %v", podResult))
 		} else {
 			if podResult.pod != nil {
 				pods = append(pods, podResult.pod)
