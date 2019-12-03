@@ -1,4 +1,4 @@
-// +build single_cluster_suite
+// +build basic
 
 package nsmd_integration_tests
 

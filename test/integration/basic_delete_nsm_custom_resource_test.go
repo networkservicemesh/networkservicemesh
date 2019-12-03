@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build single_cluster_suite
+// +build basic
 
 package nsmd_integration_tests
 
@@ -28,7 +28,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 )
 
-func TestDeleteNSMCustomResource(t *testing.T) {
+func TestDeleteNSMCr(t *testing.T) {
 	g := NewWithT(t)
 
 	if testing.Short() {
@@ -38,7 +38,7 @@ func TestDeleteNSMCustomResource(t *testing.T) {
 
 	logrus.Print("Running delete NSM Custom Resource test")
 
-	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResources)
+	k8s, err := kubetest.NewK8s(g, kubetest.DefaultClear)
 	g.Expect(err).To(BeNil())
 	defer k8s.Cleanup()
 

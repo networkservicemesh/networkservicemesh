@@ -262,6 +262,8 @@ executions:
       - KUBECONFIG
     run: |
       scripts/helm-test-charts.sh nsm admission-webhook vpn
+    on-test-fail: |
+      make k8s-delete-nsm-namespaces
 
   - name: "Example-helm-icmp"
     kind: shell
@@ -275,7 +277,9 @@ executions:
     kubernetes-env:
       - KUBECONFIG
     run: |
-      scripts/helm-test-charts.sh nsm icmp-responder
+      scripts/helm-test-charts.sh nsm admission-webhook icmp-responder
+    on-test-fail: |
+      make k8s-delete-nsm-namespaces
 
   - name: "Example-helm-icmp kernel-forwarder"
     kind: shell
@@ -291,6 +295,8 @@ executions:
       - KUBECONFIG
     run: |
       scripts/helm-test-charts.sh nsm admission-webhook icmp-responder
+    on-test-fail: |
+      make k8s-delete-nsm-namespaces
 
   - name: "Example-helm-crossconnect-monitor"
     kind: shell
@@ -306,3 +312,5 @@ executions:
       - KUBECONFIG
     run: |
       scripts/helm-test-charts.sh nsm admission-webhook icmp-responder crossconnect-monitor
+    on-test-fail: |
+      make k8s-delete-nsm-namespaces
