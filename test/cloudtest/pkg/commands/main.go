@@ -771,7 +771,7 @@ func (ctx *executionContext) executeTask(task *testTask, clusterConfigs []string
 						Out:           writer,
 					})
 					if err != nil {
-						logrus.Warnf("An error during run BeforeAll script for execution: %v, error: %v", task.test.ExecutionConfig.Name, err)
+						logrus.Warnf("An error during run AfterAll script for execution: %v, error: %v", task.test.ExecutionConfig.Name, err)
 					}
 				}
 				inst.runningExecution = task.test.ExecutionConfig
@@ -783,7 +783,7 @@ func (ctx *executionContext) executeTask(task *testTask, clusterConfigs []string
 					Out:           writer,
 				})
 				if err != nil {
-					logrus.Warnf("An error during run AfterAll script for execution: %v, error: %v", task.test.ExecutionConfig.Name, err)
+					logrus.Warnf("An error during run BeforeAll script for execution: %v, error: %v", task.test.ExecutionConfig.Name, err)
 				}
 
 			}
@@ -803,7 +803,7 @@ func (ctx *executionContext) executeTask(task *testTask, clusterConfigs []string
 				Env:           append(task.test.ExecutionConfig.Env, env...),
 				Out:           writer,
 			})
-			if errCode != nil {
+			if onFailErr != nil {
 				errCode = errors.Wrap(errCode, onFailErr.Error())
 			}
 		}
