@@ -1,8 +1,8 @@
 package main
 
 import (
+	"fmt"
 	"log"
-	"os"
 	"sync"
 	"time"
 
@@ -17,7 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/iam"
 )
 
-var deferError = false
+var deferError error
 
 func checkDeferError(err error) bool {
 	if err != nil {
@@ -34,13 +34,13 @@ func checkDeferError(err error) bool {
 			case "InvalidParameterValue":
 			default:
 				log.Printf("Error (%s): %s\n", aerr.Code(), aerr.Message())
-				deferError = true
+				deferError = err
 				return true
 			}
 			log.Printf("Warning (%s): %s\n", aerr.Code(), aerr.Message())
 		} else {
 			log.Printf("Error: %s\n", err.Error())
-			deferError = true
+			deferError = err
 		}
 		return true
 	}
@@ -150,7 +150,7 @@ func DeleteEksClusterVpc(cfClient *cloudformation.CloudFormation, clusterStackNa
 			time.Sleep(requestInterval)
 		default:
 			log.Printf("Error: Unexpected stack status: %s\n", *resp.Stacks[0].StackStatus)
-			deferError = true
+			deferError = fmt.Errorf("unexpected stack status: %s\n", *resp.Stacks[0].StackStatus)
 			return
 		}
 	}
@@ -185,7 +185,7 @@ func DeleteEksCluster(eksClient *eks.EKS, clusterName *string) {
 			time.Sleep(requestInterval)
 		default:
 			log.Printf("Error: Unexpected cluster status: %s\n", *resp.Cluster.Status)
-			deferError = true
+			deferError = fmt.Errorf("unexpected cluster status: %s\n", *resp.Cluster.Status)
 			return
 		}
 	}
@@ -238,13 +238,13 @@ func DeleteEksWorkerNodes(cfClient *cloudformation.CloudFormation, nodesStackNam
 			time.Sleep(requestInterval)
 		default:
 			log.Printf("Error: Unexpected stack status: %s\n", *resp.Stacks[0].StackStatus)
-			deferError = true
+			deferError = fmt.Errorf("unexpected stack status: %s\n", *resp.Stacks[0].StackStatus)
 			return
 		}
 	}
 }
 
-func deleteAWSKubernetesCluster(serviceSuffix string) {
+func deleteAWSKubernetesCluster(serviceSuffix string) error {
 	sess := session.Must(session.NewSession())
 	iamClient := iam.New(sess)
 	eksClient := eks.New(sess)
@@ -272,9 +272,7 @@ func deleteAWSKubernetesCluster(serviceSuffix string) {
 	keyPairName := "nsm-key-pair" + serviceSuffix
 	DeleteEksEc2KeyPair(ec2Client, &keyPairName)
 
-	if deferError {
-		os.Exit(1)
-	}
+	return deferError
 }
 
 func deleteAllKubernetesClusters(saveDuration time.Duration) {
@@ -309,8 +307,13 @@ func deleteAllKubernetesClusters(saveDuration time.Duration) {
 
 		go func() {
 			defer wg.Done()
-			logrus.Infof("Deleting %s", stackName[7:])
-			deleteAWSKubernetesCluster(stackName[7:])
+			for att := 0; att < 3; att++ {
+				logrus.Infof("Deleting %s, attempt %d", stackName[7:], att+1)
+				err := deleteAWSKubernetesCluster(stackName[7:])
+				if err == nil {
+					break
+				}
+			}
 		}()
 
 		i++

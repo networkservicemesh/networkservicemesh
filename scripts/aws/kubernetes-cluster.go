@@ -29,7 +29,10 @@ func main() {
 	case "Create":
 		createAWSKubernetesCluster()
 	case "Delete":
-		deleteAWSKubernetesCluster(os.Getenv("NSM_AWS_SERVICE_SUFFIX"))
+		err := deleteAWSKubernetesCluster(os.Getenv("NSM_AWS_SERVICE_SUFFIX"))
+		if err != nil {
+			os.Exit(1)
+		}
 	case "DeleteAll":
 		var durationHours int64
 		var err error
