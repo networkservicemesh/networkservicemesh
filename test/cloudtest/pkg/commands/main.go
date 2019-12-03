@@ -322,35 +322,48 @@ func (ctx *executionContext) assignTasks() {
 				logrus.Infof("Ignoring skipped task:  %s", task.test.Name)
 				continue
 			}
-			clustersAvailable, clustersToUse, assigned := ctx.selectClusterForTask(task)
-			if assigned {
+
+			assignedClusters, unavailableClusters := ctx.selectClustersForTask(task)
+			if len(unavailableClusters) > 0 {
+				ctx.failTaskDueUnavailableClusters(task, unavailableClusters)
+				continue
+			}
+
+			canRun := len(assignedClusters) == len(task.clusters)
+			if canRun {
 				// Start task execution.
-				err := ctx.startTask(task, clustersToUse)
+				err := ctx.startTask(task, assignedClusters)
 				if err != nil {
-					logrus.Errorf("Error starting task  %s %v", task.test.Name, err)
-					assigned = false
+					logrus.Errorf("Error starting task  %s on %s: %v", task.test.Name, task.clusterTaskID, err)
+					canRun = false
 				} else {
 					ctx.running[task.taskID] = task
 				}
 			}
-			// If we finally not assigned.
-			if !assigned {
-				if clustersAvailable < len(task.clusters) {
-					// We move task to skipped since, no clusters could execute it, all attempts for clusters to recover are finished.
-					logrus.Errorf("Move task to skipped since no clusters could execute it: %s", task.test.Name)
-					task.test.Status = model.StatusSkippedSinceNoClusters
-					for _, cl := range task.clusters {
-						delete(cl.tasks, task.test.Key)
-						cl.completed[task.test.Key] = task
-					}
-					ctx.completed = append(ctx.completed, task)
-				} else {
-					newTasks = append(newTasks, task)
-				}
+			if !canRun {
+				// schedule the task for next assignment round
+				newTasks = append(newTasks, task)
 			}
 		}
 		ctx.tasks = newTasks
 	}
+}
+
+func (ctx *executionContext) failTaskDueUnavailableClusters(task *testTask, unavailableClusters []*clustersGroup) {
+	// All attempts to start/recover clusters required for the test failed
+	var unavailableClusterNames []string
+	for _, cl := range unavailableClusters {
+		unavailableClusterNames = append(unavailableClusterNames, cl.config.Name)
+	}
+	logrus.Errorf("Skip-and-fail %s on %s: %d of %d required cluster(s) unavailable: %v",
+		task.test.Name, task.clusterTaskID,
+		len(unavailableClusters), len(task.clusters), unavailableClusterNames)
+	task.test.Status = model.StatusFailed
+	for _, cl := range task.clusters {
+		delete(cl.tasks, task.test.Key)
+		cl.completed[task.test.Key] = task
+	}
+	ctx.completed = append(ctx.completed, task)
 }
 
 func (ctx *executionContext) performClusterUpdate(event operationEvent) {
@@ -449,9 +462,7 @@ func statusName(status model.Status) interface{} {
 	return fmt.Sprintf("code: %v", status)
 }
 
-func (ctx *executionContext) selectClusterForTask(task *testTask) (int, []*clusterInstance, bool) {
-	var clustersToUse []*clusterInstance
-	clustersAvailable := 0
+func (ctx *executionContext) selectClustersForTask(task *testTask) (clustersToUse []*clusterInstance, unavailableClusters []*clustersGroup) {
 	for _, cluster := range task.clusters {
 		groupAssigned := false
 		groupAvailable := false
@@ -469,9 +480,6 @@ func (ctx *executionContext) selectClusterForTask(task *testTask) (int, []*clust
 				}
 			case clusterReady:
 				groupAvailable = true
-				if groupAssigned {
-					continue
-				}
 				// Check if we match requirements.
 				// We could assign task and start it running.
 				clustersToUse = append(clustersToUse, ci)
@@ -480,12 +488,15 @@ func (ctx *executionContext) selectClusterForTask(task *testTask) (int, []*clust
 			case clusterBusy, clusterStarting, clusterStopping:
 				groupAvailable = true
 			}
+			if groupAssigned {
+				break
+			}
 		}
-		if groupAvailable {
-			clustersAvailable++
+		if !groupAvailable {
+			unavailableClusters = append(unavailableClusters, cluster)
 		}
 	}
-	return clustersAvailable, clustersToUse, len(clustersToUse) == len(task.clusters)
+	return
 }
 
 func (ctx *executionContext) printStatistics() {
@@ -941,7 +952,7 @@ func (ctx *executionContext) startCluster(ci *clusterInstance) bool {
 	}
 
 	if ci.startCount > ci.group.config.RetryCount {
-		logrus.Infof("Marking cluster %v as not available attempts reached: %v", ci.id, ci.group.config.RetryCount)
+		logrus.Infof("Marking cluster %v as not available, (re)starts: %v", ci.id, ci.group.config.RetryCount)
 		ci.state = clusterNotAvailable
 		return false
 	}
