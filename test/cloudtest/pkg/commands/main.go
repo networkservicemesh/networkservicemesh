@@ -1320,54 +1320,73 @@ func (ctx *executionContext) findGoTest(executionConfig *config.ExecutionConfig)
 	return result, nil
 }
 
+func buildClusterSuiteName(clusters []*clustersGroup) string {
+	var clusterProviderNames []string
+	for _, cluster := range clusters {
+		clusterProviderNames = append(clusterProviderNames, cluster.config.Name)
+	}
+	return strings.Join(clusterProviderNames, "-")
+}
+
 func (ctx *executionContext) generateJUnitReportFile() (*reporting.JUnitFile, error) {
 	// generate and write report
 	ctx.report = &reporting.JUnitFile{}
 
+	// We need to group all tests by executions
+	var executionsTests = make(map[string][]*testTask)
+	for _, test := range ctx.completed {
+		execName := test.test.ExecutionConfig.Name
+		executionsTests[execName] = append(executionsTests[execName], test)
+	}
+
 	totalFailures := 0
-	for _, cluster := range ctx.clusters {
-		failures := 0
-		totalTests := 0
-		totalTime := time.Duration(0)
-		suite := &reporting.Suite{
-			Name: cluster.config.Name,
+	// Generate suites by executions
+	for execName, executionTasks := range executionsTests {
+
+		execSuite := &reporting.Suite{
+			Name: execName,
 		}
 
-		for _, test := range cluster.tasks {
-			totalTests, totalTime, failures = ctx.generateTestCaseReport(test, totalTests, totalTime, failures, suite)
+		// Generate suite for each cluster task
+		clustersTests := make(map[string][]*testTask)
+		for _, test := range executionTasks {
+			clusterGroupName := buildClusterSuiteName(test.clusters)
+			clustersTests[clusterGroupName] = append(clustersTests[clusterGroupName], test)
 		}
 
-		for _, test := range cluster.completed {
-			totalTests, totalTime, failures = ctx.generateTestCaseReport(test, totalTests, totalTime, failures, suite)
-		}
+		executionFailures := 0
+		executionTests := 0
+		executionTime := time.Duration(0)
 
-		// Check cluster executions.
-		availableClusters := 0
-		for _, inst := range cluster.instances {
-			if inst.state != clusterNotAvailable {
-				availableClusters++
+		for clusterTaskName, tests := range clustersTests {
+			clusterFailures := 0
+			clusterTests := 0
+			clusterTime := time.Duration(0)
+			clusterSuite := &reporting.Suite{
+				Name: clusterTaskName,
 			}
-		}
-		if availableClusters == 0 {
-			// No clusters available let's mark this as error.
-			for _, inst := range cluster.instances {
-				if inst.state == clusterNotAvailable {
-					for _, exec := range inst.executions {
-						ctx.generateClusterFailedReportEntry(inst, exec, suite)
-						failures++
-						totalTests++
-						break
-					}
-				}
+			for _, test := range tests {
+				clusterTests, clusterTime, clusterFailures = ctx.generateTestCaseReport(test, clusterTests, clusterTime, clusterFailures, clusterSuite)
 			}
+
+			executionFailures += clusterFailures
+			executionTests += clusterTests
+			executionTime += clusterTime
+
+			clusterSuite.Time = fmt.Sprintf("%v", clusterTime)
+			clusterSuite.Failures = clusterFailures
+			clusterSuite.Tests = clusterTests
+
+			execSuite.Suite = append(execSuite.Suite, clusterSuite)
 		}
 
-		suite.Tests = totalTests
-		suite.Failures = failures
-		suite.Time = fmt.Sprintf("%v", totalTime)
-		totalFailures += failures
+		totalFailures += executionFailures
 
-		ctx.report.Suites = append(ctx.report.Suites, suite)
+		execSuite.Tests = executionTests
+		execSuite.Failures = executionFailures
+		execSuite.Time = fmt.Sprintf("%v", executionTime)
+		//totalFailures += failures
+		ctx.report.Suites = append(ctx.report.Suites, execSuite)
 	}
 
 	output, err := xml.MarshalIndent(ctx.report, "  ", "    ")
@@ -1407,8 +1426,9 @@ func (ctx *executionContext) generateClusterFailedReportEntry(inst *clusterInsta
 
 func (ctx *executionContext) generateTestCaseReport(test *testTask, totalTests int, totalTime time.Duration, failures int, suite *reporting.Suite) (int, time.Duration, int) {
 	testCase := &reporting.TestCase{
-		Name: test.test.Key,
-		Time: test.test.Duration.String(),
+		Name:    test.test.Key,
+		Time:    test.test.Duration.String(),
+		Cluster: test.clusterTaskID,
 	}
 
 	switch test.test.Status {

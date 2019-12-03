@@ -17,6 +17,7 @@ type Suite struct {
 	Name       string      `xml:"name,attr"`
 	Properties []*Property `xml:"properties>property,omitempty"`
 	TestCases  []*TestCase
+	Suite      []*Suite
 }
 
 // TestCase - TestCase
@@ -25,6 +26,7 @@ type TestCase struct {
 	Classname   string       `xml:"classname,attr"`
 	Name        string       `xml:"name,attr"`
 	Time        string       `xml:"time,attr"`
+	Cluster     string       `xml:"cluster,attr"`
 	SkipMessage *SkipMessage `xml:"skipped,omitempty"`
 	Failure     *Failure     `xml:"failure,omitempty"`
 }
