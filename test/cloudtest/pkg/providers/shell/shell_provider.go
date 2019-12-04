@@ -28,6 +28,7 @@ const (
 	configScript  = "config"  //#3
 	prepareScript = "prepare" //#4
 	stopScript    = "stop"    // #5
+	cleanupScript = "cleanup" // #6
 	zoneSelector  = "zone-selector"
 )
 
@@ -259,6 +260,18 @@ func (p *shellProvider) CreateCluster(config *config.ClusterProviderConfig, fact
 	}
 
 	return clusterInstance, nil
+}
+
+// CleanupClusters - Cleaning up leaked clusters
+func (p *shellProvider) CleanupClusters(ctx context.Context, config *config.ClusterProviderConfig,
+	manager execmanager.ExecutionManager, instanceOptions providers.InstanceOptions) {
+	logrus.Infof("Starting cleaning up clusters for %s", config.Name)
+	shellInterface := shell.NewManager(manager, fmt.Sprintf("%s-all", config.Name), config, instanceOptions)
+
+	_, err := shellInterface.RunCmd(ctx, "cleanup", utils.ParseScript(config.Scripts[cleanupScript]), config.Env)
+	if err != nil {
+		logrus.Warnf("Cleanup command for cluster %s finished with error: %v", config.Name, err)
+	}
 }
 
 // NewShellClusterProvider - Creates new shell provider

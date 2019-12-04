@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"regexp"
 	"sync"
 	"time"
 
@@ -17,6 +18,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/iam"
 )
 
+//nolint:gochecknoglobals
 var deferError error
 
 func checkDeferError(err error) bool {
@@ -150,7 +152,7 @@ func DeleteEksClusterVpc(cfClient *cloudformation.CloudFormation, clusterStackNa
 			time.Sleep(requestInterval)
 		default:
 			log.Printf("Error: Unexpected stack status: %s\n", *resp.Stacks[0].StackStatus)
-			deferError = fmt.Errorf("unexpected stack status: %s\n", *resp.Stacks[0].StackStatus)
+			deferError = fmt.Errorf("unexpected stack status: %s", *resp.Stacks[0].StackStatus)
 			return
 		}
 	}
@@ -185,7 +187,7 @@ func DeleteEksCluster(eksClient *eks.EKS, clusterName *string) {
 			time.Sleep(requestInterval)
 		default:
 			log.Printf("Error: Unexpected cluster status: %s\n", *resp.Cluster.Status)
-			deferError = fmt.Errorf("unexpected cluster status: %s\n", *resp.Cluster.Status)
+			deferError = fmt.Errorf("unexpected cluster status: %s", *resp.Cluster.Status)
 			return
 		}
 	}
@@ -238,7 +240,7 @@ func DeleteEksWorkerNodes(cfClient *cloudformation.CloudFormation, nodesStackNam
 			time.Sleep(requestInterval)
 		default:
 			log.Printf("Error: Unexpected stack status: %s\n", *resp.Stacks[0].StackStatus)
-			deferError = fmt.Errorf("unexpected stack status: %s\n", *resp.Stacks[0].StackStatus)
+			deferError = fmt.Errorf("unexpected stack status: %s", *resp.Stacks[0].StackStatus)
 			return
 		}
 	}
@@ -275,7 +277,7 @@ func deleteAWSKubernetesCluster(serviceSuffix string) error {
 	return deferError
 }
 
-func deleteAllKubernetesClusters(saveDuration time.Duration) {
+func deleteAllKubernetesClusters(saveDuration time.Duration, namePattern string) {
 	sess := session.Must(session.NewSession())
 	cfClient := cloudformation.New(sess)
 
@@ -298,8 +300,13 @@ func deleteAllKubernetesClusters(saveDuration time.Duration) {
 			continue
 		}
 
+		if matched, err := regexp.MatchString(namePattern, stackName[7:]); err != nil || !matched {
+			logrus.Infof("Skip cluster: %s (matched: %v; err: %v)", stackName[7:], matched, err)
+			continue
+		}
+
 		if stack.CreationTime.After(time.Now().Add(-1 * saveDuration)) {
-			logrus.Infof("Skip cluster: %s (%v)", stackName, stack.CreationTime)
+			logrus.Infof("Skip cluster: %s (created: %v)", stackName[7:], stack.CreationTime)
 			continue
 		}
 
@@ -308,7 +315,7 @@ func deleteAllKubernetesClusters(saveDuration time.Duration) {
 		go func() {
 			defer wg.Done()
 			for att := 0; att < 3; att++ {
-				logrus.Infof("Deleting %s, attempt %d", stackName[7:], att+1)
+				logrus.Infof("Deleting %s (created %v), attempt %d", stackName[7:], stack.CreationTime, att+1)
 				err := deleteAWSKubernetesCluster(stackName[7:])
 				if err == nil {
 					break

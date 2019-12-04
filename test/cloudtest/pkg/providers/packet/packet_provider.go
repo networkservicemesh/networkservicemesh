@@ -618,6 +618,12 @@ func (p *packetProvider) CreateCluster(config *config.ClusterProviderConfig, fac
 	return clusterInstance, nil
 }
 
+// CleanupClusters - Cleaning up leaked clusters
+func (p *packetProvider) CleanupClusters(ctx context.Context, config *config.ClusterProviderConfig,
+	manager execmanager.ExecutionManager, instanceOptions providers.InstanceOptions) {
+	logrus.Warnf("CleanupClusters not implemented in packet provider")
+}
+
 // NewPacketClusterProvider - create new packet provider.
 func NewPacketClusterProvider(root string) providers.ClusterProvider {
 	utils.ClearFolder(root, true)

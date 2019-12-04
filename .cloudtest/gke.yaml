@@ -30,3 +30,5 @@ providers:
       stop: make gke-destroy
       # config: # We do not need it since we put KUBECONFIG into env.
       prepare: scripts/prepare-cluster.sh
+      cleanup: |
+        ./scripts/gke/destroy-old-clusters.sh -t 4 -p "^gke"

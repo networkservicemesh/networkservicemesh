@@ -206,6 +206,11 @@ func PerformTesting(config *config.CloudTestConfig, factory k8s.ValidationFactor
 	if err := ctx.createClusters(); err != nil {
 		return nil, err
 	}
+
+	cleanupCtx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go ctx.cleanupClusters(cleanupCtx)
+
 	// Collect tests
 	if err := ctx.findTests(); err != nil {
 		logrus.Errorf("Error finding tests %v", err)
@@ -1211,6 +1216,14 @@ func (ctx *executionContext) createClusters() error {
 		return errors.New(msg)
 	}
 	return nil
+}
+
+func (ctx *executionContext) cleanupClusters(cleanupCtx context.Context) {
+	for _, cl := range ctx.clusters {
+		if cl.config.Enabled {
+			cl.provider.CleanupClusters(cleanupCtx, cl.config, ctx.manager, ctx.arguments.instanceOptions)
+		}
+	}
 }
 
 func (ctx *executionContext) findTests() error {

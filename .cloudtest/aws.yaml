@@ -27,3 +27,5 @@ providers:
       stop: |
         make aws-destroy
       prepare: scripts/prepare-cluster.sh
+      cleanup: |
+        ./scripts/aws/destroy-old-clusters.sh -t 4 -p "^aws"
