@@ -47,6 +47,8 @@ type ExecutionConfig struct {
 	Env             []string `yaml:"env"`              // Additional environment variables
 	Run             string   `yaml:"run"`              // A script to execute against required cluster
 	OnFail          string   `yaml:"on_fail"`          // A script to execute against required cluster, called if task failed
+
+	ConcurrencyRetry int64 `yaml:"test-retry-count"` // A count of times, same test will be executed to find concurrency issues
 }
 
 type RetestConfig struct {
@@ -77,4 +79,19 @@ type CloudTestConfig struct {
 	Imports     []string             `yaml:"import"`  // A set of configurations for import
 
 	RetestConfig RetestConfig `yaml:"retest"`
+
+	Statistics struct {
+		Interval int64 `yaml:"interval"` // A statistics printing timeout, default 60 seconds
+		Enabled  bool  `yaml:"enabled"`  // A way to disable printing of statistics
+	} `yaml:"statistics"` // Statistics options
+
+	ShuffleTests bool `yaml:"shuffle-enabled"` // Shuffle tests before assignement
+}
+
+// NewCloudTestConfig - creates a test config with some default values specified.
+func NewCloudTestConfig() (result *CloudTestConfig) {
+	result = &CloudTestConfig{}
+	result.Statistics.Enabled = true
+	result.Statistics.Interval = 60
+	return result
 }
