@@ -51,7 +51,7 @@ func main() {
 			logrus.Errorf("Cannot parse: %v", err)
 			return
 		}
-		deleteAllKubernetesClusters(time.Duration(durationHours) * time.Hour, namePattern)
+		deleteAllKubernetesClusters(time.Duration(durationHours)*time.Hour, namePattern)
 	default:
 		printUsage()
 	}

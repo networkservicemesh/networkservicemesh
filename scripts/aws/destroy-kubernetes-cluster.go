@@ -1,12 +1,12 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"regexp"
 	"sync"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -152,7 +152,7 @@ func DeleteEksClusterVpc(cfClient *cloudformation.CloudFormation, clusterStackNa
 			time.Sleep(requestInterval)
 		default:
 			log.Printf("Error: Unexpected stack status: %s\n", *resp.Stacks[0].StackStatus)
-			deferError = fmt.Errorf("unexpected stack status: %s", *resp.Stacks[0].StackStatus)
+			deferError = errors.Errorf("unexpected stack status: %s", *resp.Stacks[0].StackStatus)
 			return
 		}
 	}
@@ -187,7 +187,7 @@ func DeleteEksCluster(eksClient *eks.EKS, clusterName *string) {
 			time.Sleep(requestInterval)
 		default:
 			log.Printf("Error: Unexpected cluster status: %s\n", *resp.Cluster.Status)
-			deferError = fmt.Errorf("unexpected cluster status: %s", *resp.Cluster.Status)
+			deferError = errors.Errorf("unexpected cluster status: %s", *resp.Cluster.Status)
 			return
 		}
 	}
@@ -240,7 +240,7 @@ func DeleteEksWorkerNodes(cfClient *cloudformation.CloudFormation, nodesStackNam
 			time.Sleep(requestInterval)
 		default:
 			log.Printf("Error: Unexpected stack status: %s\n", *resp.Stacks[0].StackStatus)
-			deferError = fmt.Errorf("unexpected stack status: %s", *resp.Stacks[0].StackStatus)
+			deferError = errors.Errorf("unexpected stack status: %s", *resp.Stacks[0].StackStatus)
 			return
 		}
 	}
