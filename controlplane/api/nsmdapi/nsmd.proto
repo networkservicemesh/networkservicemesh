@@ -17,6 +17,7 @@ message ClientConnectionReply {
     string clientBaseDir = 3;
     string nsmServerSocket = 4;
     string nsmClientSocket = 5;
+    string nsmWorkspaceToken = 6;
 }
 
 // DeleteConnectionRequest is sent by a nsm-k8s to delete connection with a client.

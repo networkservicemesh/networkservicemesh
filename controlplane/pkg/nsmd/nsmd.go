@@ -12,14 +12,11 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
 	remoteMonitor "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/remote"
 
-	"github.com/pkg/errors"
-
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
-
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/probes"
 	"github.com/networkservicemesh/networkservicemesh/pkg/probes/health"
@@ -34,6 +31,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/services"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
 	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/connectionmonitor"
 	monitor_crossconnect "github.com/networkservicemesh/networkservicemesh/sdk/monitor/crossconnect"
@@ -73,6 +71,7 @@ type nsmServer struct {
 	crossConnectMonitor     monitor_crossconnect.MonitorServer
 	remoteConnectionMonitor remoteMonitor.MonitorServer
 	remoteServer            unified.NetworkServiceServer
+	registryServer          NSERegistryServer
 }
 
 func (nsm *nsmServer) XconManager() *services.ClientConnectionManager {
@@ -376,13 +375,13 @@ func (nsm *nsmServer) restoreNotRegisteredEndpoint(ctx context.Context,
 	span.LogObject("name", name)
 	defer span.Finish()
 
-	reg, err := ws.registryServer.RegisterNSEWithClient(span.Context(), nse.NseReg, registryClient)
+	reg, err := nsm.registryServer.RegisterNSEWithClient(span.Context(), nse.NseReg, registryClient, ws)
 	span.LogObject("reg-response", reg)
 	if err != nil {
 		span.LogError(err)
 
 		nse.NseReg.NetworkServiceEndpoint.Name = ""
-		reg, err = ws.registryServer.RegisterNSEWithClient(span.Context(), nse.NseReg, registryClient)
+		reg, err = nsm.registryServer.RegisterNSEWithClient(span.Context(), nse.NseReg, registryClient, ws)
 		if err != nil {
 			span.LogError(err)
 			return "", nseregistry.NSEEntry{}, err
@@ -490,6 +489,7 @@ func StartNSMServer(ctx context.Context, model model.Model, manager nsm.NetworkS
 	nsm.remoteServer = remote.NewRemoteNetworkServiceServer(nsm.manager, nsm.remoteConnectionMonitor)
 	nsm.manager.SetRemoteServer(nsm.remoteServer)
 
+	nsm.registryServer = NewRegistryServer(nsm)
 	// Restore existing clients in case of NSMd restart.
 	nsm.restore(span.Context(), endpoints)
 
@@ -573,4 +573,16 @@ func (nsm *nsmServer) StartAPIServerAt(ctx context.Context, sock net.Listener, p
 		}
 	}()
 	span.Logger().Infof("NSM gRPC API Server: %s is operational", sock.Addr().String())
+}
+
+// WorkspaceFromContext finds workspace by clientToken stored in the Context
+func (nsm *nsmServer) WorkspaceFromContext(ctx context.Context) *Workspace {
+	if clientToken := endpoint.ClientToken(ctx); len(clientToken) > 0 {
+		for _, w := range nsm.workspaces {
+			if w.clientToken == clientToken {
+				return w
+			}
+		}
+	}
+	return nil
 }

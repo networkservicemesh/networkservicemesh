@@ -41,18 +41,18 @@ const (
 
 type NSERegistryServer interface {
 	registry.NetworkServiceRegistryServer
-	RegisterNSEWithClient(ctx context.Context, request *registry.NSERegistration, client registry.NetworkServiceRegistryClient) (*registry.NSERegistration, error)
+	RegisterNSEWithClient(ctx context.Context, request *registry.NSERegistration,
+		client registry.NetworkServiceRegistryClient, workspace *Workspace) (*registry.NSERegistration, error)
 }
 type registryServer struct {
 	nsm         *nsmServer
-	workspace   *Workspace
 	nseTrackers map[string]chan bool
 }
 
-func NewRegistryServer(nsm *nsmServer, workspace *Workspace) NSERegistryServer {
+// NewRegistryServer creates a new registry server
+func NewRegistryServer(nsm *nsmServer) NSERegistryServer {
 	return &registryServer{
 		nsm:         nsm,
-		workspace:   workspace,
 		nseTrackers: make(map[string]chan bool),
 	}
 }
@@ -61,6 +61,11 @@ func (es *registryServer) RegisterNSE(ctx context.Context, request *registry.NSE
 	span := spanhelper.FromContext(ctx, "RegisterNSE")
 	defer span.Finish()
 	span.Logger().Infof("Received RegisterNSE request: %v", request)
+
+	workspace := es.nsm.WorkspaceFromContext(ctx)
+	if workspace == nil {
+		return nil, errors.New("failed to get workspace from request's context")
+	}
 
 	// Check if there is already Network Service Endpoint object with the same name, if there is
 	// success will be returned to NSE, since it is a case of NSE pod coming back up.
@@ -71,14 +76,14 @@ func (es *registryServer) RegisterNSE(ctx context.Context, request *registry.NSE
 		return nil, err
 	}
 
-	reg, err := es.RegisterNSEWithClient(span.Context(), request, client)
+	reg, err := es.RegisterNSEWithClient(span.Context(), request, client, workspace)
 	if err != nil {
 		span.LogError(err)
 		return reg, err
 	}
 
 	// Append to workspace...
-	err = es.workspace.localRegistry.AppendNSERegRequest(es.workspace.name, reg)
+	err = es.nsm.localRegistry.AppendNSERegRequest(workspace.Name(), reg)
 	if err != nil {
 		err = errors.Errorf("failed to store NSE into local registry service: %v", err)
 		span.LogError(err)
@@ -88,7 +93,8 @@ func (es *registryServer) RegisterNSE(ctx context.Context, request *registry.NSE
 	span.LogObject("registration", reg)
 	return reg, nil
 }
-func (es *registryServer) RegisterNSEWithClient(ctx context.Context, request *registry.NSERegistration, client registry.NetworkServiceRegistryClient) (*registry.NSERegistration, error) {
+
+func (es *registryServer) RegisterNSEWithClient(ctx context.Context, request *registry.NSERegistration, client registry.NetworkServiceRegistryClient, workspace *Workspace) (*registry.NSERegistration, error) {
 	// Some notes here:
 	// 1)  Yes, we are overwriting anything we get for NetworkServiceManager
 	//     from the NSE.  NSE's shouldn't specify NetworkServiceManager
@@ -107,9 +113,9 @@ func (es *registryServer) RegisterNSEWithClient(ctx context.Context, request *re
 
 	ep := es.nsm.model.GetEndpoint(registration.GetNetworkServiceEndpoint().GetName())
 	modelEndpoint := &model.Endpoint{
-		SocketLocation: es.workspace.NsmClientSocket(),
+		SocketLocation: workspace.NsmClientSocket(),
 		Endpoint:       registration,
-		Workspace:      es.workspace.Name(),
+		Workspace:      workspace.Name(),
 	}
 	if ep == nil {
 		es.nsm.model.AddEndpoint(ctx, modelEndpoint)

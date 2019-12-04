@@ -81,7 +81,7 @@ func (n *nsmClientEndpoints) Allocate(ctx context.Context, reqs *pluginapi.Alloc
 		id := req.DevicesIDs[0]
 		span.Logger().Infof("Requesting Workspace, device ID: %s", id)
 		workspace, err := nsmd.RequestWorkspace(span.Context(), n.serviceRegistry, id)
-		span.Logger().Infof("Received Workspace %v", workspace)
+		span.Logger().Infof("Received Workspace %+v", workspace)
 		if err != nil {
 			span.Logger().Errorf("error talking to nsmd: %v", err)
 		} else {
@@ -94,6 +94,7 @@ func (n *nsmClientEndpoints) Allocate(ctx context.Context, reqs *pluginapi.Alloc
 				nsmd.NsmDevicePluginEnv:   "true",
 				common.NsmServerSocketEnv: mount.ContainerPath + workspace.NsmServerSocket,
 				common.NsmClientSocketEnv: mount.ContainerPath + workspace.NsmClientSocket,
+				common.NsmClientTokenEnv:  workspace.NsmClientToken,
 				common.WorkspaceEnv:       workspace.ClientBaseDir,
 			}
 

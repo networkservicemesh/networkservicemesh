@@ -32,7 +32,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	unified "github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nseregistry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
@@ -48,14 +47,12 @@ const (
 type Workspace struct {
 	name                    string
 	listener                net.Listener
-	registryServer          NSERegistryServer
 	networkServiceServer    networkservice.NetworkServiceServer
 	monitorConnectionServer connectionMonitor.MonitorServer
 	grpcServer              *grpc.Server
 	sync.Mutex
 	state            WorkspaceState
 	locationProvider serviceregistry.WorkspaceLocationProvider
-	localRegistry    *nseregistry.NSERegistry
 	ctx              context.Context
 	discoveryServer  registry.NetworkServiceDiscoveryServer
 }
@@ -69,7 +66,6 @@ func NewWorkSpace(ctx context.Context, nsm *nsmServer, name string, restore bool
 		locationProvider: nsm.locationProvider,
 		name:             name,
 		state:            NEW,
-		localRegistry:    nsm.localRegistry,
 		ctx:              span.Context(),
 	}
 	defer w.cleanup() // Cleans up if and only iff we are not in state RUNNING
@@ -116,8 +112,6 @@ func NewWorkSpace(ctx context.Context, nsm *nsmServer, name string, restore bool
 }
 
 func registerWorkspaceServices(span spanhelper.SpanHelper, w *Workspace, nsm *nsmServer) {
-	span.Logger().Infof("Creating new NetworkServiceRegistryServer")
-	w.registryServer = NewRegistryServer(nsm, w)
 	w.discoveryServer = NewNetworkServiceDiscoveryServer(nsm.serviceRegistry)
 
 	span.Logger().Infof("Creating new MonitorConnectionServer")
@@ -130,7 +124,7 @@ func registerWorkspaceServices(span spanhelper.SpanHelper, w *Workspace, nsm *ns
 	w.grpcServer = tools.NewServer(span.Context())
 
 	span.Logger().Infof("Registering NetworkServiceRegistryServer with registerServer")
-	registry.RegisterNetworkServiceRegistryServer(w.grpcServer, w.registryServer)
+	registry.RegisterNetworkServiceRegistryServer(w.grpcServer, nsm.registryServer)
 	span.Logger().Infof("Registering NetworkServiceDiscoveryServer with discoveryServer")
 	registry.RegisterNetworkServiceDiscoveryServer(w.grpcServer, w.discoveryServer)
 	span.Logger().Infof("Registering NetworkServiceServer with registerServer")
