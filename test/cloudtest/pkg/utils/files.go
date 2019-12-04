@@ -5,9 +5,28 @@ import (
 	"os"
 	"path"
 	"strings"
+	"unicode"
 
 	"github.com/sirupsen/logrus"
 )
+
+//ToValidFileName converts string to valid file name
+func ToValidFileName(s string) string {
+	if s == "" {
+		return "unknown"
+	}
+	sb := strings.Builder{}
+
+	for _, r := range s {
+		if unicode.IsLetter(r) || unicode.IsDigit(r) || r == '.' {
+			_, _ = sb.WriteRune(r)
+		} else {
+			_, _ = sb.WriteRune('_')
+		}
+	}
+
+	return sb.String()
+}
 
 // OpenFile - opens a file in folder and make folder parents if required.
 func OpenFile(root, fileName string) (string, *os.File, error) {

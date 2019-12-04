@@ -258,7 +258,7 @@ executions:
       - NSM_NAMESPACE=nsm-system
       - CLUSTER_RULES_PREFIX=null
       - ARCHIVE_ARTIFACTS=true
-      - ARTIFACTS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/$(test-name)/vpn-example
+      - ARTIFACTS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/$(test-name)
       - SPIRE_ENABLED=false  # because spire is already installed
     kubernetes-env:
       - KUBECONFIG
@@ -274,7 +274,7 @@ executions:
       - NSM_NAMESPACE=nsm-system
       - CLUSTER_RULES_PREFIX=null
       - ARCHIVE_ARTIFACTS=true
-      - ARTIFACTS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/$(test-name)/icmp-example
+      - ARTIFACTS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/$(test-name)
       - SPIRE_ENABLED=false  # because spire is already installed
     kubernetes-env:
       - KUBECONFIG
@@ -291,7 +291,7 @@ executions:
       - NSM_NAMESPACE=nsm-system
       - CLUSTER_RULES_PREFIX=null
       - ARCHIVE_ARTIFACTS=true
-      - ARTIFACTS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/$(test-name)/icmp-example
+      - ARTIFACTS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/$(test-name)
       - SPIRE_ENABLED=false  # because spire is already installed
     kubernetes-env:
       - KUBECONFIG
@@ -307,7 +307,7 @@ executions:
       - NSM_NAMESPACE=nsm-system
       - CLUSTER_RULES_PREFIX=null
       - ARCHIVE_ARTIFACTS=true
-      - ARTIFACTS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/$(test-name)/crossconnect-monitor-example
+      - ARTIFACTS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/$(test-name)
       - SPIRE_ENABLED=false  # because spire is already installed
       - CHECK_CMD=scripts/verify_crossconnect_monitor.sh
     kubernetes-env:

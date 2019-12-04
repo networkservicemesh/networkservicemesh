@@ -176,7 +176,8 @@ func TestClusterInstancesOnFailShellRunner(t *testing.T) {
 		Timeout: 15,
 		Kind:    "shell",
 		Run:     "make_all_happy()",
-		OnFail:  `echo >>>Running on fail script<<<`,
+		Env:     []string{"name=$(test-name)"},
+		OnFail:  `echo >>>Running on fail script name=${name}<<<`,
 	})
 	testConfig.Reporting.JUnitReportFile = JunitReport
 
@@ -187,7 +188,7 @@ func TestClusterInstancesOnFailShellRunner(t *testing.T) {
 	for _, t := range report.Suites[0].TestCases {
 		if t.Name == "_fail" {
 			g.Expect(t.Failure).NotTo(Equal(BeNil()))
-			g.Expect(strings.Contains(t.Failure.Contents, ">>>Running on fail script<<<")).To(Equal(true))
+			g.Expect(t.Failure.Contents).Should(ContainSubstring(">>>Running on fail script name=OnFail<<<"))
 			foundFailTest = true
 		} else {
 			g.Expect(t.Failure).Should(BeNil())

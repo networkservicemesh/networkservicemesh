@@ -52,8 +52,7 @@ func (runner *shellTestRunner) GetCmdLine() string {
 // NewShellTestRunner - creates a new shell script test runner.
 func NewShellTestRunner(ids string, test *model.TestEntry) TestRunner {
 	envMgr := shell.NewEnvironmentManager()
-	_ = envMgr.ProcessEnvironment(ids, "shellrun", os.TempDir(), test.ExecutionConfig.Env, map[string]string{})
-
+	_ = envMgr.ProcessEnvironment(ids, "shellrun", os.TempDir(), test.ExecutionConfig.Env, map[string]string{"test-name": utils.ToValidFileName(test.Name)})
 	return &shellTestRunner{
 		id:     ids,
 		test:   test,

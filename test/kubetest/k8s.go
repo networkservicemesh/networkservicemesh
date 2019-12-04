@@ -546,7 +546,8 @@ func NewK8sWithoutRolesForConfig(g *WithT, prepare ClearOption, kubeconfigPath s
 	if prepare != NoClear {
 		start := time.Now()
 		if prepare == ReuseNSMResources {
-			client.DeletePodsByName("vpn", "icmp", "nsc", "source", "dest", "xcon", "nse", "spire-proxy")
+			client.DeletePodsByName("nsc", "source", "dest", "xcon", "spire-proxy")
+			client.DeletePodsByName("nse", "icmp", "vpn")
 		} else {
 			client.DeletePodsByName("nsmgr", "nsmd", "vppagent", "vpn", "icmp", "nsc", "source", "dest", "xcon", "spire-proxy", "nse")
 		}
@@ -666,8 +667,8 @@ func (k8s *K8s) buildNSMConfigMap() *v1.ConfigMap {
 func (k8s *K8s) deletePods(pods ...*v1.Pod) error {
 	var result error
 	errCh := make(chan error, len(pods))
-	for _, my_pod := range pods {
-		pod := my_pod
+	for _, p := range pods {
+		pod := p
 		go func() {
 			var deleteErr error
 			defer func() {
@@ -888,6 +889,19 @@ func filterNsmInfrastructure(pods ...*v1.Pod) []*v1.Pod {
 	return result
 }
 
+func findAllNSC(pods ...*v1.Pod) ([]*v1.Pod, []*v1.Pod) {
+	var nscList []*v1.Pod
+	var other []*v1.Pod
+	for _, p := range pods {
+		if strings.Contains(p.Name, "nsc") {
+			nscList = append(nscList, p)
+		} else {
+			other = append(other, p)
+		}
+	}
+	return nscList, other
+}
+
 func (k8s *K8s) cleanups() {
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -895,7 +909,10 @@ func (k8s *K8s) cleanups() {
 		defer wg.Done()
 		pods := k8s.ListRefPods()
 		if k8s.resourcesBehaviour == ReuseNSMResources {
-			_ = k8s.deletePods(filterNsmInfrastructure(pods...)...)
+			nscs, other := findAllNSC(pods...)
+			_ = k8s.deletePods(nscs...)
+			_ = k8s.deletePods(filterNsmInfrastructure(other...)...)
+
 		} else {
 			_ = k8s.deletePods(pods...)
 		}

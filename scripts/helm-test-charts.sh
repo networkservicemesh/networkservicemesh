@@ -13,7 +13,8 @@ reverse() {
 }
 
 echo "Testing HELM chart deployment, chart(s): ${CHARTS}, namespace: ${NSM_NAMESPACE}"
-
+echo "env:"
+env
 for ch in $CHARTS; do
   dp="deployments/helm/$ch"
   [ -d "$dp" ] || error "Deployment $dp not found"

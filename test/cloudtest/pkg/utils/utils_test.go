@@ -30,3 +30,14 @@ func TestMatchPattern(t *testing.T) {
 		"unable to establish connection to VPP (VPP API socket file /run/vpp/api.sock does not exist)",
 	}, "time=\"2019-11-22 09:28:45.55766\" level=fatal msg=\"unable to establish connection to VPP (VPP API socket file /run/vpp/api.sock does not exist)\" loc=\"vpp-agent/main.go(65)\" logger=defaultLogger")).To(gomega.Equal(true))
 }
+
+func TestToValidFileName(t *testing.T) {
+	samples := []string{"", "A", " A ", "A_1", "A 1 B 2 C", "A@1#B$2%c^3&.txt"}
+	expects := []string{"unknown", "A", "_A_", "A_1", "A_1_B_2_C", "A_1_B_2_c_3_.txt"}
+	g := gomega.NewWithT(t)
+	g.Expect(len(samples)).Should(gomega.Equal(len(expects)))
+	for i := 0; i < len(samples); i++ {
+		actual := ToValidFileName(samples[i])
+		g.Expect(actual).Should(gomega.Equal(expects[i]))
+	}
+}
