@@ -1334,9 +1334,15 @@ func (ctx *executionContext) generateJUnitReportFile() (*reporting.JUnitFile, er
 
 	// We need to group all tests by executions
 	var executionsTests = make(map[string][]*testTask)
-	for _, test := range ctx.completed {
-		execName := test.test.ExecutionConfig.Name
-		executionsTests[execName] = append(executionsTests[execName], test)
+	for _, cluster := range ctx.clusters {
+		for _, test := range cluster.tasks {
+			execName := test.test.ExecutionConfig.Name
+			executionsTests[execName] = append(executionsTests[execName], test)
+		}
+		for _, test := range cluster.completed {
+			execName := test.test.ExecutionConfig.Name
+			executionsTests[execName] = append(executionsTests[execName], test)
+		}
 	}
 
 	totalFailures := 0
@@ -1377,7 +1383,7 @@ func (ctx *executionContext) generateJUnitReportFile() (*reporting.JUnitFile, er
 			clusterSuite.Failures = clusterFailures
 			clusterSuite.Tests = clusterTests
 
-			execSuite.Suite = append(execSuite.Suite, clusterSuite)
+			execSuite.Suites = append(execSuite.Suites, clusterSuite)
 		}
 
 		totalFailures += executionFailures
@@ -1385,8 +1391,42 @@ func (ctx *executionContext) generateJUnitReportFile() (*reporting.JUnitFile, er
 		execSuite.Tests = executionTests
 		execSuite.Failures = executionFailures
 		execSuite.Time = fmt.Sprintf("%v", executionTime)
-		//totalFailures += failures
 		ctx.report.Suites = append(ctx.report.Suites, execSuite)
+	}
+
+	clusterFailuresSuite := &reporting.Suite{
+		Name: "Cluster failures",
+	}
+
+	clusterFailures := 0
+	// Check cluster instances
+	for _, cluster := range ctx.clusters {
+		availableClusters := 0
+		for _, inst := range cluster.instances {
+			if inst.state != clusterNotAvailable {
+				availableClusters++
+			}
+		}
+		if availableClusters == 0 {
+			// No clusters available let's mark this as error.
+			for _, inst := range cluster.instances {
+				if inst.state == clusterNotAvailable {
+					for _, exec := range inst.executions {
+						ctx.generateClusterFailedReportEntry(inst, exec, clusterFailuresSuite)
+						clusterFailures++
+						break
+					}
+				}
+			}
+		}
+	}
+
+	// Add a suite with cluster failures
+	if clusterFailures > 0 {
+		totalFailures += clusterFailures
+		clusterFailuresSuite.Tests = clusterFailures
+		clusterFailuresSuite.Failures = clusterFailures
+		ctx.report.Suites = append(ctx.report.Suites, clusterFailuresSuite)
 	}
 
 	output, err := xml.MarshalIndent(ctx.report, "  ", "    ")

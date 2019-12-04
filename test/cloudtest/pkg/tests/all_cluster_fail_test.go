@@ -43,9 +43,13 @@ func TestClusterInstancesFailed(t *testing.T) {
 	g.Expect(report).NotTo(BeNil())
 
 	g.Expect(len(report.Suites)).To(Equal(2))
+
+	g.Expect(len(report.Suites[0].Suites)).To(Equal(2))
+
 	g.Expect(report.Suites[0].Failures).To(Equal(1))
-	g.Expect(report.Suites[0].Tests).To(Equal(3))
-	g.Expect(len(report.Suites[0].TestCases)).To(Equal(3))
+	g.Expect(report.Suites[0].Tests).To(Equal(6))
+	g.Expect(len(report.Suites[0].Suites[0].TestCases)).To(Equal(3))
+	g.Expect(len(report.Suites[0].Suites[1].TestCases)).To(Equal(3))
 
 	g.Expect(report.Suites[1].Failures).To(Equal(2))
 	g.Expect(report.Suites[1].Tests).To(Equal(5))
@@ -86,8 +90,9 @@ func TestClusterInstancesOnFailGoRunner(t *testing.T) {
 
 	g.Expect(len(report.Suites)).To(Equal(2))
 	g.Expect(report.Suites[0].Failures).To(Equal(1))
-	g.Expect(report.Suites[0].Tests).To(Equal(3))
-	g.Expect(len(report.Suites[0].TestCases)).To(Equal(3))
+	g.Expect(report.Suites[0].Tests).To(Equal(6))
+	g.Expect(len(report.Suites[0].Suites[0].TestCases)).To(Equal(3))
+	g.Expect(len(report.Suites[0].Suites[1].TestCases)).To(Equal(3))
 
 	g.Expect(report.Suites[1].Failures).To(Equal(2))
 	g.Expect(report.Suites[1].Tests).To(Equal(5))
@@ -95,7 +100,7 @@ func TestClusterInstancesOnFailGoRunner(t *testing.T) {
 
 	foundFailTest := false
 
-	for _, t := range report.Suites[0].TestCases {
+	for _, t := range report.Suites[0].Suites[0].TestCases {
 		if t.Name == "_TestFail" {
 			g.Expect(t.Failure).NotTo(Equal(BeNil()))
 			g.Expect(strings.Contains(t.Failure.Contents, ">>>Running on fail script<<<")).To(Equal(true))
@@ -140,8 +145,9 @@ func TestClusterInstancesOnFailShellRunner(t *testing.T) {
 	g.Expect(err.Error()).To(Equal("there is failed tests 1"))
 	foundFailTest := false
 
-	for _, t := range report.Suites[0].TestCases {
-		if t.Name == "_fail" {
+	for _, executionSuite := range report.Suites {
+		t := executionSuite.Suites[0].TestCases[0]
+		if executionSuite.Name == "fail" {
 			g.Expect(t.Failure).NotTo(Equal(BeNil()))
 			g.Expect(strings.Contains(t.Failure.Contents, ">>>Running on fail script<<<")).To(Equal(true))
 			foundFailTest = true
