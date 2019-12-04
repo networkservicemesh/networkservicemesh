@@ -2,9 +2,18 @@
 
 kubectl="kubectl -n ${NSM_NAMESPACE:-default}"
 
+echo "Search and verify VPN gateways..."
+NSCs=$(${kubectl} get pods -o=name | grep vpn-gateway-nsc | sed 's@.*/@@')
+if [ -z "$NSCs" ]; then
+  echo "No gateways found, nothing to verify!"
+  exit
+fi
+echo "gateway(s) found:"
+echo "$NSCs"
+
 #  Ping all the things!
 EXIT_VAL=0
-for nsc in $(${kubectl} get pods -o=name | grep vpn-gateway-nsc | sed 's@.*/@@'); do
+for nsc in $NSCs; do
     echo "===== >>>>> PROCESSING ${nsc}  <<<<< ==========="
     for ip in $(${kubectl} exec "${nsc}" -- ip addr| grep inet | awk '{print $2}'); do
         if [[ "${ip}" == 172.16.1.* ]];then

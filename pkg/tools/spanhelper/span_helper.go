@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"runtime/debug"
+	"strings"
 
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/opentracing/opentracing-go"
@@ -18,6 +19,8 @@ type spanHelperKeyType string
 
 const (
 	spanHelperTraceDepth spanHelperKeyType = "spanHelperTraceDepth"
+	maxStringLength                        = 1000
+	dotCount                               = 3
 )
 
 func withTraceDepth(parent context.Context, value int) context.Context {
@@ -91,29 +94,35 @@ func (s *spanHelper) Span() opentracing.Span {
 
 func (s *spanHelper) LogError(err error) {
 	if s.span != nil && err != nil {
+		debug := limitString(string(debug.Stack()))
+		msg := limitString(fmt.Sprintf("%+v", err))
 		otgrpc.SetSpanTags(s.span, err, false)
-		s.span.LogFields(log.String("event", "error"), log.String("message", fmt.Sprintf("%+v", err)), log.String("stacktrace", string(debug.Stack())))
-		logrus.Errorf(">><<%s %s=%v span=%v", getPrefix("--", traceDepth(s.ctx)), "error", fmt.Sprintf("%+v", err), s.span)
+		s.span.LogFields(log.String("event", "error"), log.String("message", msg), log.String("stacktrace", debug))
+		logrus.Errorf(">><<%s %s=%v span=%v", strings.Repeat("--", traceDepth(s.ctx)), "error", fmt.Sprintf("%+v", err), s.span)
 	}
 }
 
 func (s *spanHelper) LogObject(attribute string, value interface{}) {
 	cc, err := json.Marshal(value)
-	msg := value
+	msg := ""
 	if err == nil {
 		msg = string(cc)
+	} else {
+		msg = fmt.Sprint(msg)
 	}
-
+	msg = limitString(msg)
 	if s.span != nil {
-		s.span.LogFields(log.Object(attribute, msg), log.String("stacktrace", string(debug.Stack())))
+		s.span.LogFields(log.Object(attribute, msg))
 	}
-	logrus.Infof(">><<%s %s=%v span=%v", getPrefix("--", traceDepth(s.ctx)), attribute, msg, s.span)
+	logrus.Infof(">><<%s %s=%v span=%v", strings.Repeat("--", traceDepth(s.ctx)), attribute, msg, s.span)
 }
+
 func (s *spanHelper) LogValue(attribute string, value interface{}) {
 	if s.span != nil {
-		s.span.LogFields(log.Object(attribute, value), log.String("stacktrace", string(debug.Stack())))
+		msg := limitString(fmt.Sprint(value))
+		s.span.LogFields(log.Object(attribute, msg))
 	}
-	logrus.Infof(">><<%s %s=%v span=%v", getPrefix("--", traceDepth(s.ctx)), attribute, value, s.span)
+	logrus.Infof(">><<%s %s=%v span=%v", strings.Repeat("--", traceDepth(s.ctx)), attribute, value, s.span)
 }
 
 func (s *spanHelper) Finish() {
@@ -171,16 +180,8 @@ func FromContext(ctx context.Context, operation string) (result SpanHelper) {
 }
 
 func printStart(result SpanHelper, operation string) {
-	prefix := getPrefix("--", traceDepth(result.Context()))
+	prefix := strings.Repeat("--", traceDepth(result.Context()))
 	logrus.Infof("==%s> %v() span:%v", prefix, operation, result.Span())
-}
-
-func getPrefix(c string, depth int) string {
-	prefix := ""
-	for i := 0; i < depth; i++ {
-		prefix += c
-	}
-	return prefix
 }
 
 // GetSpanHelper - construct a span helper object from current context span
@@ -214,4 +215,11 @@ func WithSpan(ctx context.Context, span opentracing.Span, operation string) (res
 	}
 	printStart(result, operation)
 	return result
+}
+
+func limitString(s string) string {
+	if len(s) > maxStringLength {
+		return s[maxStringLength-dotCount:] + strings.Repeat(".", dotCount)
+	}
+	return s
 }

@@ -15,6 +15,8 @@ import (
 	"sync"
 	"time"
 
+	"k8s.io/apimachinery/pkg/watch"
+
 	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
@@ -36,8 +38,10 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1alpha1"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/namespace"
+	"github.com/networkservicemesh/networkservicemesh/sdk/prefix_pool"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 	nsmrbac "github.com/networkservicemesh/networkservicemesh/test/kubetest/rbac"
+	"github.com/networkservicemesh/networkservicemesh/utils"
 )
 
 const (
@@ -47,6 +51,9 @@ const (
 	podExecTimeout     = 1 * time.Minute
 	podGetLogTimeout   = 1 * time.Minute
 	accountWaitTimeout = 1 * time.Minute
+
+	//NetworkPluginCNIFailure - pattern to check for CNI issue, pattern required to try redeploy pod
+	NetworkPluginCNIFailure = "NetworkPlugin cni failed to set up pod"
 )
 
 const (
@@ -83,6 +90,7 @@ func (k8s *K8s) createAndBlock(client kubernetes.Interface, namespace string, ti
 		wg.Add(1)
 		go func(pod *v1.Pod) {
 			defer wg.Done()
+
 			var err error
 			createdPod, err := client.CoreV1().Pods(namespace).Create(pod)
 
@@ -96,7 +104,7 @@ func (k8s *K8s) createAndBlock(client kubernetes.Interface, namespace string, ti
 				resultChan <- &PodDeployResult{pod, err}
 				return
 			}
-			pod, err = blockUntilPodReady(client, timeout, pod)
+			pod, err = k8s.blockUntilPodReady(client, timeout, pod)
 			if err != nil {
 				logrus.Errorf("blockUntilPodReady failed. Cause: %v pod: %v", err, pod.Name)
 				k8s.DescribePod(pod)
@@ -177,9 +185,10 @@ func prettyPrint(value interface{}) string {
 	return fmt.Sprintf("%v", res)
 }
 
-func blockUntilPodReady(client kubernetes.Interface, timeout time.Duration, sourcePod *v1.Pod) (*v1.Pod, error) {
+func (k8s *K8s) blockUntilPodReady(client kubernetes.Interface, timeout time.Duration, sourcePod *v1.Pod) (*v1.Pod, error) {
 	st := time.Now()
 	infoPrinted := false
+	lastPodNetworkCheck := time.Now()
 	for {
 		pod, err := client.CoreV1().Pods(sourcePod.Namespace).Get(sourcePod.Name, metaV1.GetOptions{})
 
@@ -189,6 +198,14 @@ func blockUntilPodReady(client kubernetes.Interface, timeout time.Duration, sour
 		}
 		if err != nil {
 			return pod, err
+		}
+
+		// Check every 1 second for pod deploy network problems
+		if time.Since(lastPodNetworkCheck) > 1*time.Second {
+			if podErr := k8s.IsNetworkProblem(pod); podErr != nil {
+				return pod, podErr
+			}
+			lastPodNetworkCheck = time.Now()
 		}
 
 		if pod != nil && pod.Status.Phase != v1.PodPending {
@@ -201,10 +218,14 @@ func blockUntilPodReady(client kubernetes.Interface, timeout time.Duration, sour
 		}
 
 		time.Sleep(time.Millisecond * time.Duration(50))
-
 		if time.Since(st) > timeout {
 			return pod, podTimeout(pod)
 		}
+	}
+
+	// Check if we have event with deploy failure, let's report it.
+	if podErr := k8s.IsNetworkProblem(sourcePod); podErr != nil {
+		return sourcePod, podErr
 	}
 
 	watcher, err := client.CoreV1().Pods(sourcePod.Namespace).Watch(metaV1.SingleObject(metaV1.ObjectMeta{Name: sourcePod.Name}))
@@ -213,6 +234,14 @@ func blockUntilPodReady(client kubernetes.Interface, timeout time.Duration, sour
 		return sourcePod, err
 	}
 
+	return k8s.waitPodStatus(watcher, sourcePod, client, timeout)
+}
+
+func (k8s *K8s) isNetworkProblemEvent(event *v1.Event) bool {
+	return strings.Contains(event.Message, NetworkPluginCNIFailure)
+}
+
+func (k8s *K8s) waitPodStatus(watcher watch.Interface, sourcePod *v1.Pod, client kubernetes.Interface, timeout time.Duration) (*v1.Pod, error) {
 	for {
 		select {
 		case _, ok := <-watcher.ResultChan():
@@ -397,7 +426,7 @@ func NewK8s(g *WithT, prepare bool) (*K8s, error) {
 		return client, err
 	}
 	var wg sync.WaitGroup
-	wg.Add(2)
+	wg.Add(3)
 	go func() {
 		defer wg.Done()
 		client.roles, _ = client.CreateRoles("admin", "view", "binding")
@@ -405,6 +434,10 @@ func NewK8s(g *WithT, prepare bool) (*K8s, error) {
 	go func() {
 		defer wg.Done()
 		client.cleanupFunc = InitSpireSecurity(client)
+	}()
+	go func() {
+		defer wg.Done()
+		client.CreatePod(pods.PrefixServicePod(client.namespace))
 	}()
 	wg.Wait()
 
@@ -460,7 +493,7 @@ func NewK8sWithoutRolesForConfig(g *WithT, prepare bool, kubeconfigPath string) 
 
 	if prepare {
 		start := time.Now()
-		client.Prepare("nsmgr", "nsmd", "vppagent", "vpn", "icmp", "nsc", "source", "dest", "xcon", "spire-proxy", "nse")
+		client.DeletePodsByName("nsmgr", "nsmd", "vppagent", "vpn", "icmp", "nsc", "source", "dest", "xcon", "spire-proxy", "nse", "prefix-service")
 		client.CleanupCRDs()
 		client.CleanupServices("nsm-admission-webhook-svc")
 		client.CleanupDeployments()
@@ -473,6 +506,9 @@ func NewK8sWithoutRolesForConfig(g *WithT, prepare bool, kubeconfigPath string) 
 	}
 
 	client.CreateServiceAccounts()
+
+	_, err = client.CreateConfigMap(client.buildNSMConfigMap())
+	g.Expect(err).To(BeNil())
 
 	return &client, nil
 }
@@ -540,6 +576,22 @@ func (k8s *K8s) describePod(pod *v1.Pod) []v1.Event {
 	return result
 }
 
+func (k8s *K8s) buildNSMConfigMap() *v1.ConfigMap {
+	return &v1.ConfigMap{
+		TypeMeta: metaV1.TypeMeta{
+			Kind:       "ConfigMap",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metaV1.ObjectMeta{
+			Name:      "nsm-config",
+			Namespace: k8s.GetK8sNamespace(),
+		},
+		Data: map[string]string{
+			prefix_pool.PrefixesFile: "",
+		},
+	}
+}
+
 // Delete POD with completion check
 // Make force delete on timeout
 func (k8s *K8s) deletePods(pods ...*v1.Pod) error {
@@ -575,7 +627,7 @@ func (k8s *K8s) deletePods(pods ...*v1.Pod) error {
 					logrus.Infof("The POD %v force deleted", pod.Name)
 				}
 			}
-			logrus.Warnf(`The POD "%s" Deleted %v`, pod.Name, time.Since(st))
+			logrus.Warnf("The POD '%s' Deleted %v", pod.Name, time.Since(st))
 		}()
 	}
 	for i := 0; i < len(pods); i++ {
@@ -656,10 +708,10 @@ func (k8s *K8s) CleanupCRDs() {
 // DescribePod describes a pod
 func (k8s *K8s) DescribePod(pod *v1.Pod) {
 	events := k8s.describePod(pod)
+
 	for i := range events {
 		event := &events[i]
 		logrus.Infof("Pod %s event: %v", pod.Name, prettyPrint(event))
-
 	}
 }
 
@@ -770,8 +822,8 @@ func (k8s *K8s) cleanups() {
 	_ = k8s.DeleteTestNamespace(k8s.namespace)
 }
 
-// Prepare prepares the pods
-func (k8s *K8s) Prepare(noPods ...string) {
+// DeletePodsByName deletes pod if a pod's name contains one of the given strings
+func (k8s *K8s) DeletePodsByName(noPods ...string) {
 	pods := k8s.ListPods()
 	podsList := []*v1.Pod{}
 	for _, podName := range noPods {
@@ -818,7 +870,7 @@ func (k8s *K8s) CreatePodsRaw(timeout time.Duration, failTest bool, templates ..
 	// Make sure unit test is failed
 	var err error = nil
 	if failTest {
-		k8s.g.Expect(len(errs)).To(Equal(0))
+		k8s.g.Expect(len(errs)).To(Equal(0), string(debug.Stack()))
 	} else {
 		// Lets construct error
 		err = errors.Errorf("Errors %v", errs)
@@ -1055,7 +1107,7 @@ func (k8s *K8s) waitLogsMatch(ctx context.Context, pod *v1.Pod, container string
 			}
 			k8s.DescribePod(pod)
 
-			logrus.Errorf("%v Last logs: %v", description, builder.String())
+			logrus.Errorf("%v Last logs: %v", description, strings.ReplaceAll(builder.String(), "\n", "\\n"))
 			k8s.g.Expect(false).To(BeTrue(), string(debug.Stack()))
 			return
 		}
@@ -1224,6 +1276,7 @@ func (k8s *K8s) IsPodReady(pod *v1.Pod) bool {
 
 // CreateConfigMap creates a configmap
 func (k8s *K8s) CreateConfigMap(cm *v1.ConfigMap) (*v1.ConfigMap, error) {
+	logrus.Infof("Creating ConfigMap '%s' in namespace'%s'...", cm.Name, cm.Namespace)
 	return k8s.clientset.CoreV1().ConfigMaps(cm.Namespace).Create(cm)
 }
 
@@ -1387,6 +1440,11 @@ func (k8s *K8s) setIPVersion() {
 }
 
 // UseIPv6 returns which IP version is going to be used in testing
+func UseIPv6() bool {
+	return utils.EnvVar(envUseIPv6).GetBooleanOrDefault(envUseIPv6Default)
+}
+
+// UseIPv6 returns which IP version is going to be used in testing
 func (k8s *K8s) UseIPv6() bool {
 	return k8s.useIPv6
 }
@@ -1452,6 +1510,19 @@ func (k8s *K8s) DeleteNetworkServices(names ...string) error {
 	for _, name := range names {
 		if err := networkServiceClient.Delete(name, &metaV1.DeleteOptions{}); err != nil {
 			return err
+		}
+	}
+	return nil
+}
+
+//IsNetworkProblem - return error if pod has deploy network problems detected in events.
+func (k8s *K8s) IsNetworkProblem(pod *v1.Pod) error {
+	// Check if we have CNI issue and try to re-create pod.
+	events := k8s.describePod(pod)
+	for index := range events {
+		msg := &events[index]
+		if k8s.isNetworkProblemEvent(msg) {
+			return errors.Errorf("pod %s deploy error: %v.", pod.Name, msg.Message)
 		}
 	}
 	return nil

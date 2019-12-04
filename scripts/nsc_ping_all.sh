@@ -2,9 +2,18 @@
 
 kubectl="kubectl -n ${NSM_NAMESPACE:-default}"
 
+echo "Search and ping NSCs..."
+NSCs=$(${kubectl} get pods -o=name | grep -E "icmp-responder-nsc|vpp-icmp-responder-nsc" | sed 's@.*/@@')
+if [ -z "$NSCs" ]; then
+  echo "Zero NSCs found, nothing to ping!"
+  exit
+fi
+echo "NSCs found:"
+echo "$NSCs"
+
 #  Ping all the things!
 EXIT_VAL=0
-for nsc in $(${kubectl} get pods -o=name | grep -E "icmp-responder-nsc|vpp-icmp-responder-nsc" | sed 's@.*/@@'); do
+for nsc in $NSCs; do
     echo "===== >>>>> PROCESSING ${nsc}  <<<<< ==========="
     if [[ ${nsc} == vpp-* ]]; then
         for ip in $(${kubectl} exec "${nsc}" -- vppctl show int addr | grep L3 | awk '{print $2}'); do

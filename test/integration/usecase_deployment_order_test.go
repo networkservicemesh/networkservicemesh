@@ -182,10 +182,11 @@ func testDeploymentOrder(t *testing.T, order []Deployment) {
 	for _, deploy := range order {
 		waitgroup.Add(1)
 
+		dp := deploy
 		go func() {
 			scheduled <- true
-			defer func() { waitgroup.Done() }()
-			switch deploy {
+			defer waitgroup.Done()
+			switch dp {
 			case DeployService:
 				nscrd, err := crds.NewNSCRD(k8s.GetK8sNamespace())
 				g.Expect(err).To(BeNil())

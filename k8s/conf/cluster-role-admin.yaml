@@ -18,7 +18,7 @@ rules:
     verbs: ["*"]
   - apiGroups: [""]
     resources: ["configmaps"]
-    verbs: ["get"]
+    verbs: ["get", "update"]
   - apiGroups: [""]
     resources: ["nodes", "services", "namespaces"]
     verbs: ["get", "list", "watch"]

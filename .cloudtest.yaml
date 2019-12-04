@@ -10,8 +10,21 @@ import:
   - .cloudtest/aws.yaml
   - .cloudtest/azure.yaml
 
+retest:  # Allow to do test re-run if some kind of failures are detected, line CNI network plugin errors.
+  count: 5  # Allow 5 times to do restart
+  warmup-time: 15  # Put 15 seconds warmup for cluster instance to be used again.
+  allowed-retests: 2  # If cluster instance have few attempts with retest requests one after another, we need to restart cluster.
+  pattern:
+    - "NetworkPlugin cni failed to set up pod"    # Error in AWS dur to leak of IPs or not ability to assign them.
+    - "etcdserver: request timed out, possibly due to previous leader fail"  # Error in any could, reason unknown.
+    - "unable to establish connection to VPP (VPP API socket file /run/vpp/api.sock does not exist)"  # a VPP is not started, it will be re-started in general, but will cause test fail.
 reporting:
   junit-report: "results/junit.xml"
+health-check:
+  - message: "Branch is not up to date"
+    interval: 60  # 1 minute
+    run: |
+      ./.circleci/check_repo_uptodated.sh
 executions:
   - name: "Single cluster tests"
     env:
@@ -112,6 +125,7 @@ executions:
       - KUBECONFIG_CLUSTER_2
     on_fail: |
       make k8s-delete-nsm-namespaces
+
   - name: "Example-helm-vpn"
     kind: shell
     timeout: 300
@@ -124,20 +138,7 @@ executions:
     kubernetes-env:
       - KUBECONFIG
     run: |
-      make k8s-deconfig helm-install-nsm
-      make helm-install-vpn
-      make k8s-check
-      make k8s-logs-snapshot-only-master
-      make helm-delete-vpn helm-delete-nsm
-      make k8s-deconfig k8s-config
-      kubectl delete pods --force --grace-period 0 -n "${NSM_NAMESPACE}" --all
-    on_fail: |
-      kubectl get pods -n "${NSM_NAMESPACE}"
-      make k8s-logs-snapshot
-      make helm-delete-vpn helm-delete-nsm
-      make k8s-delete-nsm-namespaces
-      make k8s-deconfig k8s-config
-      kubectl delete pods --force --grace-period 0 -n "${NSM_NAMESPACE}" --all
+      scripts/helm-test-charts.sh nsm vpn
 
   - name: "Example-helm-icmp"
     kind: shell
@@ -151,20 +152,7 @@ executions:
     kubernetes-env:
       - KUBECONFIG
     run: |
-      make k8s-deconfig helm-install-nsm
-      make helm-install-icmp-responder
-      make k8s-check
-      make k8s-logs-snapshot-only-master
-      make helm-delete-icmp-responder helm-delete-nsm
-      make k8s-deconfig k8s-config
-      kubectl delete pods --force --grace-period 0 -n "${NSM_NAMESPACE}" --all
-    on_fail: |
-      kubectl get pods -n "${NSM_NAMESPACE}"
-      make k8s-logs-snapshot
-      make helm-delete-icmp-responder helm-delete-nsm
-      make k8s-delete-nsm-namespaces
-      make k8s-deconfig k8s-config
-      kubectl delete pods --force --grace-period 0 -n "${NSM_NAMESPACE}" --all
+      scripts/helm-test-charts.sh nsm icmp-responder
 
   - name: "Example-helm-icmp kernel-forwarder"
     kind: shell
@@ -179,17 +167,19 @@ executions:
     kubernetes-env:
       - KUBECONFIG
     run: |
-      make k8s-deconfig helm-install-nsm
-      make helm-install-icmp-responder
-      make k8s-check
-      make k8s-logs-snapshot-only-master
-      make helm-delete-icmp-responder helm-delete-nsm
-      make k8s-deconfig k8s-config
-      kubectl delete pods --force --grace-period 0 -n "${NSM_NAMESPACE}" --all
-    on_fail: |
-      kubectl get pods -n "${NSM_NAMESPACE}"
-      make k8s-logs-snapshot
-      make helm-delete-icmp-responder helm-delete-nsm
-      make k8s-delete-nsm-namespaces
-      make k8s-deconfig k8s-config
-      kubectl delete pods --force --grace-period 0 -n "${NSM_NAMESPACE}" --all
+      scripts/helm-test-charts.sh nsm icmp-responder
+
+  - name: "Example-helm-crossconnect-monitor"
+    kind: shell
+    timeout: 300
+    env:
+      - NSM_NAMESPACE=nsm-system
+      - CLUSTER_RULES_PREFIX=null
+      - STORE_POD_LOGS_IN_FILES=true
+      - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/crossconnect-monitor-example
+      - SPIRE_ENABLED=false  # because spire is already installed
+      - CHECK_CMD=scripts/verify_crossconnect_monitor.sh
+    kubernetes-env:
+      - KUBECONFIG
+    run: |
+      scripts/helm-test-charts.sh nsm icmp-responder crossconnect-monitor

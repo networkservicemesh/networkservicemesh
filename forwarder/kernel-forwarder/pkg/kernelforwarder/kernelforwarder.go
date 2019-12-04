@@ -137,6 +137,8 @@ func (k *KernelForwarder) configureKernelForwarder() {
 		k.monitoring = monitoring.CreateMetricsMonitor(k.common.MetricsPeriod)
 		k.monitoring.Start(k.common.Monitor)
 	}
+	// Network Service monitoring
+	common.CreateNSMonitor(k.common.Monitor, nsmonitorCallback)
 }
 
 // MonitorMechanisms handler
@@ -167,4 +169,9 @@ func (k *KernelForwarder) MonitorMechanisms(empty *empty.Empty, updateSrv forwar
 		}
 	}
 	return nil
+}
+
+// nsmonitorCallback is called to notify the forwarder that the connection is down. If needed, may be used as a trigger to some specific handling
+func nsmonitorCallback() {
+	logrus.Infof("kernel-forwarder: NSMonitor callback called")
 }

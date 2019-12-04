@@ -1,0 +1,13 @@
+---
+# Default values for prefix-service.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# NOTE: the variables might be overriden by helm command line options, see helm.mk
+registry: docker.io
+org: networkservicemesh
+tag: master
+pullPolicy: IfNotPresent
+
+serviceAccount:
+  name: nsmgr-acc

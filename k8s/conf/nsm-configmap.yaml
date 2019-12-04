@@ -1,0 +1,7 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nsm-config
+data:
+  excluded_prefixes.yaml: ''

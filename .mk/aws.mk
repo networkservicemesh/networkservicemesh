@@ -49,24 +49,6 @@ aws-upload-nsm:
 	cd nsm && \
 	tar xvzf -"
 
-.PHONY: aws-build
-aws-build: $(addsuffix -build,$(addprefix aws-,$(BUILD_CONTAINERS))) 
-
-.PHONY: aws-%-build
-aws-%-build: aws-upload-nsm
-	echo ${SSH_PARAMS}
-	@ssh ${SSH_PARAMS} aws-master "\
-	cd nsm && \
-	make docker-$*-save"
-	@scp ${SSH_PARAMS} -3 aws-master:~/nsm/$(IMAGE_DIR)/$*.tar aws-worker:~/
-	@ssh ${SSH_PARAMS} aws-worker "sudo docker load -i $*.tar"
-
-.PHONY: aws-save
-aws-save: $(addsuffix -save,$(addprefix aws-,$(BUILD_CONTAINERS))) ;
-
-.PHONY: aws-%-save
-aws-%-save: aws-%-build ;
-
 .PHONY: aws-download-postmortem
 aws-download-postmortem:
 	@echo "Not implemented yet."

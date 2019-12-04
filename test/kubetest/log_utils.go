@@ -155,7 +155,7 @@ func savePodContainerLog(k8s *K8s, pod *v1.Pod, c *v1.Container, t *testing.T) {
 			logErr := logFile(name, filepath.Join(logsDir(), t.Name()), content)
 			if logErr != nil {
 				logrus.Errorf("Can't log in file, reason %v", logErr)
-				logTransaction(name, content)
+				logTransaction(name, strings.ReplaceAll(content, "\n", "\\n"))
 			} else {
 				logrus.Infof("Saved log for %v. Check archive %v.zip in path %v", name, t.Name(), logsDir())
 			}

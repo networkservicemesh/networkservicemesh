@@ -280,7 +280,7 @@ func TestShellProviderShellTest(t *testing.T) {
 func TestUnusedClusterShutdownByMonitor(t *testing.T) {
 	g := NewWithT(t)
 	logKeeper := utils.NewLogKeeper()
-
+	defer logKeeper.Stop()
 	testConfig := &config.CloudTestConfig{}
 
 	testConfig.Timeout = 300
@@ -321,11 +321,11 @@ func TestUnusedClusterShutdownByMonitor(t *testing.T) {
 	g.Expect(report.Suites[0].Tests).To(Equal(3))
 	g.Expect(len(report.Suites[0].TestCases)).To(Equal(3))
 
-	g.Expect(logKeeper.CheckMessagesOrder([]string{
+	logKeeper.CheckMessagesOrder(t, []string{
 		"All tasks for cluster group a_provider are complete. Starting cluster shutdown",
 		"Destroying cluster  a_provider-",
 		"Finished test execution",
-	})).To(BeTrue())
+	})
 }
 
 func TestMultiClusterTest(t *testing.T) {
