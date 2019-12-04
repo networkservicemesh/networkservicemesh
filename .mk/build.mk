@@ -18,6 +18,7 @@ include $(foreach module, $(modules), ./$(module)/build.mk)
 
 BIN_DIR = $(PWD)/build/dist
 VERSION = $(shell git describe --tags --always)
+# Temporary vpp-agent image while https://github.com/ligato/vpp-agent/issues/1575 is not fixed
 VPP_AGENT=artembelov/vpp-agent:v2.5.0
 CGO_ENABLED=0
 GOOS=linux
