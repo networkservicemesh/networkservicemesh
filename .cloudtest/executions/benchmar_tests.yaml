@@ -1,0 +1,18 @@
+---
+executions:
+  - name: "Benchmark tests"
+    env:
+      - ARCHIVE_ARTIFACTS=true
+      - ARTIFACTS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/$(test-name)
+      - NSM_NAMESPACE=nsm-system
+    tags:
+      - bench
+    root: ./test/integration
+    timeout: 600
+    cluster-count: 1
+    cluster-selector:
+      - packet
+    kubernetes-env:
+      - KUBECONFIG
+    on-test-fail: |
+      make k8s-delete-nsm-namespaces

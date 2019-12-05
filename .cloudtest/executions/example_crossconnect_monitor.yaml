@@ -1,0 +1,18 @@
+---
+executions:
+  - name: "Example-helm-crossconnect-monitor"
+    kind: shell
+    timeout: 300
+    env:
+      - NSM_NAMESPACE=nsm-system
+      - CLUSTER_RULES_PREFIX=null
+      - ARCHIVE_ARTIFACTS=true
+      - ARTIFACTS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/$(test-name)
+      - SPIRE_ENABLED=false  # because spire is already installed
+      - CHECK_CMD=scripts/verify_crossconnect_monitor.sh
+    kubernetes-env:
+      - KUBECONFIG
+    run: |
+      scripts/helm-test-charts.sh nsm admission-webhook icmp-responder crossconnect-monitor
+    on-test-fail: |
+      make k8s-delete-nsm-namespaces

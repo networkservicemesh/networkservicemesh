@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -169,11 +170,35 @@ func CloudTestRun(cmd *cloudTestCmd) {
 
 func performImport(testConfig *config.CloudTestConfig) error {
 	for _, imp := range testConfig.Imports {
+		if strings.HasSuffix(imp, "*") {
+			dir := imp[:len(imp)-1]
+			files, err := ioutil.ReadDir(dir)
+			if err != nil {
+				return err
+			}
+			var fileNames []string
+			for _, f := range files {
+				fileNames = append(fileNames, filepath.Join(dir, f.Name()))
+			}
+			if err := importFiles(testConfig, fileNames...); err != nil {
+				return err
+			}
+		} else {
+			if err := importFiles(testConfig, imp); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func importFiles(testConfig *config.CloudTestConfig, files ...string) error {
+	for _, f := range files {
 		importConfig := &config.CloudTestConfig{}
 
-		configFileContent, err := ioutil.ReadFile(imp)
+		configFileContent, err := ioutil.ReadFile(f)
 		if err != nil {
-			logrus.Errorf("аailed to read config file %v", err)
+			logrus.Errorf("failed to read config file %v", err)
 			return err
 		}
 		if err = parseConfig(importConfig, configFileContent); err != nil {
@@ -185,6 +210,7 @@ func performImport(testConfig *config.CloudTestConfig) error {
 		testConfig.Providers = append(testConfig.Providers, importConfig.Providers...)
 	}
 	return nil
+
 }
 
 // PerformTesting - PerformTesting

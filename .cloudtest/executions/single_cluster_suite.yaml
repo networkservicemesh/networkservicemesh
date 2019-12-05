@@ -1,0 +1,20 @@
+---
+executions:
+  - name: "Test suite with default nsm"
+    env:
+      - ARCHIVE_ARTIFACTS=true
+      - ARTIFACTS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/$(test-name)
+      - NSM_NAMESPACE=nsm-system
+      - FIXED_NAMESPACE=true
+    root: ./test/integration
+    cluster-count: 1
+    kubernetes-env:
+      - KUBECONFIG
+    timeout: 300
+    source:
+      tags:
+        - single_cluster_suite
+    after-all: |
+      make k8s-delete-nsm-namespaces
+    on-test-fail: |
+      make k8s-delete-nsm-namespaces

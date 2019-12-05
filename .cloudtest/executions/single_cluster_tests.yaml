@@ -1,0 +1,19 @@
+---
+executions:
+  - name: "Single cluster tests"
+    env:
+      - ARCHIVE_ARTIFACTS=true
+      - ARTIFACTS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/$(test-name)
+      - NSM_NAMESPACE=nsm-system
+    source:
+      tags:
+        - basic
+        - recover
+        - usecase
+    root: ./test/integration
+    timeout: 300
+    cluster-count: 1
+    kubernetes-env:
+      - KUBECONFIG
+    on-test-fail: |
+      make k8s-delete-nsm-namespaces
