@@ -42,6 +42,7 @@ import (
 type NsmEndpoint interface {
 	Start() error
 	Delete() error
+	GetName() string
 }
 
 type nsmEndpoint struct {
@@ -178,6 +179,10 @@ func (nsme *nsmEndpoint) Close(ctx context.Context, incomingConnection *connecti
 	_, _ = nsme.NsClient.Close(ctx, incomingConnection)
 
 	return &empty.Empty{}, nil
+}
+
+func (nsme *nsmEndpoint) GetName() string {
+	return nsme.endpointName
 }
 
 // NewNSMEndpoint creates a new NSM endpoint
