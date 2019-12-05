@@ -1,6 +1,6 @@
 #!/bin/bash
 get_date() {
-    gdate --utc --date="$1" +"%Y-%m-%dT%H:%M:%S"
+    date --utc --date="$1" +"%Y-%m-%dT%H:%M:%S"
 }
 get_last_cluster_activity() {
     az monitor activity-log list \
