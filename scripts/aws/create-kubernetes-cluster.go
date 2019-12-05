@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"path"
-	"runtime"
 	"strings"
 	"time"
 
@@ -26,10 +25,7 @@ type OutputsMap struct {
 	SubnetIds      *string
 }
 
-var _, currentFilePath, _, _ = runtime.Caller(0)
-var currentPath = path.Dir(currentFilePath)
-
-func checkError(err error) {
+func (ac *AWSCluster) checkError(err error) {
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
 			switch aerr.Code() {
@@ -49,7 +45,7 @@ func checkError(err error) {
 	}
 }
 
-func OutputsToMap(outputs []*cloudformation.Output) *OutputsMap {
+func outputsToMap(outputs []*cloudformation.Output) *OutputsMap {
 	res := &OutputsMap{}
 	for _, v := range outputs {
 		switch *v.OutputKey {
@@ -64,12 +60,12 @@ func OutputsToMap(outputs []*cloudformation.Output) *OutputsMap {
 	return res
 }
 
-func CreateEksRole(iamClient *iam.IAM, eksRoleName *string) *string {
+func (ac *AWSCluster) createEksRole(iamClient *iam.IAM, eksRoleName *string) *string {
 	log.Printf("Creating EKS service role \"%s\"...\n", *eksRoleName)
 	roleDescription := "Allows EKS to manage clusters on your behalf."
 
-	rpf, err := ioutil.ReadFile(path.Join(currentPath, "amazon-eks-role-policy.json"))
-	checkError(err)
+	rpf, err := ioutil.ReadFile(path.Join(ac.configPath, "amazon-eks-role-policy.json"))
+	ac.checkError(err)
 
 	rps := string(rpf)
 	_, err = iamClient.CreateRole(&iam.CreateRoleInput{
@@ -77,37 +73,37 @@ func CreateEksRole(iamClient *iam.IAM, eksRoleName *string) *string {
 		Description:              &roleDescription,
 		AssumeRolePolicyDocument: &rps,
 	})
-	checkError(err)
+	ac.checkError(err)
 
 	policyArn := "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
 	_, err = iamClient.AttachRolePolicy(&iam.AttachRolePolicyInput{
 		RoleName:  eksRoleName,
 		PolicyArn: &policyArn,
 	})
-	checkError(err)
+	ac.checkError(err)
 
 	policyArn = "arn:aws:iam::aws:policy/AmazonEKSServicePolicy"
 	_, err = iamClient.AttachRolePolicy(&iam.AttachRolePolicyInput{
 		RoleName:  eksRoleName,
 		PolicyArn: &policyArn,
 	})
-	checkError(err)
+	ac.checkError(err)
 
 	result, err := iamClient.GetRole(&iam.GetRoleInput{
 		RoleName: eksRoleName,
 	})
-	checkError(err)
+	ac.checkError(err)
 
 	log.Printf("Role \"%s\"(%s) successfully created!\n", *eksRoleName, *result.Role.Arn)
 
 	return result.Role.Arn
 }
 
-func CreateEksClusterVpc(cfClient *cloudformation.CloudFormation, clusterStackName *string) *OutputsMap {
+func (ac *AWSCluster) createEksClusterVpc(cfClient *cloudformation.CloudFormation, clusterStackName *string) *OutputsMap {
 	log.Printf("Creating Amazon EKS Cluster VPC \"%s\"...\n", *clusterStackName)
 
-	sf, err := ioutil.ReadFile(path.Join(currentPath, "amazon-eks-vpc.yaml"))
-	checkError(err)
+	sf, err := ioutil.ReadFile(path.Join(ac.configPath, "amazon-eks-vpc.yaml"))
+	ac.checkError(err)
 
 	s := string(sf)
 	_, err = cfClient.CreateStack(&cloudformation.CreateStackInput{
@@ -115,18 +111,18 @@ func CreateEksClusterVpc(cfClient *cloudformation.CloudFormation, clusterStackNa
 		TemplateBody:    &s,
 		DisableRollback: aws.Bool(true),
 	})
-	checkError(err)
+	ac.checkError(err)
 
 	for {
 		resp, err := cfClient.DescribeStacks(&cloudformation.DescribeStacksInput{
 			StackName: clusterStackName,
 		})
-		checkError(err)
+		ac.checkError(err)
 
 		switch *resp.Stacks[0].StackStatus {
 		case "CREATE_COMPLETE":
 			log.Printf("Cluster VPC \"%s\" successfully created!\n", *clusterStackName)
-			return OutputsToMap(resp.Stacks[0].Outputs)
+			return outputsToMap(resp.Stacks[0].Outputs)
 		case "CREATE_IN_PROGRESS":
 			time.Sleep(requestInterval)
 		default:
@@ -135,7 +131,7 @@ func CreateEksClusterVpc(cfClient *cloudformation.CloudFormation, clusterStackNa
 	}
 }
 
-func CreateEksCluster(eksClient *eks.EKS, clusterName *string, eksRoleArn *string, clusterStackOutputs *OutputsMap) *eks.Cluster {
+func (ac *AWSCluster) createEksCluster(eksClient *eks.EKS, clusterName, eksRoleArn *string, clusterStackOutputs *OutputsMap) *eks.Cluster {
 	log.Printf("Creating Amazon EKS Cluster \"%s\"...\n", *clusterName)
 	subnetIdsTemp := strings.Split(*clusterStackOutputs.SubnetIds, ",")
 	var subnetIds []*string
@@ -158,13 +154,13 @@ func CreateEksCluster(eksClient *eks.EKS, clusterName *string, eksRoleArn *strin
 		},
 		Version: aws.String("1.14"),
 	})
-	checkError(err)
+	ac.checkError(err)
 
 	for {
 		resp, err := eksClient.DescribeCluster(&eks.DescribeClusterInput{
 			Name: clusterName,
 		})
-		checkError(err)
+		ac.checkError(err)
 
 		switch *resp.Cluster.Status {
 		case "ACTIVE":
@@ -178,13 +174,13 @@ func CreateEksCluster(eksClient *eks.EKS, clusterName *string, eksRoleArn *strin
 	}
 }
 
-func CreateKubeConfigFile(cluster *eks.Cluster) {
+func (ac *AWSCluster) createKubeConfigFile(cluster *eks.Cluster) {
 	kubeconfigFile := os.Getenv("KUBECONFIG")
 	if len(kubeconfigFile) == 0 {
 		kubeconfigFile = path.Join(os.Getenv("HOME"), ".kube/config")
 	}
-	kc, err := ioutil.ReadFile(path.Join(currentPath, "kube-config-template"))
-	checkError(err)
+	kc, err := ioutil.ReadFile(path.Join(ac.configPath, "kube-config-template"))
+	ac.checkError(err)
 	kubeconfig := string(kc)
 
 	kubeconfig = strings.Replace(kubeconfig, "<CERT>", *cluster.CertificateAuthority.Data, -1)
@@ -194,12 +190,12 @@ func CreateKubeConfigFile(cluster *eks.Cluster) {
 
 	err = os.Mkdir(path.Dir(kubeconfigFile), 0775)
 	err = ioutil.WriteFile(kubeconfigFile, []byte(kubeconfig), 0644)
-	checkError(err)
+	ac.checkError(err)
 
 	log.Printf("Updated context %s in %s\n", *cluster.Arn, kubeconfigFile)
 }
 
-func CreateEksEc2KeyPair(ec2Client *ec2.EC2, keyPairName *string) {
+func (ac *AWSCluster) createEksEc2KeyPair(ec2Client *ec2.EC2, keyPairName *string) {
 	log.Printf("Creating Amazon EC2 key pair \"%s\"...\n", *keyPairName)
 	var resp *ec2.CreateKeyPairOutput
 	resp, err := ec2Client.CreateKeyPair(&ec2.CreateKeyPairInput{
@@ -208,21 +204,23 @@ func CreateEksEc2KeyPair(ec2Client *ec2.EC2, keyPairName *string) {
 	if err != nil && err.(awserr.Error).Code() == "InvalidKeyPair.Duplicate" {
 		return
 	}
-	checkError(err)
+	ac.checkError(err)
 
 	keyFile := "nsm-key-pair" + os.Getenv("NSM_AWS_SERVICE_SUFFIX")
-	os.Remove(keyFile)
-	err = ioutil.WriteFile(keyFile, []byte(*resp.KeyMaterial), 0400)
+	_ = os.Remove(keyFile)
 
-	checkError(err)
+	err = ioutil.WriteFile(keyFile, []byte(*resp.KeyMaterial), 0400)
+	ac.checkError(err)
+
 	log.Printf("Amazon EC2 key pair \"%s\" successfully created!\n", *keyPairName)
 }
 
-func createEksWorkerNodes(cfClient *cloudformation.CloudFormation, nodesStackName *string, nodeGroupName *string, clusterName *string, keyPairName *string, clusterStackOutputs *OutputsMap) (*string, *string) {
+//nolint:funlen
+func (ac *AWSCluster) createEksWorkerNodes(cfClient *cloudformation.CloudFormation, nodesStackName, nodeGroupName, clusterName, keyPairName *string, clusterStackOutputs *OutputsMap) (*string, *string) {
 	log.Printf("Creating Amazon EKS Worker Nodes on cluster \"%s\"...\n", *clusterName)
 
-	sf, err := ioutil.ReadFile(path.Join(currentPath, "amazon-eks-nodegroup.yaml"))
-	checkError(err)
+	sf, err := ioutil.ReadFile(path.Join(ac.configPath, "amazon-eks-nodegroup.yaml"))
+	ac.checkError(err)
 
 	s := string(sf)
 
@@ -268,13 +266,13 @@ func createEksWorkerNodes(cfClient *cloudformation.CloudFormation, nodesStackNam
 			},
 		},
 	})
-	checkError(err)
+	ac.checkError(err)
 
 	for {
 		resp, err := cfClient.DescribeStacks(&cloudformation.DescribeStacksInput{
 			StackName: nodesStackName,
 		})
-		checkError(err)
+		ac.checkError(err)
 
 		switch *resp.Stacks[0].StackStatus {
 		case "CREATE_COMPLETE":
@@ -304,9 +302,10 @@ func createEksWorkerNodes(cfClient *cloudformation.CloudFormation, nodesStackNam
 	}
 }
 
-func AuthorizeSecurityGroupIngress(ec2client *ec2.EC2, groupId *string) {
+//nolint:funlen
+func (ac *AWSCluster) authorizeSecurityGroupIngress(ec2client *ec2.EC2, groupID *string) {
 	_, err := ec2client.AuthorizeSecurityGroupIngress(&ec2.AuthorizeSecurityGroupIngressInput{
-		GroupId: groupId,
+		GroupId: groupID,
 		IpPermissions: []*ec2.IpPermission{
 			{
 				IpProtocol: aws.String("tcp"),
@@ -372,24 +371,24 @@ func AuthorizeSecurityGroupIngress(ec2client *ec2.EC2, groupId *string) {
 			},
 		},
 	})
-	checkError(err)
+	ac.checkError(err)
 }
 
-func CreateSSHConfig(ec2client *ec2.EC2, vpcId *string, scpConfigFileName string) {
+func (ac *AWSCluster) createSSHConfig(ec2client *ec2.EC2, vpcID *string, scpConfigFileName string) {
 	res, err := ec2client.DescribeInstances(&ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
 			{
 				Name: aws.String("vpc-id"),
 				Values: []*string{
-					vpcId,
+					vpcID,
 				},
 			},
 		},
 	})
-	checkError(err)
+	ac.checkError(err)
 
-	scpConfigBytes, err := ioutil.ReadFile(path.Join(currentPath, "scp-config-template"))
-	checkError(err)
+	scpConfigBytes, err := ioutil.ReadFile(path.Join(ac.configPath, "scp-config-template"))
+	ac.checkError(err)
 	scpConfig := string(scpConfigBytes)
 
 	i := 0
@@ -403,11 +402,12 @@ func CreateSSHConfig(ec2client *ec2.EC2, vpcId *string, scpConfigFileName string
 		}
 	}
 
-	err = ioutil.WriteFile(path.Join(currentPath, scpConfigFileName), []byte(scpConfig), 0666)
-	checkError(err)
+	err = ioutil.WriteFile(path.Join(ac.configPath, scpConfigFileName), []byte(scpConfig), 0666)
+	ac.checkError(err)
 }
 
-func createAWSKubernetesCluster() {
+// CreateAWSKubernetesCluster - creating AWS kubernetes cluster instances
+func (ac *AWSCluster) CreateAWSKubernetesCluster() {
 	sess := session.Must(session.NewSession())
 	iamClient := iam.New(sess)
 	eksClient := eks.New(sess)
@@ -415,58 +415,57 @@ func createAWSKubernetesCluster() {
 	ec2Client := ec2.New(sess)
 
 	// Creating Amazon EKS Role
-	serviceSuffix := os.Getenv("NSM_AWS_SERVICE_SUFFIX")
-	eksRoleName := "nsm-role" + serviceSuffix
-	eksRoleArn := CreateEksRole(iamClient, &eksRoleName)
+	eksRoleName := awsRolePrefix + ac.serviceSuffix
+	eksRoleArn := ac.createEksRole(iamClient, &eksRoleName)
 
 	// Creating Amazon EKS Cluster VPC
-	clusterStackName := "nsm-srv" + serviceSuffix
-	clusterStackOutputs := CreateEksClusterVpc(cfClient, &clusterStackName)
+	clusterStackName := awsClusterStackPrefix + ac.serviceSuffix
+	clusterStackOutputs := ac.createEksClusterVpc(cfClient, &clusterStackName)
 
 	// Creating Amazon EKS Cluster
-	clusterName := "nsm" + serviceSuffix
-	cluster := CreateEksCluster(eksClient, &clusterName, eksRoleArn, clusterStackOutputs)
+	clusterName := awsClusterPrefix + ac.serviceSuffix
+	cluster := ac.createEksCluster(eksClient, &clusterName, eksRoleArn, clusterStackOutputs)
 
 	// Creating kubeconfig file
-	CreateKubeConfigFile(cluster)
+	ac.createKubeConfigFile(cluster)
 
 	// Creating Amazon EKS Worker Nodes
-	keyPairName := "nsm-key-pair" + serviceSuffix
-	CreateEksEc2KeyPair(ec2Client, &keyPairName)
+	keyPairName := awsKeyPairPrefix + ac.serviceSuffix
+	ac.createEksEc2KeyPair(ec2Client, &keyPairName)
 
-	nodesStackName := "nsm-nodes" + serviceSuffix
-	nodeGroupName := "nsm-node-group" + serviceSuffix
-	nodeSequrityGroup, nodeInstanceRole := createEksWorkerNodes(cfClient, &nodesStackName, &nodeGroupName, &clusterName, &keyPairName, clusterStackOutputs)
+	nodesStackName := awsNodesStackPrefix + ac.serviceSuffix
+	nodeGroupName := awsNodeGroupPrefix + ac.serviceSuffix
+	nodeSequrityGroup, nodeInstanceRole := ac.createEksWorkerNodes(cfClient, &nodesStackName, &nodeGroupName, &clusterName, &keyPairName, clusterStackOutputs)
 
-	AuthorizeSecurityGroupIngress(ec2Client, nodeSequrityGroup)
+	ac.authorizeSecurityGroupIngress(ec2Client, nodeSequrityGroup)
 
 	// Enable worker nodes to join the cluster
-	sf, err := ioutil.ReadFile(path.Join(currentPath, "aws-auth-cm-temp.yaml"))
-	checkError(err)
+	sf, err := ioutil.ReadFile(path.Join(ac.configPath, "aws-auth-cm-temp.yaml"))
+	ac.checkError(err)
 
 	f, err := ioutil.TempFile(os.TempDir(), "aws-auth-cm-temp-*.yaml")
-	checkError(err)
+	ac.checkError(err)
 
 	s := string(sf)
 	_, err = f.Write([]byte(strings.Replace(s, "<NodeInstanceRole>", *nodeInstanceRole, -1)))
-	checkError(err)
+	ac.checkError(err)
 
 	_ = f.Close()
 
-	execCommand("kubectl", "apply", "-f", f.Name())
+	ac.execCommand("kubectl", "apply", "-f", f.Name())
 	_ = os.Remove(f.Name())
 
-	CreateSSHConfig(ec2Client, clusterStackOutputs.VpcId, "scp-config"+serviceSuffix)
+	ac.createSSHConfig(ec2Client, clusterStackOutputs.VpcId, "scp-config"+ac.serviceSuffix)
 
-	execCommand("kubectl", "apply", "-f", "aws-k8s-cni.yaml")
+	ac.execCommand("kubectl", "apply", "-f", "aws-k8s-cni.yaml")
 }
 
-func execCommand(name string, arg ...string) {
+func (ac *AWSCluster) execCommand(name string, arg ...string) {
 	log.Printf("> %s %s", name, strings.Join(arg, " "))
 	cmd := exec.Command(name, arg...) // #nosec
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	err := cmd.Run()
-	checkError(err)
+	ac.checkError(err)
 	log.Printf(out.String())
 }

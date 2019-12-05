@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
+	"path"
+	"runtime"
 	"strconv"
 	"time"
 
@@ -10,6 +12,35 @@ import (
 )
 
 const requestInterval = 5 * time.Second
+
+const (
+	awsClusterPrefix      = "nsm"
+	awsRolePrefix         = "nsm-role"
+	awsClusterStackPrefix = "nsm-srv"
+	awsKeyPairPrefix      = "nsm-key-pair"
+	awsNodesStackPrefix   = "nsm-nodes"
+	awsNodeGroupPrefix    = "nsm-node-group"
+)
+
+// AWSCluster - controlling aws clusters
+type AWSCluster struct {
+	configPath    string
+	deferError    error
+	serviceSuffix string
+}
+
+// NewAWSCluster - Creates new instance of AWS cluster for creation and deletion
+func NewAWSCluster(serviceSuffix string) *AWSCluster {
+	_, currentFilePath, _, ok := runtime.Caller(0)
+	if !ok {
+		currentFilePath = "."
+	}
+	return &AWSCluster{
+		configPath:    path.Dir(currentFilePath),
+		serviceSuffix: serviceSuffix,
+		deferError:    nil,
+	}
+}
 
 func printUsage() {
 	fmt.Printf("Usage: go run ./... <command>\n" +
@@ -27,9 +58,9 @@ func main() {
 
 	switch os.Args[1] {
 	case "Create":
-		createAWSKubernetesCluster()
+		NewAWSCluster(os.Getenv("NSM_AWS_SERVICE_SUFFIX")).CreateAWSKubernetesCluster()
 	case "Delete":
-		err := deleteAWSKubernetesCluster(os.Getenv("NSM_AWS_SERVICE_SUFFIX"))
+		err := NewAWSCluster(os.Getenv("NSM_AWS_SERVICE_SUFFIX")).DeleteAWSKubernetesCluster()
 		if err != nil {
 			os.Exit(1)
 		}
@@ -51,7 +82,7 @@ func main() {
 			logrus.Errorf("Cannot parse: %v", err)
 			return
 		}
-		deleteAllKubernetesClusters(time.Duration(durationHours)*time.Hour, namePattern)
+		DeleteAllKubernetesClusters(time.Duration(durationHours)*time.Hour, namePattern)
 	default:
 		printUsage()
 	}

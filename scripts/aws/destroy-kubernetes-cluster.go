@@ -21,7 +21,7 @@ import (
 //nolint:gochecknoglobals
 var deferError error
 
-func checkDeferError(err error) bool {
+func (ac *AWSCluster) checkDeferError(err error) bool {
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
 			if aerr.Code() == "Throttling" {
@@ -49,7 +49,7 @@ func checkDeferError(err error) bool {
 	return false
 }
 
-func DeleteEksRole(iamClient *iam.IAM, eksRoleName *string) {
+func (ac *AWSCluster) deleteEksRole(iamClient *iam.IAM, eksRoleName *string) {
 	log.Printf("Deleting EKS service role \"%s\"...\n", *eksRoleName)
 
 	policyArn := "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
@@ -57,30 +57,30 @@ func DeleteEksRole(iamClient *iam.IAM, eksRoleName *string) {
 		RoleName:  eksRoleName,
 		PolicyArn: &policyArn,
 	})
-	checkDeferError(err)
+	ac.checkDeferError(err)
 
 	policyArn = "arn:aws:iam::aws:policy/AmazonEKSServicePolicy"
 	_, err = iamClient.DetachRolePolicy(&iam.DetachRolePolicyInput{
 		RoleName:  eksRoleName,
 		PolicyArn: &policyArn,
 	})
-	checkDeferError(err)
+	ac.checkDeferError(err)
 
 	_, err = iamClient.DeleteRole(&iam.DeleteRoleInput{
 		RoleName: eksRoleName,
 	})
-	if checkDeferError(err) {
+	if ac.checkDeferError(err) {
 		return
 	}
 
 	log.Printf("Role \"%s\" successfully deleted!\n", *eksRoleName)
 }
 
-func DeleteEC2NetworkInterfaces(ec2Client *ec2.EC2, cfClient *cloudformation.CloudFormation, nodesStackName *string) {
+func (ac *AWSCluster) deleteEC2NetworkInterfaces(ec2Client *ec2.EC2, cfClient *cloudformation.CloudFormation, nodesStackName *string) {
 	cfResp, err := cfClient.DescribeStacks(&cloudformation.DescribeStacksInput{
 		StackName: nodesStackName,
 	})
-	if checkDeferError(err) {
+	if ac.checkDeferError(err) {
 		return
 	}
 
@@ -101,7 +101,7 @@ func DeleteEC2NetworkInterfaces(ec2Client *ec2.EC2, cfClient *cloudformation.Clo
 		},
 	})
 
-	if checkDeferError(err) {
+	if ac.checkDeferError(err) {
 		return
 	}
 
@@ -110,26 +110,49 @@ func DeleteEC2NetworkInterfaces(ec2Client *ec2.EC2, cfClient *cloudformation.Clo
 			NetworkInterfaceId: networkInterface.NetworkInterfaceId,
 		})
 
-		checkDeferError(err)
+		ac.checkDeferError(err)
 	}
 }
 
-func DeleteEksClusterVpc(cfClient *cloudformation.CloudFormation, clusterStackName *string) {
+//nolint:funlen
+func (ac *AWSCluster) deleteEksClusterVpc(cfClient *cloudformation.CloudFormation, ec2Client *ec2.EC2, clusterStackName *string) {
 	log.Printf("Deleting Amazon EKS Cluster VPC \"%s\"...\n", *clusterStackName)
 
 	resp, err := cfClient.DescribeStacks(&cloudformation.DescribeStacksInput{
 		StackName: clusterStackName,
 	})
-	if checkDeferError(err) {
+	if ac.checkDeferError(err) {
 		return
 	}
+	outputsMap := outputsToMap(resp.Stacks[0].Outputs)
+
+	output, err := ec2Client.DescribeSecurityGroups(&ec2.DescribeSecurityGroupsInput{
+		Filters: []*ec2.Filter{
+			{
+				Name:   aws.String("vpc-id"),
+				Values: []*string{outputsMap.VpcId},
+			},
+		},
+	})
+	if !ac.checkDeferError(err) {
+		for _, sg := range output.SecurityGroups {
+			if *sg.GroupName != "default" {
+				log.Printf("Deleting EC2 Security Group %s...", *sg.GroupId)
+				_, err = ec2Client.DeleteSecurityGroup(&ec2.DeleteSecurityGroupInput{GroupId: sg.GroupId})
+				ac.checkDeferError(err)
+			}
+		}
+	}
+
+	_, err = ec2Client.DeleteVpc(&ec2.DeleteVpcInput{VpcId: outputsMap.VpcId})
+	ac.checkDeferError(err)
 
 	stackId := resp.Stacks[0].StackId
 
 	_, err = cfClient.DeleteStack(&cloudformation.DeleteStackInput{
 		StackName: clusterStackName,
 	})
-	if checkDeferError(err) {
+	if ac.checkDeferError(err) {
 		return
 	}
 
@@ -137,7 +160,7 @@ func DeleteEksClusterVpc(cfClient *cloudformation.CloudFormation, clusterStackNa
 		resp, err := cfClient.DescribeStacks(&cloudformation.DescribeStacksInput{
 			StackName: stackId,
 		})
-		if checkDeferError(err) {
+		if ac.checkDeferError(err) {
 			if err.(awserr.Error).Code() == "ValidationError" {
 				log.Printf("Cluster VPC \"%s\" successfully deleted!\n", *clusterStackName)
 			}
@@ -158,13 +181,13 @@ func DeleteEksClusterVpc(cfClient *cloudformation.CloudFormation, clusterStackNa
 	}
 }
 
-func DeleteEksCluster(eksClient *eks.EKS, clusterName *string) {
+func (ac *AWSCluster) deleteEksCluster(eksClient *eks.EKS, clusterName *string) {
 	log.Printf("Deleting Amazon EKS Cluster \"%s\"...\n", *clusterName)
 
 	_, err := eksClient.DeleteCluster(&eks.DeleteClusterInput{
 		Name: clusterName,
 	})
-	if checkDeferError(err) {
+	if ac.checkDeferError(err) {
 		return
 	}
 
@@ -178,7 +201,7 @@ func DeleteEksCluster(eksClient *eks.EKS, clusterName *string) {
 			return
 		}
 
-		if checkDeferError(err) {
+		if ac.checkDeferError(err) {
 			return
 		}
 
@@ -193,25 +216,25 @@ func DeleteEksCluster(eksClient *eks.EKS, clusterName *string) {
 	}
 }
 
-func DeleteEksEc2KeyPair(ec2Client *ec2.EC2, keyPairName *string) {
+func (ac *AWSCluster) deleteEksEc2KeyPair(ec2Client *ec2.EC2, keyPairName *string) {
 	log.Printf("Deleting Amazon EC2 key pair \"%s\"...\n", *keyPairName)
 	_, err := ec2Client.DeleteKeyPair(&ec2.DeleteKeyPairInput{
 		KeyName: keyPairName,
 	})
-	if checkDeferError(err) {
+	if ac.checkDeferError(err) {
 		return
 	}
 
 	log.Printf("Amazon EC2 key pair \"%s\" successfully Deleted!\n", *keyPairName)
 }
 
-func DeleteEksWorkerNodes(cfClient *cloudformation.CloudFormation, nodesStackName *string) {
+func (ac *AWSCluster) deleteEksWorkerNodes(cfClient *cloudformation.CloudFormation, nodesStackName *string) {
 	log.Printf("Deleting Amazon EKS Worker Nodes...\n")
 
 	resp, err := cfClient.DescribeStacks(&cloudformation.DescribeStacksInput{
 		StackName: nodesStackName,
 	})
-	if checkDeferError(err) {
+	if ac.checkDeferError(err) {
 		return
 	}
 
@@ -220,7 +243,7 @@ func DeleteEksWorkerNodes(cfClient *cloudformation.CloudFormation, nodesStackNam
 	_, err = cfClient.DeleteStack(&cloudformation.DeleteStackInput{
 		StackName: nodesStackName,
 	})
-	if checkDeferError(err) {
+	if ac.checkDeferError(err) {
 		return
 	}
 
@@ -228,7 +251,7 @@ func DeleteEksWorkerNodes(cfClient *cloudformation.CloudFormation, nodesStackNam
 		resp, err := cfClient.DescribeStacks(&cloudformation.DescribeStacksInput{
 			StackName: stackId,
 		})
-		if checkDeferError(err) {
+		if ac.checkDeferError(err) {
 			return
 		}
 
@@ -246,7 +269,8 @@ func DeleteEksWorkerNodes(cfClient *cloudformation.CloudFormation, nodesStackNam
 	}
 }
 
-func deleteAWSKubernetesCluster(serviceSuffix string) error {
+// DeleteAWSKubernetesCluster - deleting AWS cluster instances
+func (ac *AWSCluster) DeleteAWSKubernetesCluster() error {
 	sess := session.Must(session.NewSession())
 	iamClient := iam.New(sess)
 	eksClient := eks.New(sess)
@@ -254,30 +278,31 @@ func deleteAWSKubernetesCluster(serviceSuffix string) error {
 	ec2Client := ec2.New(sess)
 
 	// Deleting Amazon EKS Cluster
-	clusterName := "nsm" + serviceSuffix
-	DeleteEksCluster(eksClient, &clusterName)
+	clusterName := awsClusterPrefix + ac.serviceSuffix
+	ac.deleteEksCluster(eksClient, &clusterName)
 
-	nodesStackName := "nsm-nodes" + serviceSuffix
+	nodesStackName := awsNodesStackPrefix + ac.serviceSuffix
 	// Deleting EC2 Network Interfaces to allow instance to be properly released
-	DeleteEC2NetworkInterfaces(ec2Client, cfClient, &nodesStackName)
+	ac.deleteEC2NetworkInterfaces(ec2Client, cfClient, &nodesStackName)
 
 	// Deleting Amazon EKS Worker Nodes
-	DeleteEksWorkerNodes(cfClient, &nodesStackName)
+	ac.deleteEksWorkerNodes(cfClient, &nodesStackName)
 
 	// Deleting Amazon EKS Cluster VPC
-	clusterStackName := "nsm-srv" + serviceSuffix
-	DeleteEksClusterVpc(cfClient, &clusterStackName)
+	clusterStackName := awsClusterStackPrefix + ac.serviceSuffix
+	ac.deleteEksClusterVpc(cfClient, ec2Client, &clusterStackName)
 
 	// Deleting Amazon Roles and Keys
-	eksRoleName := "nsm-role" + serviceSuffix
-	DeleteEksRole(iamClient, &eksRoleName)
-	keyPairName := "nsm-key-pair" + serviceSuffix
-	DeleteEksEc2KeyPair(ec2Client, &keyPairName)
+	eksRoleName := awsRolePrefix + ac.serviceSuffix
+	ac.deleteEksRole(iamClient, &eksRoleName)
+	keyPairName := awsKeyPairPrefix + ac.serviceSuffix
+	ac.deleteEksEc2KeyPair(ec2Client, &keyPairName)
 
 	return deferError
 }
 
-func deleteAllKubernetesClusters(saveDuration time.Duration, namePattern string) {
+// DeleteAllKubernetesClusters - removes all aws clusters older than saveDuration and filtered by name
+func DeleteAllKubernetesClusters(saveDuration time.Duration, namePattern string) {
 	sess := session.Must(session.NewSession())
 	cfClient := cloudformation.New(sess)
 
@@ -292,7 +317,7 @@ func deleteAllKubernetesClusters(saveDuration time.Duration, namePattern string)
 	i := 0
 	for _, stack := range stacks.StackSummaries {
 		stackName := aws.StringValue(stack.StackName)
-		if stackName[:7] != "nsm-srv" {
+		if stackName[:len(awsClusterStackPrefix)] != "nsm-srv" {
 			continue
 		}
 
@@ -300,13 +325,13 @@ func deleteAllKubernetesClusters(saveDuration time.Duration, namePattern string)
 			continue
 		}
 
-		if matched, err := regexp.MatchString(namePattern, stackName[7:]); err != nil || !matched {
-			logrus.Infof("Skip cluster: %s (matched: %v; err: %v)", stackName[7:], matched, err)
+		if matched, err := regexp.MatchString(namePattern, stackName[len(awsClusterStackPrefix):]); err != nil || !matched {
+			logrus.Infof("Skip cluster: %s (matched: %v; err: %v)", stackName[len(awsClusterStackPrefix):], matched, err)
 			continue
 		}
 
 		if stack.CreationTime.After(time.Now().Add(-1 * saveDuration)) {
-			logrus.Infof("Skip cluster: %s (created: %v)", stackName[7:], stack.CreationTime)
+			logrus.Infof("Skip cluster: %s (created: %v)", stackName[len(awsClusterStackPrefix):], stack.CreationTime)
 			continue
 		}
 
@@ -315,8 +340,8 @@ func deleteAllKubernetesClusters(saveDuration time.Duration, namePattern string)
 		go func() {
 			defer wg.Done()
 			for att := 0; att < 3; att++ {
-				logrus.Infof("Deleting %s (created %v), attempt %d", stackName[7:], stack.CreationTime, att+1)
-				err := deleteAWSKubernetesCluster(stackName[7:])
+				logrus.Infof("Deleting %s (created %v), attempt %d", stackName[len(awsClusterStackPrefix):], stack.CreationTime, att+1)
+				err := NewAWSCluster(stackName[7:]).DeleteAWSKubernetesCluster()
 				if err == nil {
 					break
 				}
