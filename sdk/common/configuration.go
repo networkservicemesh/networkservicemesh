@@ -22,12 +22,12 @@ import (
 )
 
 const (
-	NamespaceEnv              = "NSM_NAMESPACE"
+	namespaceEnv              = "NSM_NAMESPACE"
 	endpointNetworkServiceEnv = "ENDPOINT_NETWORK_SERVICE"
 	endpointLabelsEnv         = "ENDPOINT_LABELS"
 	clientNetworkServiceEnv   = "CLIENT_NETWORK_SERVICE"
 	clientLabelsEnv           = "CLIENT_LABELS"
-	nscInterfaceName          = "NSC_INTERFACE_NAME"
+	nscInterfaceNameEnv       = "NSC_INTERFACE_NAME"
 	mechanismTypeEnv          = "MECHANISM_TYPE"
 	ipAddressEnv              = "IP_ADDRESS"
 	routesEnv                 = "ROUTES"
@@ -91,7 +91,7 @@ func (configuration *NSConfiguration) FromEnv() *NSConfiguration {
 	}
 
 	if configuration.NscInterfaceName == "" {
-		configuration.NscInterfaceName = getEnv(nscInterfaceName, "NSC Interface name", false)
+		configuration.NscInterfaceName = getEnv(nscInterfaceNameEnv, "NSC Interface name", false)
 	}
 
 	if configuration.MechanismType == "" {
@@ -107,7 +107,7 @@ func (configuration *NSConfiguration) FromEnv() *NSConfiguration {
 	}
 
 	if configuration.Namespace == "" {
-		configuration.Namespace = getEnv(NamespaceEnv, "Namespace", false)
+		configuration.Namespace = getEnv(namespaceEnv, "Namespace", false)
 	}
 
 	if len(configuration.Routes) == 0 {
@@ -146,7 +146,7 @@ func (configuration *NSConfiguration) FromNSUrl(url *tools.NSUrl) *NSConfigurati
 }
 
 func GetNamespace() string {
-	namespace := getEnv(NamespaceEnv, "Namespace", false)
+	namespace := getEnv(namespaceEnv, "Namespace", false)
 	if len(namespace) == 0 {
 		return "default"
 	}
