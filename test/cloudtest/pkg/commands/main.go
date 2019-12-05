@@ -1385,9 +1385,10 @@ func (ctx *executionContext) generateJUnitReportFile() (*reporting.JUnitFile, er
 	}
 
 	// Add a suite with cluster failures.
-	clusterFailuresCount, clusterFailuresSuite := ctx.generateClusterFailuresReportSuite()
+	clusterFailuresTime, clusterFailuresCount, clusterFailuresSuite := ctx.generateClusterFailuresReportSuite()
 	if clusterFailuresCount > 0 {
 		totalFailures += clusterFailuresCount
+		totalTime += clusterFailuresTime
 		clusterFailuresSuite.Tests = clusterFailuresCount
 		clusterFailuresSuite.Failures = clusterFailuresCount
 		summarySuite.Suites = append(summarySuite.Suites, clusterFailuresSuite)
@@ -1411,12 +1412,13 @@ func (ctx *executionContext) generateJUnitReportFile() (*reporting.JUnitFile, er
 	return ctx.report, nil
 }
 
-func (ctx *executionContext) generateClusterFailuresReportSuite() (int, *reporting.Suite) {
+func (ctx *executionContext) generateClusterFailuresReportSuite() (time.Duration, int, *reporting.Suite) {
 	clusterFailuresSuite := &reporting.Suite{
 		Name: "Cluster failures",
 	}
 
 	clusterFailures := 0
+	failuresTime := time.Duration(0)
 	// Check cluster instances
 	for _, cluster := range ctx.clusters {
 		availableClusters := 0
@@ -1431,6 +1433,7 @@ func (ctx *executionContext) generateClusterFailuresReportSuite() (int, *reporti
 				if inst.state == clusterNotAvailable {
 					for _, exec := range inst.executions {
 						ctx.generateClusterFailedReportEntry(inst, exec, clusterFailuresSuite)
+						failuresTime += exec.duration
 						clusterFailures++
 						break
 					}
@@ -1438,7 +1441,8 @@ func (ctx *executionContext) generateClusterFailuresReportSuite() (int, *reporti
 			}
 		}
 	}
-	return clusterFailures, clusterFailuresSuite
+	clusterFailuresSuite.Time = fmt.Sprintf("%v", failuresTime)
+	return failuresTime, clusterFailures, clusterFailuresSuite
 }
 
 func (ctx *executionContext) generateReportSuiteByTestTasks(suiteName string, tests []*testTask) (int, time.Duration, int, *reporting.Suite) {
