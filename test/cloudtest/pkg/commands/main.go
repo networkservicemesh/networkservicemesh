@@ -1332,10 +1332,16 @@ func (ctx *executionContext) generateJUnitReportFile() (*reporting.JUnitFile, er
 	// generate and write report
 	ctx.report = &reporting.JUnitFile{}
 
+	summarySuite := &reporting.Suite{
+		Name: "All tests",
+	}
+
 	// We need to group all tests by executions.
 	executionsTests := ctx.getAllTestTasksGroupedByExecutions()
 
 	totalFailures := 0
+	totalTests := 0
+	totalTime := time.Duration(0)
 	// Generate suites by executions.
 	for execName, executionTasks := range executionsTests {
 
@@ -1369,11 +1375,13 @@ func (ctx *executionContext) generateJUnitReportFile() (*reporting.JUnitFile, er
 		}
 
 		totalFailures += executionFailures
+		totalTests += executionTests
+		totalTime += executionTime
 
 		execSuite.Tests = executionTests
 		execSuite.Failures = executionFailures
 		execSuite.Time = fmt.Sprintf("%v", executionTime)
-		ctx.report.Suites = append(ctx.report.Suites, execSuite)
+		summarySuite.Suites = append(summarySuite.Suites, execSuite)
 	}
 
 	// Add a suite with cluster failures.
@@ -1382,8 +1390,13 @@ func (ctx *executionContext) generateJUnitReportFile() (*reporting.JUnitFile, er
 		totalFailures += clusterFailuresCount
 		clusterFailuresSuite.Tests = clusterFailuresCount
 		clusterFailuresSuite.Failures = clusterFailuresCount
-		ctx.report.Suites = append(ctx.report.Suites, clusterFailuresSuite)
+		summarySuite.Suites = append(summarySuite.Suites, clusterFailuresSuite)
 	}
+
+	summarySuite.Time = fmt.Sprintf("%v", totalTime)
+	summarySuite.Failures = totalFailures
+	summarySuite.Tests = totalTests
+	ctx.report.Suites = append(ctx.report.Suites, summarySuite)
 
 	output, err := xml.MarshalIndent(ctx.report, "  ", "    ")
 	if err != nil {
@@ -1481,7 +1494,7 @@ func (ctx *executionContext) generateClusterFailedReportEntry(inst *clusterInsta
 func (ctx *executionContext) generateTestCaseReport(test *testTask, totalTests int, totalTime time.Duration, failures int, suite *reporting.Suite) (int, time.Duration, int) {
 	testCase := &reporting.TestCase{
 		Name:    test.test.Key,
-		Time:    test.test.Duration.String(),
+		Time:    fmt.Sprintf("%vs", test.test.Duration.Seconds()),
 		Cluster: test.clusterTaskID,
 	}
 

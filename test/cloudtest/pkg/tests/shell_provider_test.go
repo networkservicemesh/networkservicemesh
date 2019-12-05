@@ -79,17 +79,19 @@ func TestShellProvider(t *testing.T) {
 
 	g.Expect(report).NotTo(BeNil())
 
-	g.Expect(len(report.Suites)).To(Equal(2))
+	rootSuite := report.Suites[0]
 
-	g.Expect(report.Suites[0].Failures).To(Equal(2))
-	g.Expect(report.Suites[0].Tests).To(Equal(6))
-	g.Expect(len(report.Suites[0].Suites[0].TestCases)).To(Equal(3))
-	g.Expect(len(report.Suites[0].Suites[1].TestCases)).To(Equal(3))
+	g.Expect(len(rootSuite.Suites)).To(Equal(2))
 
-	g.Expect(report.Suites[0].Failures).To(Equal(2))
-	g.Expect(report.Suites[0].Tests).To(Equal(6))
-	g.Expect(len(report.Suites[1].Suites[0].TestCases)).To(Equal(3))
-	g.Expect(len(report.Suites[1].Suites[1].TestCases)).To(Equal(3))
+	g.Expect(rootSuite.Suites[0].Failures).To(Equal(2))
+	g.Expect(rootSuite.Suites[0].Tests).To(Equal(6))
+	g.Expect(len(rootSuite.Suites[0].Suites[0].TestCases)).To(Equal(3))
+	g.Expect(len(rootSuite.Suites[0].Suites[1].TestCases)).To(Equal(3))
+
+	g.Expect(rootSuite.Suites[0].Failures).To(Equal(2))
+	g.Expect(rootSuite.Suites[0].Tests).To(Equal(6))
+	g.Expect(len(rootSuite.Suites[1].Suites[0].TestCases)).To(Equal(3))
+	g.Expect(len(rootSuite.Suites[1].Suites[1].TestCases)).To(Equal(3))
 
 	// Do assertions
 }
@@ -276,9 +278,11 @@ func TestShellProviderShellTest(t *testing.T) {
 
 	g.Expect(report).NotTo(BeNil())
 
-	g.Expect(len(report.Suites)).To(Equal(3))
+	rootSuite := report.Suites[0]
 
-	for _, executionSuite := range report.Suites {
+	g.Expect(len(rootSuite.Suites)).To(Equal(3))
+
+	for _, executionSuite := range rootSuite.Suites {
 		switch executionSuite.Name {
 		case "simple":
 			g.Expect(executionSuite.Failures).To(Equal(2))
@@ -340,15 +344,17 @@ func TestUnusedClusterShutdownByMonitor(t *testing.T) {
 
 	g.Expect(report).NotTo(BeNil())
 
-	g.Expect(len(report.Suites)).To(Equal(2))
+	rootSuite := report.Suites[0]
 
-	g.Expect(report.Suites[0].Failures).To(Equal(1))
-	g.Expect(report.Suites[0].Tests).To(Equal(3))
-	g.Expect(len(report.Suites[0].Suites[0].TestCases)).To(Equal(3))
+	g.Expect(len(rootSuite.Suites)).To(Equal(2))
 
-	g.Expect(report.Suites[1].Failures).To(Equal(1))
-	g.Expect(report.Suites[1].Tests).To(Equal(3))
-	g.Expect(len(report.Suites[1].Suites[0].TestCases)).To(Equal(3))
+	g.Expect(rootSuite.Suites[0].Failures).To(Equal(1))
+	g.Expect(rootSuite.Suites[0].Tests).To(Equal(3))
+	g.Expect(len(rootSuite.Suites[0].Suites[0].TestCases)).To(Equal(3))
+
+	g.Expect(rootSuite.Suites[1].Failures).To(Equal(1))
+	g.Expect(rootSuite.Suites[1].Tests).To(Equal(3))
+	g.Expect(len(rootSuite.Suites[1].Suites[0].TestCases)).To(Equal(3))
 
 	logKeeper.CheckMessagesOrder(t, []string{
 		"All tasks for cluster group a_provider are complete. Starting cluster shutdown",
@@ -412,16 +418,18 @@ func TestMultiClusterTest(t *testing.T) {
 
 	g.Expect(report).NotTo(BeNil())
 
-	g.Expect(len(report.Suites)).To(Equal(3))
+	rootSuite := report.Suites[0]
 
-	g.Expect(report.Suites[0].Failures).To(Equal(1))
-	g.Expect(report.Suites[0].Tests).To(Equal(3))
+	g.Expect(len(rootSuite.Suites)).To(Equal(3))
 
-	g.Expect(report.Suites[1].Failures).To(Equal(1))
-	g.Expect(report.Suites[1].Tests).To(Equal(3))
+	g.Expect(rootSuite.Suites[0].Failures).To(Equal(1))
+	g.Expect(rootSuite.Suites[0].Tests).To(Equal(3))
 
-	g.Expect(report.Suites[2].Failures).To(Equal(1))
-	g.Expect(report.Suites[2].Tests).To(Equal(3))
+	g.Expect(rootSuite.Suites[1].Failures).To(Equal(1))
+	g.Expect(rootSuite.Suites[1].Tests).To(Equal(3))
+
+	g.Expect(rootSuite.Suites[2].Failures).To(Equal(1))
+	g.Expect(rootSuite.Suites[2].Tests).To(Equal(3))
 
 	// Do assertions
 }
@@ -452,10 +460,12 @@ func TestGlobalTimeout(t *testing.T) {
 
 	g.Expect(report).NotTo(BeNil())
 
-	g.Expect(len(report.Suites)).To(Equal(1))
-	g.Expect(report.Suites[0].Failures).To(Equal(1))
-	g.Expect(report.Suites[0].Tests).To(Equal(3))
-	g.Expect(len(report.Suites[0].Suites[0].TestCases)).To(Equal(3))
+	rootSuite := report.Suites[0]
+
+	g.Expect(len(rootSuite.Suites)).To(Equal(1))
+	g.Expect(rootSuite.Suites[0].Failures).To(Equal(1))
+	g.Expect(rootSuite.Suites[0].Tests).To(Equal(3))
+	g.Expect(len(rootSuite.Suites[0].Suites[0].TestCases)).To(Equal(3))
 
 	// Do assertions
 }
