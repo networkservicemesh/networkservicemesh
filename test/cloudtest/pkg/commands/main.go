@@ -1332,28 +1332,18 @@ func (ctx *executionContext) generateJUnitReportFile() (*reporting.JUnitFile, er
 	// generate and write report
 	ctx.report = &reporting.JUnitFile{}
 
-	// We need to group all tests by executions
-	var executionsTests = make(map[string][]*testTask)
-	for _, cluster := range ctx.clusters {
-		for _, test := range cluster.tasks {
-			execName := test.test.ExecutionConfig.Name
-			executionsTests[execName] = append(executionsTests[execName], test)
-		}
-		for _, test := range cluster.completed {
-			execName := test.test.ExecutionConfig.Name
-			executionsTests[execName] = append(executionsTests[execName], test)
-		}
-	}
+	// We need to group all tests by executions.
+	executionsTests := ctx.getAllTestTasksGroupedByExecutions()
 
 	totalFailures := 0
-	// Generate suites by executions
+	// Generate suites by executions.
 	for execName, executionTasks := range executionsTests {
 
 		execSuite := &reporting.Suite{
 			Name: execName,
 		}
 
-		// Generate suite for each cluster task
+		// Group execution's test tasks by cluster type.
 		clustersTests := make(map[string][]*testTask)
 		for _, test := range executionTasks {
 			clusterGroupName := buildClusterSuiteName(test.clusters)
@@ -1364,16 +1354,9 @@ func (ctx *executionContext) generateJUnitReportFile() (*reporting.JUnitFile, er
 		executionTests := 0
 		executionTime := time.Duration(0)
 
+		// Generate nested suites by cluster types.
 		for clusterTaskName, tests := range clustersTests {
-			clusterFailures := 0
-			clusterTests := 0
-			clusterTime := time.Duration(0)
-			clusterSuite := &reporting.Suite{
-				Name: clusterTaskName,
-			}
-			for _, test := range tests {
-				clusterTests, clusterTime, clusterFailures = ctx.generateTestCaseReport(test, clusterTests, clusterTime, clusterFailures, clusterSuite)
-			}
+			clusterTests, clusterTime, clusterFailures, clusterSuite := ctx.generateReportSuiteByTestTasks(clusterTaskName, tests)
 
 			executionFailures += clusterFailures
 			executionTests += clusterTests
@@ -1382,7 +1365,6 @@ func (ctx *executionContext) generateJUnitReportFile() (*reporting.JUnitFile, er
 			clusterSuite.Time = fmt.Sprintf("%v", clusterTime)
 			clusterSuite.Failures = clusterFailures
 			clusterSuite.Tests = clusterTests
-
 			execSuite.Suites = append(execSuite.Suites, clusterSuite)
 		}
 
@@ -1394,6 +1376,29 @@ func (ctx *executionContext) generateJUnitReportFile() (*reporting.JUnitFile, er
 		ctx.report.Suites = append(ctx.report.Suites, execSuite)
 	}
 
+	// Add a suite with cluster failures.
+	clusterFailuresCount, clusterFailuresSuite := ctx.generateClusterFailuresReportSuite()
+	if clusterFailuresCount > 0 {
+		totalFailures += clusterFailuresCount
+		clusterFailuresSuite.Tests = clusterFailuresCount
+		clusterFailuresSuite.Failures = clusterFailuresCount
+		ctx.report.Suites = append(ctx.report.Suites, clusterFailuresSuite)
+	}
+
+	output, err := xml.MarshalIndent(ctx.report, "  ", "    ")
+	if err != nil {
+		logrus.Errorf("failed to store JUnit xml report: %v\n", err)
+	}
+	if ctx.cloudTestConfig.Reporting.JUnitReportFile != "" {
+		ctx.manager.AddFile(ctx.cloudTestConfig.Reporting.JUnitReportFile, output)
+	}
+	if totalFailures > 0 {
+		return ctx.report, errors.Errorf("there is failed tests %v", totalFailures)
+	}
+	return ctx.report, nil
+}
+
+func (ctx *executionContext) generateClusterFailuresReportSuite() (int, *reporting.Suite) {
 	clusterFailuresSuite := &reporting.Suite{
 		Name: "Cluster failures",
 	}
@@ -1420,26 +1425,35 @@ func (ctx *executionContext) generateJUnitReportFile() (*reporting.JUnitFile, er
 			}
 		}
 	}
+	return clusterFailures, clusterFailuresSuite
+}
 
-	// Add a suite with cluster failures
-	if clusterFailures > 0 {
-		totalFailures += clusterFailures
-		clusterFailuresSuite.Tests = clusterFailures
-		clusterFailuresSuite.Failures = clusterFailures
-		ctx.report.Suites = append(ctx.report.Suites, clusterFailuresSuite)
+func (ctx *executionContext) generateReportSuiteByTestTasks(suiteName string, tests []*testTask) (int, time.Duration, int, *reporting.Suite) {
+	failuresCount := 0
+	testsCount := 0
+	time := time.Duration(0)
+	suite := &reporting.Suite{
+		Name: suiteName,
 	}
+	for _, test := range tests {
+		testsCount, time, failuresCount = ctx.generateTestCaseReport(test, testsCount, time, failuresCount, suite)
+	}
+	return testsCount, time, failuresCount, suite
+}
 
-	output, err := xml.MarshalIndent(ctx.report, "  ", "    ")
-	if err != nil {
-		logrus.Errorf("failed to store JUnit xml report: %v\n", err)
+func (ctx *executionContext) getAllTestTasksGroupedByExecutions() map[string][]*testTask {
+	var executionsTests = make(map[string][]*testTask)
+	for _, cluster := range ctx.clusters {
+		for _, test := range cluster.tasks {
+			execName := test.test.ExecutionConfig.Name
+			executionsTests[execName] = append(executionsTests[execName], test)
+		}
+		for _, test := range cluster.completed {
+			execName := test.test.ExecutionConfig.Name
+			executionsTests[execName] = append(executionsTests[execName], test)
+		}
 	}
-	if ctx.cloudTestConfig.Reporting.JUnitReportFile != "" {
-		ctx.manager.AddFile(ctx.cloudTestConfig.Reporting.JUnitReportFile, output)
-	}
-	if totalFailures > 0 {
-		return ctx.report, errors.Errorf("there is failed tests %v", totalFailures)
-	}
-	return ctx.report, nil
+	return executionsTests
 }
 
 func (ctx *executionContext) generateClusterFailedReportEntry(inst *clusterInstance, exec *clusterOperationRecord, suite *reporting.Suite) {
