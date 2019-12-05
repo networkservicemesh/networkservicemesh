@@ -61,7 +61,7 @@ func TestExcludePrefixCheck(t *testing.T) {
 
 	nsc, err := clientset.CoreV1().Pods(k8s.GetK8sNamespace()).Create(pods.NSCPod("nsc", nodes[0].Node,
 		map[string]string{
-			"OUTGOING_NSC_LABELS":    "app=icmp",
+			"CLIENT_LABELS":          "app=icmp",
 			"CLIENT_NETWORK_SERVICE": "icmp-responder",
 		},
 	))

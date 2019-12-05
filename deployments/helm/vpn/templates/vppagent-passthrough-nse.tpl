@@ -27,7 +27,7 @@ spec:
               value: "app=passthrough-1"
             - name: CLIENT_NETWORK_SERVICE
               value: "secure-intranet-connectivity"
-            - name: OUTGOING_NSC_LABELS
+            - name: CLIENT_LABELS
               value: "app=passthrough-1"
 {{- if .Values.global.JaegerTracing }}
             - name: TRACER_ENABLED
@@ -72,7 +72,7 @@ spec:
               value: "app=passthrough-2"
             - name: CLIENT_NETWORK_SERVICE
               value: "secure-intranet-connectivity"
-            - name: OUTGOING_NSC_LABELS
+            - name: CLIENT_LABELS
               value: "app=passthrough-2"
             - name: TRACER_ENABLED
               value: "true"
@@ -111,7 +111,7 @@ spec:
               value: "app=passthrough-3"
             - name: CLIENT_NETWORK_SERVICE
               value: "secure-intranet-connectivity"
-            - name: OUTGOING_NSC_LABELS
+            - name: CLIENT_LABELS
               value: "app=passthrough-3"
             - name: TRACER_ENABLED
               value: "true"

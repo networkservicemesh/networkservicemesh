@@ -51,7 +51,7 @@ const (
 type NsmClient struct {
 	*common.NsmConnection
 	ClientNetworkService string
-	OutgoingNscLabels    map[string]string
+	ClientLabels         map[string]string
 	OutgoingConnections  []*connection.Connection
 	NscInterfaceName     string
 	tracerCloser         io.Closer
@@ -103,7 +103,7 @@ func (nsmc *NsmClient) ConnectRetry(ctx context.Context, name, mechanism, descri
 					SrcRoutes:     routes,
 				},
 			},
-			Labels: nsmc.OutgoingNscLabels,
+			Labels: nsmc.ClientLabels,
 		},
 		MechanismPreferences: []*connection.Mechanism{
 			outgoingMechanism,
@@ -195,7 +195,7 @@ func NewNSMClient(ctx context.Context, configuration *common.NSConfiguration) (*
 
 	client := &NsmClient{
 		ClientNetworkService: configuration.ClientNetworkService,
-		OutgoingNscLabels:    tools.ParseKVStringToMap(configuration.OutgoingNscLabels, ",", "="),
+		ClientLabels:         tools.ParseKVStringToMap(configuration.ClientLabels, ",", "="),
 		NscInterfaceName:     configuration.NscInterfaceName,
 	}
 

@@ -175,7 +175,7 @@ func testInterdomainVPN(t *testing.T, ptnum, clustersCount int, nodesCount int, 
 			"ENDPOINT_NETWORK_SERVICE": "secure-intranet-connectivity",
 			"ENDPOINT_LABELS":          "app=firewall",
 			"CLIENT_NETWORK_SERVICE":   nscOutgoingName,
-			"OUTGOING_NSC_LABELS":      "app=firewall",
+			"CLIENT_LABELS":            "app=firewall",
 		},
 	))
 	g.Expect(vppagentFirewallNode.Name).To(Equal("vppagent-firewall-nse-1"))
@@ -195,7 +195,7 @@ func testInterdomainVPN(t *testing.T, ptnum, clustersCount int, nodesCount int, 
 				"ENDPOINT_NETWORK_SERVICE": "secure-intranet-connectivity",
 				"ENDPOINT_LABELS":          "app=passthrough-" + id,
 				"CLIENT_NETWORK_SERVICE":   "secure-intranet-connectivity",
-				"OUTGOING_NSC_LABELS":      "app=passthrough-" + id,
+				"CLIENT_LABELS":            "app=passthrough-" + id,
 			},
 		))
 		g.Expect(vppagentPassthroughNode.Name).To(Equal("vppagent-passthrough-nse-" + id))

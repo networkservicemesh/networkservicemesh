@@ -22,7 +22,7 @@ spec:
           env:
             - name: TEST_APPLICATION
               value: "vppagent-nsc"
-            - name: OUTGOING_NSC_LABELS
+            - name: CLIENT_LABELS
               value: "app=icmp"
             - name: CLIENT_NETWORK_SERVICE
               value: "icmp-responder"

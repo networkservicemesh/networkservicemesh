@@ -26,7 +26,7 @@ const (
 	endpointNetworkServiceEnv = "ENDPOINT_NETWORK_SERVICE"
 	endpointLabelsEnv         = "ENDPOINT_LABELS"
 	clientNetworkServiceEnv   = "CLIENT_NETWORK_SERVICE"
-	outgoingNscLabelsEnv      = "OUTGOING_NSC_LABELS"
+	clientLabelsEnv           = "CLIENT_LABELS"
 	nscInterfaceName          = "NSC_INTERFACE_NAME"
 	mechanismTypeEnv          = "MECHANISM_TYPE"
 	ipAddressEnv              = "IP_ADDRESS"
@@ -42,7 +42,7 @@ type NSConfiguration struct {
 	EndpointNetworkService string
 	ClientNetworkService   string
 	EndpointLabels         string
-	OutgoingNscLabels      string
+	ClientLabels           string
 	NscInterfaceName       string
 	MechanismType          string
 	IPAddress              string
@@ -86,8 +86,8 @@ func (configuration *NSConfiguration) FromEnv() *NSConfiguration {
 		configuration.EndpointLabels = getEnv(endpointLabelsEnv, "Advertise labels", false)
 	}
 
-	if configuration.OutgoingNscLabels == "" {
-		configuration.OutgoingNscLabels = getEnv(outgoingNscLabelsEnv, "Outgoing labels", false)
+	if configuration.ClientLabels == "" {
+		configuration.ClientLabels = getEnv(clientLabelsEnv, "Outgoing labels", false)
 	}
 
 	if configuration.NscInterfaceName == "" {
@@ -141,7 +141,7 @@ func (configuration *NSConfiguration) FromNSUrl(url *tools.NSUrl) *NSConfigurati
 		labels.WriteRune('=')
 		labels.WriteString(v[0])
 	}
-	configuration.OutgoingNscLabels = labels.String()
+	configuration.ClientLabels = labels.String()
 	return configuration
 }
 

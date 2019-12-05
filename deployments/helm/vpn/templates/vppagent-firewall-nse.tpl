@@ -27,7 +27,7 @@ spec:
               value: "app=firewall"
             - name: CLIENT_NETWORK_SERVICE
               value: "secure-intranet-connectivity"
-            - name: OUTGOING_NSC_LABELS
+            - name: CLIENT_LABELS
               value: "app=firewall"
 {{- if .Values.global.JaegerTracing }}
             - name: TRACER_ENABLED
