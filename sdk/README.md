@@ -29,7 +29,7 @@ type NSConfiguration struct {
     NsmServerSocket    string
     NsmClientSocket    string
     Workspace          string
-    AdvertiseNseName   string // ADVERTISE_NSE_NAME
+    EndpointNetworkService   string // ENDPOINT_NETWORK_SERVICE
     OutgoingNscName    string // OUTGOING_NSC_NAME
     AdvertiseNseLabels string // ADVERTISE_NSE_LABELS
     OutgoingNscLabels  string // OUTGOING_NSC_LABELS
@@ -45,7 +45,7 @@ Note that some of the members of this structure can be initialized through the e
 * `NsmServerSocket` - [ *system* ], NS manager communication socket
 * `NsmClientSocket` - [ *system* ], NS manager communication socket
 * `Workspace` - [ *system* ], Kubernetes Pod namespace
-* `AdvertiseNseName` - [ `ADVERTISE_NSE_NAME` ], the *endpoint* name, as advertised to the NS registry
+* `EndpointNetworkService` - [ `ENDPOINT_NETWORK_SERVICE` ], the *Network Service* name that the *Endpoint* implements, as advertised to the NS registry
 * `OutgoingNscName` - [ `OUTGOING_NSC_NAME` ], the *endpoint* name, as the *client* looks up in the NS registry
 * `AdvertiseNseLabels` - [ `ADVERTISE_NSE_LABELS` ], the *endpoint* labels, as advertised to the NS registry. Used in NSM's selector to match the DestinationSelector. The format is `label1=value1,label2=value2`
 * `OutgoingNscLabels` - [ `OUTGOING_NSC_LABELS` ], the *endpoint* labels, as send by the *client* . Used in NSM's selector to match the SourceSelector. The format is the same as `AdvertiseNseLabels`

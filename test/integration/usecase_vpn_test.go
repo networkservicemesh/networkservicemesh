@@ -140,7 +140,7 @@ func testVPN(t *testing.T, ptnum, nodesCount int, affinity map[string]int, verbo
 		g.Expect(err).To(BeNil())
 		vppagentFirewallNode := k8s.CreatePod(pods.VppAgentFirewallNSEPodWithConfigMap("vppagent-firewall-nse-1", &nodes[node],
 			map[string]string{
-				"ADVERTISE_NSE_NAME":   "secure-intranet-connectivity",
+				"ENDPOINT_NETWORK_SERVICE":   "secure-intranet-connectivity",
 				"ADVERTISE_NSE_LABELS": "app=firewall",
 				"OUTGOING_NSC_NAME":    "secure-intranet-connectivity",
 				"OUTGOING_NSC_LABELS":  "app=firewall",
@@ -162,7 +162,7 @@ func testVPN(t *testing.T, ptnum, nodesCount int, affinity map[string]int, verbo
 
 			vppagentPassthroughNode := k8s.CreatePod(pods.VppAgentFirewallNSEPod("vppagent-passthrough-nse-"+id, &nodes[node],
 				map[string]string{
-					"ADVERTISE_NSE_NAME":   "secure-intranet-connectivity",
+					"ENDPOINT_NETWORK_SERVICE":   "secure-intranet-connectivity",
 					"ADVERTISE_NSE_LABELS": "app=passthrough-" + id,
 					"OUTGOING_NSC_NAME":    "secure-intranet-connectivity",
 					"OUTGOING_NSC_LABELS":  "app=passthrough-" + id,
@@ -184,7 +184,7 @@ func testVPN(t *testing.T, ptnum, nodesCount int, affinity map[string]int, verbo
 		logrus.Infof("Starting VPN Gateway NSE on node: %d", node)
 		vpnGatewayPodNode := k8s.CreatePod(pods.VPNGatewayNSEPod("vpn-gateway-nse-1", &nodes[node],
 			map[string]string{
-				"ADVERTISE_NSE_NAME":   "secure-intranet-connectivity",
+				"ENDPOINT_NETWORK_SERVICE":   "secure-intranet-connectivity",
 				"ADVERTISE_NSE_LABELS": "app=vpn-gateway",
 				"IP_ADDRESS":           addressPool,
 			},

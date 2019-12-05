@@ -30,7 +30,7 @@ spec:
           command: ["/bin/icmp-responder-nse"]
           imagePullPolicy: {{ .Values.pullPolicy }}
           env:
-            - name: ADVERTISE_NSE_NAME
+            - name: ENDPOINT_NETWORK_SERVICE
               value: "secure-intranet-connectivity"
             - name: ADVERTISE_NSE_LABELS
               value: "app=vpn-gateway"

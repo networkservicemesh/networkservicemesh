@@ -34,7 +34,7 @@ spec:
           command: ["/bin/icmp-responder-nse"]
           imagePullPolicy: {{ .Values.pullPolicy }}
           env:
-            - name: ADVERTISE_NSE_NAME
+            - name: ENDPOINT_NETWORK_SERVICE
               value: "icmp-responder"
             - name: ADVERTISE_NSE_LABELS
               value: "app=icmp-responder"

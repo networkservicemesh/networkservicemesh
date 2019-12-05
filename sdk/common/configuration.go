@@ -22,33 +22,33 @@ import (
 )
 
 const (
-	NamespaceEnv          = "NSM_NAMESPACE"
-	advertiseNseNameEnv   = "ADVERTISE_NSE_NAME"
-	advertiseNseLabelsEnv = "ADVERTISE_NSE_LABELS"
-	outgoingNscNameEnv    = "OUTGOING_NSC_NAME"
-	outgoingNscLabelsEnv  = "OUTGOING_NSC_LABELS"
-	nscInterfaceName      = "NSC_INTERFACE_NAME"
-	mechanismTypeEnv      = "MECHANISM_TYPE"
-	ipAddressEnv          = "IP_ADDRESS"
-	routesEnv             = "ROUTES"
-	podNameEnv            = "POD_NAME"
+	NamespaceEnv              = "NSM_NAMESPACE"
+	endpointNetworkServiceEnv = "ENDPOINT_NETWORK_SERVICE"
+	advertiseNseLabelsEnv     = "ADVERTISE_NSE_LABELS"
+	outgoingNscNameEnv        = "OUTGOING_NSC_NAME"
+	outgoingNscLabelsEnv      = "OUTGOING_NSC_LABELS"
+	nscInterfaceName          = "NSC_INTERFACE_NAME"
+	mechanismTypeEnv          = "MECHANISM_TYPE"
+	ipAddressEnv              = "IP_ADDRESS"
+	routesEnv                 = "ROUTES"
+	podNameEnv                = "POD_NAME"
 )
 
 // NSConfiguration contains the full configuration used in the SDK
 type NSConfiguration struct {
-	NsmServerSocket    string
-	NsmClientSocket    string
-	Workspace          string
-	AdvertiseNseName   string
-	OutgoingNscName    string
-	AdvertiseNseLabels string
-	OutgoingNscLabels  string
-	NscInterfaceName   string
-	MechanismType      string
-	IPAddress          string
-	Routes             []string
-	PodName            string
-	Namespace          string
+	NsmServerSocket        string
+	NsmClientSocket        string
+	Workspace              string
+	EndpointNetworkService string
+	OutgoingNscName        string
+	AdvertiseNseLabels     string
+	OutgoingNscLabels      string
+	NscInterfaceName       string
+	MechanismType          string
+	IPAddress              string
+	Routes                 []string
+	PodName                string
+	Namespace              string
 }
 
 // FromEnv creates a new NSConfiguration and fills all unset options from the env variables
@@ -74,8 +74,8 @@ func (configuration *NSConfiguration) FromEnv() *NSConfiguration {
 		configuration.Workspace = getEnv(WorkspaceEnv, "workspace", true)
 	}
 
-	if configuration.AdvertiseNseName == "" {
-		configuration.AdvertiseNseName = getEnv(advertiseNseNameEnv, "Advertise Network Service Name", false)
+	if configuration.EndpointNetworkService == "" {
+		configuration.EndpointNetworkService = getEnv(endpointNetworkServiceEnv, "Advertise Network Service Name", false)
 	}
 
 	if configuration.OutgoingNscName == "" {

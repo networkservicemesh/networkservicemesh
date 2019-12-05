@@ -21,7 +21,7 @@ spec:
           env:
             - name: TEST_APPLICATION
               value: "vppagent-firewall-nse"
-            - name: ADVERTISE_NSE_NAME
+            - name: ENDPOINT_NETWORK_SERVICE
               value: "secure-intranet-connectivity"
             - name: ADVERTISE_NSE_LABELS
               value: "app=passthrough-1"
@@ -66,7 +66,7 @@ spec:
           env:
             - name: TEST_APPLICATION
               value: "vppagent-firewall-nse"
-            - name: ADVERTISE_NSE_NAME
+            - name: ENDPOINT_NETWORK_SERVICE
               value: "secure-intranet-connectivity"
             - name: ADVERTISE_NSE_LABELS
               value: "app=passthrough-2"
@@ -105,7 +105,7 @@ spec:
           env:
             - name: TEST_APPLICATION
               value: "vppagent-firewall-nse"
-            - name: ADVERTISE_NSE_NAME
+            - name: ENDPOINT_NETWORK_SERVICE
               value: "secure-intranet-connectivity"
             - name: ADVERTISE_NSE_LABELS
               value: "app=passthrough-3"
