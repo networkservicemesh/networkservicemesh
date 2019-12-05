@@ -142,7 +142,7 @@ func testVPN(t *testing.T, ptnum, nodesCount int, affinity map[string]int, verbo
 			map[string]string{
 				"ENDPOINT_NETWORK_SERVICE": "secure-intranet-connectivity",
 				"ENDPOINT_LABELS":          "app=firewall",
-				"OUTGOING_NSC_NAME":        "secure-intranet-connectivity",
+				"CLIENT_NETWORK_SERVICE":   "secure-intranet-connectivity",
 				"OUTGOING_NSC_LABELS":      "app=firewall",
 			},
 		))
@@ -164,7 +164,7 @@ func testVPN(t *testing.T, ptnum, nodesCount int, affinity map[string]int, verbo
 				map[string]string{
 					"ENDPOINT_NETWORK_SERVICE": "secure-intranet-connectivity",
 					"ENDPOINT_LABELS":          "app=passthrough-" + id,
-					"OUTGOING_NSC_NAME":        "secure-intranet-connectivity",
+					"CLIENT_NETWORK_SERVICE":   "secure-intranet-connectivity",
 					"OUTGOING_NSC_LABELS":      "app=passthrough-" + id,
 				},
 			))
@@ -203,7 +203,7 @@ func testVPN(t *testing.T, ptnum, nodesCount int, affinity map[string]int, verbo
 	node := affinity["vpn-gateway-nsc-1"]
 	nscPodNode := k8s.CreatePod(pods.NSCPod("vpn-gateway-nsc-1", &nodes[node],
 		map[string]string{
-			"OUTGOING_NSC_NAME": "secure-intranet-connectivity",
+			"CLIENT_NETWORK_SERVICE": "secure-intranet-connectivity",
 		},
 	))
 	g.Expect(nscPodNode.Name).To(Equal("vpn-gateway-nsc-1"))

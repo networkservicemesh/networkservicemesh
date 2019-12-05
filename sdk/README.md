@@ -30,7 +30,7 @@ type NSConfiguration struct {
     NsmClientSocket    string
     Workspace          string
     EndpointNetworkService   string // ENDPOINT_NETWORK_SERVICE
-    OutgoingNscName    string // OUTGOING_NSC_NAME
+    ClientNetworkService    string // CLIENT_NETWORK_SERVICE
     EndpointLabels string // ENDPOINT_LABELS
     OutgoingNscLabels  string // OUTGOING_NSC_LABELS
     NscInterfaceName   string // NSC_INTERFACE_NAME
@@ -46,7 +46,7 @@ Note that some of the members of this structure can be initialized through the e
 * `NsmClientSocket` - [ *system* ], NS manager communication socket
 * `Workspace` - [ *system* ], Kubernetes Pod namespace
 * `EndpointNetworkService` - [ `ENDPOINT_NETWORK_SERVICE` ], the *Network Service* name that the *Endpoint* implements, as advertised to the NS registry
-* `OutgoingNscName` - [ `OUTGOING_NSC_NAME` ], the *endpoint* name, as the *client* looks up in the NS registry
+* `ClientNetworkService` - [ `CLIENT_NETWORK_SERVICE` ], the *Network Service* name, as the *Client* asks for it from the *NSMgr*
 * `EndpointLabels` - [ `ENDPOINT_LABELS` ], the *Endpoint* labels, as advertised to the NS registry. Used in *NSMgr* selector to match the DestinationSelector. The format is `label1=value1,label2=value2`
 * `OutgoingNscLabels` - [ `OUTGOING_NSC_LABELS` ], the *endpoint* labels, as send by the *client* . Used in *NSMgr* selector to match the SourceSelector. The format is the same as `EndpointLabels`
 * `NscInterfaceName` - [ `NSC_INTERFACE_NAME` ], the name off th interface as injected on the client side

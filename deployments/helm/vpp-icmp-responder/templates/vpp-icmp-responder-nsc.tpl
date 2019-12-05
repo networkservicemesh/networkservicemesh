@@ -24,7 +24,7 @@ spec:
               value: "vppagent-nsc"
             - name: OUTGOING_NSC_LABELS
               value: "app=icmp"
-            - name: OUTGOING_NSC_NAME
+            - name: CLIENT_NETWORK_SERVICE
               value: "icmp-responder"
           resources:
             limits:

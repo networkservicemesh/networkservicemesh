@@ -174,7 +174,7 @@ func testInterdomainVPN(t *testing.T, ptnum, clustersCount int, nodesCount int, 
 		map[string]string{
 			"ENDPOINT_NETWORK_SERVICE": "secure-intranet-connectivity",
 			"ENDPOINT_LABELS":          "app=firewall",
-			"OUTGOING_NSC_NAME":        nscOutgoingName,
+			"CLIENT_NETWORK_SERVICE":   nscOutgoingName,
 			"OUTGOING_NSC_LABELS":      "app=firewall",
 		},
 	))
@@ -194,7 +194,7 @@ func testInterdomainVPN(t *testing.T, ptnum, clustersCount int, nodesCount int, 
 			map[string]string{
 				"ENDPOINT_NETWORK_SERVICE": "secure-intranet-connectivity",
 				"ENDPOINT_LABELS":          "app=passthrough-" + id,
-				"OUTGOING_NSC_NAME":        "secure-intranet-connectivity",
+				"CLIENT_NETWORK_SERVICE":   "secure-intranet-connectivity",
 				"OUTGOING_NSC_LABELS":      "app=passthrough-" + id,
 			},
 		))
@@ -228,7 +228,7 @@ func testInterdomainVPN(t *testing.T, ptnum, clustersCount int, nodesCount int, 
 	}
 	nscPodNode := k8ss[nscCluster].K8s.CreatePod(pods.NSCPod("vpn-gateway-nsc-1", &clusterNodes[nscCluster][0],
 		map[string]string{
-			"OUTGOING_NSC_NAME": nscOutgoingName,
+			"CLIENT_NETWORK_SERVICE": nscOutgoingName,
 		},
 	))
 	g.Expect(nscPodNode.Name).To(Equal("vpn-gateway-nsc-1"))

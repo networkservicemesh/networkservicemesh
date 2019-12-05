@@ -25,7 +25,7 @@ spec:
               value: "secure-intranet-connectivity"
             - name: ENDPOINT_LABELS
               value: "app=passthrough-1"
-            - name: OUTGOING_NSC_NAME
+            - name: CLIENT_NETWORK_SERVICE
               value: "secure-intranet-connectivity"
             - name: OUTGOING_NSC_LABELS
               value: "app=passthrough-1"
@@ -70,7 +70,7 @@ spec:
               value: "secure-intranet-connectivity"
             - name: ENDPOINT_LABELS
               value: "app=passthrough-2"
-            - name: OUTGOING_NSC_NAME
+            - name: CLIENT_NETWORK_SERVICE
               value: "secure-intranet-connectivity"
             - name: OUTGOING_NSC_LABELS
               value: "app=passthrough-2"
@@ -109,7 +109,7 @@ spec:
               value: "secure-intranet-connectivity"
             - name: ENDPOINT_LABELS
               value: "app=passthrough-3"
-            - name: OUTGOING_NSC_NAME
+            - name: CLIENT_NETWORK_SERVICE
               value: "secure-intranet-connectivity"
             - name: OUTGOING_NSC_LABELS
               value: "app=passthrough-3"

@@ -25,7 +25,7 @@ spec:
               value: "secure-intranet-connectivity"
             - name: ENDPOINT_LABELS
               value: "app=firewall"
-            - name: OUTGOING_NSC_NAME
+            - name: CLIENT_NETWORK_SERVICE
               value: "secure-intranet-connectivity"
             - name: OUTGOING_NSC_LABELS
               value: "app=firewall"

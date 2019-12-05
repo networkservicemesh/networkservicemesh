@@ -50,11 +50,11 @@ const (
 // NsmClient is the NSM client struct
 type NsmClient struct {
 	*common.NsmConnection
-	OutgoingNscName     string
-	OutgoingNscLabels   map[string]string
-	OutgoingConnections []*connection.Connection
-	NscInterfaceName    string
-	tracerCloser        io.Closer
+	ClientNetworkService string
+	OutgoingNscLabels    map[string]string
+	OutgoingConnections  []*connection.Connection
+	NscInterfaceName     string
+	tracerCloser         io.Closer
 }
 
 // Connect with no retry and delay
@@ -95,7 +95,7 @@ func (nsmc *NsmClient) ConnectRetry(ctx context.Context, name, mechanism, descri
 
 	outgoingRequest := &networkservice.NetworkServiceRequest{
 		Connection: &connection.Connection{
-			NetworkService: nsmc.Configuration.OutgoingNscName,
+			NetworkService: nsmc.Configuration.ClientNetworkService,
 			Context: &connectioncontext.ConnectionContext{
 				IpContext: &connectioncontext.IPContext{
 					SrcIpRequired: true,
@@ -194,9 +194,9 @@ func NewNSMClient(ctx context.Context, configuration *common.NSConfiguration) (*
 	}
 
 	client := &NsmClient{
-		OutgoingNscName:   configuration.OutgoingNscName,
-		OutgoingNscLabels: tools.ParseKVStringToMap(configuration.OutgoingNscLabels, ",", "="),
-		NscInterfaceName:  configuration.NscInterfaceName,
+		ClientNetworkService: configuration.ClientNetworkService,
+		OutgoingNscLabels:    tools.ParseKVStringToMap(configuration.OutgoingNscLabels, ",", "="),
+		NscInterfaceName:     configuration.NscInterfaceName,
 	}
 
 	client.tracerCloser = jaeger.InitJaeger("nsm-client")

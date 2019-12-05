@@ -25,7 +25,7 @@ const (
 	NamespaceEnv              = "NSM_NAMESPACE"
 	endpointNetworkServiceEnv = "ENDPOINT_NETWORK_SERVICE"
 	endpointLabelsEnv         = "ENDPOINT_LABELS"
-	outgoingNscNameEnv        = "OUTGOING_NSC_NAME"
+	clientNetworkServiceEnv   = "CLIENT_NETWORK_SERVICE"
 	outgoingNscLabelsEnv      = "OUTGOING_NSC_LABELS"
 	nscInterfaceName          = "NSC_INTERFACE_NAME"
 	mechanismTypeEnv          = "MECHANISM_TYPE"
@@ -40,7 +40,7 @@ type NSConfiguration struct {
 	NsmClientSocket        string
 	Workspace              string
 	EndpointNetworkService string
-	OutgoingNscName        string
+	ClientNetworkService   string
 	EndpointLabels         string
 	OutgoingNscLabels      string
 	NscInterfaceName       string
@@ -78,8 +78,8 @@ func (configuration *NSConfiguration) FromEnv() *NSConfiguration {
 		configuration.EndpointNetworkService = getEnv(endpointNetworkServiceEnv, "Advertise Network Service Name", false)
 	}
 
-	if configuration.OutgoingNscName == "" {
-		configuration.OutgoingNscName = getEnv(outgoingNscNameEnv, "Outgoing Network Service Name", false)
+	if configuration.ClientNetworkService == "" {
+		configuration.ClientNetworkService = getEnv(clientNetworkServiceEnv, "Outgoing Network Service Name", false)
 	}
 
 	if configuration.EndpointLabels == "" {
@@ -127,7 +127,7 @@ func (configuration *NSConfiguration) FromNSUrl(url *tools.NSUrl) *NSConfigurati
 	if configuration == nil {
 		return nil
 	}
-	configuration.OutgoingNscName = url.NsName
+	configuration.ClientNetworkService = url.NsName
 	configuration.NscInterfaceName = url.Intf
 	var labels strings.Builder
 	separator := false

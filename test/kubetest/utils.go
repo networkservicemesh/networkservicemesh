@@ -413,8 +413,8 @@ func defaultICMPEnv(useIPv6 bool) map[string]string {
 
 func defaultNSCEnv() map[string]string {
 	return map[string]string{
-		"OUTGOING_NSC_LABELS": "app=icmp",
-		"OUTGOING_NSC_NAME":   "icmp-responder",
+		"OUTGOING_NSC_LABELS":    "app=icmp",
+		"CLIENT_NETWORK_SERVICE": "icmp-responder",
 	}
 }
 
