@@ -38,7 +38,7 @@ func TestClusterInstancesFailed(t *testing.T) {
 	testConfig.Reporting.JUnitReportFile = JunitReport
 
 	report, err := commands.PerformTesting(testConfig, &testValidationFactory{}, &commands.Arguments{})
-	g.Expect(err.Error()).To(Equal("there is failed tests 3"))
+	g.Expect(err.Error()).To(Equal("there is failed tests 6"))
 
 	g.Expect(report).NotTo(BeNil())
 
@@ -48,7 +48,7 @@ func TestClusterInstancesFailed(t *testing.T) {
 
 	g.Expect(len(rootSuite.Suites[0].Suites)).To(Equal(2))
 
-	g.Expect(rootSuite.Suites[0].Failures).To(Equal(1))
+	g.Expect(rootSuite.Suites[0].Failures).To(Equal(4))
 	g.Expect(rootSuite.Suites[0].Tests).To(Equal(6))
 	g.Expect(len(rootSuite.Suites[0].Suites[0].TestCases)).To(Equal(3))
 	g.Expect(len(rootSuite.Suites[0].Suites[1].TestCases)).To(Equal(3))
@@ -86,7 +86,7 @@ func TestClusterInstancesOnFailGoRunner(t *testing.T) {
 	testConfig.Reporting.JUnitReportFile = JunitReport
 
 	report, err := commands.PerformTesting(testConfig, &testValidationFactory{}, &commands.Arguments{})
-	g.Expect(err.Error()).To(Equal("there is failed tests 3"))
+	g.Expect(err.Error()).To(Equal("there is failed tests 6"))
 
 	g.Expect(report).NotTo(BeNil())
 
@@ -94,7 +94,7 @@ func TestClusterInstancesOnFailGoRunner(t *testing.T) {
 
 	g.Expect(len(rootSuite.Suites)).To(Equal(2))
 
-	g.Expect(rootSuite.Suites[0].Failures).To(Equal(1))
+	g.Expect(rootSuite.Suites[0].Failures).To(Equal(4))
 	g.Expect(rootSuite.Suites[0].Tests).To(Equal(6))
 	g.Expect(len(rootSuite.Suites[0].Suites[0].TestCases)).To(Equal(3))
 	g.Expect(len(rootSuite.Suites[0].Suites[1].TestCases)).To(Equal(3))
@@ -210,8 +210,9 @@ func TestClusterInstancesOnFailShellRunnerInterdomain(t *testing.T) {
 	g.Expect(err.Error()).To(Equal("there is failed tests 1"))
 	foundFailTest := false
 
-	for _, t := range report.Suites[0].TestCases {
-		if t.Name == "a_provider_b_provider_fail" {
+	for _, suite := range report.Suites[0].Suites {
+		t := suite.Suites[0].TestCases[0]
+		if suite.Name == "fail" {
 			g.Expect(t.Failure).NotTo(Equal(BeNil()))
 			g.Expect(strings.Contains(t.Failure.Contents, ">>>Running on fail script with ./.tests/config.a <<<")).To(Equal(true))
 			g.Expect(strings.Contains(t.Failure.Contents, ">>>Running on fail script with ./.tests/config.b <<<")).To(Equal(true))
