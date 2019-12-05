@@ -23,7 +23,7 @@ spec:
               value: "vppagent-firewall-nse"
             - name: ENDPOINT_NETWORK_SERVICE
               value: "secure-intranet-connectivity"
-            - name: ADVERTISE_NSE_LABELS
+            - name: ENDPOINT_LABELS
               value: "app=firewall"
             - name: OUTGOING_NSC_NAME
               value: "secure-intranet-connectivity"

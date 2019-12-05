@@ -32,7 +32,7 @@ spec:
           env:
             - name: ENDPOINT_NETWORK_SERVICE
               value: "secure-intranet-connectivity"
-            - name: ADVERTISE_NSE_LABELS
+            - name: ENDPOINT_LABELS
               value: "app=vpn-gateway"
             - name: IP_ADDRESS
               value: "172.16.1.0/24"

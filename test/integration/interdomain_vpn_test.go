@@ -172,10 +172,10 @@ func testInterdomainVPN(t *testing.T, ptnum, clustersCount int, nodesCount int, 
 	g.Expect(err).To(BeNil())
 	vppagentFirewallNode := k8ss[firewallCluster].K8s.CreatePod(pods.VppAgentFirewallNSEPodWithConfigMap("vppagent-firewall-nse-1", &clusterNodes[firewallCluster][0],
 		map[string]string{
-			"ENDPOINT_NETWORK_SERVICE":   "secure-intranet-connectivity",
-			"ADVERTISE_NSE_LABELS": "app=firewall",
-			"OUTGOING_NSC_NAME":    nscOutgoingName,
-			"OUTGOING_NSC_LABELS":  "app=firewall",
+			"ENDPOINT_NETWORK_SERVICE": "secure-intranet-connectivity",
+			"ENDPOINT_LABELS":          "app=firewall",
+			"OUTGOING_NSC_NAME":        nscOutgoingName,
+			"OUTGOING_NSC_LABELS":      "app=firewall",
 		},
 	))
 	g.Expect(vppagentFirewallNode.Name).To(Equal("vppagent-firewall-nse-1"))
@@ -192,10 +192,10 @@ func testInterdomainVPN(t *testing.T, ptnum, clustersCount int, nodesCount int, 
 
 		vppagentPassthroughNode := k8ss[passthroughCluster].K8s.CreatePod(pods.VppAgentFirewallNSEPod("vppagent-passthrough-nse-"+id, &clusterNodes[passthroughCluster][0],
 			map[string]string{
-				"ENDPOINT_NETWORK_SERVICE":   "secure-intranet-connectivity",
-				"ADVERTISE_NSE_LABELS": "app=passthrough-" + id,
-				"OUTGOING_NSC_NAME":    "secure-intranet-connectivity",
-				"OUTGOING_NSC_LABELS":  "app=passthrough-" + id,
+				"ENDPOINT_NETWORK_SERVICE": "secure-intranet-connectivity",
+				"ENDPOINT_LABELS":          "app=passthrough-" + id,
+				"OUTGOING_NSC_NAME":        "secure-intranet-connectivity",
+				"OUTGOING_NSC_LABELS":      "app=passthrough-" + id,
 			},
 		))
 		g.Expect(vppagentPassthroughNode.Name).To(Equal("vppagent-passthrough-nse-" + id))
@@ -209,9 +209,9 @@ func testInterdomainVPN(t *testing.T, ptnum, clustersCount int, nodesCount int, 
 	logrus.Infof("Starting VPN Gateway NSE on node: %d", nseCluster)
 	vpnGatewayPodNode := k8ss[nseCluster].K8s.CreatePod(pods.VPNGatewayNSEPod("vpn-gateway-nse-1", &clusterNodes[nseCluster][0],
 		map[string]string{
-			"ENDPOINT_NETWORK_SERVICE":   "secure-intranet-connectivity",
-			"ADVERTISE_NSE_LABELS": "app=vpn-gateway",
-			"IP_ADDRESS":           addressPool,
+			"ENDPOINT_NETWORK_SERVICE": "secure-intranet-connectivity",
+			"ENDPOINT_LABELS":          "app=vpn-gateway",
+			"IP_ADDRESS":               addressPool,
 		},
 	))
 	g.Expect(vpnGatewayPodNode).ToNot(BeNil())

@@ -24,7 +24,7 @@ import (
 const (
 	NamespaceEnv              = "NSM_NAMESPACE"
 	endpointNetworkServiceEnv = "ENDPOINT_NETWORK_SERVICE"
-	advertiseNseLabelsEnv     = "ADVERTISE_NSE_LABELS"
+	endpointLabelsEnv         = "ENDPOINT_LABELS"
 	outgoingNscNameEnv        = "OUTGOING_NSC_NAME"
 	outgoingNscLabelsEnv      = "OUTGOING_NSC_LABELS"
 	nscInterfaceName          = "NSC_INTERFACE_NAME"
@@ -41,7 +41,7 @@ type NSConfiguration struct {
 	Workspace              string
 	EndpointNetworkService string
 	OutgoingNscName        string
-	AdvertiseNseLabels     string
+	EndpointLabels         string
 	OutgoingNscLabels      string
 	NscInterfaceName       string
 	MechanismType          string
@@ -82,8 +82,8 @@ func (configuration *NSConfiguration) FromEnv() *NSConfiguration {
 		configuration.OutgoingNscName = getEnv(outgoingNscNameEnv, "Outgoing Network Service Name", false)
 	}
 
-	if configuration.AdvertiseNseLabels == "" {
-		configuration.AdvertiseNseLabels = getEnv(advertiseNseLabelsEnv, "Advertise labels", false)
+	if configuration.EndpointLabels == "" {
+		configuration.EndpointLabels = getEnv(endpointLabelsEnv, "Advertise labels", false)
 	}
 
 	if configuration.OutgoingNscLabels == "" {

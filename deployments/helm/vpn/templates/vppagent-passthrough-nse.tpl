@@ -23,7 +23,7 @@ spec:
               value: "vppagent-firewall-nse"
             - name: ENDPOINT_NETWORK_SERVICE
               value: "secure-intranet-connectivity"
-            - name: ADVERTISE_NSE_LABELS
+            - name: ENDPOINT_LABELS
               value: "app=passthrough-1"
             - name: OUTGOING_NSC_NAME
               value: "secure-intranet-connectivity"
@@ -68,7 +68,7 @@ spec:
               value: "vppagent-firewall-nse"
             - name: ENDPOINT_NETWORK_SERVICE
               value: "secure-intranet-connectivity"
-            - name: ADVERTISE_NSE_LABELS
+            - name: ENDPOINT_LABELS
               value: "app=passthrough-2"
             - name: OUTGOING_NSC_NAME
               value: "secure-intranet-connectivity"
@@ -107,7 +107,7 @@ spec:
               value: "vppagent-firewall-nse"
             - name: ENDPOINT_NETWORK_SERVICE
               value: "secure-intranet-connectivity"
-            - name: ADVERTISE_NSE_LABELS
+            - name: ENDPOINT_LABELS
               value: "app=passthrough-3"
             - name: OUTGOING_NSC_NAME
               value: "secure-intranet-connectivity"

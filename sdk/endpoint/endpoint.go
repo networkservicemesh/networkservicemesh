@@ -101,7 +101,7 @@ func (nsme *nsmEndpoint) Start() error {
 	nsme.serve(listener)
 
 	span := spanhelper.FromContext(nsme.Context, fmt.Sprintf("Endpoint-%v-Start", nsme.Configuration.EndpointNetworkService))
-	span.LogObject("labels", nsme.Configuration.AdvertiseNseLabels)
+	span.LogObject("labels", nsme.Configuration.EndpointLabels)
 	defer span.Finish()
 
 	// Registering NSE API, it will listen for Connection requests from NSM and return information
@@ -109,7 +109,7 @@ func (nsme *nsmEndpoint) Start() error {
 	nse := &registry.NetworkServiceEndpoint{
 		NetworkServiceName: nsme.Configuration.EndpointNetworkService,
 		Payload:            "IP",
-		Labels:             tools.ParseKVStringToMap(nsme.Configuration.AdvertiseNseLabels, ",", "="),
+		Labels:             tools.ParseKVStringToMap(nsme.Configuration.EndpointLabels, ",", "="),
 	}
 	registration := &registry.NSERegistration{
 		NetworkService: &registry.NetworkService{

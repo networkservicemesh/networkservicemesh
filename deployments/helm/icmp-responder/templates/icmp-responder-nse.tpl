@@ -36,7 +36,7 @@ spec:
           env:
             - name: ENDPOINT_NETWORK_SERVICE
               value: "icmp-responder"
-            - name: ADVERTISE_NSE_LABELS
+            - name: ENDPOINT_LABELS
               value: "app=icmp-responder"
             - name: TRACER_ENABLED
               value: "true"
