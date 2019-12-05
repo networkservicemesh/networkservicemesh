@@ -697,7 +697,7 @@ func (k8s *K8s) deletePods(pods ...*v1.Pod) error {
 					logrus.Infof("The POD %v force deleted", pod.Name)
 				}
 			}
-			logrus.Warnf(`The POD "%s" Deleted %v`, pod.Name, time.Since(st))
+			logrus.Warnf("The POD '%s' Deleted %v", pod.Name, time.Since(st))
 		}()
 	}
 	for i := 0; i < len(pods); i++ {
@@ -1240,7 +1240,7 @@ func (k8s *K8s) waitLogsMatch(ctx context.Context, pod *v1.Pod, container string
 			}
 			k8s.DescribePod(pod)
 
-			logrus.Errorf("%v Last logs: %v", description, builder.String())
+			logrus.Errorf("%v Last logs: %v", description, strings.ReplaceAll(builder.String(), "\n", "\\n"))
 			k8s.g.Expect(false).To(BeTrue(), string(debug.Stack()))
 			return
 		}

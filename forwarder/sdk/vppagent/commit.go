@@ -16,6 +16,7 @@ import (
 )
 
 type commit struct {
+	downstreamResync func()
 }
 
 func (c *commit) Request(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error) {
@@ -28,6 +29,8 @@ func (c *commit) Request(ctx context.Context, crossConnect *crossconnect.CrossCo
 	_, err = client.Update(updateSpan.Context(), &configurator.UpdateRequest{Update: dataChange})
 	updateSpan.LogError(err)
 	if err != nil {
+		// Error in vpp-agent Update request may cause vpp - vpp agent desynchronization
+		c.downstreamResync()
 		return nil, err
 	}
 	printVppAgentConfiguration(updateSpan.Context(), client)
@@ -77,6 +80,8 @@ func printVppAgentConfiguration(ctx context.Context, client configurator.Configu
 }
 
 // Commit commits changes
-func Commit() forwarder.ForwarderServer {
-	return &commit{}
+func Commit(downstreamResync func()) forwarder.ForwarderServer {
+	return &commit{
+		downstreamResync: downstreamResync,
+	}
 }

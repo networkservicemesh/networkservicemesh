@@ -2,6 +2,10 @@
 version: 1.0
 root: "./.tests/cloud_test/"
 timeout: 7200  # 2 hour total total timeout
+shuffle-enabled: true
+statistics:
+  enabled: true
+  interval: 60  # 60 seconds for statistics
 import:
   - .cloudtest/packet.yaml
   - .cloudtest/gke.yaml

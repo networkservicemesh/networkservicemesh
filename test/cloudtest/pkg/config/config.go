@@ -38,21 +38,24 @@ type ExecutionSource struct {
 }
 
 type Execution struct {
-	// Executions, every execution execute some tests agains configured set of clusters
+	Source          ExecutionSource `yaml:"source"`           // A source for tests execution
+	BeforeAll       string          `yaml:"before-all"`       // A script to execute against required cluster, called when execution config is done on cluster instance.
+	AfterAll        string          `yaml:"after-all"`        // A script to execute against required cluster, called when execution config is done on cluster instance.
 	Kind            string          `yaml:"kind"`             // Execution kind, default is 'gotest', 'shell' could be used for pure shell tests.
 	Name            string          `yaml:"name"`             // Execution name
-	Source          ExecutionSource `yaml:"source"`           // A source for tests execution
+	Tags            []string        `yaml:"tags"`             // A list of tags for this configured execution.
 	OnlyRun         []string        `yaml:"only-run"`         // If non-empty, only run the listed tests
 	PackageRoot     string          `yaml:"root"`             // A package root for this test execution, default .
 	Timeout         int64           `yaml:"timeout"`          // Invidiaul test timeout, "60" passed to gotest, in seconds
+	ExtraOptions    []string        `yaml:"extra-options"`    // Extra options to pass to gotest
 	ClusterCount    int             `yaml:"cluster-count"`    // A number of clusters required for this execution, default 1
 	KubernetesEnv   []string        `yaml:"kubernetes-env"`   // Names of environment variables to put cluster names inside.
 	ClusterSelector []string        `yaml:"cluster-selector"` // A cluster name to execute this tests on.
 	Env             []string        `yaml:"env"`              // Additional environment variables
 	Run             string          `yaml:"run"`              // A script to execute against required cluster
-	OnFail          string          `yaml:"on-test-fail"`     // A script to execute against required cluster, called if task failed
-	BeforeAll       string          `yaml:"before-all"`       // A script to execute against required cluster, called when execution config is done on cluster instance.
-	AfterAll        string          `yaml:"after-all"`        // A script to execute against required cluster, called when execution config is done on cluster instance.
+	OnFail          string          `yaml:"on_fail"`          // A script to execute against required cluster, called if task failed
+
+	ConcurrencyRetry int64 `yaml:"test-retry-count"` // A count of times, same test will be executed to find concurrency issues
 }
 
 type RetestConfig struct {
@@ -83,4 +86,19 @@ type CloudTestConfig struct {
 	Imports     []string             `yaml:"import"`  // A set of configurations for import
 
 	RetestConfig RetestConfig `yaml:"retest"`
+
+	Statistics struct {
+		Interval int64 `yaml:"interval"` // A statistics printing timeout, default 60 seconds
+		Enabled  bool  `yaml:"enabled"`  // A way to disable printing of statistics
+	} `yaml:"statistics"` // Statistics options
+
+	ShuffleTests bool `yaml:"shuffle-enabled"` // Shuffle tests before assignement
+}
+
+// NewCloudTestConfig - creates a test config with some default values specified.
+func NewCloudTestConfig() (result *CloudTestConfig) {
+	result = &CloudTestConfig{}
+	result.Statistics.Enabled = true
+	result.Statistics.Interval = 60
+	return result
 }
