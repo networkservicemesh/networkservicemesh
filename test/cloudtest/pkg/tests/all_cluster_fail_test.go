@@ -16,7 +16,7 @@ import (
 func TestClusterInstancesFailed(t *testing.T) {
 	g := NewWithT(t)
 
-	testConfig := &config.CloudTestConfig{}
+	testConfig := config.NewCloudTestConfig()
 
 	testConfig.Timeout = 300
 
@@ -57,7 +57,7 @@ func TestClusterInstancesFailed(t *testing.T) {
 func TestClusterInstancesOnFailGoRunner(t *testing.T) {
 	g := NewWithT(t)
 
-	testConfig := &config.CloudTestConfig{}
+	testConfig := config.NewCloudTestConfig()
 
 	testConfig.Timeout = 300
 
@@ -110,7 +110,7 @@ func TestClusterInstancesOnFailGoRunner(t *testing.T) {
 func TestClusterInstancesOnFailShellRunner(t *testing.T) {
 	g := NewWithT(t)
 
-	testConfig := &config.CloudTestConfig{}
+	testConfig := config.NewCloudTestConfig()
 
 	testConfig.Timeout = 300
 
@@ -155,7 +155,7 @@ func TestClusterInstancesOnFailShellRunner(t *testing.T) {
 func TestClusterInstancesOnFailShellRunnerInterdomain(t *testing.T) {
 	g := NewWithT(t)
 
-	testConfig := &config.CloudTestConfig{}
+	testConfig := config.NewCloudTestConfig()
 
 	testConfig.Timeout = 300
 
@@ -196,7 +196,7 @@ func TestClusterInstancesOnFailShellRunnerInterdomain(t *testing.T) {
 	foundFailTest := false
 
 	for _, t := range report.Suites[0].TestCases {
-		if t.Name == "_a_provider_b_provider_fail" {
+		if t.Name == "a_provider_b_provider_fail" {
 			g.Expect(t.Failure).NotTo(Equal(BeNil()))
 			g.Expect(strings.Contains(t.Failure.Contents, ">>>Running on fail script with ./.tests/config.a <<<")).To(Equal(true))
 			g.Expect(strings.Contains(t.Failure.Contents, ">>>Running on fail script with ./.tests/config.b <<<")).To(Equal(true))
