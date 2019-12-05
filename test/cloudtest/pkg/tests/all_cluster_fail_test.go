@@ -70,19 +70,19 @@ func TestClusterInstancesFailedSpecificTestList(t *testing.T) {
 	failedP := createProvider(testConfig, "b_provider")
 	failedP.Scripts["start"] = "echo starting\nexit 2"
 
-	testConfig.Executions = append(testConfig.Executions, &config.Execution{
+	testConfig.Executions = []*config.Execution{{
 		Name:        "simple",
 		Timeout:     15,
 		PackageRoot: "./sample",
 		Source: config.ExecutionSource{
 			Tests: []string{"TestPass", "TestTimeout", "TestFail"},
 		},
-	})
+	}}
 
 	testConfig.Reporting.JUnitReportFile = JunitReport
 
 	report, err := commands.PerformTesting(testConfig, &testValidationFactory{}, &commands.Arguments{})
-	g.Expect(err.Error()).To(Equal("there is failed tests 3"))
+	g.Expect(err.Error()).To(Equal("there is failed tests 6"))
 
 	g.Expect(report).NotTo(BeNil())
 
@@ -91,7 +91,7 @@ func TestClusterInstancesFailedSpecificTestList(t *testing.T) {
 	g.Expect(report.Suites[0].Tests).To(Equal(3))
 	g.Expect(len(report.Suites[0].TestCases)).To(Equal(3))
 
-	g.Expect(report.Suites[1].Failures).To(Equal(2))
+	g.Expect(report.Suites[1].Failures).To(Equal(5))
 	g.Expect(report.Suites[1].Tests).To(Equal(5))
 	g.Expect(len(report.Suites[1].TestCases)).To(Equal(5))
 
