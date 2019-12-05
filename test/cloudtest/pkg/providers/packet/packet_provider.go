@@ -32,6 +32,7 @@ const (
 	configScript    = "config"  //#5
 	prepareScript   = "prepare" //#6
 	stopScript      = "stop"    // #7
+	cleanupScript   = "cleanup" // #8
 	packetProjectID = "PACKET_PROJECT_ID"
 )
 
@@ -621,7 +622,22 @@ func (p *packetProvider) CreateCluster(config *config.ClusterProviderConfig, fac
 // CleanupClusters - Cleaning up leaked clusters
 func (p *packetProvider) CleanupClusters(ctx context.Context, config *config.ClusterProviderConfig,
 	manager execmanager.ExecutionManager, instanceOptions providers.InstanceOptions) {
-	logrus.Warnf("CleanupClusters not implemented in packet provider")
+
+	shellInterface := shell.NewManager(manager, fmt.Sprintf("%s-all", config.Name), config, instanceOptions)
+
+	iScript := utils.ParseScript(config.Scripts[installScript])
+	if iScript != nil {
+		_, err := shellInterface.RunCmd(ctx, "prepare", iScript, config.Env)
+		if err != nil {
+			logrus.Warnf("Install command for cluster %s finished with error: %v", config.Name, err)
+			return
+		}
+	}
+
+	_, err := shellInterface.RunCmd(ctx, "cleanup", utils.ParseScript(config.Scripts[cleanupScript]), config.Env)
+	if err != nil {
+		logrus.Warnf("Cleanup command for cluster %s finished with error: %v", config.Name, err)
+	}
 }
 
 // NewPacketClusterProvider - create new packet provider.

@@ -270,7 +270,7 @@ func (p *shellProvider) CleanupClusters(ctx context.Context, config *config.Clus
 
 	iScript := utils.ParseScript(config.Scripts[installScript])
 	if iScript != nil {
-		_, err := shellInterface.RunCmd(ctx, "cleanup", iScript, nil)
+		_, err := shellInterface.RunCmd(ctx, "prepare", iScript, config.Env)
 		if err != nil {
 			logrus.Warnf("Install command for cluster %s finished with error: %v", config.Name, err)
 			return

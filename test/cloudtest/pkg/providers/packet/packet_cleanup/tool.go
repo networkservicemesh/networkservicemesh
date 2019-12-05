@@ -50,7 +50,7 @@ type Arguments struct {
 func initCmd(rootCmd *packetCleanupCmd) {
 	rootCmd.Flags().BoolVarP(&rootCmd.cmdArguments.deleteSSHKeys, "ssh-keys", "k", false, "Delete ssh keys")
 	rootCmd.Flags().BoolVarP(&rootCmd.cmdArguments.deleteClusters, "clusters", "c", false, "Delete clusters")
-	rootCmd.Flags().DurationVarP(&rootCmd.cmdArguments.clusterLifetime, "older", "o", 4, "Cluster usage time in hours, if exceed ssh key/cluster will be deleted")
+	rootCmd.Flags().DurationVarP(&rootCmd.cmdArguments.clusterLifetime, "older", "o", 4*time.Hour, "Cluster usage time in hours, if exceed ssh key/cluster will be deleted")
 	rootCmd.Flags().StringVarP(&rootCmd.cmdArguments.token, "token", "t", "", "Packet Token")
 	rootCmd.Flags().StringVarP(&rootCmd.cmdArguments.projectID, "project", "p", "", "ProjectId")
 
@@ -137,7 +137,7 @@ func deleteClusters(cmd *packetCleanupCmd, helper *packethelper.PacketHelper) {
 			sinceValue := time.Since(keyCreateTime)
 			logrus.Infof("Checking cluster %v uptime: %v, state: %v", d.Hostname, sinceValue, d.State)
 			if checkPrefix(d.Hostname, cmd.cmdArguments.clusterPrefix) {
-				if sinceValue > cmd.cmdArguments.clusterLifetime*time.Hour {
+				if sinceValue > cmd.cmdArguments.clusterLifetime {
 					logrus.Infof("-----> Cluster %s is marked for deletion.", d.Hostname)
 					_, errd := helper.Client.Devices.Delete(d.ID)
 					if errd != nil {
@@ -148,7 +148,7 @@ func deleteClusters(cmd *packetCleanupCmd, helper *packethelper.PacketHelper) {
 		}
 		pageNumber++
 	}
-	logrus.Infof("All clusters fit into timeframe %v hours", cmd.cmdArguments.clusterLifetime)
+	logrus.Infof("All clusters fit into timeframe %v", cmd.cmdArguments.clusterLifetime)
 }
 
 func checkPrefix(name string, pattern []string) bool {
@@ -176,7 +176,7 @@ func deleteSSHKeys(cmd *packetCleanupCmd, helper *packethelper.PacketHelper) {
 		sinceTime := time.Since(keyCreateTime)
 		logrus.Infof("Checking key %v alive: %v", k.Label, sinceTime)
 		if strings.HasPrefix(k.Label, cmd.cmdArguments.sshPrefix) {
-			if sinceTime > cmd.cmdArguments.clusterLifetime*time.Hour {
+			if sinceTime > cmd.cmdArguments.clusterLifetime {
 				logrus.Infof("-----> Key marked for deletion")
 				_, errd := helper.Client.SSHKeys.Delete(k.ID)
 				if errd != nil {
