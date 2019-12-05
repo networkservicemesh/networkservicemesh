@@ -16,4 +16,3 @@ executions:
       scripts/helm-test-charts.sh nsm admission-webhook icmp-responder
     on-test-fail: |
       make k8s-delete-nsm-namespaces
-
