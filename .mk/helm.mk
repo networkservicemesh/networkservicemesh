@@ -30,7 +30,9 @@ HELM_TIMEOUT?=300
 #     that's why we hack helm-init target
 .PHONY: helm-init
 helm-init:
-	helm init --service-account tiller --override \
+	kubectl create serviceaccount --namespace kube-system tiller; \
+	kubectl create clusterrolebinding tiller-cluster-rule --clusterrole=cluster-admin --serviceaccount=kube-system:tiller; \
+	helm init --wait --service-account tiller --override \
 	spec.selector.matchLabels.'name'='tiller',spec.selector.matchLabels.'app'='helm' --output yaml \
 	| sed 's@apiVersion: extensions/v1beta1@apiVersion: apps/v1@' \
 	| kubectl apply -f - && kubectl wait -n kube-system --timeout=150s --for condition=Ready pod -l app=helm -l name=tiller
