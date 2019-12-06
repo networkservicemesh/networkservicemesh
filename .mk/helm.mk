@@ -33,7 +33,7 @@ helm-init:
 	helm init --service-account tiller --override \
 	spec.selector.matchLabels.'name'='tiller',spec.selector.matchLabels.'app'='helm' --output yaml \
 	| sed 's@apiVersion: extensions/v1beta1@apiVersion: apps/v1@' \
-	| kubectl apply -f -
+	| kubectl apply -f - && kubectl wait -n kube-system --timeout=150s --for condition=Ready pod -l app=helm -l name=tiller
 
 .PHONY: $(INSTALL_CHARTS)
 $(INSTALL_CHARTS): export CHART=$(subst helm-install-,,$@)
