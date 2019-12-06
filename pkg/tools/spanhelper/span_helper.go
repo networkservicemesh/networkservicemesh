@@ -110,17 +110,15 @@ func (s *spanHelper) LogObject(attribute string, value interface{}) {
 	} else {
 		msg = fmt.Sprint(msg)
 	}
-	msg = limitString(msg)
 	if s.span != nil {
-		s.span.LogFields(log.Object(attribute, msg))
+		s.span.LogFields(log.Object(attribute, limitString(msg)))
 	}
 	logrus.Infof(">><<%s %s=%v span=%v", strings.Repeat("--", traceDepth(s.ctx)), attribute, msg, s.span)
 }
 
 func (s *spanHelper) LogValue(attribute string, value interface{}) {
 	if s.span != nil {
-		msg := limitString(fmt.Sprint(value))
-		s.span.LogFields(log.Object(attribute, msg))
+		s.span.LogFields(log.Object(attribute, limitString(fmt.Sprint(value))))
 	}
 	logrus.Infof(">><<%s %s=%v span=%v", strings.Repeat("--", traceDepth(s.ctx)), attribute, value, s.span)
 }
