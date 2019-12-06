@@ -37,7 +37,7 @@ type ARPEntry struct {
 type EgressInterfaceType interface {
 	SrcIPNet() *net.IPNet
 	SrcIPV6Net() *net.IPNet
-	SrcLocalSID() *net.IP
+	SrcLocalSID() net.IP
 	DefaultGateway() *net.IP
 	Interface() *net.Interface
 	Name() string
@@ -50,7 +50,7 @@ type egressInterface struct {
 	EgressInterfaceType
 	srcNet            *net.IPNet
 	srcV6Net          *net.IPNet
-	localSID          *net.IP
+	localSID          net.IP
 	iface             *net.Interface
 	defaultGateway    net.IP
 	outgoingInterface string
@@ -207,7 +207,7 @@ func NewEgressInterface(srcIP net.IP) (EgressInterfaceType, error) {
 					return &egressInterface{
 						srcNet:            v,
 						srcV6Net:          v6,
-						localSID:          &localSID,
+						localSID:          localSID,
 						iface:             &iface,
 						defaultGateway:    gw,
 						outgoingInterface: outgoingInterface,
@@ -236,7 +236,7 @@ func (e *egressInterface) SrcIPV6Net() *net.IPNet {
 	return e.srcV6Net
 }
 
-func (e *egressInterface) SrcLocalSID() *net.IP {
+func (e *egressInterface) SrcLocalSID() net.IP {
 	if e == nil {
 		return nil
 	}

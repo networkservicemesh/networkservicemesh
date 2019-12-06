@@ -24,7 +24,6 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/srv6"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
@@ -129,13 +128,6 @@ func (k *KernelForwarder) configureKernelForwarder() {
 				Type: vxlan.MECHANISM,
 				Parameters: map[string]string{
 					vxlan.SrcIP: k.common.EgressInterface.SrcIPNet().IP.String(),
-				},
-			},
-			{
-				Type: srv6.MECHANISM,
-				Parameters: map[string]string{
-					srv6.SrcHostIP:          k.common.EgressInterface.SrcIPV6Net().IP.String(),
-					srv6.SrcHardwareAddress: k.common.EgressInterface.HardwareAddr().String(),
 				},
 			},
 		},
