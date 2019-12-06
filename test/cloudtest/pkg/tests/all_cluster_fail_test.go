@@ -108,7 +108,7 @@ func TestClusterInstancesOnFailGoRunner(t *testing.T) {
 	for _, execSuite := range rootSuite.Suites[0].Suites {
 		if execSuite.Name == "a_provider" {
 			for _, testCase := range execSuite.TestCases {
-				if testCase.Name == "_TestFail" {
+				if testCase.Name == "TestFail" {
 					g.Expect(testCase.Failure).NotTo(BeNil())
 					g.Expect(strings.Contains(testCase.Failure.Contents, ">>>Running on fail script<<<")).To(Equal(true))
 					foundFailTest = true

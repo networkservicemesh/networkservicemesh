@@ -1368,7 +1368,7 @@ func (ctx *executionContext) generateJUnitReportFile() (*reporting.JUnitFile, er
 			executionTests += clusterTests
 			executionTime += clusterTime
 
-			clusterSuite.Time = fmt.Sprintf("%v", clusterTime)
+			clusterSuite.Time = fmt.Sprintf("%v", clusterTime.Round(time.Second))
 			clusterSuite.Failures = clusterFailures
 			clusterSuite.Tests = clusterTests
 			execSuite.Suites = append(execSuite.Suites, clusterSuite)
@@ -1380,7 +1380,7 @@ func (ctx *executionContext) generateJUnitReportFile() (*reporting.JUnitFile, er
 
 		execSuite.Tests = executionTests
 		execSuite.Failures = executionFailures
-		execSuite.Time = fmt.Sprintf("%v", executionTime)
+		execSuite.Time = fmt.Sprintf("%v", executionTime.Round(time.Second))
 		summarySuite.Suites = append(summarySuite.Suites, execSuite)
 	}
 
@@ -1394,7 +1394,7 @@ func (ctx *executionContext) generateJUnitReportFile() (*reporting.JUnitFile, er
 		summarySuite.Suites = append(summarySuite.Suites, clusterFailuresSuite)
 	}
 
-	summarySuite.Time = fmt.Sprintf("%v", totalTime)
+	summarySuite.Time = fmt.Sprintf("%v", totalTime.Round(time.Second))
 	summarySuite.Failures = totalFailures
 	summarySuite.Tests = totalTests
 	ctx.report.Suites = append(ctx.report.Suites, summarySuite)
@@ -1497,8 +1497,8 @@ func (ctx *executionContext) generateClusterFailedReportEntry(inst *clusterInsta
 
 func (ctx *executionContext) generateTestCaseReport(test *testTask, totalTests int, totalTime time.Duration, failures int, suite *reporting.Suite) (int, time.Duration, int) {
 	testCase := &reporting.TestCase{
-		Name:    test.test.Key,
-		Time:    fmt.Sprintf("%vs", test.test.Duration.Seconds()),
+		Name:    test.test.Name,
+		Time:    fmt.Sprintf("%v", test.test.Duration.Seconds()),
 		Cluster: test.clusterTaskID,
 	}
 
