@@ -22,9 +22,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/config"
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/utils"
-	"github.com/pkg/errors"
 )
 
 // RunHealthChecks - Start goroutines with health check probes
