@@ -25,7 +25,7 @@ if [ -z "${t}" ] || [ -z "${p}" ]; then
     usage
 fi
 
-CLUSTERS=$(gcloud container clusters list --format="table[no-heading](name,zone,createTime)" --filter="createTime<-PT${t}H" | grep  "${p}")
+CLUSTERS=$(gcloud container clusters list --project="$GKE_PROJECT_ID" --format="table[no-heading](name,zone,createTime)" --filter="createTime<-PT${t}H" | grep  "${p}")
 IFS=$'\n'; 
 # shellcheck disable=SC2206
 raws=($CLUSTERS); 
