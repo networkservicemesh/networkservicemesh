@@ -207,13 +207,29 @@ func PerformTesting(config *config.CloudTestConfig, factory k8s.ValidationFactor
 		return nil, err
 	}
 
-	cleanupCtx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	cleanupCtx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-
 	go ctx.cleanupClusters(cleanupCtx)
-	<-time.After(125 * time.Second)
 
-	return nil, errors.Errorf("Cancel")
+	// Collect tests
+	if err := ctx.findTests(); err != nil {
+		logrus.Errorf("Error finding tests %v", err)
+		return nil, err
+	}
+	// We need to be sure all clusters will be deleted on end of execution.
+	defer ctx.performShutdown()
+	// Fill tasks to be executed..
+	ctx.createTasks()
+
+	err := ctx.performExecution()
+	reportfile, err2 := ctx.generateJUnitReportFile()
+	if err2 != nil {
+		logrus.Errorf("Error during generation of report: %v", err2)
+	}
+	if err != nil {
+		return reportfile, err
+	}
+	return reportfile, err2
 }
 
 func parseConfig(cloudTestConfig *config.CloudTestConfig, configFileContent []byte) error {
