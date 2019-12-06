@@ -312,9 +312,10 @@ func (p *shellProvider) CleanupClusters(ctx context.Context, config *config.Clus
 		return
 	}
 
-	shellInterface.PrintEnv(shellInterface.GetProcessedEnv())
+	printableEnv := shellInterface.PrintEnv(shellInterface.GetProcessedEnv())
+	manager.AddLog(clusterID, "environment", printableEnv)
 
-	_, err = shellInterface.RunCmd(ctx, "cleanup", utils.ParseScript(cleanupScript), nil)
+	_, err = shellInterface.RunCmd(ctx, "cleanup", utils.ParseScript(config.Scripts[cleanupScript]), nil)
 	if err != nil {
 		logrus.Warnf("Cleanup command for cluster %s finished with error: %v", config.Name, err)
 	}
