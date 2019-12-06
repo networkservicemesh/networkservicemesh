@@ -622,7 +622,6 @@ func (p *packetProvider) CreateCluster(config *config.ClusterProviderConfig, fac
 // CleanupClusters - Cleaning up leaked clusters
 func (p *packetProvider) CleanupClusters(ctx context.Context, config *config.ClusterProviderConfig,
 	manager execmanager.ExecutionManager, instanceOptions providers.InstanceOptions) {
-
 	shellInterface := shell.NewManager(manager, fmt.Sprintf("%s-all", config.Name), config, instanceOptions)
 
 	iScript := utils.ParseScript(config.Scripts[installScript])

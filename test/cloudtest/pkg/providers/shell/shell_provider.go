@@ -273,33 +273,37 @@ func (p *shellProvider) CreateCluster(config *config.ClusterProviderConfig, fact
 // CleanupClusters - Cleaning up leaked clusters
 func (p *shellProvider) CleanupClusters(ctx context.Context, config *config.ClusterProviderConfig,
 	manager execmanager.ExecutionManager, instanceOptions providers.InstanceOptions) {
-	clScript := utils.ParseScript(config.Scripts[cleanupScript])
-	if clScript == nil {
+	if _, ok := config.Scripts[cleanupScript]; !ok {
 		// Skip
 		return
 	}
 
-	logrus.Infof("Starting cleaning up clusters for %s", config.Name)
-	shellInterface := shell.NewManager(manager, fmt.Sprintf("%s-all", config.Name), config, instanceOptions)
+	clusterID := fmt.Sprintf("%s-cleanup", config.Name)
 
-	iScript := utils.ParseScript(config.Scripts[installScript])
-	if iScript != nil {
-		_, err := shellInterface.RunCmd(ctx, "install", iScript, config.Env)
+	logrus.Infof("Starting cleaning up clusters for %s", config.Name)
+	shellInterface := shell.NewManager(manager, clusterID, config, instanceOptions)
+
+	if iScript, ok := config.Scripts[installScript]; ok {
+		_, err := shellInterface.RunCmd(ctx, "install", utils.ParseScript(iScript), config.Env)
 		if err != nil {
 			logrus.Warnf("Install command for cluster %s finished with error: %v", config.Name, err)
 			return
 		}
 	}
 
-	selectedZone, err := selectZone(ctx, shellInterface, utils.ParseScript(config.Scripts[zoneSelector]))
-	if err != nil {
-		logrus.Warnf("Select zone command for cluster %s finished with error: %v", config.Name, err)
-		return
+	var selectedZone string
+	var err error
+	if zScript, ok := config.Scripts[zoneSelector]; ok {
+		selectedZone, err = selectZone(ctx, shellInterface, utils.ParseScript(zScript))
+		if err != nil {
+			logrus.Warnf("Select zone command for cluster %s finished with error: %v", config.Name, err)
+			return
+		}
 	}
 
 	// Process and prepare environment variables
 	err = shellInterface.ProcessEnvironment(
-		"all", config.Name, p.root, config.Env,
+		clusterID, config.Name, p.root, config.Env,
 		map[string]string{
 			"zone-selector": selectedZone,
 		})
@@ -308,7 +312,9 @@ func (p *shellProvider) CleanupClusters(ctx context.Context, config *config.Clus
 		return
 	}
 
-	_, err = shellInterface.RunCmd(ctx, "clScript", clScript, nil)
+	shellInterface.PrintEnv(shellInterface.GetProcessedEnv())
+
+	_, err = shellInterface.RunCmd(ctx, "cleanup", utils.ParseScript(cleanupScript), nil)
 	if err != nil {
 		logrus.Warnf("Cleanup command for cluster %s finished with error: %v", config.Name, err)
 	}
