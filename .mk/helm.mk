@@ -18,9 +18,22 @@ INSTALL_CHARTS=$(addprefix helm-install-,$(CHARTS))
 DELETE_CHARTS=$(addprefix helm-delete-,$(CHARTS))
 HELM_TIMEOUT?=300
 
+# .PHONY: helm-init
+# helm-init:
+# 	helm init --wait && ./scripts/helm-patch-tiller.sh
+
+# workaround for https://github.com/helm/helm/issues/6361:
+#     helm with versions newer 2.15.x and older 3.x fails in case of one of apiservices is not available
+#     that's why we downgrade it to 2.14 until PR for updating to 3.x will be ready
+# workaround for https://github.com/helm/helm/issues/6374:
+#     helm with versions older than 2.15.x is not working on Kubernetes 1.16
+#     that's why we hack helm-init target
 .PHONY: helm-init
 helm-init:
-	helm init --wait && ./scripts/helm-patch-tiller.sh
+	helm init --service-account tiller --override \
+	spec.selector.matchLabels.'name'='tiller',spec.selector.matchLabels.'app'='helm' --output yaml \
+	| sed 's@apiVersion: extensions/v1beta1@apiVersion: apps/v1@' \
+	| kubectl apply -f -
 
 .PHONY: $(INSTALL_CHARTS)
 $(INSTALL_CHARTS): export CHART=$(subst helm-install-,,$@)
