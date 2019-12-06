@@ -40,7 +40,6 @@ func TestClusterHealthCheckConfig(t *testing.T) {
 	g.Expect(testConfig.Reporting.JUnitReportFile).To(Equal("./.tests/junit.xml"))
 
 	errChan := commands.RunHealthChecks(testConfig.HealthCheck)
-	defer close(errChan)
 
 	select {
 	case err = <-errChan:
