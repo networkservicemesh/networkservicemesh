@@ -341,7 +341,7 @@ func DeleteAllKubernetesClusters(saveDuration time.Duration, namePattern string)
 			defer wg.Done()
 			for att := 0; att < 3; att++ {
 				logrus.Infof("Deleting %s (created %v), attempt %d", stackName[len(awsClusterStackPrefix):], stack.CreationTime, att+1)
-				err := NewAWSCluster(stackName[7:]).DeleteAWSKubernetesCluster()
+				err := NewAWSCluster(stackName[len(awsClusterStackPrefix):]).DeleteAWSKubernetesCluster()
 				if err == nil {
 					break
 				}
