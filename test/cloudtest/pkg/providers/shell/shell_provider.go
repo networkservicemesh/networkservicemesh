@@ -283,13 +283,19 @@ func (p *shellProvider) CleanupClusters(ctx context.Context, config *config.Clus
 	logrus.Infof("Starting cleaning up clusters for %s", config.Name)
 	shellInterface := shell.NewManager(manager, clusterID, config, instanceOptions)
 
-	if iScript, ok := config.Scripts[installScript]; ok {
-		_, err := shellInterface.RunCmd(ctx, "install", utils.ParseScript(iScript), config.Env)
-		if err != nil {
-			logrus.Warnf("Install command for cluster %s finished with error: %v", config.Name, err)
-			return
+	p.Lock()
+	// Do prepare
+	if !instanceOptions.NoInstall && !p.installDone[config.Name] {
+		if iScript, ok := config.Scripts[installScript]; ok {
+			_, err := shellInterface.RunCmd(ctx, "install", utils.ParseScript(iScript), config.Env)
+			if err != nil {
+				logrus.Warnf("Install command for cluster %s finished with error: %v", config.Name, err)
+			} else {
+				p.installDone[config.Name] = true
+			}
 		}
 	}
+	p.Unlock()
 
 	var selectedZone string
 	var err error
