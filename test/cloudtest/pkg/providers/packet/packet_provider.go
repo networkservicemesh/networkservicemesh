@@ -622,16 +622,27 @@ func (p *packetProvider) CreateCluster(config *config.ClusterProviderConfig, fac
 // CleanupClusters - Cleaning up leaked clusters
 func (p *packetProvider) CleanupClusters(ctx context.Context, config *config.ClusterProviderConfig,
 	manager execmanager.ExecutionManager, instanceOptions providers.InstanceOptions) {
-	shellInterface := shell.NewManager(manager, fmt.Sprintf("%s-all", config.Name), config, instanceOptions)
+	if _, ok := config.Scripts[cleanupScript]; !ok {
+		// Skip
+		return
+	}
 
-	iScript := utils.ParseScript(config.Scripts[installScript])
-	if iScript != nil {
-		_, err := shellInterface.RunCmd(ctx, "prepare", iScript, config.Env)
-		if err != nil {
-			logrus.Warnf("Install command for cluster %s finished with error: %v", config.Name, err)
-			return
+	logrus.Infof("Starting cleaning up clusters for %s", config.Name)
+	shellInterface := shell.NewManager(manager, fmt.Sprintf("%s-cleanup", config.Name), config, instanceOptions)
+
+	p.Lock()
+	// Do prepare
+	if !instanceOptions.NoInstall && !p.installDone[config.Name] {
+		if iScript, ok := config.Scripts[installScript]; ok {
+			_, err := shellInterface.RunCmd(ctx, "install", utils.ParseScript(iScript), config.Env)
+			if err != nil {
+				logrus.Warnf("Install command for cluster %s finished with error: %v", config.Name, err)
+			} else {
+				p.installDone[config.Name] = true
+			}
 		}
 	}
+	p.Unlock()
 
 	_, err := shellInterface.RunCmd(ctx, "cleanup", utils.ParseScript(config.Scripts[cleanupScript]), config.Env)
 	if err != nil {
