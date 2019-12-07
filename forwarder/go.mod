@@ -27,6 +27,7 @@ replace (
 	github.com/networkservicemesh/networkservicemesh/forwarder => ./
 	github.com/networkservicemesh/networkservicemesh/forwarder/api => ./api
 	github.com/networkservicemesh/networkservicemesh/k8s/api => ../k8s/api
+	github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis => ../k8s/pkg/apis
 	github.com/networkservicemesh/networkservicemesh/pkg => ../pkg
 	github.com/networkservicemesh/networkservicemesh/sdk => ../sdk
 	github.com/networkservicemesh/networkservicemesh/side-cars => ../side-cars
