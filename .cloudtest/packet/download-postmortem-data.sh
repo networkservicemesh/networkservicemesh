@@ -4,8 +4,9 @@
 master_ip=$1
 worker_ip=$2
 cluster_id=$3
+sshkey=$4
 
-SSH_OPTS="-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
+SSH_OPTS="-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o IdentitiesOnly=yes -i ${sshkey}"
 SOURCE_LOC="/var/tmp/nsm-postmortem/"
 
 mkdir -p ~/postmortem
