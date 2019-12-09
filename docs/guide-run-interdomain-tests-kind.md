@@ -7,13 +7,13 @@ For run [interdomain](https://github.com/networkservicemesh/networkservicemesh/b
 Create the first cluster:
 
 ``` bash
-kind create cluster kind create cluster --name cluster1 --config scripts/kind.yaml 
+kind create cluster --name cluster1 --config scripts/kind.yaml 
 ```
 
 Create the second cluster:
 
 ``` bash
-kind create cluster kind create cluster --name cluster2 --config scripts/kind.yaml 
+kind create cluster --name cluster2 --config scripts/kind.yaml 
 ```
 
 Make sure that all clusters have been created:
@@ -51,7 +51,7 @@ if you also want to use helm deployment on cluster than you also need to install
 
 ```
 kubectl config use-context kind-cluster1
-make helm-install
+make helm-init
 ...
 ```
 
