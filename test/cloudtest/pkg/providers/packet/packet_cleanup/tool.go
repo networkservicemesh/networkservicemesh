@@ -24,10 +24,16 @@ import (
 	"time"
 
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/providers/packet/packethelper"
+	"github.com/networkservicemesh/networkservicemesh/utils"
 
 	"github.com/packethost/packngo"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+)
+
+const (
+	packetAuthToken = utils.EnvVar("PACKET_AUTH_TOKEN")
+	packetProjectID = utils.EnvVar("PACKET_PROJECT_ID")
 )
 
 type packetCleanupCmd struct {
@@ -40,8 +46,6 @@ type packetCleanupCmd struct {
 type Arguments struct {
 	clusterPrefix   []string
 	sshPrefix       string
-	token           string
-	projectID       string
 	clusterLifetime time.Duration
 	deleteSSHKeys   bool
 	deleteClusters  bool
@@ -51,8 +55,6 @@ func initCmd(rootCmd *packetCleanupCmd) {
 	rootCmd.Flags().BoolVarP(&rootCmd.cmdArguments.deleteSSHKeys, "ssh-keys", "k", false, "Delete ssh keys")
 	rootCmd.Flags().BoolVarP(&rootCmd.cmdArguments.deleteClusters, "clusters", "c", false, "Delete clusters")
 	rootCmd.Flags().DurationVarP(&rootCmd.cmdArguments.clusterLifetime, "older", "o", 4*time.Hour, "Cluster usage time in hours, if exceed ssh key/cluster will be deleted")
-	rootCmd.Flags().StringVarP(&rootCmd.cmdArguments.token, "token", "t", "", "Packet Token")
-	rootCmd.Flags().StringVarP(&rootCmd.cmdArguments.projectID, "project", "p", "", "ProjectId")
 
 	rootCmd.Flags().StringVar(&rootCmd.cmdArguments.sshPrefix, "ssh-prefix", "dev-ci-cloud", "SSH key prefix to delete")
 	rootCmd.Flags().StringArrayVar(&rootCmd.cmdArguments.clusterPrefix, "cluster-prefix", []string{"Worker-packet-", "Master-packet-"}, "Cluster name prefix to delete")
@@ -93,12 +95,15 @@ func main() {
 }
 
 func doCleanup(cmd *packetCleanupCmd) {
-	if cmd.cmdArguments.projectID == "" || cmd.cmdArguments.token == "" {
+	projectID := packetProjectID.StringValue()
+	token := packetAuthToken.StringValue()
+
+	if projectID == "" || token == "" {
 		logrus.Errorf("Please specify both projectID and token")
 		os.Exit(1)
 	}
 
-	helper, err := packethelper.NewPacketHelper(cmd.cmdArguments.projectID, cmd.cmdArguments.token)
+	helper, err := packethelper.NewPacketHelper(projectID, token)
 	if err != nil {
 		logrus.Errorf("Error accessing packet : %v", err)
 		os.Exit(1)
