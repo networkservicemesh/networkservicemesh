@@ -24,11 +24,6 @@ var deferError error
 func (ac *AWSCluster) checkDeferError(err error) bool {
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
-			if aerr.Code() == "Throttling" {
-				log.Printf("Warning (%s): %s\n", aerr.Code(), aerr.Message())
-				return false
-			}
-
 			switch aerr.Code() {
 			case "NoSuchEntity":
 			case "ResourceNotFoundException":
@@ -36,13 +31,13 @@ func (ac *AWSCluster) checkDeferError(err error) bool {
 			case "InvalidParameterValue":
 			default:
 				log.Printf("Error (%s): %s\n", aerr.Code(), aerr.Message())
-				deferError = err
+				deferError = aerr
 				return true
 			}
 			log.Printf("Warning (%s): %s\n", aerr.Code(), aerr.Message())
 		} else {
 			log.Printf("Error: %s\n", err.Error())
-			deferError = err
+			deferError = aerr
 		}
 		return true
 	}
