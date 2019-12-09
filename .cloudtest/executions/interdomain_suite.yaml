@@ -26,6 +26,7 @@ executions:
       - STORE_POD_LOGS_IN_FILES=true
       - ARTIFACTS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/$(test-name)
       - FIXED_NAMESPACE=true
+      - INSECURE=true
     source:
       tags:
         - interdomain_suite
