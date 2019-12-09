@@ -19,6 +19,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+
 	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/jaeger"
@@ -69,6 +71,10 @@ func containerMod(c *v1.Container) v1.Container {
 		if containerForcePull {
 			c.ImagePullPolicy = v1.PullAlways
 		}
+	}
+
+	if utils.EnvVar(tools.InsecureEnv).GetBooleanOrDefault(false) {
+		c.Env = append(c.Env, v1.EnvVar{Name: tools.InsecureEnv, Value: "true"})
 	}
 
 	// Update Jaeger

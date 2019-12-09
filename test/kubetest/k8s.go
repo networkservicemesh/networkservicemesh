@@ -46,11 +46,12 @@ import (
 
 const (
 	// PodStartTimeout - Default pod startup time
-	PodStartTimeout    = 3 * time.Minute
-	podDeleteTimeout   = 15 * time.Second
-	podExecTimeout     = 1 * time.Minute
-	podGetLogTimeout   = 1 * time.Minute
-	accountWaitTimeout = 1 * time.Minute
+	PodStartTimeout      = 3 * time.Minute
+	podDeleteTimeout     = 15 * time.Second
+	podExecTimeout       = 1 * time.Minute
+	podGetLogTimeout     = 1 * time.Minute
+	accountWaitTimeout   = 1 * time.Minute
+	kindControlPlaneNode = "control-plane"
 
 	//NetworkPluginCNIFailure - pattern to check for CNI issue, pattern required to try redeploy pod
 	NetworkPluginCNIFailure = "NetworkPlugin cni failed to set up pod"
@@ -1156,7 +1157,7 @@ func (k8s *K8s) GetNodesWait(requiredNumber int, timeout time.Duration) []v1.Nod
 			}
 		}
 		if ready >= requiredNumber {
-			return nodes
+			return filterNodes(nodes)
 		}
 		since := time.Since(st)
 		if since > timeout {
@@ -1168,6 +1169,26 @@ func (k8s *K8s) GetNodesWait(requiredNumber int, timeout time.Duration) []v1.Nod
 		}
 		time.Sleep(50 * time.Millisecond)
 	}
+}
+
+func filterNodes(nodes []v1.Node) []v1.Node {
+	excludeNodePatterns := []string{kindControlPlaneNode}
+	excludeNode := func(n *v1.Node) bool {
+		for _, e := range excludeNodePatterns {
+			if strings.Contains(n.Name, e) {
+				return true
+			}
+		}
+		return false
+	}
+	var result []v1.Node
+	for i := range nodes {
+		if excludeNode(&nodes[i]) {
+			continue
+		}
+		result = append(result, nodes[i])
+	}
+	return result
 }
 
 // CreateService creates a service
