@@ -13,7 +13,13 @@ NodeName will select matching endpoints on the same Node as the client making th
 
 ``` "nodeName": "{{index . \"nodeName\"}}",```
 
+Additional matching can happen on lables on the network service endpoint and the network service client. For example if both have the labels of 
 
+``` app: firewall ```
+
+A template can be applied to the destination selector as below which will request a connection is created 
+
+``` "app": "{{index . \"app\"}}" ```
 
 Example usage
 ------------------------
