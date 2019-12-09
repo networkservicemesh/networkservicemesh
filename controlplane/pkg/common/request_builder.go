@@ -24,89 +24,46 @@ import (
 )
 
 type RequestBuilder interface {
-	Build(*registry.NSERegistration, *connection.Connection, *model.ClientConnection) *networkservice.NetworkServiceRequest
+	Build(string, *registry.NSERegistration, *model.Forwarder, *connection.Connection) *networkservice.NetworkServiceRequest
 }
 
 type LocalNSERequestBuilder struct {
-	localMechanisms []*connection.Mechanism
-	nsmName         string
-	connectionId    string
+	nsmName string
 }
 
-func (b *LocalNSERequestBuilder) Build(endpoint *registry.NSERegistration, requestConn *connection.Connection, clientConnection *model.ClientConnection) *networkservice.NetworkServiceRequest {
+func (builder *LocalNSERequestBuilder) Build(connectionId string, endpoint *registry.NSERegistration, fwd *model.Forwarder, requestConn *connection.Connection) *networkservice.NetworkServiceRequest {
 	// We need to obtain parameters for local mechanism
-	localM := append([]*connection.Mechanism{}, b.localMechanisms...)
-
-	if clientConnection.ConnectionState == model.ClientConnectionHealing && endpoint == clientConnection.Endpoint {
-		if localDst := clientConnection.Xcon.GetLocalDestination(); localDst != nil {
-			return &networkservice.NetworkServiceRequest{
-				Connection: &connection.Connection{
-					Id:                     localDst.GetId(),
-					NetworkService:         localDst.NetworkService,
-					Context:                localDst.GetContext(),
-					Labels:                 localDst.GetLabels(),
-					NetworkServiceManagers: []string{b.nsmName},
-				},
-				MechanismPreferences: localM,
-			}
-		}
-	}
-
 	return &networkservice.NetworkServiceRequest{
 		Connection: &connection.Connection{
-			Id:                     b.connectionId, // ID for NSE is managed by NSMgr
-			NetworkService:         endpoint.GetNetworkService().GetName(),
-			NetworkServiceManagers: []string{b.nsmName},
+			Id:                     connectionId, // ID for NSE is managed by NSMgr
+			NetworkService:         requestConn.GetNetworkService(),
 			Context:                requestConn.GetContext(),
 			Labels:                 requestConn.GetLabels(),
+			NetworkServiceManagers: []string{builder.nsmName},
 		},
-		MechanismPreferences: localM,
+		MechanismPreferences: fwd.LocalMechanisms,
 	}
 }
 
 type RemoteNSMRequestBuilder struct {
-	remoteMechanisms []*connection.Mechanism
-	srcNsmName       string
-	dstNsmName       string
+	srcNsmName string
 }
 
-func (b *RemoteNSMRequestBuilder) Build(endpoint *registry.NSERegistration,
-	requestConn *connection.Connection, clientConnection *model.ClientConnection) *networkservice.NetworkServiceRequest {
-	// We need to obtain parameters for remote mechanism
-	remoteM := append([]*connection.Mechanism{}, b.remoteMechanisms...)
-
-	// Try Heal only if endpoint are same as for existing connection.
-	if clientConnection.ConnectionState == model.ClientConnectionHealing && endpoint == clientConnection.Endpoint {
-		if remoteDst := clientConnection.Xcon.GetRemoteDestination(); remoteDst != nil {
-			return &networkservice.NetworkServiceRequest{
-				Connection: &connection.Connection{
-					Id:                         remoteDst.GetId(),
-					NetworkService:             remoteDst.NetworkService,
-					Context:                    remoteDst.GetContext(),
-					Labels:                     remoteDst.GetLabels(),
-					NetworkServiceEndpointName: endpoint.GetNetworkServiceEndpoint().GetName(),
-					NetworkServiceManagers: []string{
-						b.srcNsmName, // src
-						b.dstNsmName, // dst
-					},
-				},
-				MechanismPreferences: remoteM,
-			}
-		}
-	}
+func (builder *RemoteNSMRequestBuilder) Build(connectionId string, endpoint *registry.NSERegistration, fwd *model.Forwarder,
+	requestConn *connection.Connection) *networkservice.NetworkServiceRequest {
 
 	return &networkservice.NetworkServiceRequest{
 		Connection: &connection.Connection{
-			Id:                         "-",
+			Id:                         connectionId,
 			NetworkService:             requestConn.GetNetworkService(),
 			Context:                    requestConn.GetContext(),
 			Labels:                     requestConn.GetLabels(),
 			NetworkServiceEndpointName: endpoint.GetNetworkServiceEndpoint().GetName(),
 			NetworkServiceManagers: []string{
-				b.srcNsmName, // src
-				b.dstNsmName, // dst
+				builder.srcNsmName, // src
+				endpoint.GetNetworkServiceManager().GetName(), // dst
 			},
 		},
-		MechanismPreferences: remoteM,
+		MechanismPreferences: fwd.RemoteMechanisms,
 	}
 }

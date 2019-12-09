@@ -89,20 +89,34 @@ func (cce *endpointService) Request(ctx context.Context, request *networkservice
 	}()
 
 	var requestBuilder RequestBuilder
+	var conn *connection.Connection
+	var connId string
+
 	if clientConnection.GetConnectionSource().IsRemote() || cce.nseManager.IsLocalEndpoint(endpoint) {
+		if clientConnection.ConnectionState == model.ClientConnectionHealing && endpoint == clientConnection.Endpoint {
+			conn = clientConnection.Xcon.GetLocalDestination()
+			connId = conn.Id
+		} else {
+			conn = request.Connection
+			connId = cce.model.ConnectionID()
+		}
 		requestBuilder = &LocalNSERequestBuilder{
-			localMechanisms: dp.LocalMechanisms,
-			nsmName:         cce.model.GetNsm().GetName(),
-			connectionId:    cce.model.ConnectionID(),
+			nsmName: cce.model.GetNsm().GetName(),
 		}
 	} else {
+		if clientConnection.ConnectionState == model.ClientConnectionHealing && endpoint == clientConnection.Endpoint {
+			conn = clientConnection.Xcon.GetRemoteDestination()
+			connId = conn.GetId()
+		} else {
+			conn = request.Connection
+			connId = "_"
+		}
 		requestBuilder = &RemoteNSMRequestBuilder{
-			remoteMechanisms: dp.RemoteMechanisms,
-			srcNsmName:       cce.model.GetNsm().GetName(),
-			dstNsmName:       endpoint.GetNetworkServiceManager().GetName(),
+			srcNsmName: cce.model.GetNsm().GetName(),
 		}
 	}
-	message := requestBuilder.Build(endpoint, request.Connection, clientConnection)
+
+	message := requestBuilder.Build(connId, endpoint, dp, conn)
 
 	logger.Infof("NSM:(7.2.6.2) Requesting NSE with request %v", message)
 
