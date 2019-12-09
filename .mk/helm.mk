@@ -45,7 +45,7 @@ $(INSTALL_CHARTS):
 	# but that seems more intrusive than this hack. Consider changing to global if the charts
 	# get even more complicated
 	helm install --name=${CHART} \
-	--atomic --timeout ${HELM_TIMEOUT} \
+	--timeout ${HELM_TIMEOUT} \
 	--set org="${CONTAINER_REPO}",tag="${CONTAINER_TAG}" \
 	--set forwardingPlane="${FORWARDING_PLANE}" \
 	--set insecure="${INSECURE}" \
