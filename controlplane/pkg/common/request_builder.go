@@ -28,11 +28,14 @@ type RequestBuilder interface {
 }
 
 type LocalNSERequestBuilder struct {
-	nsmName string
+	nsmName     string
+	idGenerator func() string
 }
 
 func (builder *LocalNSERequestBuilder) Build(connectionId string, endpoint *registry.NSERegistration, fwd *model.Forwarder, requestConn *connection.Connection) *networkservice.NetworkServiceRequest {
-	// We need to obtain parameters for local mechanism
+	if connectionId == "" {
+		connectionId = builder.idGenerator()
+	}
 	return &networkservice.NetworkServiceRequest{
 		Connection: &connection.Connection{
 			Id:                     connectionId, // ID for NSE is managed by NSMgr

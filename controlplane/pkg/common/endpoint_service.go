@@ -92,25 +92,22 @@ func (cce *endpointService) Request(ctx context.Context, request *networkservice
 	var conn *connection.Connection
 	var connId string
 
+	if clientConnection.ConnectionState == model.ClientConnectionHealing && endpoint == clientConnection.Endpoint {
+		conn = clientConnection.Xcon.GetDestination()
+		connId = conn.Id
+	} else {
+		conn = request.Connection
+		connId = ""
+	}
+
 	if clientConnection.GetConnectionSource().IsRemote() || cce.nseManager.IsLocalEndpoint(endpoint) {
-		if clientConnection.ConnectionState == model.ClientConnectionHealing && endpoint == clientConnection.Endpoint {
-			conn = clientConnection.Xcon.GetLocalDestination()
-			connId = conn.Id
-		} else {
-			conn = request.Connection
-			connId = cce.model.ConnectionID()
-		}
 		requestBuilder = &LocalNSERequestBuilder{
 			nsmName: cce.model.GetNsm().GetName(),
+			idGenerator: func() string {
+				return cce.model.ConnectionID()
+			},
 		}
 	} else {
-		if clientConnection.ConnectionState == model.ClientConnectionHealing && endpoint == clientConnection.Endpoint {
-			conn = clientConnection.Xcon.GetRemoteDestination()
-			connId = conn.GetId()
-		} else {
-			conn = request.Connection
-			connId = "_"
-		}
 		requestBuilder = &RemoteNSMRequestBuilder{
 			srcNsmName: cce.model.GetNsm().GetName(),
 		}
