@@ -26,7 +26,4 @@ providers:
         make aws-start
       stop: |
         make aws-destroy
-      prepare: |
-        make k8s-config helm-init
-        make spire-install
-        make spire-wait-registration
+      prepare: ./scripts/prepare-clusters.sh
