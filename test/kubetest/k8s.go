@@ -990,11 +990,12 @@ func (k8s *K8s) CreatePodsRaw(timeout time.Duration, failTest bool, templates ..
 	results := k8s.createAndBlock(k8s.clientset, k8s.namespace, timeout, templates...)
 	var pods []*v1.Pod
 
-	// Add pods into managed list of created pods, do not matter about errors, since we still need to remove them.
 	var errs []error
-	for _, podResult := range results {
+	// Add pods into managed list of created pods, do not matter about errors, since we still need to remove them.
+	for i, podResult := range results {
 		if podResult == nil {
-			logrus.Errorf("Error - Pod should have been created, but is nil: %v", podResult)
+			logrus.Errorf("Error - Pod %s should have been created, but is nil: %v", templates[i].Name, results)
+			errs = append(errs, errors.Errorf("Pod %s should have been created, but is nil: %v", templates[i].Name, results))
 		} else {
 			if podResult.pod != nil {
 				pods = append(pods, podResult.pod)
