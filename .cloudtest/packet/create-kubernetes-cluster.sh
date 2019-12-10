@@ -3,8 +3,9 @@
 
 master_ip=$1
 worker_ip=$2
+sshkey=$3
 
-SSH_OPTS="-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
+SSH_OPTS="-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o IdentitiesOnly=yes -i ${sshkey}"
 
 
 # Install kubeadm, kubelet and kubectl
