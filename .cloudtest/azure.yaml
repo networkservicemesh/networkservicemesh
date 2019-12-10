@@ -28,4 +28,4 @@ providers:
       start: |
         make azure-start
       stop: make azure-destroy
-      prepare: scripts/prepare-clusters.sh
+      prepare: scripts/prepare-cluster.sh

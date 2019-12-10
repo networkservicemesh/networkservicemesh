@@ -29,4 +29,4 @@ providers:
         make gke-start
       stop: make gke-destroy
       # config: # We do not need it since we put KUBECONFIG into env.
-      prepare: scripts/prepare-clusters.sh
+      prepare: scripts/prepare-cluster.sh
