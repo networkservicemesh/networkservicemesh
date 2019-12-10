@@ -26,4 +26,4 @@ providers:
         make aws-start
       stop: |
         make aws-destroy
-      prepare: ./scripts/prepare-clusters.sh
+      prepare: scripts/prepare-clusters.sh
