@@ -7,13 +7,13 @@ For run [interdomain](https://github.com/networkservicemesh/networkservicemesh/b
 Create the first cluster:
 
 ``` bash
-kind create cluster --name cluster1 --config scripts/kind.yaml 
+KIND_CLUSTER_NAME=cluster1 make kind-start
 ```
 
 Create the second cluster:
 
 ``` bash
-kind create cluster --name cluster2 --config scripts/kind.yaml 
+KIND_CLUSTER_NAME=cluster2 make kind-start
 ```
 
 Make sure that all clusters have been created:
