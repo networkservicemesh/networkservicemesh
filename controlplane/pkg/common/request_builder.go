@@ -27,14 +27,19 @@ type RequestBuilder interface {
 	Build(string, *registry.NSERegistration, *model.Forwarder, *connection.Connection) *networkservice.NetworkServiceRequest
 }
 
-type LocalNSERequestBuilder struct {
+type LocalRequestBuilder struct {
 	nsmName     string
 	idGenerator func() string
 }
 
-func (builder *LocalNSERequestBuilder) Build(connectionId string, endpoint *registry.NSERegistration, fwd *model.Forwarder, requestConn *connection.Connection) *networkservice.NetworkServiceRequest {
+type RemoteRequestBuilder struct {
+	nsmName     string
+	idGenerator func() string
+}
+
+func createLocalNSERequest(connectionId string, idGenerator func() string, nsmName string, localMechanisms []*connection.Mechanism, requestConn *connection.Connection) *networkservice.NetworkServiceRequest {
 	if connectionId == "" {
-		connectionId = builder.idGenerator()
+		connectionId = idGenerator()
 	}
 	return &networkservice.NetworkServiceRequest{
 		Connection: &connection.Connection{
@@ -42,19 +47,13 @@ func (builder *LocalNSERequestBuilder) Build(connectionId string, endpoint *regi
 			NetworkService:         requestConn.GetNetworkService(),
 			Context:                requestConn.GetContext(),
 			Labels:                 requestConn.GetLabels(),
-			NetworkServiceManagers: []string{builder.nsmName},
+			NetworkServiceManagers: []string{nsmName},
 		},
-		MechanismPreferences: fwd.LocalMechanisms,
+		MechanismPreferences: localMechanisms,
 	}
 }
 
-type RemoteNSMRequestBuilder struct {
-	srcNsmName string
-}
-
-func (builder *RemoteNSMRequestBuilder) Build(connectionId string, endpoint *registry.NSERegistration, fwd *model.Forwarder,
-	requestConn *connection.Connection) *networkservice.NetworkServiceRequest {
-
+func createRemoteNSMRequest(connectionId string, srcNsmName string, endpoint *registry.NSERegistration, remoteMechanisms []*connection.Mechanism, requestConn *connection.Connection) *networkservice.NetworkServiceRequest {
 	return &networkservice.NetworkServiceRequest{
 		Connection: &connection.Connection{
 			Id:                         connectionId,
@@ -63,10 +62,40 @@ func (builder *RemoteNSMRequestBuilder) Build(connectionId string, endpoint *reg
 			Labels:                     requestConn.GetLabels(),
 			NetworkServiceEndpointName: endpoint.GetNetworkServiceEndpoint().GetName(),
 			NetworkServiceManagers: []string{
-				builder.srcNsmName, // src
+				srcNsmName, // src
 				endpoint.GetNetworkServiceManager().GetName(), // dst
 			},
 		},
-		MechanismPreferences: fwd.RemoteMechanisms,
+		MechanismPreferences: remoteMechanisms,
+	}
+}
+
+func (builder *LocalRequestBuilder) Build(connectionId string, endpoint *registry.NSERegistration, fwd *model.Forwarder, requestConn *connection.Connection) *networkservice.NetworkServiceRequest {
+	if builder.nsmName == endpoint.GetNetworkServiceEndpoint().GetNetworkServiceManagerName() {
+		return createLocalNSERequest(connectionId, builder.idGenerator, builder.nsmName, fwd.LocalMechanisms, requestConn)
+	}
+	return createRemoteNSMRequest(connectionId, builder.nsmName, endpoint, fwd.RemoteMechanisms, requestConn)
+}
+
+func (builder *RemoteRequestBuilder) Build(connectionId string, endpoint *registry.NSERegistration, fwd *model.Forwarder,
+	requestConn *connection.Connection) *networkservice.NetworkServiceRequest {
+	return createLocalNSERequest(connectionId, builder.idGenerator, builder.nsmName, fwd.LocalMechanisms, requestConn)
+}
+
+func NewLocalRequestBuilder(m model.Model) *LocalRequestBuilder {
+	return &LocalRequestBuilder{
+		nsmName: m.GetNsm().GetName(),
+		idGenerator: func() string {
+			return m.ConnectionID()
+		},
+	}
+}
+
+func NewRemoteRequestBuilder(m model.Model) *RemoteRequestBuilder {
+	return &RemoteRequestBuilder{
+		nsmName: m.GetNsm().GetName(),
+		idGenerator: func() string {
+			return m.ConnectionID()
+		},
 	}
 }

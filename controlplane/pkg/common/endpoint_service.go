@@ -36,9 +36,10 @@ import (
 )
 
 type endpointService struct {
-	nseManager nsm.NetworkServiceEndpointManager
-	props      *properties.Properties
-	model      model.Model
+	nseManager     nsm.NetworkServiceEndpointManager
+	props          *properties.Properties
+	model          model.Model
+	requestBuilder RequestBuilder
 }
 
 func (cce *endpointService) closeEndpoint(ctx context.Context, cc *model.ClientConnection) error {
@@ -88,7 +89,6 @@ func (cce *endpointService) Request(ctx context.Context, request *networkservice
 		}
 	}()
 
-	var requestBuilder RequestBuilder
 	var conn *connection.Connection
 	var connId string
 
@@ -100,20 +100,7 @@ func (cce *endpointService) Request(ctx context.Context, request *networkservice
 		connId = ""
 	}
 
-	if clientConnection.GetConnectionSource().IsRemote() || cce.nseManager.IsLocalEndpoint(endpoint) {
-		requestBuilder = &LocalNSERequestBuilder{
-			nsmName: cce.model.GetNsm().GetName(),
-			idGenerator: func() string {
-				return cce.model.ConnectionID()
-			},
-		}
-	} else {
-		requestBuilder = &RemoteNSMRequestBuilder{
-			srcNsmName: cce.model.GetNsm().GetName(),
-		}
-	}
-
-	message := requestBuilder.Build(connId, endpoint, dp, conn)
+	message := cce.requestBuilder.Build(connId, endpoint, dp, conn)
 
 	logger.Infof("NSM:(7.2.6.2) Requesting NSE with request %v", message)
 
@@ -187,10 +174,11 @@ func (cce *endpointService) updateConnectionParameters(nseConn *connection.Conne
 }
 
 // NewEndpointService -  creates a service to connect to endpoint
-func NewEndpointService(nseManager nsm.NetworkServiceEndpointManager, properties *properties.Properties, mdl model.Model) networkservice.NetworkServiceServer {
+func NewEndpointService(nseManager nsm.NetworkServiceEndpointManager, properties *properties.Properties, mdl model.Model, builder RequestBuilder) networkservice.NetworkServiceServer {
 	return &endpointService{
-		nseManager: nseManager,
-		props:      properties,
-		model:      mdl,
+		nseManager:     nseManager,
+		props:          properties,
+		model:          mdl,
+		requestBuilder: builder,
 	}
 }
