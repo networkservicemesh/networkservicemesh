@@ -1,16 +1,23 @@
 #!/bin/bash
 
-usage() { echo "Usage: $0 [-t <hours>] [-p <string>]" 1>&2; exit 1; }
+usage() { echo "Cleanup aws cloud from old clusters
+
+Usage: $0 [-t <hours>] [-p <string>]
+
+Flags:
+  -t    Time has passed since the creation of the cluster
+  -p    Cluster name pattern
+" 1>&2; exit 1; }
 numreg='^[0-9]+$'
 
 while getopts ":t:p:" o; do
     case "${o}" in
         p)
-            p=${OPTARG}
+            pattern=${OPTARG}
             ;;
         t)
-            t=${OPTARG}
-            if ! [[ $t =~ $numreg ]] ; then
+            time_passed=${OPTARG}
+            if ! [[ $time_passed =~ $numreg ]] ; then
                 usage
             fi
             ;;
@@ -21,10 +28,10 @@ while getopts ":t:p:" o; do
 done
 shift $((OPTIND-1))
 
-if [ -z "${t}" ] || [ -z "${p}" ]; then
+if [ -z "${time_passed}" ] || [ -z "${pattern}" ]; then
     usage
 fi
 
 pushd "$(dirname "${BASH_SOURCE[0]}")" || exit 1
-AWS_REGION=us-east-2 go run ./... DeleteAll "${t}" "${p}"
+AWS_REGION=us-east-2 go run ./... DeleteAll "${time_passed}" "${pattern}"
 popd || exit 0

@@ -1,16 +1,23 @@
 #!/bin/bash
 
-usage() { echo "Usage: $0 [-t <hours>] [-p <string>]" 1>&2; exit 1; }
+usage() { echo "Cleanup gke cloud from old clusters
+
+Usage: $0 [-t <hours>] [-p <string>]
+
+Flags:
+  -t    Time has passed since the creation of the cluster
+  -p    Cluster name pattern
+" 1>&2; exit 1; }
 numreg='^[0-9]+$'
 
 while getopts ":t:p:" o; do
     case "${o}" in
         p)
-            p=${OPTARG}
+            pattern=${OPTARG}
             ;;
         t)
-            t=${OPTARG}
-            if ! [[ $t =~ $numreg ]] ; then
+            time_passed=${OPTARG}
+            if ! [[ $time_passed =~ $numreg ]] ; then
                 usage
             fi
             ;;
@@ -21,11 +28,11 @@ while getopts ":t:p:" o; do
 done
 shift $((OPTIND-1))
 
-if [ -z "${t}" ] || [ -z "${p}" ]; then
+if [ -z "${time_passed}" ] || [ -z "${pattern}" ]; then
     usage
 fi
 
-CLUSTERS=$(gcloud container clusters list --project="$GKE_PROJECT_ID" --format="table[no-heading](name,zone,createTime)" --filter="createTime<-PT${t}H" | grep  "${p}")
+CLUSTERS=$(gcloud container clusters list --project="$GKE_PROJECT_ID" --format="table[no-heading](name,zone,createTime)" --filter="createTime<-PT${time_passed}H" | grep  "${pattern}")
 IFS=$'\n'; 
 # shellcheck disable=SC2206
 raws=($CLUSTERS); 
