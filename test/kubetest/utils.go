@@ -110,17 +110,17 @@ func findNsmAndForwarder(k8s *K8s, ns string, nodes []v1.Node) []*NodeConf {
 	pods := k8s.ListPodsByNs(ns)
 	for j := range nodes {
 		node := &nodes[j]
+		logrus.Infof("Starting search forwarder and nsmgr for node %v", node.Name)
 		configs[j] = new(NodeConf)
 		configs[j].Node = node
 		for i := range pods {
 			pod := &pods[i]
+			logrus.Infof("Checking pod: %v", pod.String())
 			if pod.Spec.NodeName == node.Name {
 				if strings.Contains(pod.Name, "nsmgr") {
 					configs[j].Nsmd = pod
 					continue
 				}
-			}
-			if pod.Spec.NodeName == node.Name {
 				if strings.Contains(pod.Name, "forwarder") {
 					configs[j].Forwarder = pod
 					continue
