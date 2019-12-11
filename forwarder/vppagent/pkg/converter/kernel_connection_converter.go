@@ -1,7 +1,6 @@
 package converter
 
 import (
-	"os"
 	"strings"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
@@ -20,8 +19,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
 )
-
-const ForwarderAllowVHost = "FORWARDER_ALLOW_VHOST" // To disallow VHOST please pass "false" into this env variable.
 
 type KernelConnectionConverter struct {
 	*connection.Connection
@@ -81,7 +78,7 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 
 	// If we have access to /dev/vhost-net, we can use tapv2.  Otherwise fall back to
 	// veth pairs
-	if useVHostNet() {
+	if UseVHostNet() {
 		// We append an Interfaces.  Interfaces creates the vpp side of an interface.
 		//   In this case, a Tapv2 interface that has one side in vpp, and the other
 		//   as a Linux kernel interface
@@ -159,7 +156,7 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 	}
 
 	// Process static routes
-	routes := []*connectioncontext.Route{}
+	var routes []*connectioncontext.Route
 	switch c.conversionParameters.Side {
 	case SOURCE:
 		routes = c.Connection.GetContext().GetIpContext().GetDstRoutes()
@@ -199,15 +196,4 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 		}
 	}
 	return rv, nil
-}
-
-func useVHostNet() bool {
-	vhostAllowed := os.Getenv(ForwarderAllowVHost)
-	if vhostAllowed == "false" {
-		return false
-	}
-	if _, err := os.Stat("/dev/vhost-net"); err == nil {
-		return true
-	}
-	return false
 }

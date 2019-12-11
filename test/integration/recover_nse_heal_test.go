@@ -45,7 +45,6 @@ func TestNSEHealRemoteToLocal(t *testing.T) {
 		t.Skip("Skip, please run without -short")
 		return
 	}
-
 	g := NewWithT(t)
 
 	testNSEHeal(t, 2, map[string]int{

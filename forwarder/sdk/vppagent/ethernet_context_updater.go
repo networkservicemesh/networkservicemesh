@@ -18,6 +18,13 @@ package forwarder
 
 import (
 	"context"
+	"strings"
+
+	"github.com/networkservicemesh/networkservicemesh/forwarder/vppagent/pkg/converter"
+
+	"github.com/ligato/vpp-agent/api/models/linux"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/ligato/vpp-agent/api/configurator"
@@ -26,8 +33,8 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/forwarder/api/forwarder"
 )
 
-//NewEthernetContextUpdater fills ethernet context for dst interface if it is empty
-func NewEthernetContextUpdater() forwarder.ForwarderServer {
+//EthernetContextSetter fills ethernet context for dst interface if it is empty
+func EthernetContextSetter() forwarder.ForwarderServer {
 	return &ethernetContextUpdater{}
 }
 
@@ -35,7 +42,7 @@ type ethernetContextUpdater struct {
 }
 
 func (c *ethernetContextUpdater) Request(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error) {
-	updateEthernetContext(ctx, crossConnect)
+	setEthernetContext(ctx, crossConnect)
 	next := Next(ctx)
 	if next == nil {
 		return crossConnect, nil
@@ -44,7 +51,6 @@ func (c *ethernetContextUpdater) Request(ctx context.Context, crossConnect *cros
 }
 
 func (c *ethernetContextUpdater) Close(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*empty.Empty, error) {
-	updateEthernetContext(ctx, crossConnect)
 	next := Next(ctx)
 	if next == nil {
 		return new(empty.Empty), nil
@@ -52,24 +58,56 @@ func (c *ethernetContextUpdater) Close(ctx context.Context, crossConnect *crossc
 	return next.Close(ctx, crossConnect)
 }
 
-func updateEthernetContext(ctx context.Context, c *crossconnect.CrossConnect) {
-	//need to update ethernet context after problem https://github.com/ligato/vpp-agent/issues/1525 will be solved
-	getVppDestentaionInterfaceMacByInterfaceName(ctx, c)
+func setEthernetContext(ctx context.Context, c *crossconnect.CrossConnect) {
+	if c.GetLocalDestination() != nil && !c.GetLocalDestination().GetContext().IsEthernetContextEmtpy() {
+		return
+	}
+	if c.GetLocalSource() != nil && !c.GetLocalSource().GetContext().IsEthernetContextEmtpy() {
+		return
+	}
+	mac := getVppDestinationInterfaceMacById(ctx, c.Id)
+	if mac == "" {
+		Logger(ctx).Warn("DST mac is empty")
+		return
+	}
+	if c.GetLocalDestination() != nil {
+		c.GetLocalDestination().GetContext().EthernetContext = &connectioncontext.EthernetContext{
+			DstMac: mac,
+		}
+
+	}
+	if c.GetLocalSource() != nil {
+		dataChange := DataChange(ctx)
+		dataChange.LinuxConfig.ArpEntries = append(dataChange.LinuxConfig.ArpEntries, &linux.ARPEntry{
+			IpAddress: strings.Split(c.GetLocalSource().GetContext().IpContext.DstIpAddr, "/")[0],
+			Interface: converter.GetSrcInterfaceName(c.Id),
+			HwAddress: mac,
+		})
+		_, err := ConfiguratorClient(ctx).Update(ctx, &configurator.UpdateRequest{Update: dataChange})
+		if err != nil {
+			Logger(ctx).Errorf("An error during update arp entries: %v", err.Error())
+		}
+	}
 }
 
-func getVppDestentaionInterfaceMacByInterfaceName(ctx context.Context, _ *crossconnect.CrossConnect) string {
+func getVppDestinationInterfaceMacById(ctx context.Context, id string) string {
+	dstName := converter.GetDstInterfaceName(id)
+	dumpResp := dumpRequest(ctx)
+	for _, iface := range dumpResp.LinuxConfig.Interfaces {
+		if iface.Name == dstName {
+			return iface.PhysAddress
+		}
+	}
+	return ""
+}
+
+func dumpRequest(ctx context.Context) *configurator.Config {
 	client := ConfiguratorClient(ctx)
 	dumpResp, err := client.Dump(context.Background(), &configurator.DumpRequest{})
 	if err != nil {
-		Logger(ctx).Errorf("And error during client.Dump: %v", err)
+		Logger(ctx).Errorf("An error during client.Dump: %v", err)
 	} else {
 		Logger(ctx).Infof("Dump response: %v", dumpResp.String())
 	}
-	getResp, err := client.Get(ctx, &configurator.GetRequest{})
-	if err != nil {
-		Logger(ctx).Errorf("And error during client.Get: %v", err)
-	} else {
-		Logger(ctx).Infof("Get response: %v", getResp.String())
-	}
-	return ""
+	return dumpResp.Dump
 }
