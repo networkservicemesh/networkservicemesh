@@ -18,16 +18,6 @@ import (
 	"context"
 	"time"
 
-	vpp_srv6 "github.com/ligato/vpp-agent/api/models/vpp/srv6"
-
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/srv6"
-
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/memif"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
-
 	"github.com/gogo/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/ligato/vpp-agent/api/configurator"
@@ -38,11 +28,19 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/status"
 
+	vpp_srv6 "github.com/ligato/vpp-agent/api/models/vpp/srv6"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/memif"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/srv6"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
 	"github.com/networkservicemesh/networkservicemesh/forwarder/api/forwarder"
 	"github.com/networkservicemesh/networkservicemesh/forwarder/pkg/common"
 	sdk "github.com/networkservicemesh/networkservicemesh/forwarder/sdk/vppagent"
 	"github.com/networkservicemesh/networkservicemesh/forwarder/vppagent/pkg/vppagent/kvschedclient"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 	"github.com/networkservicemesh/networkservicemesh/utils"
 )
 
@@ -242,40 +240,11 @@ func (v *VPPAgent) programMgmtInterface() error {
 						},
 					},
 				},
-				{
-					Action: vpp_acl.ACL_Rule_PERMIT,
-					IpRule: &vpp_acl.ACL_Rule_IpRule{
-						Ip: &vpp_acl.ACL_Rule_IpRule_Ip{
-							DestinationNetwork: "::/0",
-							SourceNetwork:      "::/0",
-						},
-					},
-				},
 			},
 		},
 	}
 
-	// Assign ip6 address, required for SRv6 remote mechanism
-	if v.common.EgressInterface.SrcIPV6Net() != nil {
-		dataRequest.Update.VppConfig.Interfaces[0].IpAddresses = append(
-			dataRequest.Update.VppConfig.Interfaces[0].IpAddresses,
-			v.common.EgressInterface.SrcIPV6Net().String(),
-		)
-	}
-	if v.common.EgressInterface.SrcLocalSID() != nil {
-		dataRequest.Update.VppConfig.Srv6Global = &vpp_srv6.SRv6Global{
-			EncapSourceAddress: v.common.EgressInterface.SrcLocalSID().String(),
-		}
-		// Add main local SID for SRv6 to reach pod from other nodes
-		dataRequest.Update.VppConfig.Srv6Localsids = []*vpp_srv6.LocalSID{
-			{
-				Sid: v.common.EgressInterface.SrcLocalSID().String(),
-				EndFunction: &vpp_srv6.LocalSID_BaseEndFunction{
-					BaseEndFunction: &vpp_srv6.LocalSID_End{},
-				},
-			},
-		}
-	}
+	v.extendProgramMgmtInterfaceDataRequestForSRv6(dataRequest)
 
 	logrus.Infof("Setting up Mgmt Interface %v", dataRequest)
 	_, err = client.Update(context.Background(), dataRequest)
@@ -307,6 +276,110 @@ func (v *VPPAgent) setupMetricsCollector() {
 
 func (v *VPPAgent) endpoint() string {
 	return utils.EnvVar(VPPEndpointKey).GetStringOrDefault(VPPEndpointDefault)
+}
+
+func (v *VPPAgent) extendProgramMgmtInterfaceDataRequestForSRv6(dataRequest *configurator.UpdateRequest) {
+	if v.common.EgressInterface.SrcLocalSID() == nil {
+		return
+	}
+
+	// Assign ip6 address, required for SRv6 remote mechanism
+	if v.common.EgressInterface.SrcIPV6Net() != nil {
+		dataRequest.Update.VppConfig.Interfaces[0].IpAddresses = append(
+			dataRequest.Update.VppConfig.Interfaces[0].IpAddresses,
+			v.common.EgressInterface.SrcIPV6Net().String(),
+		)
+	}
+	// Add Encapsulation source address to pass clouds firewall rules
+	dataRequest.Update.VppConfig.Srv6Global = &vpp_srv6.SRv6Global{
+		EncapSourceAddress: v.common.EgressInterface.SrcLocalSID().String(),
+	}
+	// Add main local SID for SRv6 to reach forwarder from other pods
+	dataRequest.Update.VppConfig.Srv6Localsids = []*vpp_srv6.LocalSID{
+		{
+			Sid: v.common.EgressInterface.SrcLocalSID().String(),
+			EndFunction: &vpp_srv6.LocalSID_BaseEndFunction{
+				BaseEndFunction: &vpp_srv6.LocalSID_End{},
+			},
+		},
+	}
+
+	dataRequest.Update.VppConfig.Acls = append(dataRequest.Update.VppConfig.Acls, &vpp_acl.ACL{
+		Name: "NSMSRv6ACL",
+		Interfaces: &vpp_acl.ACL_Interfaces{
+			Ingress: []string{dataRequest.Update.VppConfig.Interfaces[0].Name},
+		},
+		Rules: []*vpp_acl.ACL_Rule{
+			{
+				Action: vpp_acl.ACL_Rule_DENY,
+				IpRule: &vpp_acl.ACL_Rule_IpRule{
+					Ip: &vpp_acl.ACL_Rule_IpRule_Ip{
+						DestinationNetwork: "::/0",
+						SourceNetwork:      "::/0",
+					},
+					Icmp: &vpp_acl.ACL_Rule_IpRule_Icmp{
+						Icmpv6: true,
+						// any ICMP packet
+						IcmpCodeRange: &vpp_acl.ACL_Rule_IpRule_Icmp_Range{
+							First: 0,
+							Last:  255,
+						},
+						IcmpTypeRange: &vpp_acl.ACL_Rule_IpRule_Icmp_Range{
+							First: 0,
+							Last:  255,
+						},
+					},
+				},
+			},
+			{
+				Action: vpp_acl.ACL_Rule_DENY,
+				IpRule: &vpp_acl.ACL_Rule_IpRule{
+					Ip: &vpp_acl.ACL_Rule_IpRule_Ip{
+						DestinationNetwork: "::/0",
+						SourceNetwork:      "::/0",
+					},
+					Udp: &vpp_acl.ACL_Rule_IpRule_Udp{
+						DestinationPortRange: &vpp_acl.ACL_Rule_IpRule_PortRange{
+							LowerPort: 0,
+							UpperPort: 65535,
+						},
+						SourcePortRange: &vpp_acl.ACL_Rule_IpRule_PortRange{
+							LowerPort: 0,
+							UpperPort: 65535,
+						},
+					},
+				},
+			},
+			{
+				Action: vpp_acl.ACL_Rule_DENY,
+				IpRule: &vpp_acl.ACL_Rule_IpRule{
+					Ip: &vpp_acl.ACL_Rule_IpRule_Ip{
+						DestinationNetwork: "::/0",
+						SourceNetwork:      "::/0",
+					},
+					Tcp: &vpp_acl.ACL_Rule_IpRule_Tcp{
+						DestinationPortRange: &vpp_acl.ACL_Rule_IpRule_PortRange{
+							LowerPort: 0,
+							UpperPort: 65535,
+						},
+						SourcePortRange: &vpp_acl.ACL_Rule_IpRule_PortRange{
+							LowerPort: 0,
+							UpperPort: 65535,
+						},
+					},
+				},
+			},
+			{
+				Action: vpp_acl.ACL_Rule_PERMIT,
+				IpRule: &vpp_acl.ACL_Rule_IpRule{
+					Ip: &vpp_acl.ACL_Rule_IpRule_Ip{
+						DestinationNetwork: "::/0",
+						SourceNetwork:      "::/0",
+					},
+				},
+			},
+		},
+	})
 }
 
 func (v *VPPAgent) configureVPPAgent() error {
