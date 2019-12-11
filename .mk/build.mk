@@ -18,7 +18,8 @@ include $(foreach module, $(modules), ./$(module)/build.mk)
 
 BIN_DIR = $(PWD)/build/dist
 VERSION = $(shell git describe --tags --always)
-VPP_AGENT=ligato/vpp-agent:v2.3.0
+# Temporary while image is not uploaded to ligato docker hub repo
+VPP_AGENT=artembelov/vpp-agent:v2.5.1
 CGO_ENABLED=0
 GOOS=linux
 DOCKER=./build
@@ -44,8 +45,8 @@ endef
 
 define docker_build
 	docker build --build-arg VPP_AGENT=$(VPP_AGENT) --build-arg ENTRY=$1 --network="host" -t $(ORG)/$1 -f $(DOCKER)/$2 $3; \
-	if [ "x${COMMIT}" != "x" ] ; then \
-		docker tag $(ORG)/$1 $(ORG)/$1:${COMMIT} ;\
+	if [ "x${CONTAINER_TAG}" != "x" ] ; then \
+		docker tag $(ORG)/$1 $(ORG)/$1:${CONTAINER_TAG} ;\
 	fi
 endef
 
@@ -82,14 +83,13 @@ docker-save: $(addsuffix -save, $(addprefix docker-, $(images)))
 
 .PHONY: docker-%-save
 docker-%-save: docker-%-build
-	@echo "Saving $* to scripts/vagrant/images/$*.tar"
-	@mkdir -p scripts/vagrant/images/
-	@docker save -o scripts/vagrant/images/$*.tar ${ORG}/$*
+	@echo "Saving $* to $(IMAGE_DIR)/$*.tar"
+	@mkdir -p $(IMAGE_DIR)
+	@docker save -o $(IMAGE_DIR)/$*.tar ${ORG}/$*:$(CONTAINER_TAG)
 
 .PHONY: docker-%-push
 docker-%-push: docker-login docker-%-build
-	docker tag ${ORG}/$*:${COMMIT} ${ORG}/$*:${TAG}
-	docker push ${ORG}/$*:${TAG}
+	docker push ${ORG}/$*:${CONTAINER_TAG}
 
 .PHONY: docker-push
 docker-push: $(addsuffix -push,$(addprefix docker-,$(images)));

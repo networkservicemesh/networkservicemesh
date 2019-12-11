@@ -5,14 +5,15 @@ import (
 	"os"
 	"strings"
 
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
 
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/utils"
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/proxyregistryserver"
+	k8s_utils "github.com/networkservicemesh/networkservicemesh/k8s/pkg/utils"
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/proxyregistryserver"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"github.com/networkservicemesh/networkservicemesh/utils"
 )
 
 var version string
@@ -20,7 +21,7 @@ var version string
 func main() {
 	logrus.Info("Starting proxy nsmd-k8s...")
 	logrus.Infof("Version: %v", version)
-
+	utils.PrintAllEnv(logrus.StandardLogger())
 	// Capture signals to cleanup before exiting
 	c := tools.NewOSSignalChannel()
 
@@ -33,7 +34,7 @@ func main() {
 	}
 
 	logrus.Println("Starting NSMD Kubernetes on " + address)
-	nsmClientSet, config, err := utils.NewClientSet()
+	nsmClientSet, config, err := k8s_utils.NewClientSet()
 
 	clusterInfoService, err := proxyregistryserver.NewK8sClusterInfoService(config)
 	if err != nil {

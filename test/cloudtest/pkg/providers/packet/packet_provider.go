@@ -257,7 +257,7 @@ func (pi *packetInstance) waitDevicesStartup(context context.Context) error {
 			msg := fmt.Sprintf("Checking status %v %v %v", key, d.ID, updatedDevice.State)
 			_, _ = writer.WriteString(msg)
 			_ = writer.Flush()
-			logrus.Infof("%v-%v", pi.id, msg)
+			logrus.Infof("%v-Checking status %v", pi.id, updatedDevice.State)
 		}
 		if len(alive) == len(pi.devices) {
 			pi.devices = alive
@@ -304,10 +304,17 @@ func (pi *packetInstance) createDevice(devCfg *config.DeviceConfig) (*packngo.De
 	}
 	var device *packngo.Device
 	var response *packngo.Response
-	device, response, err = pi.client.Devices.Create(devReq)
-	msg := fmt.Sprintf("HostName=%v\n%v - %v", hostName, response, err)
-	logrus.Infof(fmt.Sprintf("%s-%v", pi.id, msg))
-	pi.manager.AddLog(pi.id, fmt.Sprintf("create-device-%s", devCfg.Name), msg)
+	for {
+		device, response, err = pi.client.Devices.Create(devReq)
+		msg := fmt.Sprintf("HostName=%v\n%v - %v", hostName, response, err)
+		logrus.Infof(fmt.Sprintf("%s-%v", pi.id, msg))
+		pi.manager.AddLog(pi.id, fmt.Sprintf("create-device-%s", devCfg.Name), msg)
+		if err == nil || err != nil && !strings.Contains(err.Error(), "has no provisionable") || len(devReq.Facility) <= 1 {
+			break
+		}
+
+		devReq.Facility = devReq.Facility[1:]
+	}
 	return device, err
 }
 
@@ -340,10 +347,6 @@ func (pi *packetInstance) findFacilities() ([]string, error) {
 			facilitiesList = append(facilitiesList, f.Code)
 		}
 	}
-	msg := fmt.Sprintf("List of facilities: %v %v", facilities, response)
-	logrus.Infof(msg)
-	_, _ = out.WriteString(msg)
-	pi.manager.AddLog(pi.id, "list-facilities", out.String())
 
 	// Randomize facilities.
 	ind := -1
@@ -358,11 +361,13 @@ func (pi *packetInstance) findFacilities() ([]string, error) {
 	}
 
 	if ind != -1 {
-		selected := facilitiesList[ind]
-
-		facilitiesList[ind] = facilitiesList[0]
-		facilitiesList[0] = selected
+		facilitiesList[ind], facilitiesList[0] = facilitiesList[0], facilitiesList[ind]
 	}
+
+	msg := fmt.Sprintf("List of facilities: %v %v", facilities, response)
+	//logrus.Infof(msg)
+	_, _ = out.WriteString(msg)
+	pi.manager.AddLog(pi.id, "list-facilities", out.String())
 
 	return facilitiesList, nil
 }
@@ -431,7 +436,7 @@ func (pi *packetInstance) Destroy(timeout time.Duration) error {
 		}
 		msg := fmt.Sprintf("Devices destroy complete %v", pi.devices)
 		_, _ = logFile.WriteString(msg)
-		logrus.Infof("Destroy Complete: %v", msg)
+		logrus.Infof("Destroy Complete: %v", pi.id)
 	}
 	return nil
 }
@@ -518,13 +523,13 @@ func (pi *packetInstance) createKey(keyFile string) ([]string, error) {
 	}
 	createMsg := fmt.Sprintf("Create key %v %v %v", sshKey, responseMsg, err)
 	_, _ = out.WriteString(createMsg)
-	logrus.Infof("%s-%v", pi.id, createMsg)
 
 	keyIds := []string{}
 	if sshKey == nil {
 		// try to find key.
 		sshKey, keyIds = pi.findKeys(&out)
 	} else {
+		logrus.Infof("%s-Create key %v (%v)", pi.id, sshKey.ID, sshKey.Key)
 		keyIds = append(keyIds, sshKey.ID)
 	}
 	pi.sshKey = sshKey

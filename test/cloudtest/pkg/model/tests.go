@@ -3,6 +3,7 @@ package model
 import (
 	"context"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -28,6 +29,8 @@ const (
 	StatusSkipped
 	// StatusSkippedSinceNoClusters - status of test if not clusters of desired group are available.
 	StatusSkippedSinceNoClusters
+	// StatusRerunRequest - a test was requested its re-run
+	StatusRerunRequest
 )
 
 // TestEntryExecution - represent one test execution.
@@ -62,6 +65,8 @@ type TestEntry struct {
 
 	Kind   TestEntryKind
 	Status Status
+	sync.Mutex
+	SkipMessage string
 }
 
 // GetTestConfiguration - Return list of available tests by calling of gotest --list .* $root -tag "" and parsing of output.

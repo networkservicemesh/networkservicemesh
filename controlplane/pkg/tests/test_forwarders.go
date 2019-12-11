@@ -1,25 +1,25 @@
 package tests
 
 import (
-	local "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
-	remote "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 )
 
 var testForwarder1 = &model.Forwarder{
 	RegisteredName: "test_data_plane",
 	SocketLocation: "tcp:some_addr",
-	LocalMechanisms: []connection.Mechanism{
-		&local.Mechanism{
-			Type: local.MechanismType_KERNEL_INTERFACE,
+	LocalMechanisms: []*connection.Mechanism{
+		&connection.Mechanism{
+			Type: kernel.MECHANISM,
 		},
 	},
-	RemoteMechanisms: []connection.Mechanism{
-		&remote.Mechanism{
-			Type: remote.MechanismType_VXLAN,
+	RemoteMechanisms: []*connection.Mechanism{
+		&connection.Mechanism{
+			Type: vxlan.MECHANISM,
 			Parameters: map[string]string{
-				remote.VXLANSrcIP: "127.0.0.1",
+				vxlan.SrcIP: "127.0.0.1",
 			},
 		},
 	},
@@ -28,16 +28,16 @@ var testForwarder1 = &model.Forwarder{
 var testForwarder1_1 = &model.Forwarder{
 	RegisteredName: "test_data_plane_11",
 	SocketLocation: "tcp:some_addr",
-	LocalMechanisms: []connection.Mechanism{
-		&local.Mechanism{
-			Type: local.MechanismType_KERNEL_INTERFACE,
+	LocalMechanisms: []*connection.Mechanism{
+		{
+			Type: kernel.MECHANISM,
 		},
 	},
-	RemoteMechanisms: []connection.Mechanism{
-		&remote.Mechanism{
-			Type: remote.MechanismType_VXLAN,
+	RemoteMechanisms: []*connection.Mechanism{
+		&connection.Mechanism{
+			Type: vxlan.MECHANISM,
 			Parameters: map[string]string{
-				remote.VXLANSrcIP: "127.0.0.7",
+				vxlan.SrcIP: "127.0.0.7",
 			},
 		},
 	},
@@ -47,16 +47,16 @@ var testForwarder1_1 = &model.Forwarder{
 var testForwarder2 = &model.Forwarder{
 	RegisteredName: "test_data_plane2",
 	SocketLocation: "tcp:some_addr",
-	LocalMechanisms: []connection.Mechanism{
-		&local.Mechanism{
-			Type: local.MechanismType_KERNEL_INTERFACE,
+	LocalMechanisms: []*connection.Mechanism{
+		&connection.Mechanism{
+			Type: kernel.MECHANISM,
 		},
 	},
-	RemoteMechanisms: []connection.Mechanism{
-		&remote.Mechanism{
-			Type: remote.MechanismType_VXLAN,
+	RemoteMechanisms: []*connection.Mechanism{
+		&connection.Mechanism{
+			Type: vxlan.MECHANISM,
 			Parameters: map[string]string{
-				remote.VXLANSrcIP: "127.0.0.2",
+				vxlan.SrcIP: "127.0.0.2",
 			},
 		},
 	},

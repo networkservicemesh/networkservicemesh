@@ -23,7 +23,6 @@ providers:
       - AZURE_SERVICE_PRINCIPAL_SECRET
       - CIRCLE_AZURE_TENANT
       - CIRCLE_AZURE_RESOURCE_GROUP
-      - COMMIT
     scripts:
       install: az login --service-principal --username ${AZURE_SERVICE_PRINCIPAL} --password ${AZURE_SERVICE_PRINCIPAL_SECRET} --tenant ${CIRCLE_AZURE_TENANT}
       start: |
@@ -32,3 +31,4 @@ providers:
       prepare: |
         make k8s-config helm-init
         make spire-install-azure
+        make spire-wait-registration

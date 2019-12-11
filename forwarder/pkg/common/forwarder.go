@@ -17,19 +17,21 @@ package common
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	"github.com/pkg/errors"
 
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
-	local "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
-	remote "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/forwarder/api/forwarder"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	monitor_crossconnect "github.com/networkservicemesh/networkservicemesh/sdk/monitor/crossconnect"
@@ -83,132 +85,124 @@ type ForwarderConfig struct {
 
 // Mechanisms is a message used to communicate any changes in operational parameters and constraints
 type Mechanisms struct {
-	RemoteMechanisms []*remote.Mechanism
-	LocalMechanisms  []*local.Mechanism
+	RemoteMechanisms []*connection.Mechanism
+	LocalMechanisms  []*connection.Mechanism
 }
 
-func createForwarderConfig(forwarderGoals *ForwarderProbeGoals) *ForwarderConfig {
+func getEnvWithDefault(span spanhelper.SpanHelper, env, defaultValue string) string {
+	result, ok := os.LookupEnv(env)
+	if !ok {
+		span.LogObject(env, fmt.Sprintf("%s (default value)", defaultValue))
+		result = defaultValue
+	} else {
+		span.LogObject(env, result)
+	}
+	return result
+}
+
+func getEnvWithDefaultBool(span spanhelper.SpanHelper, env string, defaultValue bool) bool {
+	result := defaultValue
+	resultVal, ok := os.LookupEnv(env)
+	var err error
+	if !ok {
+		span.LogObject(env, fmt.Sprintf("%v (default value)", defaultValue))
+		result = defaultValue
+	} else {
+		span.LogObject(env, result)
+		result, err = strconv.ParseBool(resultVal)
+		span.LogError(err)
+		if err != nil {
+			result = defaultValue
+		}
+	}
+	return result
+}
+
+func createForwarderConfig(ctx context.Context, forwarderGoals *ForwarderProbeGoals) *ForwarderConfig {
+	span := spanhelper.FromContext(ctx, "createForwartderConfig")
+	defer span.Finish()
+
 	cfg := &ForwarderConfig{}
-	var ok bool
 
-	cfg.Name, ok = os.LookupEnv(ForwarderNameKey)
-	if !ok {
-		logrus.Debugf("%s not set, using default %s", ForwarderNameKey, ForwarderNameDefault)
-		cfg.Name = ForwarderNameDefault
-	}
+	cfg.Name = getEnvWithDefault(span, ForwarderNameKey, ForwarderNameDefault)
+	cfg.ForwarderSocket = getEnvWithDefault(span, ForwarderSocketKey, ForwarderSocketDefault)
 
-	cfg.ForwarderSocket, ok = os.LookupEnv(ForwarderSocketKey)
-	if !ok {
-		logrus.Infof("%s not set, using default %s", ForwarderSocketKey, ForwarderSocketDefault)
-		cfg.ForwarderSocket = ForwarderSocketDefault
-	}
-	logrus.Infof("ForwarderSocket: %s", cfg.ForwarderSocket)
-
-	err := tools.SocketCleanup(cfg.ForwarderSocket)
-	if err != nil {
-		logrus.Fatalf("Error cleaning up socket %s: %s", cfg.ForwarderSocket, err)
+	if err := tools.SocketCleanup(cfg.ForwarderSocket); err != nil {
+		span.Logger().Fatalf("Error cleaning up socket %s: %s", cfg.ForwarderSocket, err)
 	} else {
 		forwarderGoals.SetSocketCleanReady()
 	}
 
-	cfg.ForwarderSocketType, ok = os.LookupEnv(ForwarderSocketTypeKey)
-	if !ok {
-		logrus.Infof("%s not set, using default %s", ForwarderSocketTypeKey, ForwarderSocketTypeDefault)
-		cfg.ForwarderSocketType = ForwarderSocketTypeDefault
-	}
-	logrus.Infof("ForwarderSocketType: %s", cfg.ForwarderSocketType)
+	cfg.ForwarderSocketType = getEnvWithDefault(span, ForwarderSocketTypeKey, ForwarderSocketTypeDefault)
 
-	cfg.NSMBaseDir, ok = os.LookupEnv(NSMBaseDirKey)
-	if !ok {
-		logrus.Infof("%s not set, using default %s", NSMBaseDirKey, NSMBaseDirDefault)
-		cfg.NSMBaseDir = NSMBaseDirDefault
-	}
-	logrus.Infof("NSMBaseDir: %s", cfg.NSMBaseDir)
+	cfg.NSMBaseDir = getEnvWithDefault(span, NSMBaseDirKey, NSMBaseDirDefault)
+	cfg.RegistrarSocket = getEnvWithDefault(span, ForwarderRegistrarSocketKey, ForwarderRegistrarSocketDefault)
+	cfg.RegistrarSocketType = getEnvWithDefault(span, ForwarderRegistrarSocketTypeKey, ForwarderRegistrarSocketTypeDefault)
 
-	cfg.RegistrarSocket, ok = os.LookupEnv(ForwarderRegistrarSocketKey)
-	if !ok {
-		logrus.Infof("%s not set, using default %s", ForwarderRegistrarSocketKey, ForwarderRegistrarSocketDefault)
-		cfg.RegistrarSocket = ForwarderRegistrarSocketDefault
-	}
-	logrus.Infof("RegistrarSocket: %s", cfg.RegistrarSocket)
-
-	cfg.RegistrarSocketType, ok = os.LookupEnv(ForwarderRegistrarSocketTypeKey)
-	if !ok {
-		logrus.Infof("%s not set, using default %s", ForwarderRegistrarSocketTypeKey, ForwarderRegistrarSocketTypeDefault)
-		cfg.RegistrarSocketType = ForwarderRegistrarSocketTypeDefault
-	}
-	logrus.Infof("RegistrarSocketType: %s", cfg.RegistrarSocketType)
-
-	cfg.GRPCserver = tools.NewServer(context.Background())
-
-	cfg.Monitor = monitor_crossconnect.NewMonitorServer()
-	crossconnect.RegisterMonitorCrossConnectServer(cfg.GRPCserver, cfg.Monitor)
-
-	cfg.MetricsEnabled = ForwarderMetricsEnabledDefault
-	val, ok := os.LookupEnv(ForwarderMetricsEnabledKey)
-	if ok {
-		res, err := strconv.ParseBool(val)
-		if err == nil {
-			cfg.MetricsEnabled = res
-		}
-	}
-	logrus.Infof("MetricsEnabled: %v", cfg.MetricsEnabled)
-
+	cfg.MetricsEnabled = getEnvWithDefaultBool(span, ForwarderMetricsEnabledKey, ForwarderMetricsEnabledDefault)
 	if cfg.MetricsEnabled {
 		cfg.MetricsPeriod = ForwarderMetricsRequestPeriodDefault
-		if val, ok = os.LookupEnv(ForwarderMetricsRequestPeriodKey); ok {
+
+		if val, ok := os.LookupEnv(ForwarderMetricsRequestPeriodKey); ok {
 			parsedPeriod, err := time.ParseDuration(val)
 			if err == nil {
 				cfg.MetricsPeriod = parsedPeriod
 			}
 		}
-		logrus.Infof("MetricsPeriod: %v ", cfg.MetricsPeriod)
+		span.Logger().Infof("MetricsPeriod: %v ", cfg.MetricsPeriod)
 	}
 
 	srcIPStr, ok := os.LookupEnv(ForwarderSrcIPKey)
 	if !ok {
-		logrus.Fatalf("Env variable %s must be set to valid srcIP for use for tunnels from this Pod.  Consider using downward API to do so.", ForwarderSrcIPKey)
+		span.Logger().Fatalf("Env variable %s must be set to valid srcIP for use for tunnels from this Pod.  Consider using downward API to do so.", ForwarderSrcIPKey)
 	} else {
 		forwarderGoals.SetSrcIPReady()
 	}
 	cfg.SrcIP = net.ParseIP(srcIPStr)
 	if cfg.SrcIP == nil {
-		logrus.Fatalf("Env variable %s must be set to a valid IP address, was set to %s", ForwarderSrcIPKey, srcIPStr)
+		span.Logger().Fatalf("Env variable %s must be set to a valid IP address, was set to %s", ForwarderSrcIPKey, srcIPStr)
 	} else {
 		forwarderGoals.SetValidIPReady()
 	}
+	var err error
 	cfg.EgressInterface, err = NewEgressInterface(cfg.SrcIP)
 	if err != nil {
-		logrus.Fatalf("Unable to find egress Interface: %s", err)
+		span.Logger().Fatalf("Unable to find egress Interface: %s", err)
 	} else {
 		forwarderGoals.SetNewEgressIFReady()
 	}
-	logrus.Infof("SrcIP: %s, IfaceName: %s, SrcIPNet: %s", cfg.SrcIP, cfg.EgressInterface.Name(), cfg.EgressInterface.SrcIPNet())
-
+	span.Logger().Infof("SrcIP: %s, IfaceName: %s, SrcIPNet: %s", cfg.SrcIP, cfg.EgressInterface.Name(), cfg.EgressInterface.SrcIPNet())
+	span.LogObject("config", cfg)
 	return cfg
 }
 
 // CreateForwarder creates new Forwarder Registrar client
-func CreateForwarder(dp NSMForwarder, forwarderGoals *ForwarderProbeGoals) *ForwarderRegistration {
-	start := time.Now()
+func CreateForwarder(ctx context.Context, dp NSMForwarder, forwarderGoals *ForwarderProbeGoals) *ForwarderRegistration {
+	span := spanhelper.FromContext(ctx, "CreateForwarder")
+	defer span.Finish()
 	// Populate common configuration
-	config := createForwarderConfig(forwarderGoals)
+	config := createForwarderConfig(span.Context(), forwarderGoals)
+
+	// Initialize GRPC server
+	config.GRPCserver = tools.NewServer(span.Context())
+	config.Monitor = monitor_crossconnect.NewMonitorServer()
+	crossconnect.RegisterMonitorCrossConnectServer(config.GRPCserver, config.Monitor)
 
 	// Initialize the forwarder
 	err := dp.Init(config)
 	if err != nil {
-		logrus.Fatalf("Forwarder initialization failed: %s ", err)
+		span.Logger().Fatalf("Forwarder initialization failed: %s ", err)
 	}
 
 	// Verify the configuration is populated
 	if !sanityCheckConfig(config) {
-		logrus.Fatalf("Forwarder configuration sanity check failed: %s ", err)
+		span.Logger().Fatalf("Forwarder configuration sanity check failed: %s ", err)
 	}
 
 	// Prepare the gRPC server
 	config.Listener, err = net.Listen(config.ForwarderSocketType, config.ForwarderSocket)
 	if err != nil {
-		logrus.Fatalf("Error listening on socket %s: %s ", config.ForwarderSocket, err)
+		span.Logger().Fatalf("Error listening on socket %s: %s ", config.ForwarderSocket, err)
 	} else {
 		forwarderGoals.SetSocketListenReady()
 	}
@@ -221,14 +215,11 @@ func CreateForwarder(dp NSMForwarder, forwarderGoals *ForwarderProbeGoals) *Forw
 	go func() {
 		_ = config.GRPCserver.Serve(config.Listener)
 	}()
-	logrus.Infof("%s server serving", config.Name)
-
-	logrus.Debugf("Starting the %s forwarder server took: %s", config.Name, time.Since(start))
-
-	logrus.Info("Creating Forwarder Registrar Client...")
+	span.Logger().Infof("%s server serving", config.Name)
+	span.Logger().Info("Creating Forwarder Registrar Client...")
 	registrar := NewForwarderRegistrarClient(config.RegistrarSocketType, config.RegistrarSocket)
-	registration := registrar.Register(context.Background(), config.Name, config.ForwarderSocket, nil, nil)
-	logrus.Info("Registered Forwarder Registrar Client")
+	registration := registrar.Register(span.Context(), config.Name, config.ForwarderSocket, nil, nil)
+	span.Logger().Info("Registered Forwarder Registrar Client")
 
 	return registration
 }
@@ -247,14 +238,16 @@ func SanityCheckConnectionType(mechanisms *Mechanisms, crossConnect *crossconnec
 	localFound, remoteFound := false, false
 	/* Verify local mechanisms */
 	for _, mech := range mechanisms.LocalMechanisms {
-		if crossConnect.GetLocalSource().GetMechanism().GetType() == mech.GetType() || crossConnect.GetLocalDestination().GetMechanism().GetType() == mech.GetType() {
+		if crossConnect.GetLocalSource().GetMechanism().GetType() == mech.GetType() ||
+			crossConnect.GetLocalDestination().GetMechanism().GetType() == mech.GetType() {
 			localFound = true
 			break
 		}
 	}
 	/* Verify remote mechanisms */
 	for _, mech := range mechanisms.RemoteMechanisms {
-		if crossConnect.GetRemoteSource().GetMechanism().GetType() == mech.GetType() || crossConnect.GetRemoteDestination().GetMechanism().GetType() == mech.GetType() {
+		if crossConnect.GetRemoteSource().GetMechanism().GetType() == mech.GetType() ||
+			crossConnect.GetRemoteDestination().GetMechanism().GetType() == mech.GetType() {
 			remoteFound = true
 			break
 		}

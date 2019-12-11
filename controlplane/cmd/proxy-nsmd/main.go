@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
-	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
+	"github.com/networkservicemesh/networkservicemesh/utils"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/probes/health"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/probes"
 
@@ -37,6 +37,7 @@ const (
 func main() {
 	logrus.Info("Starting proxy nsmd...")
 	logrus.Infof("Version: %v", version)
+	utils.PrintAllEnv(logrus.StandardLogger())
 	start := time.Now()
 
 	// Capture signals to cleanup before exiting
@@ -84,11 +85,11 @@ func getProxyNSMDAPIAddress() string {
 func startAPIServerAt(sock net.Listener, serviceRegistry serviceregistry.ServiceRegistry, probes probes.Probes) {
 	grpcServer := tools.NewServer(context.Background())
 	remoteConnectionMonitor := remote.NewProxyMonitorServer()
-	connection.RegisterMonitorConnectionServer(grpcServer, compat.NewMonitorConnectionServerAdapter(remoteConnectionMonitor, nil))
+	connection.RegisterMonitorConnectionServer(grpcServer, remoteConnectionMonitor)
 	probes.Append(health.NewGrpcHealth(grpcServer, sock.Addr(), time.Minute))
 	// Register Remote NetworkServiceManager
 	remoteServer := proxynetworkserviceserver.NewProxyNetworkServiceServer(serviceRegistry)
-	unified.RegisterNetworkServiceServer(grpcServer, compat.NewUnifiedNetworkServiceServerAdapter(remoteServer, nil))
+	unified.RegisterNetworkServiceServer(grpcServer, remoteServer)
 
 	go func() {
 		if err := grpcServer.Serve(sock); err != nil {

@@ -16,6 +16,7 @@ package local
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/pkg/errors"
@@ -26,10 +27,9 @@ import (
 
 	"github.com/golang/protobuf/ptypes/empty"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
-	unified "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
@@ -55,7 +55,7 @@ type forwarderService struct {
 func (cce *forwarderService) selectForwarder(request *networkservice.NetworkServiceRequest) (*model.Forwarder, error) {
 	dp, err := cce.model.SelectForwarder(func(dp *model.Forwarder) bool {
 		for _, m := range request.GetRequestMechanismPreferences() {
-			if cce.findMechanism(dp.LocalMechanisms, m.GetMechanismType()) != nil {
+			if cce.findMechanism(dp.LocalMechanisms, m.GetType()) != nil {
 				return true
 			}
 		}
@@ -63,9 +63,9 @@ func (cce *forwarderService) selectForwarder(request *networkservice.NetworkServ
 	})
 	return dp, err
 }
-func (cce *forwarderService) findMechanism(mechanismPreferences []unified.Mechanism, mechanismType unified.MechanismType) unified.Mechanism {
+func (cce *forwarderService) findMechanism(mechanismPreferences []*connection.Mechanism, mechanismType string) *connection.Mechanism {
 	for _, m := range mechanismPreferences {
-		if m.GetMechanismType() == mechanismType {
+		if m.GetType() == mechanismType {
 			return m
 		}
 	}
@@ -76,18 +76,18 @@ func (cce *forwarderService) updateMechanism(request *networkservice.NetworkServ
 	conn := request.GetConnection()
 	// 5.x
 	for _, m := range request.GetRequestMechanismPreferences() {
-		if dpMechanism := cce.findMechanism(dp.LocalMechanisms, m.GetMechanismType()); dpMechanism != nil {
-			conn.SetConnectionMechanism(m.Clone())
+		if dpMechanism := cce.findMechanism(dp.LocalMechanisms, m.GetType()); dpMechanism != nil {
+			conn.Mechanism = m.Clone()
 			break
 		}
 	}
 
-	if conn.GetConnectionMechanism() == nil {
+	if conn.GetMechanism() == nil {
 		return errors.Errorf("required mechanism are not found... %v ", request.GetRequestMechanismPreferences())
 	}
 
-	if conn.GetConnectionMechanism().GetParameters() == nil {
-		conn.GetConnectionMechanism().SetParameters(map[string]string{})
+	if conn.GetMechanism().GetParameters() == nil {
+		conn.Mechanism.Parameters = map[string]string{}
 	}
 
 	return nil
@@ -95,6 +95,7 @@ func (cce *forwarderService) updateMechanism(request *networkservice.NetworkServ
 
 func (cce *forwarderService) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 	logger := common.Log(ctx)
+	span := spanhelper.GetSpanHelper(ctx)
 
 	clientConnection := common.ModelConnection(ctx)
 	// 3. get forwarder
@@ -115,8 +116,10 @@ func (cce *forwarderService) Request(ctx context.Context, request *networkservic
 		return nil, errors.Errorf("NSM:(5.1) %v", err)
 	}
 
+	span.LogObject("dataplane", dp)
+
 	ctx = common.WithForwarder(ctx, dp)
-	conn, connErr := ProcessNext(ctx, request)
+	conn, connErr := common.ProcessNext(ctx, request)
 	if connErr != nil {
 		return conn, connErr
 	}
@@ -145,7 +148,7 @@ func (cce *forwarderService) doFailureClose(ctx context.Context) {
 func (cce *forwarderService) Close(ctx context.Context, conn *connection.Connection) (*empty.Empty, error) {
 	cc := common.ModelConnection(ctx)
 	logger := common.Log(ctx)
-	empt, err := ProcessClose(ctx, conn)
+	empt, err := common.ProcessClose(ctx, conn)
 	if closeErr := cce.performClose(ctx, cc, logger); closeErr != nil {
 		logger.Errorf("Failed to close: %v", closeErr)
 	}
@@ -176,18 +179,19 @@ func (cce *forwarderService) performClose(ctx context.Context, cc *model.ClientC
 }
 
 func (cce *forwarderService) programForwarder(ctx context.Context, conn *connection.Connection, dp *model.Forwarder, clientConnection *model.ClientConnection) (*connection.Connection, error) {
-	logger := common.Log(ctx)
+	span := spanhelper.FromContext(ctx, "programForwarder")
+	defer span.Finish()
 	// We need to program forwarder.
 	forwarderClient, forwarderConn, err := cce.serviceRegistry.ForwarderConnection(ctx, dp)
 	if err != nil {
-		logger.Errorf("Error creating forwarder connection %v. Performing close", err)
-		cce.doFailureClose(ctx)
+		span.Logger().Errorf("Error creating forwarder connection %v. Performing close", err)
+		cce.doFailureClose(span.Context())
 		return conn, err
 	}
 	if forwarderConn != nil { // Required for testing
 		defer func() {
 			if closeErr := forwarderConn.Close(); closeErr != nil {
-				logger.Errorf("NSM:(6.1) Error during close Forwarder connection: %v", closeErr)
+				span.Logger().Errorf("NSM:(6.1) Error during close Forwarder connection: %v", closeErr)
 			}
 		}()
 	}
@@ -201,33 +205,44 @@ func (cce *forwarderService) programForwarder(ctx context.Context, conn *connect
 			return nil, ctx.Err()
 		}
 
-		logger.Infof("NSM:(9.1) Sending request to forwarder: %v retry: %v", clientConnection.Xcon, dpRetry)
-		dpCtx, cancel := context.WithTimeout(ctx, ForwarderTimeout)
+		attemptSpan := spanhelper.FromContext(span.Context(), fmt.Sprintf("ProgramAttempt-%v", dpRetry))
+		defer attemptSpan.Finish()
+		attemptSpan.LogObject("attempt", dpRetry)
+
+		span.Logger().Infof("NSM:(9.1) Sending request to forwarder")
+		attemptSpan.LogObject("request", clientConnection.Xcon)
+
+		dpCtx, cancel := context.WithTimeout(attemptSpan.Context(), ForwarderTimeout)
 		newXcon, err = forwarderClient.Request(dpCtx, clientConnection.Xcon)
 		cancel()
 		if err != nil {
-			logger.Errorf("NSM:(9.1.1) Forwarder request failed: %v retry: %v", err, dpRetry)
+			attemptSpan.Logger().Errorf("NSM:(9.1.1) Forwarder request failed: %v retry: %v", err, dpRetry)
 
 			// Let's try again with a short delay
 			if dpRetry < ForwarderRetryCount-1 {
 				<-time.After(ForwarderRetryDelay)
 				continue
 			}
-			logger.Errorf("NSM:(9.1.2) Forwarder request  all retry attempts failed: %v", clientConnection.Xcon)
+			attemptSpan.Logger().Errorf("NSM:(9.1.2) Forwarder request  all retry attempts failed: %v", clientConnection.Xcon)
 			// 9.3 If datplane configuration are failed, we need to close remore NSE actually.
-			cce.doFailureClose(ctx)
+			cce.doFailureClose(attemptSpan.Context())
+			attemptSpan.Finish()
 			return conn, err
 		}
 
 		// In case of context deadline, we need to close NSE and forwarder.
-		if ctx.Err() != nil {
-			cce.doFailureClose(ctx)
-			return nil, ctx.Err()
+		ctxErr := attemptSpan.Context().Err()
+		if ctxErr != nil {
+			attemptSpan.LogError(ctxErr)
+			cce.doFailureClose(attemptSpan.Context())
+			attemptSpan.Finish()
+			return nil, ctxErr
 		}
 
 		clientConnection.Xcon = newXcon
 
-		logger.Infof("NSM:(9.2) Forwarder configuration successful %v", clientConnection.Xcon)
+		attemptSpan.Logger().Infof("NSM:(9.2) Forwarder configuration successful")
+		attemptSpan.LogObject("crossConnection", clientConnection.Xcon)
 		break
 	}
 

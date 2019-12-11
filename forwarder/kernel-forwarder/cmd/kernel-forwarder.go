@@ -47,10 +47,9 @@ func main() {
 
 	plane := kernelforwarder.CreateKernelForwarder()
 
-	registration := common.CreateForwarder(plane, forwarderGoals)
+	registration := common.CreateForwarder(span.Context(), plane, forwarderGoals)
 
-	for range c {
-		logrus.Info("Closing Forwarder Registration")
-		registration.Close()
-	}
+	<-c
+	logrus.Info("Closing Forwarder Registration")
+	registration.Close()
 }

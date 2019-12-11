@@ -41,6 +41,15 @@ providers:
       config: ./scripts/vagrant/.kube/config
 reporting:
   junit-report: "./.tests/junit.xml"
+health-check:
+  - message: "Health check failed"
+    interval: 3  # 3 seconds
+    run: |
+      false
+  - message: "Health check passed"
+    interval: 1  # 1 second
+    run: |
+      true
 executions:
   - name: "Single cluster tests"
     tags:

@@ -9,7 +9,14 @@ const (
 	MECHANISM = "VXLAN"
 
 	// Mechanism parameters
+	// SrcIP - source IP
 	SrcIP = common.SrcIP
+	// DstIP - destitiona IP
 	DstIP = common.DstIP
-	VNI   = "vni"
+	// SrcOriginalIP - original src IP
+	SrcOriginalIP = "orig_src_ip"
+	// DstExternalIP - external destination ip
+	DstExternalIP = "ext_src_ip"
+	// VNI - vni
+	VNI = "vni"
 )

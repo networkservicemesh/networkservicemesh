@@ -18,10 +18,10 @@ package main
 import (
 	"context"
 	"net"
-	"strings"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/local"
+	connectionMonitor "github.com/networkservicemesh/networkservicemesh/sdk/monitor/connectionmonitor"
+	"github.com/networkservicemesh/networkservicemesh/utils"
 
 	"github.com/networkservicemesh/networkservicemesh/test/applications/cmd/icmp-responder-nse/flags"
 
@@ -39,12 +39,11 @@ import (
 var version string
 
 func main() {
-	// Capture signals to cleanup before exiting
-	c := tools.NewOSSignalChannel()
-
 	logrus.Info("Starting icmp-responder-nse...")
 	logrus.Infof("Version: %v", version)
-
+	utils.PrintAllEnv(logrus.StandardLogger())
+	// Capture signals to cleanup before exiting
+	c := tools.NewOSSignalChannel()
 	flags := flags.ParseFlags()
 
 	configuration := common.FromEnv()
@@ -64,7 +63,8 @@ func main() {
 	endpoints = append(endpoints, ipamEndpoint)
 
 	routeAddr := endpoint.CreateRouteMutator([]string{"8.8.8.8/30"})
-	if common.IsIPv6(ipamEndpoint.PrefixPool.GetPrefixes()[0]) {
+	prefixes := ipamEndpoint.PrefixPool.GetPrefixes()
+	if len(prefixes) > 0 && common.IsIPv6(prefixes[0]) {
 		routeAddr = endpoint.CreateRouteMutator([]string{"2001:4860:4860::8888/126"})
 	}
 	if flags.Routes {
@@ -74,7 +74,14 @@ func main() {
 
 	if flags.DNS {
 		logrus.Info("Adding dns endpoint to chain")
-		endpoints = append(endpoints, endpoint.NewCustomFuncEndpoint("dns", dnsMutator))
+		if len(ServerIPsEnv.GetStringListValueOrDefault("")) == 1 && ServerIPsEnv.GetStringListValueOrDefault("")[0] == "" {
+			endpoints = append(endpoints, endpoint.NewAddDnsConfigDstIp(SearchDomainsEnv.GetStringListValueOrDefault("icmp.app")...))
+		} else {
+			endpoint.NewAddDNSConfigs(&connectioncontext.DNSConfig{
+				DnsServerIps:  ServerIPsEnv.GetStringListValueOrDefault(""),
+				SearchDomains: SearchDomainsEnv.GetStringListValueOrDefault("icmp.app"),
+			})
+		}
 	}
 
 	podName := endpoint.CreatePodNameMutator()
@@ -113,19 +120,6 @@ func main() {
 	<-c
 }
 
-func dnsMutator(ctc context.Context, c *connection.Connection) error {
-	defaultIP := strings.Split(c.Context.IpContext.DstIpAddr, "/")[0]
-	c.Context.DnsContext = &connectioncontext.DNSContext{
-		Configs: []*connectioncontext.DNSConfig{
-			{
-				DnsServerIps:  ServerIPsEnv.GetStringListValueOrDefault(defaultIP),
-				SearchDomains: SearchDomainsEnv.GetStringListValueOrDefault("icmp.app"),
-			},
-		},
-	}
-	return nil
-}
-
 func ipNeighborMutator(ctc context.Context, c *connection.Connection) error {
 	addrs, err := net.Interfaces()
 	if err != nil {
@@ -154,7 +148,7 @@ func ipNeighborMutator(ctc context.Context, c *connection.Connection) error {
 	return nil
 }
 
-func updateConnections(ctx context.Context, monitorServer local.MonitorServer) {
+func updateConnections(ctx context.Context, monitorServer connectionMonitor.MonitorServer) {
 	for _, entity := range monitorServer.Entities() {
 		localConnection := proto.Clone(entity.(*connection.Connection)).(*connection.Connection)
 		localConnection.GetContext().GetIpContext().ExcludedPrefixes =

@@ -14,7 +14,7 @@ import (
 
 const (
 	opentracingEnv     = "TRACER_ENABLED"
-	opentracingDefault = false
+	opentracingDefault = true
 )
 
 // IsOpentracingEnabled returns true if opentracing enabled

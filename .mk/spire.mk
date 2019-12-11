@@ -44,3 +44,7 @@ spire-install-azure:
 .PHONY: spire-delete
 spire-delete:
 	helm delete --purge spire
+
+.PHONY: spire-wait-registration
+spire-wait-registration:
+	grep -q 'spire-entries successfully registered' <(timeout 120 kubectl logs -n spire -f spire-server-0)

@@ -6,7 +6,6 @@
 [![GitHub license](https://img.shields.io/badge/license-Apache%20license%202.0-blue.svg)](https://github.com/networkservicemesh/networkservicemesh/blob/master/LICENSE)
 [![Slack Channel](https://img.shields.io/badge/Slack:-%23nsm%20on%20CNCF%20Slack-blue.svg?style=plastic&logo=slack)](https://cloud-native.slack.com/messages/CHQNNUPN1/files/FHU5KB3PW/#nsm)
 [![Slack Invite](https://img.shields.io/badge/Slack-CNCF%20Slack%20Invite-blue.svg?style=plastic&logo=slack)](https://slack.cncf.io/)
-[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fnetworkservicemesh%2Fnetworkservicemesh.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fnetworkservicemesh%2Fnetworkservicemesh?ref=badge_shield)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/2725/badge)](https://bestpractices.coreinfrastructure.org/projects/2725)
 
 <p align="center">
@@ -35,8 +34,6 @@ See our full documentation at the [docs](/docs/README.md) folder.
   * [General - Weekly Zoom meeting](https://zoom.us/my/networkservicemeshwg) - every Tuesday at 8:00 - 9:00 AM PT
   * [General - Biweekly Zoom meeting](https://zoom.us/my/networkservicemeshwg) - every other Tuesday at 10:00 - 11:00 AM CET
   * [General - Meeting minutes](https://docs.google.com/document/d/1C9NKjo0PWNWypROEO9-Y6haw5h9Xmurvl14SXpciz2Y/edit#heading=h.rc9df0a6n3ng)
-  * [Documentation - Zoom meeting](https://zoom.us/my/networkservicemeshwg) - every Wednesday at 8:00 - 9:00 AM PT
-  * [Documentation - Meeting minutes](https://docs.google.com/document/d/1113nzdL-DcDAWT3963IsS9LeekgXLTgGebxPO7ZnJaA/edit?usp=sharing)
   * [Calendar](https://calendar.google.com/calendar/embed?src=iae5pl3qbf2g5ehm6jb2h7gv08%40group.calendar.google.com&ctz=America%2FLos_Angeles)
   * [Recordings](https://www.youtube.com/playlist?list=PLj6h78yzYM2Ob01WuF-mqMxd8a_wAuppb)
 
@@ -53,6 +50,8 @@ See our full documentation at the [docs](/docs/README.md) folder.
 
 ## Upcoming events
 
+Please see our [events on our homepage](https://networkservicemesh.io/events)
+
 ## References
 
 * [Official Website](https://www.networkservicemesh.io/)
@@ -67,12 +66,6 @@ See our full documentation at the [docs](/docs/README.md) folder.
 * [Use Case Working Document](https://drive.google.com/open?id=1bIK_SF8lnP1IrZQUIj4eAuDyibSI6tpMvE_bF3RKSCk)
 * [Google Drive Folder](https://drive.google.com/drive/folders/1f5fek-PLvoycMTCp6c-Dn_d9_sBNTfag) - where most of the NSM docs are located. Keep in mind that some of them are still Work in Progress.
 
-## Dependencies
-
-The Network Service Mesh project uses [Dependabot](https://dependabot.com/) to manage dependencies.
-Dependabot pushes out dependency updates to ensure our dependencies remain current and we're not stuck
-with code with known vulnerabilities.
-
 ## FAQ
 
 If you run into problems, check the [docs](/docs/README.md) and feel free to post issues in the [Network Service Mesh](https://github.com/networkservicemesh/networkservicemesh/issues) repository.
@@ -81,5 +74,3 @@ If you run into problems, check the [docs](/docs/README.md) and feel free to pos
 
 This project is released under the Apache 2.0 License. Please review the [License file](LICENSE) for more details.
 
-
-[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fnetworkservicemesh%2Fnetworkservicemesh.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fnetworkservicemesh%2Fnetworkservicemesh?ref=badge_large)

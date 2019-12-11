@@ -30,7 +30,7 @@ func SpanHelperFromConnection(ctx context.Context, clientConnection *model.Clien
 		if span != nil {
 			return spanhelper.FromContext(ctx, operation)
 		}
-		return spanhelper.WithSpan(ctx, clientConnection.Span, operation)
+		return spanhelper.CopySpan(ctx, clientConnection.Span, operation)
 	}
 	return spanhelper.FromContext(ctx, operation)
 }

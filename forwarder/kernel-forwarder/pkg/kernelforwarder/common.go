@@ -18,13 +18,14 @@ package kernelforwarder
 import (
 	"github.com/pkg/errors"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
-	local "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
-	remote "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
 
 	"net"
 	"strconv"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 
 	"github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
@@ -160,40 +161,40 @@ func newConnectionConfig(crossConnect *crossconnect.CrossConnect, connType uint8
 	case cLOCAL:
 		return &connectionConfig{
 			id:            crossConnect.GetId(),
-			srcNetNsInode: crossConnect.GetLocalSource().GetMechanism().GetParameters()[local.NetNsInodeKey],
-			dstNetNsInode: crossConnect.GetLocalDestination().GetMechanism().GetParameters()[local.NetNsInodeKey],
-			srcName:       crossConnect.GetLocalSource().GetMechanism().GetParameters()[local.InterfaceNameKey],
-			dstName:       crossConnect.GetLocalDestination().GetMechanism().GetParameters()[local.InterfaceNameKey],
-			srcIP:         crossConnect.GetLocalSource().GetContext().GetIpContext().GetSrcIpAddr(),
-			dstIP:         crossConnect.GetLocalSource().GetContext().GetIpContext().GetDstIpAddr(),
-			srcRoutes:     crossConnect.GetLocalSource().GetContext().GetIpContext().GetDstRoutes(),
-			dstRoutes:     crossConnect.GetLocalDestination().GetContext().GetIpContext().GetSrcRoutes(),
-			neighbors:     crossConnect.GetLocalSource().GetContext().GetIpContext().GetIpNeighbors(),
+			srcNetNsInode: crossConnect.GetSource().GetMechanism().GetParameters()[common.NetNsInodeKey],
+			dstNetNsInode: crossConnect.GetDestination().GetMechanism().GetParameters()[common.NetNsInodeKey],
+			srcName:       crossConnect.GetSource().GetMechanism().GetParameters()[common.InterfaceNameKey],
+			dstName:       crossConnect.GetDestination().GetMechanism().GetParameters()[common.InterfaceNameKey],
+			srcIP:         crossConnect.GetSource().GetContext().GetIpContext().GetSrcIpAddr(),
+			dstIP:         crossConnect.GetSource().GetContext().GetIpContext().GetDstIpAddr(),
+			srcRoutes:     crossConnect.GetSource().GetContext().GetIpContext().GetDstRoutes(),
+			dstRoutes:     crossConnect.GetDestination().GetContext().GetIpContext().GetSrcRoutes(),
+			neighbors:     crossConnect.GetSource().GetContext().GetIpContext().GetIpNeighbors(),
 		}, nil
 	case cINCOMING:
-		vni, _ := strconv.Atoi(crossConnect.GetRemoteSource().GetMechanism().GetParameters()[remote.VXLANVNI])
+		vni, _ := strconv.Atoi(crossConnect.GetSource().GetMechanism().GetParameters()[vxlan.VNI])
 		return &connectionConfig{
 			id:            crossConnect.GetId(),
-			dstNetNsInode: crossConnect.GetLocalDestination().GetMechanism().GetParameters()[local.NetNsInodeKey],
-			dstName:       crossConnect.GetLocalDestination().GetMechanism().GetParameters()[local.InterfaceNameKey],
-			dstIP:         crossConnect.GetLocalDestination().GetContext().GetIpContext().GetDstIpAddr(),
-			dstRoutes:     crossConnect.GetLocalDestination().GetContext().GetIpContext().GetSrcRoutes(),
+			dstNetNsInode: crossConnect.GetDestination().GetMechanism().GetParameters()[common.NetNsInodeKey],
+			dstName:       crossConnect.GetDestination().GetMechanism().GetParameters()[common.InterfaceNameKey],
+			dstIP:         crossConnect.GetDestination().GetContext().GetIpContext().GetDstIpAddr(),
+			dstRoutes:     crossConnect.GetDestination().GetContext().GetIpContext().GetSrcRoutes(),
 			neighbors:     nil,
-			srcIPVXLAN:    net.ParseIP(crossConnect.GetRemoteSource().GetMechanism().GetParameters()[remote.VXLANSrcIP]),
-			dstIPVXLAN:    net.ParseIP(crossConnect.GetRemoteSource().GetMechanism().GetParameters()[remote.VXLANDstIP]),
+			srcIPVXLAN:    net.ParseIP(crossConnect.GetSource().GetMechanism().GetParameters()[vxlan.SrcIP]),
+			dstIPVXLAN:    net.ParseIP(crossConnect.GetSource().GetMechanism().GetParameters()[vxlan.DstIP]),
 			vni:           vni,
 		}, nil
 	case cOUTGOING:
-		vni, _ := strconv.Atoi(crossConnect.GetRemoteDestination().GetMechanism().GetParameters()[remote.VXLANVNI])
+		vni, _ := strconv.Atoi(crossConnect.GetDestination().GetMechanism().GetParameters()[vxlan.VNI])
 		return &connectionConfig{
 			id:            crossConnect.GetId(),
-			srcNetNsInode: crossConnect.GetLocalSource().GetMechanism().GetParameters()[local.NetNsInodeKey],
-			srcName:       crossConnect.GetLocalSource().GetMechanism().GetParameters()[local.InterfaceNameKey],
-			srcIP:         crossConnect.GetLocalSource().GetContext().GetIpContext().GetSrcIpAddr(),
-			srcRoutes:     crossConnect.GetLocalSource().GetContext().GetIpContext().GetDstRoutes(),
-			neighbors:     crossConnect.GetLocalSource().GetContext().GetIpContext().GetIpNeighbors(),
-			srcIPVXLAN:    net.ParseIP(crossConnect.GetRemoteDestination().GetMechanism().GetParameters()[remote.VXLANSrcIP]),
-			dstIPVXLAN:    net.ParseIP(crossConnect.GetRemoteDestination().GetMechanism().GetParameters()[remote.VXLANDstIP]),
+			srcNetNsInode: crossConnect.GetSource().GetMechanism().GetParameters()[common.NetNsInodeKey],
+			srcName:       crossConnect.GetSource().GetMechanism().GetParameters()[common.InterfaceNameKey],
+			srcIP:         crossConnect.GetSource().GetContext().GetIpContext().GetSrcIpAddr(),
+			srcRoutes:     crossConnect.GetSource().GetContext().GetIpContext().GetDstRoutes(),
+			neighbors:     crossConnect.GetSource().GetContext().GetIpContext().GetIpNeighbors(),
+			srcIPVXLAN:    net.ParseIP(crossConnect.GetDestination().GetMechanism().GetParameters()[vxlan.SrcIP]),
+			dstIPVXLAN:    net.ParseIP(crossConnect.GetDestination().GetMechanism().GetParameters()[vxlan.DstIP]),
 			vni:           vni,
 		}, nil
 	default:

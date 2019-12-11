@@ -17,7 +17,6 @@ providers:
       - PACKET_AUTH_TOKEN
       - PACKET_PROJECT_ID
       - CIRCLE_BUILD_NUM
-      - COMMIT
     packet:
       ssh-key: sshkey.pub   # A key name relative to $(tempdir) or absolute
       devices:
@@ -41,12 +40,5 @@ providers:
       setup: |
         ssh-keygen -t rsa -f $(tempdir)/sshkey -q -N ""
         ssh-add $(tempdir)/sshkey
-      start: ./.cloudtest/packet/create-kubernetes-cluster.sh $(device.Master.pub.ip.4) $(device.Worker.pub.ip.4)
-      prepare: |
-        make k8s-config helm-init
-        make spire-install
-        kubectl get pods -n spire -o wide
-        kubectl get nodes
-        kubectl logs --selector app=spire-server -n spire --all-containers
-        kubectl logs --selector app=spire-agent -n spire --all-containers
-        kubectl describe secret -n spire
+      start: ./.cloudtest/packet/create-kubernetes-cluster.sh $(device.Master.pub.ip.4) $(device.Worker.pub.ip.4) "$(tempdir)/sshkey"
+      prepare: scripts/prepare-cluster.sh

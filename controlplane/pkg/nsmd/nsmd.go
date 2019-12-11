@@ -7,20 +7,19 @@ import (
 	"sync"
 	"time"
 
-	remoteApi "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
-	remoteMonitor "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/remote"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/remote"
 
-	"github.com/pkg/errors"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
+	remoteMonitor "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/remote"
 
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
-	"github.com/networkservicemesh/networkservicemesh/sdk/compat"
+	"github.com/pkg/errors"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/probes"
 	"github.com/networkservicemesh/networkservicemesh/pkg/probes/health"
@@ -36,6 +35,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/services"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
+	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/connectionmonitor"
 	monitor_crossconnect "github.com/networkservicemesh/networkservicemesh/sdk/monitor/crossconnect"
 )
 
@@ -72,7 +72,7 @@ type nsmServer struct {
 	xconManager             *services.ClientConnectionManager
 	crossConnectMonitor     monitor_crossconnect.MonitorServer
 	remoteConnectionMonitor remoteMonitor.MonitorServer
-	remoteServer            remoteApi.NetworkServiceServer
+	remoteServer            unified.NetworkServiceServer
 }
 
 func (nsm *nsmServer) XconManager() *services.ClientConnectionManager {
@@ -83,7 +83,9 @@ func (nsm *nsmServer) Manager() nsm.NetworkServiceManager {
 	return nsm.manager
 }
 
-func (nsm *nsmServer) LocalConnectionMonitor(workspace string) monitor.Server {
+func (nsm *nsmServer) LocalConnectionMonitor(workspace string) connectionmonitor.MonitorServer {
+	nsm.Lock()
+	defer nsm.Unlock()
 	if ws := nsm.workspaces[workspace]; ws != nil {
 		return ws.MonitorConnectionServer()
 	}
@@ -217,18 +219,18 @@ func (nsm *nsmServer) restore(ctx context.Context, registeredEndpointsList *regi
 	updatedEndpoints, err := nsm.restoreEndpoints(span.Context(), nses, registeredNSEs)
 	span.LogObject("updated-endpoints", updatedEndpoints)
 	if err != nil {
-		span.LogError(errors.Wrap(err, "rrror restoring endpoints: %v"))
+		span.LogError(errors.Wrap(err, "error restoring endpoints"))
 		return
 	}
 
 	if len(updatedClients) > 0 || len(updatedEndpoints) > 0 {
 		span.Logger().Infof("save local client/nse registry")
 		if err := nsm.localRegistry.Save(updatedClients, updatedEndpoints); err != nil {
-			span.LogError(errors.Wrap(err, "store updated NSE local registry... %v"))
+			span.LogError(errors.Wrap(err, "store updated NSE local registry..."))
 		}
 	}
 
-	span.Logger().Infof("NSMD: Restore of NSE/Clients Complete...")
+	span.Logger().Info("NSMD: Restore of NSE/Clients Complete...")
 }
 
 func (nsm *nsmServer) restoreClients(ctx context.Context, clients []string) []string {
@@ -243,6 +245,7 @@ func (nsm *nsmServer) restoreClients(ctx context.Context, clients []string) []st
 	updatedClients := make([]string, 0, len(clients))
 	for _, client := range clients {
 		if client == "" {
+			span.Logger().Info("client is empty, skip")
 			continue
 		}
 		workspace, err := NewWorkSpace(span.Context(), nsm, client, true)
@@ -282,7 +285,6 @@ func (nsm *nsmServer) restoreEndpoints(ctx context.Context, nses map[string]nser
 		}
 
 		nseSpan := spanhelper.FromContext(span.Context(), fmt.Sprintf("check-nse-%v", name))
-		defer nseSpan.Finish()
 		nseSpan.LogObject("workspace", ws)
 
 		nseSpan.Logger().Infof("Checking NSE %s is alive at %v...", name, ws.NsmClientSocket())
@@ -291,6 +293,7 @@ func (nsm *nsmServer) restoreEndpoints(ctx context.Context, nses map[string]nser
 			if err := nsm.deleteEndpointWithClient(span.Context(), name, registryClient); err != nil {
 				span.Logger().Errorf("remove NSE: NSE %v", err)
 			}
+			nseSpan.Finish()
 			continue
 		}
 
@@ -298,11 +301,13 @@ func (nsm *nsmServer) restoreEndpoints(ctx context.Context, nses map[string]nser
 		newName, newNSE, err := nsm.restoreEndpoint(span.Context(), discoveryClient, registryClient, name, nse, ws, registeredNSEs, networkServices)
 		if err != nil {
 			span.LogError(errors.Wrap(err, "failed to register NSE: %v"))
+			nseSpan.Finish()
 			continue
 		}
 
 		networkServices[newNSE.NseReg.GetNetworkService().GetName()] = true
 		updatedNSEs[newName] = newNSE
+		nseSpan.Finish()
 	}
 
 	// We need to unregister NSE's without NSM registration.
@@ -561,11 +566,11 @@ func (nsm *nsmServer) StartAPIServerAt(ctx context.Context, sock net.Listener, p
 	grpcServer := tools.NewServer(span.Context())
 
 	crossconnect.RegisterMonitorCrossConnectServer(grpcServer, nsm.crossConnectMonitor)
-	connection.RegisterMonitorConnectionServer(grpcServer, compat.NewMonitorConnectionServerAdapter(nsm.remoteConnectionMonitor, nil))
+	connection.RegisterMonitorConnectionServer(grpcServer, nsm.remoteConnectionMonitor)
 	probes.Append(health.NewGrpcHealth(grpcServer, sock.Addr(), time.Minute))
 
 	// Register Remote NetworkServiceManager
-	unified.RegisterNetworkServiceServer(grpcServer, compat.NewUnifiedNetworkServiceServerAdapter(nsm.remoteServer, nil))
+	unified.RegisterNetworkServiceServer(grpcServer, nsm.remoteServer)
 
 	// TODO: Add more public API services here.
 	go func() {

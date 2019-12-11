@@ -9,6 +9,7 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/probes"
 	"github.com/networkservicemesh/networkservicemesh/pkg/probes/health"
+	"github.com/networkservicemesh/networkservicemesh/utils"
 
 	"github.com/sirupsen/logrus"
 
@@ -18,10 +19,11 @@ import (
 var version string
 
 func main() {
-	// Capture signals to cleanup before exiting
-	c := tools.NewOSSignalChannel()
 	logrus.Info("Admission Webhook starting...")
 	logrus.Infof("Version: %v", version)
+	utils.PrintAllEnv(logrus.StandardLogger())
+	// Capture signals to cleanup before exiting
+	c := tools.NewOSSignalChannel()
 	goals := &admissionWebhookGoals{}
 	prob := probes.New("NSM Admission webhook probes", goals)
 	prob.BeginHealthCheck()

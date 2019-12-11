@@ -8,9 +8,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/properties"
+
 	v1 "k8s.io/api/core/v1"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 
@@ -21,9 +22,9 @@ import (
 
 var nseNoHealPodConfig = &pods.NSMgrPodConfig{
 	Variables: map[string]string{
-		nsmd.NsmdDeleteLocalRegistry: "true", // Do not use local registry restore for clients/NSEs
-		nsm.NsmdHealDSTWaitTimeout:   "1",    // 1 second
-		nsm.NsmdHealEnabled:          "true",
+		nsmd.NsmdDeleteLocalRegistry:      "true", // Do not use local registry restore for clients/NSEs
+		properties.NsmdHealDSTWaitTimeout: "1",    // 1 second
+		properties.NsmdHealEnabled:        "true",
 	},
 }
 
@@ -90,8 +91,8 @@ func testInterdomainNSMDies(t *testing.T, clustersCount int, killSrc bool) {
 	}
 
 	nscPodNode := kubetest.DeployNSCWithEnv(k8ss[0].K8s, k8ss[0].NodesSetup[0].Node, "nsc-1", defaultTimeout, map[string]string{
-		"OUTGOING_NSC_LABELS": "app=icmp",
-		"OUTGOING_NSC_NAME":   fmt.Sprintf("icmp-responder@%s", nseExternalIP),
+		"CLIENT_LABELS":          "app=icmp",
+		"CLIENT_NETWORK_SERVICE": fmt.Sprintf("icmp-responder@%s", nseExternalIP),
 	})
 
 	kubetest.CheckNSC(k8ss[0].K8s, nscPodNode)

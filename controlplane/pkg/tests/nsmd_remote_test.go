@@ -5,14 +5,16 @@ import (
 	"testing"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
+
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
-	local "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
-	remote "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 )
 
@@ -41,7 +43,7 @@ func TestNSMDRequestClientRemoteNSMD(t *testing.T) {
 	defer conn.Close()
 
 	request := &networkservice.NetworkServiceRequest{
-		Connection: &local.Connection{
+		Connection: &connection.Connection{
 			NetworkService: "golden_network",
 			Context: &connectioncontext.ConnectionContext{
 				IpContext: &connectioncontext.IPContext{
@@ -51,12 +53,12 @@ func TestNSMDRequestClientRemoteNSMD(t *testing.T) {
 			},
 			Labels: make(map[string]string),
 		},
-		MechanismPreferences: []*local.Mechanism{
+		MechanismPreferences: []*connection.Mechanism{
 			{
-				Type: local.MechanismType_KERNEL_INTERFACE,
+				Type: kernel.MECHANISM,
 				Parameters: map[string]string{
-					local.NetNsInodeKey:    "10",
-					local.InterfaceNameKey: "icmp-responder1",
+					common.NetNsInodeKey:    "10",
+					common.InterfaceNameKey: "icmp-responder1",
 				},
 			},
 		},
@@ -83,17 +85,17 @@ func TestNSMDCloseCrossConnection(t *testing.T) {
 	srv.TestModel.AddForwarder(context.Background(), &model.Forwarder{
 		RegisteredName: "test_data_plane",
 		SocketLocation: "tcp:some_addr",
-		LocalMechanisms: []connection.Mechanism{
-			&local.Mechanism{
-				Type: local.MechanismType_KERNEL_INTERFACE,
+		LocalMechanisms: []*connection.Mechanism{
+			&connection.Mechanism{
+				Type: kernel.MECHANISM,
 			},
 		},
-		RemoteMechanisms: []connection.Mechanism{
-			&remote.Mechanism{
-				Type: remote.MechanismType_VXLAN,
+		RemoteMechanisms: []*connection.Mechanism{
+			&connection.Mechanism{
+				Type: vxlan.MECHANISM,
 				Parameters: map[string]string{
-					remote.VXLANVNI:   "1",
-					remote.VXLANSrcIP: "10.1.1.1",
+					vxlan.VNI:   "1",
+					vxlan.SrcIP: "10.1.1.1",
 				},
 			},
 		},
@@ -103,12 +105,12 @@ func TestNSMDCloseCrossConnection(t *testing.T) {
 	srv2.TestModel.AddForwarder(context.Background(), &model.Forwarder{
 		RegisteredName: "test_data_plane",
 		SocketLocation: "tcp:some_addr",
-		RemoteMechanisms: []connection.Mechanism{
-			&remote.Mechanism{
-				Type: remote.MechanismType_VXLAN,
+		RemoteMechanisms: []*connection.Mechanism{
+			&connection.Mechanism{
+				Type: vxlan.MECHANISM,
 				Parameters: map[string]string{
-					remote.VXLANVNI:   "3",
-					remote.VXLANSrcIP: "10.1.1.2",
+					vxlan.VNI:   "3",
+					vxlan.SrcIP: "10.1.1.2",
 				},
 			},
 		},
@@ -125,7 +127,7 @@ func TestNSMDCloseCrossConnection(t *testing.T) {
 	defer conn.Close()
 
 	request := &networkservice.NetworkServiceRequest{
-		Connection: &local.Connection{
+		Connection: &connection.Connection{
 			NetworkService: "golden_network",
 			Context: &connectioncontext.ConnectionContext{
 				IpContext: &connectioncontext.IPContext{
@@ -135,12 +137,12 @@ func TestNSMDCloseCrossConnection(t *testing.T) {
 			},
 			Labels: make(map[string]string),
 		},
-		MechanismPreferences: []*local.Mechanism{
+		MechanismPreferences: []*connection.Mechanism{
 			{
-				Type: local.MechanismType_KERNEL_INTERFACE,
+				Type: kernel.MECHANISM,
 				Parameters: map[string]string{
-					local.NetNsInodeKey:    "10",
-					local.InterfaceNameKey: "icmp-responder1",
+					common.NetNsInodeKey:    "10",
+					common.InterfaceNameKey: "icmp-responder1",
 				},
 			},
 		},
@@ -154,10 +156,10 @@ func TestNSMDCloseCrossConnection(t *testing.T) {
 	cross_connection := srv.TestModel.GetClientConnection(nsmResponse.Id)
 	g.Expect(cross_connection).ToNot(BeNil())
 
-	destConnectionId := cross_connection.Xcon.GetRemoteDestination().GetId()
+	destConnectionID := cross_connection.Xcon.Destination.GetId()
 
-	cross_connection2 := srv2.TestModel.GetClientConnection(destConnectionId)
-	g.Expect(cross_connection2).ToNot(BeNil())
+	crossConnection2 := srv2.TestModel.GetClientConnection(destConnectionID)
+	g.Expect(crossConnection2).ToNot(BeNil())
 
 	//Cross connection successfully created, check it closing
 	_, err = nsmClient.Close(context.Background(), nsmResponse)
@@ -167,8 +169,8 @@ func TestNSMDCloseCrossConnection(t *testing.T) {
 	cross_connection = srv.TestModel.GetClientConnection(nsmResponse.Id)
 	g.Expect(cross_connection).To(BeNil())
 
-	cross_connection2 = srv2.TestModel.GetClientConnection(destConnectionId)
-	g.Expect(cross_connection2).To(BeNil())
+	crossConnection2 = srv2.TestModel.GetClientConnection(destConnectionID)
+	g.Expect(crossConnection2).To(BeNil())
 }
 
 func TestNSMDDelayRemoteMechanisms(t *testing.T) {
@@ -199,7 +201,7 @@ func TestNSMDDelayRemoteMechanisms(t *testing.T) {
 	defer conn.Close()
 
 	request := &networkservice.NetworkServiceRequest{
-		Connection: &local.Connection{
+		Connection: &connection.Connection{
 			NetworkService: "golden_network",
 			Context: &connectioncontext.ConnectionContext{
 				IpContext: &connectioncontext.IPContext{
@@ -209,19 +211,19 @@ func TestNSMDDelayRemoteMechanisms(t *testing.T) {
 			},
 			Labels: make(map[string]string),
 		},
-		MechanismPreferences: []*local.Mechanism{
+		MechanismPreferences: []*connection.Mechanism{
 			{
-				Type: local.MechanismType_KERNEL_INTERFACE,
+				Type: kernel.MECHANISM,
 				Parameters: map[string]string{
-					local.NetNsInodeKey:    "10",
-					local.InterfaceNameKey: "icmp-responder1",
+					common.NetNsInodeKey:    "10",
+					common.InterfaceNameKey: "icmp-responder1",
 				},
 			},
 		},
 	}
 
 	type Response struct {
-		nsmResponse *local.Connection
+		nsmResponse *connection.Connection
 		err         error
 	}
 	resultChan := make(chan *Response, 1)

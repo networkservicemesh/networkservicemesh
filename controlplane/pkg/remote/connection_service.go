@@ -15,18 +15,21 @@
 package remote
 
 import (
+	"context"
+
+	"github.com/sirupsen/logrus"
+
 	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	"golang.org/x/net/context"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 )
 
 type connectionService struct {
@@ -41,40 +44,29 @@ func NewConnectionService(model model.Model) networkservice.NetworkServiceServer
 }
 
 func (cce *connectionService) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
-	logger := common.Log(ctx)
-	logger.Infof("Received request from client to connect to NetworkService: %v", request)
 	span := spanhelper.GetSpanHelper(ctx)
-	id := request.GetRequestConnection().GetId()
-	clientConnection := cce.model.GetClientConnection(id)
+	span.Logger().Infof("Received request from client to connect to NetworkService: %v", request)
 
+	id := request.GetRequestConnection().GetId()
+	span.LogValue("connection-id", id)
+
+	// We need to take updated connection in case of updates
+	clientConnection := cce.model.GetClientConnection(id)
 	if clientConnection != nil {
 		// If one of in progress states, we need to exit with failure, since operation on this connection are in progress already.
-		if clientConnection.ConnectionState == model.ClientConnectionRequesting ||
-			clientConnection.ConnectionState == model.ClientConnectionHealing ||
-			clientConnection.ConnectionState == model.ClientConnectionClosing {
+		if cce.isConnectionInProgress(clientConnection) {
 			err := errors.Errorf("trying to request connection in bad state")
 			span.LogError(err)
 			return nil, err
 		}
 
-		request.Connection.SetID(clientConnection.GetID())
-		logger.Infof("NSM:(%v) Called with existing connection passed: %v", id, clientConnection)
-
-		// Update model connection status
-		clientConnection = cce.model.ApplyClientConnectionChanges(ctx, clientConnection.GetID(), func(modelCC *model.ClientConnection) {
-			modelCC.ConnectionState = model.ClientConnectionHealing
-			modelCC.Span = common.OriginalSpan(ctx)
-		})
+		request.Connection.Id = clientConnection.GetID()
+		clientConnection = cce.updateClientConnection(ctx, span.Logger(), id, clientConnection)
 	} else {
 		// Assign ID to connection
-		request.Connection.SetID(cce.model.ConnectionID())
+		request.Connection.Id = cce.model.ConnectionID()
 
-		clientConnection = &model.ClientConnection{
-			ConnectionID:    request.Connection.GetId(),
-			ConnectionState: model.ClientConnectionRequesting,
-			Span:            common.OriginalSpan(ctx),
-			Monitor:         common.MonitorServer(ctx),
-		}
+		clientConnection = cce.createClientConnection(ctx, request)
 		cce.model.AddClientConnection(ctx, clientConnection)
 	}
 
@@ -82,18 +74,46 @@ func (cce *connectionService) Request(ctx context.Context, request *networkservi
 	clientConnection.Request = request
 	ctx = common.WithModelConnection(ctx, clientConnection)
 
-	conn, err := ProcessNext(ctx, request)
+	conn, err := common.ProcessNext(ctx, request)
 	if err != nil {
 		// In case of error we need to remove it from model
 		cce.model.DeleteClientConnection(ctx, clientConnection.GetID())
 		return conn, err
 	}
-	clientConnection.Span = common.OriginalSpan(ctx)
+
 	clientConnection.ConnectionState = model.ClientConnectionReady
+	span.LogObject("client-connection", clientConnection)
+
 	// 10. Send update for client connection
 	cce.model.UpdateClientConnection(ctx, clientConnection)
 
 	return conn, err
+}
+
+func (cce *connectionService) isConnectionInProgress(clientConnection *model.ClientConnection) bool {
+	return clientConnection.ConnectionState == model.ClientConnectionRequesting ||
+		clientConnection.ConnectionState == model.ClientConnectionHealing ||
+		clientConnection.ConnectionState == model.ClientConnectionClosing
+}
+
+func (cce *connectionService) updateClientConnection(ctx context.Context, logger logrus.FieldLogger, id string, clientConnection *model.ClientConnection) *model.ClientConnection {
+	logger.Infof("NSM:(%v) Called with existing connection passed: %v", id, clientConnection)
+
+	// Update model connection status
+	clientConnection = cce.model.ApplyClientConnectionChanges(ctx, clientConnection.GetID(), func(modelCC *model.ClientConnection) {
+		modelCC.ConnectionState = model.ClientConnectionHealing
+		modelCC.Span = common.OriginalSpan(ctx)
+	})
+	return clientConnection
+}
+
+func (cce *connectionService) createClientConnection(ctx context.Context, request *networkservice.NetworkServiceRequest) *model.ClientConnection {
+	return &model.ClientConnection{
+		ConnectionID:    request.Connection.GetId(),
+		ConnectionState: model.ClientConnectionRequesting,
+		Span:            common.OriginalSpan(ctx),
+		Monitor:         common.ConnectionMonitor(ctx),
+	}
 }
 
 func (cce *connectionService) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
@@ -109,10 +129,15 @@ func (cce *connectionService) Close(ctx context.Context, connection *connection.
 	if clientConnection.ConnectionState == model.ClientConnectionClosing {
 		return nil, errors.New("connection could not be closed, it is already closing")
 	}
+
+	clientConnection = cce.model.ApplyClientConnectionChanges(ctx, clientConnection.GetID(), func(modelCC *model.ClientConnection) {
+		modelCC.ConnectionState = model.ClientConnectionClosing
+	})
+
 	// Pass model connection with context
 	ctx = common.WithModelConnection(ctx, clientConnection)
 
-	_, err := ProcessClose(ctx, connection)
+	_, err := common.ProcessClose(ctx, connection)
 
 	if err != nil {
 		logger.Error(err)

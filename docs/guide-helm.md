@@ -6,9 +6,11 @@ This document will show you how to use `Helm` for `NSM` installation.
 [Helm Installation Guide](https://helm.sh/docs/using_helm/#quickstart-guide)
 
 ## Useful Helm commands
-* `$ helm install PATH_TO_CHART` - install specified chart on cluster
+* `$ helm install CHART` - install specified chart on cluster
 * `$ helm ls` - list of deployed releases and their states
 * `$ helm delete RELEASE_NAME` - delete release
+
+## 
 
 ## Using Helm for NSM installation
 
@@ -20,9 +22,9 @@ $ helm install --namespace=nsm-system deployments/helm/nsm
 
 *Note: in case of `Error: no available release name found` do (according to [issue](https://github.com/helm/helm/issues/4412)):*
 ```bash
-$ kubectl create serviceaccount --namespace kube-system tiller
-$ kubectl create clusterrolebinding tiller-cluster-rule --clusterrole=cluster-admin --serviceaccount=kube-system:tiller
-$ kubectl patch deploy --namespace kube-system tiller-deploy -p '{"spec":{"template":{"spec":{"serviceAccount":"tiller"}}}}'
+kubectl create serviceaccount --namespace kube-system tiller
+kubectl create clusterrolebinding tiller-cluster-rule --clusterrole=cluster-admin --serviceaccount=kube-system:tiller
+kubectl patch deploy --namespace kube-system tiller-deploy -p '{"spec":{"template":{"spec":{"serviceAccount":"tiller"}}}}'
 ```
 
 ## Using Helm to install examples

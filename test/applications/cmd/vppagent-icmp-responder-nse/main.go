@@ -19,6 +19,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/memif"
+	"github.com/networkservicemesh/networkservicemesh/utils"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
@@ -29,11 +30,11 @@ import (
 var version string
 
 func main() {
-	// Capture signals to cleanup before exiting
-	c := tools.NewOSSignalChannel()
 	logrus.Info("Starting vppagent-icmp-responder-nse...")
 	logrus.Infof("Version: %v", version)
-
+	utils.PrintAllEnv(logrus.StandardLogger())
+	// Capture signals to cleanup before exiting
+	c := tools.NewOSSignalChannel()
 	configuration := (&common.NSConfiguration{
 		MechanismType: memif.MECHANISM,
 	}).FromEnv()

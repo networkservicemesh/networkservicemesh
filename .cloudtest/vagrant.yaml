@@ -10,7 +10,6 @@ providers:
     timeout: 900  # 15 minutes to start cluster
     env:
       - CLUSTER_RULES_PREFIX=vagrant
-      - CONTAINER_BUILD_PREFIX=docker
     env-check:
       - CONTAINER_REPO
       - CONTAINER_TAG
@@ -20,6 +19,6 @@ providers:
       config: make vagrant-config-location
       prepare: |
         make k8s-load-images
-        make spire-start
+        make spire-install
         make k8s-config
       stop: make vagrant-suspend

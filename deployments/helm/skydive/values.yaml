@@ -1,0 +1,8 @@
+---
+# Default values for skydive.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# The type for monitoring services, i.e. Skydive
+# May be set to valid Kubernetes ServiceTypes values--ClusterIP, NodePort, LoadBalancer, ExternalName
+monSvcType: ClusterIP

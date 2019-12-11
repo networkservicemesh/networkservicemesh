@@ -19,22 +19,30 @@ import (
 	"os"
 	"strings"
 
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+
 	"github.com/sirupsen/logrus"
+
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest/jaeger"
+	"github.com/networkservicemesh/networkservicemesh/utils"
 
 	v1 "k8s.io/api/core/v1"
 )
 
 const (
-	containerRepoEnv      = "CONTAINER_REPO"
-	containerTagEnv       = "CONTAINER_TAG"
-	containerTagDefault   = "latest"
-	containerForcePullEnv = "CONTAINER_FORCE_PULL"
-	containerRepoDefault  = "networkservicemesh"
+	containerRepoEnv                   = "CONTAINER_REPO"
+	containerTagEnv                    = "CONTAINER_TAG"
+	containerTagDefault                = "master"
+	containerForcePullEnv              = "CONTAINER_FORCE_PULL"
+	jaegerVersionEnv      utils.EnvVar = "JAEGER_IMAGE_VERSION"
+	containerRepoDefault               = "networkservicemesh"
+	defaultJaegerVersion               = "1.14.0"
 )
 
 var containerRepo = ""
-var containerTag = "latest"
+var containerTag = containerTagDefault
 var containerForcePull = false
+var jaegerVersion = ""
 
 func init() {
 	found := false
@@ -48,7 +56,7 @@ func init() {
 	if !found {
 		containerTag = containerTagDefault
 	}
-
+	jaegerVersion = jaegerVersionEnv.GetStringOrDefault(defaultJaegerVersion)
 	pull := os.Getenv(containerForcePullEnv)
 	containerForcePull = pull == "true"
 }
@@ -65,10 +73,14 @@ func containerMod(c *v1.Container) v1.Container {
 		}
 	}
 
+	if utils.EnvVar(tools.InsecureEnv).GetBooleanOrDefault(false) {
+		c.Env = append(c.Env, v1.EnvVar{Name: tools.InsecureEnv, Value: "true"})
+	}
+
 	// Update Jaeger
-	if os.Getenv("TRACER_ENABLED") == "true" {
-		logrus.Infof("TRACER_ENABLED %v", c.Name)
-		c.Env = append(c.Env, newJaegerEnvVar()...)
+	if utils.EnvVar("TRACER_ENABLED").GetBooleanOrDefault(true) {
+		logrus.Infof("Added jaeger env for container %v", c.Name)
+		c.Env = append(c.Env, jaeger.Env()...)
 	}
 
 	return *c

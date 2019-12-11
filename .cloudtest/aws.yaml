@@ -15,18 +15,15 @@ providers:
       - NSM_AWS_SERVICE_SUFFIX=${AWS_CLUSTER_NAME}
       - CA_DIR=./deployments/helm/nsm/charts/spire/
     env-check:
-      - COMMIT
       - CIRCLE_BUILD_NUM
       - CIRCLE_WORKFLOW_ID
       - CONTAINER_REPO
       - CONTAINER_TAG
-      - NSM_AWS_ACCESS_KEY_ID
-      - NSM_AWS_SECRET_ACCESS_KEY
+      - AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY
     scripts:
       start: |
         make aws-start
       stop: |
         make aws-destroy
-      prepare: |
-        make k8s-config helm-init
-        make spire-install
+      prepare: scripts/prepare-cluster.sh

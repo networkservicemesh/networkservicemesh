@@ -19,10 +19,12 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 
+	mechanismCommon "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 )
 
 type workspaceProviderService struct {
@@ -41,10 +43,10 @@ func (srv *workspaceProviderService) Request(ctx context.Context, request *netwo
 	srv.updateMechanisms(request)
 
 	ctx = common.WithWorkspaceName(ctx, srv.name)
-	result, err := ProcessNext(ctx, request)
+	result, err := common.ProcessNext(ctx, request)
 	if result != nil {
 		// Remove workspace field since clients doesn't require them.
-		delete(result.GetConnectionMechanism().GetParameters(), connection.Workspace)
+		delete(result.GetMechanism().GetParameters(), mechanismCommon.Workspace)
 	}
 
 	return result, err
@@ -56,11 +58,11 @@ func (srv *workspaceProviderService) updateMechanisms(request *networkservice.Ne
 		if mechanism.Parameters == nil {
 			mechanism.Parameters = map[string]string{}
 		}
-		mechanism.Parameters[connection.Workspace] = srv.name
+		mechanism.Parameters[mechanismCommon.Workspace] = srv.name
 	}
 }
 
 func (srv *workspaceProviderService) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
 	ctx = common.WithWorkspaceName(ctx, srv.name)
-	return ProcessClose(ctx, connection)
+	return common.ProcessClose(ctx, connection)
 }

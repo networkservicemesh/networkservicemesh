@@ -67,36 +67,45 @@ func findDefaultGateway4() (string, net.IP, error) {
 func parseProcFile(scanner *bufio.Scanner) (string, net.IP, error) {
 	for scanner.Scan() {
 		if err := scanner.Err(); err != nil {
-			logrus.Errorf("Failed to read routes files: %v", err)
-			break
+			return "", nil, errors.Wrap(err, "failed to read proc file")
 		}
 		line := strings.TrimSpace(scanner.Text())
 		if len(line) == 0 {
 			continue
 		}
 		parts := strings.Split(line, "\t")
+		logrus.Printf("Parts: %v", parts)
+		if len(parts) < 3 {
+			return "", nil, errors.New("invalid line in proc file")
+		}
 		if strings.TrimSpace(parts[1]) == "00000000" {
 			outgoingInterface := strings.TrimSpace(parts[0])
 			defaultGateway := strings.TrimSpace(parts[2])
-			ip := parseGatewayIP(defaultGateway)
+			ip, err := parseGatewayIP(defaultGateway)
+			if err != nil {
+				return "", nil, errors.WithMessagef(err, "error processing gateway IP %v for outgoing interface: %v", defaultGateway, outgoingInterface)
+
+			}
 			logrus.Printf("Found default gateway %v outgoing: %v", ip.String(), outgoingInterface)
 			return outgoingInterface, ip, nil
 		}
 	}
-	return "", nil, errors.New("Failed to locate default route...")
+	return "", nil, errors.New("failed to locate default route")
 }
 
-func parseGatewayIP(defaultGateway string) net.IP {
+func parseGatewayIP(defaultGateway string) (net.IP, error) {
+	if len(defaultGateway) != 8 {
+		return nil, errors.New("failed to parse IP from string")
+	}
 	ip := net.IP{0, 0, 0, 0}
-	iv0, _ := strconv.ParseInt(defaultGateway[0:2], 16, 32)
-	iv1, _ := strconv.ParseInt(defaultGateway[2:4], 16, 32)
-	iv2, _ := strconv.ParseInt(defaultGateway[4:6], 16, 32)
-	iv3, _ := strconv.ParseInt(defaultGateway[6:], 16, 32)
-	ip[0] = byte(iv3)
-	ip[1] = byte(iv2)
-	ip[2] = byte(iv1)
-	ip[3] = byte(iv0)
-	return ip
+	for i := 0; i < len(defaultGateway)/2; i++ {
+		iv, err := strconv.ParseInt(defaultGateway[i*2:i*2+2], 16, 32)
+		if err != nil {
+			return nil, errors.Wrapf(err, "string does not represent a valid IP address")
+		}
+		ip[3-i] = byte(iv)
+	}
+	return ip, nil
 }
 
 func getArpEntries() ([]*ARPEntry, error) {
@@ -173,7 +182,7 @@ func NewEgressInterface(srcIP net.IP) (EgressInterfaceType, error) {
 					}, nil
 				}
 			default:
-				return nil, errors.New("Type of addr not net.IPNET")
+				return nil, errors.New("type of addr not net.IPNET")
 			}
 		}
 	}

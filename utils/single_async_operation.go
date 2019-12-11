@@ -2,6 +2,7 @@ package utils
 
 import (
 	"sync/atomic"
+	"time"
 )
 
 const (
@@ -14,11 +15,19 @@ const (
 type Operation interface {
 	//Run executes operation
 	Run()
+	//Wait waits for operation completed
+	Wait()
 }
 
 type singleAsyncOperation struct {
 	body  func()
 	state int32
+}
+
+func (s *singleAsyncOperation) Wait() {
+	for atomic.AddInt32(&s.state, 0) != notScheduled {
+		<-time.After(time.Millisecond * 25)
+	}
 }
 
 //NewSingleAsyncOperation creates an operation which should be invoked once by run period. Can be used in cases where required the last run.

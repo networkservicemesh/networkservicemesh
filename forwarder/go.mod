@@ -3,14 +3,13 @@ module github.com/networkservicemesh/networkservicemesh/forwarder
 require (
 	github.com/gogo/protobuf v1.2.2-0.20190723190241-65acae22fc9d
 	github.com/golang/protobuf v1.3.2
-	github.com/ligato/vpp-agent v2.3.0+incompatible
+	github.com/ligato/vpp-agent v2.5.1+incompatible
 	github.com/networkservicemesh/networkservicemesh/controlplane/api v0.2.0
 	github.com/networkservicemesh/networkservicemesh/forwarder/api v0.2.0
 	github.com/networkservicemesh/networkservicemesh/pkg v0.2.0
 	github.com/networkservicemesh/networkservicemesh/sdk v0.2.0
 	github.com/networkservicemesh/networkservicemesh/utils v0.2.0
 	github.com/onsi/gomega v1.7.0
-	github.com/opentracing/opentracing-go v1.1.0
 	github.com/pkg/errors v0.8.1
 	github.com/rs/xid v1.2.1
 	github.com/sirupsen/logrus v1.4.2
@@ -28,6 +27,7 @@ replace (
 	github.com/networkservicemesh/networkservicemesh/forwarder => ./
 	github.com/networkservicemesh/networkservicemesh/forwarder/api => ./api
 	github.com/networkservicemesh/networkservicemesh/k8s/api => ../k8s/api
+	github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis => ../k8s/pkg/apis
 	github.com/networkservicemesh/networkservicemesh/pkg => ../pkg
 	github.com/networkservicemesh/networkservicemesh/sdk => ../sdk
 	github.com/networkservicemesh/networkservicemesh/side-cars => ../side-cars

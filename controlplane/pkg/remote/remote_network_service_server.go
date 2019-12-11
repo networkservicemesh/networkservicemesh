@@ -15,21 +15,22 @@
 package remote
 
 import (
-	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/remote"
-
-	remotenetworkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
+	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/connectionmonitor"
 )
 
 // NewRemoteNetworkServiceServer -  creates a new remote.NetworkServiceServer
-func NewRemoteNetworkServiceServer(manager nsm.NetworkServiceManager, connectionMonitor remote.MonitorServer) remotenetworkservice.NetworkServiceServer {
-	return NewCompositeService(
-		NewRequestValidator(),
-		NewMonitorService(connectionMonitor),
+func NewRemoteNetworkServiceServer(manager nsm.NetworkServiceManager, connectionMonitor connectionmonitor.MonitorServer) networkservice.NetworkServiceServer {
+	return common.NewCompositeService("Remote",
+		common.NewRequestValidator(),
+		common.NewMonitorService(connectionMonitor),
 		NewConnectionService(manager.Model()),
 		NewForwarderService(manager.Model(), manager.ServiceRegistry()),
-		NewEndpointSelectorService(manager.NseManager(), manager.PluginRegistry(), manager.Model()),
-		NewEndpointService(manager.NseManager(), manager.GetHealProperties(), manager.Model(), manager.PluginRegistry()),
-		NewCrossConnectService(),
+		NewEndpointSelectorService(manager.NseManager(), manager.Model()),
+		common.NewExcludedPrefixesService(),
+		NewEndpointService(manager.NseManager(), manager.GetHealProperties(), manager.Model()),
+		common.NewCrossConnectService(),
 	)
 }

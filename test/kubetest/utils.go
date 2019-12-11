@@ -2,10 +2,14 @@ package kubetest
 
 import (
 	"context"
+	"crypto/rand"
 	"crypto/rsa"
+	"crypto/tls"
 	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
+	"math/big"
 	"net"
 	"os"
 	"strings"
@@ -13,14 +17,18 @@ import (
 	"testing"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/pkg/security"
+
+	"k8s.io/client-go/util/cert"
+	"k8s.io/client-go/util/keyutil"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/properties"
+
 	"github.com/pkg/errors"
 
-	"github.com/networkservicemesh/networkservicemesh/pkg/security"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 
 	"github.com/networkservicemesh/networkservicemesh/test/applications/cmd/icmp-responder-nse/flags"
-
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
 
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
@@ -29,13 +37,12 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/client-go/util/cert"
-	"k8s.io/kubernetes/cmd/kubeadm/app/util/pkiutil"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	nsmd2 "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/networkservicemesh/networkservicemesh/sdk/prefix_pool"
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest/jaeger"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 )
 
@@ -68,6 +75,18 @@ func SetupNodes(k8s *K8s, nodesCount int, timeout time.Duration) ([]*NodeConf, e
 	return SetupNodesConfig(k8s, nodesCount, timeout, []*pods.NSMgrPodConfig{}, k8s.GetK8sNamespace())
 }
 
+//FindJaegerPod returns jaeger pod or nil
+func FindJaegerPod(k8s *K8s) *v1.Pod {
+	pods := k8s.ListPods()
+	for i := range pods {
+		p := &pods[i]
+		if strings.Contains(p.Name, "jaeger") {
+			return p
+		}
+	}
+	return nil
+}
+
 //DeployCorefile - Creates configmap with Corefile content
 func DeployCorefile(k8s *K8s, name, content string) error {
 	_, err := k8s.CreateConfigMap(&v1.ConfigMap{
@@ -90,9 +109,14 @@ func DeployCorefile(k8s *K8s, name, content string) error {
 // SetupNodesConfig - Setup NSMgr and Forwarder for particular number of nodes in cluster
 func SetupNodesConfig(k8s *K8s, nodesCount int, timeout time.Duration, conf []*pods.NSMgrPodConfig, namespace string) ([]*NodeConf, error) {
 	nodes := k8s.GetNodesWait(nodesCount, timeout)
+	var jaegerPod *v1.Pod
 	k8s.g.Expect(len(nodes) >= nodesCount).To(Equal(true),
 		"At least one Kubernetes node is required for this test")
-
+	if jaeger.ShouldStoreJaegerTraces() {
+		jaegerPod = k8s.CreatePod(pods.Jaeger())
+		k8s.WaitLogsContains(jaegerPod, jaegerPod.Spec.Containers[0].Name, "Starting HTTP server", timeout)
+		jaeger.JaegerAgentHost.Set(jaegerPod.Status.PodIP)
+	}
 	var wg sync.WaitGroup
 	confs := make([]*NodeConf, nodesCount)
 	var resultError error
@@ -120,6 +144,7 @@ func SetupNodesConfig(k8s *K8s, nodesCount int, timeout time.Duration, conf []*p
 				forwarderPod = pods.ForwardingPlaneWithConfig(forwarderName, node, conf[i].ForwarderVariables, k8s.GetForwardingPlane())
 			}
 			corePods, err := k8s.CreatePodsRaw(PodStartTimeout, true, corePod, forwarderPod)
+
 			if err != nil {
 				logrus.Errorf("Failed to Started NSMgr/Forwarder: %v on node %s %v", time.Since(startTime), node.Name, err)
 				resultError = err
@@ -359,14 +384,14 @@ func InitSpireSecurity(k8s *K8s) func() {
 	addr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("localhost:%d", fwd.ListenPort))
 	k8s.g.Expect(err).To(BeNil())
 
-	obt := security.NewSpireObtainerWithAddress(addr)
-	mgr := security.NewManagerWithCertObtainer(obt)
+	provider, err := security.NewSpireProvider("tcp://" + addr.String())
+	k8s.g.Expect(err).To(BeNil())
+
 	tools.InitConfig(tools.DialConfig{
-		SecurityManager: mgr,
+		SecurityProvider: provider,
 	})
 
 	return func() {
-		obt.Stop()
 		fwd.Stop()
 	}
 }
@@ -374,31 +399,31 @@ func InitSpireSecurity(k8s *K8s) func() {
 func defaultICMPEnv(useIPv6 bool) map[string]string {
 	if !useIPv6 {
 		return map[string]string{
-			"ADVERTISE_NSE_NAME":   "icmp-responder",
-			"ADVERTISE_NSE_LABELS": "app=icmp",
-			"IP_ADDRESS":           "172.16.1.0/24",
+			"ENDPOINT_NETWORK_SERVICE": "icmp-responder",
+			"ENDPOINT_LABELS":          "app=icmp",
+			"IP_ADDRESS":               "172.16.1.0/24",
 		}
 	}
 	return map[string]string{
-		"ADVERTISE_NSE_NAME":   "icmp-responder",
-		"ADVERTISE_NSE_LABELS": "app=icmp",
-		"IP_ADDRESS":           "100::/64",
+		"ENDPOINT_NETWORK_SERVICE": "icmp-responder",
+		"ENDPOINT_LABELS":          "app=icmp",
+		"IP_ADDRESS":               "100::/64",
 	}
 }
 
 func defaultNSCEnv() map[string]string {
 	return map[string]string{
-		"OUTGOING_NSC_LABELS": "app=icmp",
-		"OUTGOING_NSC_NAME":   "icmp-responder",
+		"CLIENT_LABELS":          "app=icmp",
+		"CLIENT_NETWORK_SERVICE": "icmp-responder",
 	}
 }
 
 func noHealNSMgrPodConfig(k8s *K8s) *pods.NSMgrPodConfig {
 	return &pods.NSMgrPodConfig{
 		Variables: map[string]string{
-			nsmd2.NsmdDeleteLocalRegistry: "true", // Do not use local registry restore for clients/NSEs
-			nsm.NsmdHealDSTWaitTimeout:    "1",    // 1 second
-			nsm.NsmdHealEnabled:           "false",
+			nsmd2.NsmdDeleteLocalRegistry:     "true", // Do not use local registry restore for clients/NSEs
+			properties.NsmdHealDSTWaitTimeout: "1",    // 1 second
+			properties.NsmdHealEnabled:        "false",
 		},
 		Namespace:          k8s.GetK8sNamespace(),
 		ForwarderVariables: DefaultForwarderVariables(k8s.GetForwardingPlane()),
@@ -482,72 +507,74 @@ func DeleteAdmissionWebhook(k8s *K8s, secretName string,
 }
 
 // CreateAdmissionWebhookSecret - Create admission webhook secret
-func CreateAdmissionWebhookSecret(k8s *K8s, name, namespace string) (*v1.Secret, []byte) {
-	caCertSpec := &cert.Config{
-		CommonName: "admission-controller-ca",
-		Usages:     []x509.ExtKeyUsage{x509.ExtKeyUsageAny},
-	}
-	caCert, caKey, err := pkiutil.NewCertificateAuthority(caCertSpec)
-	k8s.g.Expect(err).To(BeNil())
-
-	certSpec := &cert.Config{
-		CommonName: name + "-svc",
-		AltNames: cert.AltNames{
-			DNSNames: []string{
-				name + "-svc." + namespace,
-				name + "-svc." + namespace + ".svc",
-			},
+func CreateAdmissionWebhookSecret(k8s *K8s, name, namespace string) (*v1.Secret, tls.Certificate) {
+	now := time.Now()
+	crt := x509.Certificate{
+		Subject: pkix.Name{
+			CommonName: "admission-controller-ca",
 		},
-		Usages: []x509.ExtKeyUsage{x509.ExtKeyUsageAny},
+		NotBefore:    now.Add(-time.Hour * 24 * 365),
+		NotAfter:     now.Add(time.Hour * 24 * 365),
+		SerialNumber: big.NewInt(now.Unix()),
+		KeyUsage:     x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+		ExtKeyUsage: []x509.ExtKeyUsage{
+			x509.ExtKeyUsageServerAuth,
+		},
+		IsCA:                  true,
+		BasicConstraintsValid: true,
+		DNSNames: []string{
+			name + "-svc." + namespace,
+			name + "-svc." + namespace + ".svc",
+		},
 	}
-	cer, key, err := pkiutil.NewCertAndKey(caCert, caKey, certSpec)
-	k8s.g.Expect(err).To(BeNil())
+	// Generate a private key.
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	k8s.g.Expect(err).Should(BeNil())
 
-	block := &pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: x509.MarshalPKCS1PrivateKey(key.(*rsa.PrivateKey)),
-	}
-	keyPem := pem.EncodeToMemory(block)
+	// PEM-encode the private key.
+	keyBytes := pem.EncodeToMemory(&pem.Block{
+		Type:  keyutil.RSAPrivateKeyBlockType,
+		Bytes: x509.MarshalPKCS1PrivateKey(key),
+	})
+	// Self-sign the certificate using the private key.
+	sig, err := x509.CreateCertificate(rand.Reader, &crt, &crt, key.Public(), key)
+	k8s.g.Expect(err).Should(BeNil())
 
-	block = &pem.Block{
-		Type:  "CERTIFICATE",
-		Bytes: cer.Raw,
-	}
-	certPem := pem.EncodeToMemory(block)
+	// PEM-encode the signed certificate
+	sigBytes := pem.EncodeToMemory(&pem.Block{
+		Type:  cert.CertificateBlockType,
+		Bytes: sig,
+	})
 
 	secret := &v1.Secret{
 		TypeMeta: metav1.TypeMeta{
 			Kind: "Secret",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name + "-certs",
+			Name:      "nsm-admission-webhook-certs",
 			Namespace: namespace,
 		},
-		Type: v1.SecretTypeOpaque,
+		Type: v1.SecretTypeTLS,
 		Data: map[string][]byte{
-			"key.pem":  keyPem,
-			"cert.pem": certPem,
+			v1.TLSCertKey:       sigBytes,
+			v1.TLSPrivateKeyKey: keyBytes,
 		},
 	}
-
-	awSecret, err := k8s.CreateSecret(secret, namespace)
-	k8s.g.Expect(err).To(BeNil())
-
-	block = &pem.Block{
-		Type:  "CERTIFICATE",
-		Bytes: caCert.Raw,
-	}
-	caCertPem := pem.EncodeToMemory(block)
-
-	return awSecret, caCertPem
+	result, err := tls.X509KeyPair(sigBytes, keyBytes)
+	k8s.g.Expect(err).Should(BeNil())
+	secret, err = k8s.CreateSecret(secret, namespace)
+	k8s.g.Expect(err).Should(BeNil())
+	return secret, result
 }
 
 // CreateMutatingWebhookConfiguration - Setup Mutating webhook configuration
-func CreateMutatingWebhookConfiguration(k8s *K8s, certPem []byte, name, namespace string) *arv1beta1.MutatingWebhookConfiguration {
+func CreateMutatingWebhookConfiguration(k8s *K8s, c tls.Certificate, name, namespace string) *arv1beta1.MutatingWebhookConfiguration {
 	servicePath := "/mutate"
-
+	caBundle := pem.EncodeToMemory(&pem.Block{
+		Type:  cert.CertificateBlockType,
+		Bytes: c.Certificate[0],
+	})
 	mutatingWebhookConf := &arv1beta1.MutatingWebhookConfiguration{
-
 		TypeMeta: metav1.TypeMeta{
 			Kind: "MutatingWebhookConfiguration",
 		},
@@ -566,7 +593,7 @@ func CreateMutatingWebhookConfiguration(k8s *K8s, certPem []byte, name, namespac
 						Name:      name + "-svc",
 						Path:      &servicePath,
 					},
-					CABundle: certPem,
+					CABundle: caBundle,
 				},
 				Rules: []arv1beta1.RuleWithOperations{
 					{
@@ -677,7 +704,7 @@ func waitWebhookPod(k8s *K8s, name string, timeout time.Duration) *v1.Pod {
 			for i := 0; i < len(list); i++ {
 				p := &list[i]
 				if strings.Contains(p.Name, name) {
-					result, err := blockUntilPodReady(k8s.clientset, timeout, p)
+					result, err := k8s.blockUntilPodReady(k8s.clientset, timeout, p)
 					k8s.g.Expect(err).Should(BeNil())
 					return result
 				}
@@ -921,4 +948,23 @@ func ExpectNSEsCountToBe(k8s *K8s, countWas, countExpected int) {
 
 	k8s.g.Expect(err).To(BeNil())
 	k8s.g.Expect(len(nses)).To(Equal(countExpected), fmt.Sprint(nses))
+}
+
+// ExpectNSMsCountToBe checks if nsms count becomes 'countExpected' after a time
+func ExpectNSMsCountToBe(k8s *K8s, countWas, countExpected int) {
+	if countWas == countExpected {
+		<-time.After(10 * time.Second)
+	} else {
+		for i := 0; i < 10; i++ {
+			if nsmList, err := k8s.GetNSMList(); err == nil && len(nsmList) == countExpected {
+				break
+			}
+			<-time.After(1 * time.Second)
+		}
+	}
+
+	nsmList, err := k8s.GetNSMList()
+
+	k8s.g.Expect(err).To(BeNil())
+	k8s.g.Expect(len(nsmList)).To(Equal(countExpected), fmt.Sprint(nsmList))
 }

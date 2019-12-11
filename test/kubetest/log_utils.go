@@ -14,6 +14,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
+
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest/jaeger"
 )
 
 // MakeLogsSnapshot prints logs from containers in case of fail/panic or enabled logging in file
@@ -29,6 +31,19 @@ func makeLogsSnapshot(k8s *K8s, t *testing.T) {
 	pods := k8s.ListPods()
 	for i := 0; i < len(pods); i++ {
 		showPodLogs(k8s, t, &pods[i])
+	}
+	if (t.Failed() || jaeger.StoreJaegerTracesInAnyCases.GetBooleanOrDefault(false)) &&
+		jaeger.ShouldStoreJaegerTraces() {
+		jaegerPod := FindJaegerPod(k8s)
+		if jaegerPod != nil {
+			dir := filepath.Join(logsDir(), t.Name())
+			traces := GetJaegerTraces(k8s, jaegerPod)
+			for k, v := range traces {
+				logFileExt(k, dir, v, "json")
+			}
+		} else {
+			logrus.Info("Can not find jaeger pod. Traces not saved.")
+		}
 	}
 	if shouldStoreLogsInFiles() && t != nil {
 		archiveLogs(t.Name())
@@ -140,7 +155,7 @@ func savePodContainerLog(k8s *K8s, pod *v1.Pod, c *v1.Container, t *testing.T) {
 			logErr := logFile(name, filepath.Join(logsDir(), t.Name()), content)
 			if logErr != nil {
 				logrus.Errorf("Can't log in file, reason %v", logErr)
-				logTransaction(name, content)
+				logTransaction(name, strings.ReplaceAll(content, "\n", "\\n"))
 			} else {
 				logrus.Infof("Saved log for %v. Check archive %v.zip in path %v", name, t.Name(), logsDir())
 			}
@@ -169,6 +184,10 @@ func shouldShowLogs() bool {
 }
 
 func logFile(name, dir, content string) error {
+	return logFileExt(name, dir, content, "log")
+}
+
+func logFileExt(name, dir, content, ext string) error {
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
 		err = os.MkdirAll(dir, os.ModePerm)
 		if err != nil {
@@ -183,7 +202,7 @@ func logFile(name, dir, content string) error {
 			return err
 		}
 	}
-	file, err := os.Create(path + ".log")
+	file, err := os.Create(fmt.Sprintf("%v.%v", path, ext))
 	if err != nil {
 		return err
 	}

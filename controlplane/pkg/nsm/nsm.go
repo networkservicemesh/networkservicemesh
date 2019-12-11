@@ -19,31 +19,25 @@ import (
 	"sync"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
-
 	"github.com/pkg/errors"
-
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
-
-	unified_nsm "github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm"
-
-	remote_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/networkservice"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/local"
-
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	mechanismCommon "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
-	local_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/connection"
-	local_networkservice "github.com/networkservicemesh/networkservicemesh/controlplane/api/local/networkservice"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
-	remote_connection "github.com/networkservicemesh/networkservicemesh/controlplane/api/remote/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/local"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/plugins"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/properties"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
+	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/connectionmonitor"
 )
 
 const (
@@ -58,14 +52,13 @@ type networkServiceManager struct {
 	sync.RWMutex
 
 	serviceRegistry  serviceregistry.ServiceRegistry
-	pluginRegistry   plugins.PluginRegistry
 	model            model.Model
-	properties       *unified_nsm.Properties
+	props            *properties.Properties
 	stateRestored    chan bool
 	renamedEndpoints map[string]string
 	nseManager       nsm.NetworkServiceEndpointManager
 
-	remoteService remote_networkservice.NetworkServiceServer
+	remoteService networkservice.NetworkServiceServer
 	ctx           context.Context
 }
 
@@ -73,23 +66,23 @@ func (srv *networkServiceManager) Context() context.Context {
 	return srv.ctx
 }
 
-func (srv *networkServiceManager) LocalManager(clientConnection nsm.ClientConnection) local_networkservice.NetworkServiceServer {
-	return local.NewCompositeService(
-		local.NewRequestValidator(),
-		local.NewMonitorService(clientConnection.(*model.ClientConnection).Monitor),
+func (srv *networkServiceManager) LocalManager(clientConnection nsm.ClientConnection) networkservice.NetworkServiceServer {
+	return common.NewCompositeService("LocalHeal",
+		common.NewRequestValidator(),
+		common.NewMonitorService(clientConnection.(*model.ClientConnection).Monitor),
 		local.NewConnectionService(srv.model),
 		local.NewForwarderService(srv.model, srv.serviceRegistry),
-		local.NewEndpointSelectorService(srv.nseManager, srv.pluginRegistry),
-		local.NewEndpointService(srv.nseManager, srv.properties, srv.model, srv.pluginRegistry),
-		local.NewCrossConnectService(),
+		local.NewEndpointSelectorService(srv.nseManager),
+		local.NewEndpointService(srv.nseManager, srv.props, srv.model),
+		common.NewCrossConnectService(),
 	)
 }
 
-func (srv *networkServiceManager) RemoteManager() remote_networkservice.NetworkServiceServer {
+func (srv *networkServiceManager) RemoteManager() networkservice.NetworkServiceServer {
 	return srv.remoteService
 }
 
-func (srv *networkServiceManager) SetRemoteServer(server remote_networkservice.NetworkServiceServer) {
+func (srv *networkServiceManager) SetRemoteServer(server networkservice.NetworkServiceServer) {
 	srv.remoteService = server
 }
 
@@ -99,31 +92,27 @@ func (srv *networkServiceManager) ServiceRegistry() serviceregistry.ServiceRegis
 func (srv *networkServiceManager) NseManager() nsm.NetworkServiceEndpointManager {
 	return srv.nseManager
 }
-func (srv *networkServiceManager) PluginRegistry() plugins.PluginRegistry {
-	return srv.pluginRegistry
-}
 func (srv *networkServiceManager) Model() model.Model {
 	return srv.model
 }
 
-func (srv *networkServiceManager) GetHealProperties() *unified_nsm.Properties {
-	return srv.properties
+func (srv *networkServiceManager) GetHealProperties() *properties.Properties {
+	return srv.props
 }
 
 // NewNetworkServiceManager creates an instance of NetworkServiceManager
-func NewNetworkServiceManager(ctx context.Context, model model.Model, serviceRegistry serviceregistry.ServiceRegistry, pluginRegistry plugins.PluginRegistry) nsm.NetworkServiceManager {
-	properties := unified_nsm.NewNsmProperties()
+func NewNetworkServiceManager(ctx context.Context, model model.Model, serviceRegistry serviceregistry.ServiceRegistry) nsm.NetworkServiceManager {
+	properties := properties.NewNsmProperties()
 	nseManager := &nseManager{
 		serviceRegistry: serviceRegistry,
 		model:           model,
-		properties:      properties,
+		props:           properties,
 	}
 
 	srv := &networkServiceManager{
 		serviceRegistry:  serviceRegistry,
-		pluginRegistry:   pluginRegistry,
 		model:            model,
-		properties:       properties,
+		props:            properties,
 		stateRestored:    make(chan bool, 1),
 		renamedEndpoints: make(map[string]string),
 		nseManager:       nseManager,
@@ -210,19 +199,21 @@ func (srv *networkServiceManager) restoreXconnection(ctx context.Context, xcon *
 
 		endpoint, endpointRenamed := srv.findEndpoint(span.Context(), endpointName, networkServiceName, discovery, xcon, span)
 
-		var request networkservice.Request
+		var request *networkservice.NetworkServiceRequest
 		workspaceName := ""
-		if src := xcon.GetSourceConnection(); !src.IsRemote() {
+		if src := xcon.GetSource(); src != nil && !src.IsRemote() {
 			// Update request to match source connection
-			request = local_networkservice.NewRequest(
-				src,
-				[]connection.Mechanism{src.GetConnectionMechanism()},
-			)
-			workspaceName = src.GetConnectionMechanism().GetParameters()[local_connection.Workspace]
+			request = &networkservice.NetworkServiceRequest{
+				Connection: src,
+				MechanismPreferences: []*connection.Mechanism{
+					src.Mechanism,
+				},
+			}
+			workspaceName = src.GetMechanism().GetParameters()[mechanismCommon.Workspace]
 		}
 
 		monitor := manager.LocalConnectionMonitor(workspaceName)
-		clientConnection := srv.createConnection(xcon, request, endpoint, dp, connectionState, manager, monitor)
+		clientConnection := srv.createConnection(xcon, request, endpoint, dp, connectionState, monitor)
 		srv.model.AddClientConnection(span.Context(), clientConnection)
 
 		if monitor == nil {
@@ -263,7 +254,7 @@ func (srv *networkServiceManager) findEndpoint(ctx context.Context, endpointName
 
 func (srv *networkServiceManager) performHeal(ctx context.Context, xcon *crossconnect.CrossConnect, endpoint *registry.NSERegistration, endpointRenamed bool, clientConnection nsm.ClientConnection, logger logrus.FieldLogger) {
 	// Add healing timer, for connection to be healed from source side.
-	if src := xcon.GetSourceConnection(); src.IsRemote() {
+	if src := xcon.GetSource(); src != nil && src.IsRemote() {
 		if endpoint != nil {
 			if endpointRenamed {
 				// close current connection and wait for a new one
@@ -288,14 +279,14 @@ func (srv *networkServiceManager) performHeal(ctx context.Context, xcon *crossco
 			}
 		}
 
-		if src.GetConnectionState() == connection.StateDown {
+		if src.GetState() == connection.State_DOWN {
 			// if source is down, we need to close connection properly.
 			_ = srv.CloseConnection(ctx, clientConnection)
 		}
 	}
 }
 
-func (srv *networkServiceManager) createConnection(xcon *crossconnect.CrossConnect, request networkservice.Request, endpoint *registry.NSERegistration, dp *model.Forwarder, state model.ClientConnectionState, manager nsm.MonitorManager, monitor monitor.Server) *model.ClientConnection {
+func (srv *networkServiceManager) createConnection(xcon *crossconnect.CrossConnect, request *networkservice.NetworkServiceRequest, endpoint *registry.NSERegistration, dp *model.Forwarder, state model.ClientConnectionState, monitor connectionmonitor.MonitorServer) *model.ClientConnection {
 	return &model.ClientConnection{
 		ConnectionID:            xcon.GetId(),
 		Request:                 request,
@@ -321,7 +312,10 @@ func (srv *networkServiceManager) getEndpoint(ctx context.Context, networkServic
 		endpoints, err := discovery.FindNetworkService(span.Context(), &registry.FindNetworkServiceRequest{
 			NetworkServiceName: networkServiceName,
 		})
-		span.LogError(err)
+		if err != nil {
+			span.LogError(err)
+			return endpoint
+		}
 		for _, ep := range endpoints.NetworkServiceEndpoints {
 			if xcon.GetRemoteDestination() != nil && ep.GetName() == xcon.GetRemoteDestination().GetNetworkServiceEndpointName() {
 				endpoint = &registry.NSERegistration{
@@ -339,24 +333,25 @@ func (srv *networkServiceManager) getEndpoint(ctx context.Context, networkServic
 
 func (srv *networkServiceManager) getConnectionParameters(xcon *crossconnect.CrossConnect, logger logrus.FieldLogger) (connectionState model.ClientConnectionState, networkServiceName, endpointName string) {
 	connectionState = model.ClientConnectionReady
-	if src := xcon.GetSourceConnection(); src.IsRemote() {
+	if src := xcon.GetSource(); src != nil && src.IsRemote() {
 		// Since source is remote, connection need to be healed.
 		connectionState = model.ClientConnectionBroken
 
 		networkServiceName = src.GetNetworkService()
 		endpointName = src.GetNetworkServiceEndpointName()
-	} else if dst := xcon.GetDestinationConnection(); !dst.IsRemote() {
+	} else if dst := xcon.GetDestination(); dst != nil && !dst.IsRemote() {
 		// Local NSE, connection is Ready
 		networkServiceName = dst.GetNetworkService()
-		endpointName = dst.GetConnectionMechanism().GetParameters()[local_connection.WorkspaceNSEName]
+		endpointName = dst.GetMechanism().GetParameters()[kernel.WorkspaceNSEName]
 	} else {
 		// NSE is remote one, and source is local one, we are ready.
-		networkServiceName = xcon.GetRemoteDestination().GetNetworkService()
-		endpointName = xcon.GetRemoteDestination().GetNetworkServiceEndpointName()
+		networkServiceName = xcon.GetDestination().GetNetworkService()
+		endpointName = xcon.GetDestination().GetNetworkServiceEndpointName()
 
 		// In case VxLan is used we need to correct vlanId id generator.
-		m := dst.GetConnectionMechanism().(*remote_connection.Mechanism)
-		if m.Type == remote_connection.MechanismType_VXLAN {
+		mm := dst.Mechanism
+		if mm.GetType() == vxlan.MECHANISM {
+			m := vxlan.ToMechanism(mm)
 			srcIP, err := m.SrcIP()
 			dstIP, err2 := m.DstIP()
 			vni, err3 := m.VNI()
@@ -386,9 +381,9 @@ func (srv *networkServiceManager) RemoteConnectionLost(ctx context.Context, clie
 	})
 
 	go func() {
-		<-time.After(srv.properties.HealTimeout)
+		<-time.After(srv.props.HealTimeout)
 
-		if modelCC := srv.model.GetClientConnection(clientConnection.GetID()); modelCC != nil && modelCC.ConnectionState == model.ClientConnectionHealing {
+		if modelCC := srv.model.GetClientConnection(clientConnection.GetID()); modelCC != nil && modelCC.ConnectionState == model.ClientConnectionHealingBegin {
 			logrus.Errorf("NSM: Timeout happened for checking connection status from Healing.. %v. Closing connection...", clientConnection)
 			// Nobody was healed connection from Remote side.
 			if err := srv.CloseConnection(ctx, clientConnection); err != nil {

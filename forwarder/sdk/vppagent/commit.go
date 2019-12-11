@@ -3,6 +3,8 @@ package forwarder
 import (
 	"context"
 
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
+
 	"github.com/pkg/errors"
 
 	"github.com/golang/protobuf/ptypes/empty"
@@ -13,6 +15,7 @@ import (
 )
 
 type commit struct {
+	downstreamResync func()
 }
 
 func (c *commit) Request(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error) {
@@ -20,11 +23,16 @@ func (c *commit) Request(ctx context.Context, crossConnect *crossconnect.CrossCo
 	if err != nil {
 		return nil, err
 	}
-	Logger(ctx).Infof("update vpp-agent with config: %v", dataChange)
-	_, err = client.Update(ctx, &configurator.UpdateRequest{Update: dataChange})
+	updateSpan := spanhelper.FromContext(ctx, "VppAgent.UpdateRequest")
+	updateSpan.LogObject("dataChange", dataChange)
+	_, err = client.Update(updateSpan.Context(), &configurator.UpdateRequest{Update: dataChange})
+	updateSpan.LogError(err)
 	if err != nil {
+		// Error in vpp-agent Update request may cause vpp - vpp agent desynchronization
+		c.downstreamResync()
 		return nil, err
 	}
+	updateSpan.Finish()
 	next := Next(ctx)
 	if next == nil {
 		return crossConnect, nil
@@ -61,6 +69,8 @@ func getDataChangeAndClient(ctx context.Context) (*configurator.Config, configur
 }
 
 // Commit commits changes
-func Commit() forwarder.ForwarderServer {
-	return &commit{}
+func Commit(downstreamResync func()) forwarder.ForwarderServer {
+	return &commit{
+		downstreamResync: downstreamResync,
+	}
 }

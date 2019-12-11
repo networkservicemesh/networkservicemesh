@@ -4,29 +4,32 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/rest/fake"
 )
 
 type MethodHandler = func(r *http.Request, resource string) (response *http.Response, e error)
 
 type FakeRest struct {
-	*fake.RESTClient
+	*restClient
 	handlers map[string]map[string]MethodHandler
+	mutex    sync.Mutex
 }
 
-func NewFakeRest(groupVersion schema.GroupVersion, serializer runtime.NegotiatedSerializer) *FakeRest {
+func newFakeRest(groupVersion schema.GroupVersion, serializer runtime.NegotiatedSerializer) *FakeRest {
 	result := &FakeRest{
-		RESTClient: &fake.RESTClient{
+		restClient: &restClient{
 			GroupVersion:         groupVersion,
 			NegotiatedSerializer: serializer,
 		},
 		handlers: make(map[string]map[string]MethodHandler),
 	}
 
-	result.Client = fake.CreateHTTPClient(func(request *http.Request) (response *http.Response, e error) {
+	result.Client = createHTTPClient(func(request *http.Request) (response *http.Response, e error) {
+		result.mutex.Lock()
+		defer result.mutex.Unlock()
 		if handlers, ok := result.handlers[request.Method]; ok {
 			if handler, ok := handlers[request.URL.Path]; ok {
 				return handler(request, "")
@@ -45,12 +48,18 @@ func NewFakeRest(groupVersion schema.GroupVersion, serializer runtime.Negotiated
 }
 
 func (f *FakeRest) MockGet(api string, handler MethodHandler) {
+	f.mutex.Lock()
+	defer f.mutex.Unlock()
 	f.getHandlersForMethod(http.MethodGet)[api] = handler
 }
 func (f *FakeRest) MockPost(api string, handler MethodHandler) {
+	f.mutex.Lock()
+	defer f.mutex.Unlock()
 	f.getHandlersForMethod(http.MethodPost)[api] = handler
 }
 func (f *FakeRest) MockPut(api string, handler MethodHandler) {
+	f.mutex.Lock()
+	defer f.mutex.Unlock()
 	f.getHandlersForMethod(http.MethodPut)[api] = handler
 }
 

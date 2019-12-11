@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
+	"github.com/networkservicemesh/networkservicemesh/utils"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
@@ -17,11 +18,9 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	pluginsapi "github.com/networkservicemesh/networkservicemesh/controlplane/api/plugins"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/plugins"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
@@ -36,6 +35,7 @@ const (
 func main() {
 	logrus.Info("Starting nsmd...")
 	logrus.Infof("Version: %v", version)
+	utils.PrintAllEnv(logrus.StandardLogger())
 	start := time.Now()
 
 	// Capture signals to cleanup before exiting
@@ -51,24 +51,10 @@ func main() {
 
 	apiRegistry := nsmd.NewApiRegistry()
 	serviceRegistry := nsmd.NewServiceRegistry()
-	pluginRegistry := plugins.NewPluginRegistry(pluginsapi.PluginRegistrySocket)
-
-	if err := pluginRegistry.Start(span.Context()); err != nil {
-		logrus.Errorf("Failed to start Plugin Registry: %v", err)
-		return
-	}
-
-	span.Logger().Infof("Plugins started")
-
-	defer func() {
-		if err := pluginRegistry.Stop(); err != nil {
-			logrus.Errorf("Failed to stop Plugin Registry: %v", err)
-		}
-	}()
 
 	model := model.NewModel() // This is TCP gRPC server uri to access this NSMD via network.
 	defer serviceRegistry.Stop()
-	manager := nsm.NewNetworkServiceManager(span.Context(), model, serviceRegistry, pluginRegistry)
+	manager := nsm.NewNetworkServiceManager(span.Context(), model, serviceRegistry)
 
 	var server nsmd.NSMServer
 	var srvErr error

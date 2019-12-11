@@ -8,9 +8,9 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/pkg/errors"
-
 	"github.com/sirupsen/logrus"
+
+	"github.com/pkg/errors"
 )
 
 //ProcWrapper - A simple process wrapper
@@ -25,6 +25,10 @@ type ProcWrapper struct {
 func (w *ProcWrapper) ExitCode() int {
 	err := w.Cmd.Wait()
 	if err != nil {
+		e, ok := err.(*exec.ExitError)
+		if ok {
+			return e.ExitCode()
+		}
 		logrus.Errorf("Error during waiting for process exit code: %v %v", w.Cmd.Args, err)
 		return -1
 	}
@@ -33,9 +37,9 @@ func (w *ProcWrapper) ExitCode() int {
 
 // ExecRead - execute command and return output as result, stderr is ignored.
 func ExecRead(ctx context.Context, dir string, args []string) ([]string, error) {
-	proc, error := ExecProc(ctx, dir, args, nil)
-	if error != nil {
-		return nil, error
+	proc, err := ExecProc(ctx, dir, args, nil)
+	if err != nil {
+		return nil, err
 	}
 	output := []string{}
 	reader := bufio.NewReader(proc.Stdout)
@@ -46,7 +50,7 @@ func ExecRead(ctx context.Context, dir string, args []string) ([]string, error) 
 		}
 		output = append(output, strings.TrimSpace(s))
 	}
-	err := proc.Cmd.Wait()
+	err = proc.Cmd.Wait()
 	if err != nil {
 		return output, err
 	}

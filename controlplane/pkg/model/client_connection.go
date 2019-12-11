@@ -4,14 +4,13 @@ import (
 	"context"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/opentracing/opentracing-go"
 
-	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
-
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsm/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
+	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/connectionmonitor"
 )
 
 // ClientConnectionState describes state of ClientConnection
@@ -40,15 +39,15 @@ const (
 // ClientConnection struct in model that describes cross connect between NetworkServiceClient and NetworkServiceEndpoint
 type ClientConnection struct {
 	ConnectionID            string
-	Request                 networkservice.Request
+	Request                 *networkservice.NetworkServiceRequest
 	Xcon                    *crossconnect.CrossConnect
 	RemoteNsm               *registry.NetworkServiceManager
 	Endpoint                *registry.NSERegistration
 	ForwarderRegisteredName string
 	ConnectionState         ClientConnectionState
 	ForwarderState          ForwarderState
-	Span                    opentracing.Span
-	Monitor                 monitor.Server
+	Span                    spanhelper.SpanHelper
+	Monitor                 connectionmonitor.MonitorServer
 }
 
 // GetID returns id of clientConnection
@@ -68,16 +67,16 @@ func (cc *ClientConnection) GetNetworkService() string {
 }
 
 // GetConnectionSource returns source part of connection
-func (cc *ClientConnection) GetConnectionSource() connection.Connection {
+func (cc *ClientConnection) GetConnectionSource() *connection.Connection {
 	if cc.Xcon == nil {
 		return nil
 	}
-	return cc.Xcon.GetSourceConnection()
+	return cc.Xcon.GetSource()
 }
 
 // GetConnectionDestination returns destination part of connection
-func (cc *ClientConnection) GetConnectionDestination() connection.Connection {
-	return cc.Xcon.GetDestinationConnection()
+func (cc *ClientConnection) GetConnectionDestination() *connection.Connection {
+	return cc.Xcon.GetDestination()
 }
 
 // Clone return pointer to copy of ClientConnection
@@ -101,7 +100,7 @@ func (cc *ClientConnection) clone() cloneable {
 		endpoint = proto.Clone(cc.Endpoint).(*registry.NSERegistration)
 	}
 
-	var request networkservice.Request
+	var request *networkservice.NetworkServiceRequest
 	if cc.Request != nil {
 		request = cc.Request.Clone()
 	}

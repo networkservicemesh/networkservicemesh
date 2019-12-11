@@ -1,10 +1,16 @@
 package pods
 
 import (
-	"os"
+	"fmt"
 
 	v1 "k8s.io/api/core/v1"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/networkservicemesh/networkservicemesh/utils"
+)
+
+const (
+	JaegerAPIPort utils.EnvVar = "JAEGER_REST_API_PORT"
 )
 
 func JaegerService(pod *v1.Pod) *v1.Service {
@@ -22,6 +28,7 @@ func JaegerService(pod *v1.Pod) *v1.Service {
 		},
 	}
 }
+
 func Jaeger() *v1.Pod {
 	pod := &v1.Pod{
 		ObjectMeta: v12.ObjectMeta{
@@ -37,7 +44,7 @@ func Jaeger() *v1.Pod {
 			Containers: []v1.Container{
 				{
 					Name:            "jaeger",
-					Image:           "jaegertracing/all-in-one:latest",
+					Image:           fmt.Sprintf("%v:%v", "jaegertracing/all-in-one", jaegerVersion),
 					ImagePullPolicy: v1.PullIfNotPresent,
 					Ports: []v1.ContainerPort{
 						{Name: "http", ContainerPort: 16686, Protocol: "TCP"},
@@ -48,30 +55,4 @@ func Jaeger() *v1.Pod {
 		},
 	}
 	return pod
-}
-
-func newJaegerEnvVar() []v1.EnvVar {
-	jaegerHost := "jaeger.nsm-system"
-	jaegerPort := "6831"
-
-	if value := os.Getenv("JAEGER_AGENT_HOST"); value != "" {
-		jaegerHost = value
-	}
-	if value := os.Getenv("JAEGER_AGENT_PORT"); value != "" {
-		jaegerPort = value
-	}
-	return []v1.EnvVar{
-		{
-			Name:  "JAEGER_AGENT_HOST",
-			Value: jaegerHost,
-		},
-		{
-			Name:  "JAEGER_AGENT_PORT",
-			Value: jaegerPort,
-		},
-		{
-			Name:  "TRACER_ENABLED",
-			Value: "true",
-		},
-	}
 }

@@ -1,7 +1,6 @@
 module github.com/networkservicemesh/networkservicemesh/utils
 
 require (
-	github.com/go-errors/errors v1.0.1
 	github.com/networkservicemesh/networkservicemesh/controlplane/api v0.2.0
 	github.com/onsi/gomega v1.7.0
 	github.com/pkg/errors v0.8.1
