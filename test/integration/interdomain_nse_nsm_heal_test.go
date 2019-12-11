@@ -94,8 +94,8 @@ func testInterdomainNSMHeal(t *testing.T, clustersCount int, killIndex int, dele
 	}
 
 	nscPodNode := kubetest.DeployNSCWithEnv(k8ss[0].K8s, k8ss[0].NodesSetup[0].Node, "nsc-1", defaultTimeout, map[string]string{
-		"OUTGOING_NSC_LABELS": "app=icmp",
-		"OUTGOING_NSC_NAME":   fmt.Sprintf("icmp-responder@%s", nseExternalIP),
+		"CLIENT_LABELS":          "app=icmp",
+		"CLIENT_NETWORK_SERVICE": fmt.Sprintf("icmp-responder@%s", nseExternalIP),
 	})
 
 	kubetest.CheckNSC(k8ss[0].K8s, nscPodNode)

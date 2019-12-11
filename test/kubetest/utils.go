@@ -399,22 +399,22 @@ func InitSpireSecurity(k8s *K8s) func() {
 func defaultICMPEnv(useIPv6 bool) map[string]string {
 	if !useIPv6 {
 		return map[string]string{
-			"ADVERTISE_NSE_NAME":   "icmp-responder",
-			"ADVERTISE_NSE_LABELS": "app=icmp",
-			"IP_ADDRESS":           "172.16.1.0/24",
+			"ENDPOINT_NETWORK_SERVICE": "icmp-responder",
+			"ENDPOINT_LABELS":          "app=icmp",
+			"IP_ADDRESS":               "172.16.1.0/24",
 		}
 	}
 	return map[string]string{
-		"ADVERTISE_NSE_NAME":   "icmp-responder",
-		"ADVERTISE_NSE_LABELS": "app=icmp",
-		"IP_ADDRESS":           "100::/64",
+		"ENDPOINT_NETWORK_SERVICE": "icmp-responder",
+		"ENDPOINT_LABELS":          "app=icmp",
+		"IP_ADDRESS":               "100::/64",
 	}
 }
 
 func defaultNSCEnv() map[string]string {
 	return map[string]string{
-		"OUTGOING_NSC_LABELS": "app=icmp",
-		"OUTGOING_NSC_NAME":   "icmp-responder",
+		"CLIENT_LABELS":          "app=icmp",
+		"CLIENT_NETWORK_SERVICE": "icmp-responder",
 	}
 }
 
