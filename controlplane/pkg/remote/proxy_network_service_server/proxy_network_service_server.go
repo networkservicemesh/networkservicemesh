@@ -55,7 +55,9 @@ func (srv *proxyNetworkServiceServer) Request(ctx context.Context, request *netw
 	if err != nil {
 		return nil, errors.New("ProxyNSMD: Failed to extract destination nsm address")
 	}
-	request.Connection.NetworkServiceManagers[1] = dNsmName
+
+	//TODO Set Request Token
+	request.GetConnection().Path = request.GetConnection().GetPath().ExtendPath(request.GetConnection().GetId(), dNsmName, "")
 
 	dNsm := srv.newManager(dNsmName, dNsmAddress)
 	client, conn, err := srv.connectNSM(ctx, dNsm)
@@ -112,7 +114,7 @@ func (srv *proxyNetworkServiceServer) updatereResponse(ctx context.Context, remo
 	}
 
 	response.Mechanism.Parameters[vxlan.SrcIP] = localSrcIP
-	response.NetworkServiceManagers[1] = destNsmName
+	response.Path = response.GetPath().ExtendPath(response.GetId(), destNsmName, "")
 	response.NetworkService = originalNetworkService
 }
 
@@ -181,7 +183,8 @@ func (srv *proxyNetworkServiceServer) getRemoteNsrPort() string {
 func (srv *proxyNetworkServiceServer) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
 	logrus.Infof("ProxyNSMD: Proxy closing connection: %v", *connection)
 
-	destNsmName := connection.NetworkServiceManagers[1]
+	pss := connection.GetPath().GetPathSegments()
+	destNsmName := pss[len(pss)-1].GetName()
 	dNsmName, dNsmAddress, err := interdomain.ParseNsmURL(destNsmName)
 	if err != nil {
 		return nil, errors.Errorf("ProxyNSMD: Failed to extract destination nsm address")

@@ -26,14 +26,26 @@ func newXcon(eventType crossconnect.CrossConnectEventType, srcUp, dstUp, empty b
 			"newid": {
 				Id: "newid",
 				Source: &connection.Connection{
-					Id:                     "1",
-					State:                  srcState,
-					NetworkServiceManagers: []string{"local"},
+					Id:    "1",
+					State: srcState,
+					Path: &connection.Path{
+						PathSegments: []*connection.PathSegment{
+							{
+								Name: "local",
+							},
+						},
+					},
 				},
 				Destination: &connection.Connection{
-					Id:                     "2",
-					State:                  dstState,
-					NetworkServiceManagers: []string{"local"},
+					Id:    "2",
+					State: dstState,
+					Path: &connection.Path{
+						PathSegments: []*connection.PathSegment{
+							{
+								Name: "local",
+							},
+						},
+					},
 				},
 			},
 		}

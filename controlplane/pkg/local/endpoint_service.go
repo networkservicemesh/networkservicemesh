@@ -145,11 +145,12 @@ func (cce *endpointService) createLocalNSERequest(endpoint *registry.NSERegistra
 		if localDst := clientConnection.Xcon.GetLocalDestination(); localDst != nil {
 			return &networkservice.NetworkServiceRequest{
 				Connection: &connection.Connection{
-					Id:                     localDst.GetId(),
-					NetworkService:         localDst.NetworkService,
-					Context:                localDst.GetContext(),
-					Labels:                 localDst.GetLabels(),
-					NetworkServiceManagers: []string{cce.model.GetNsm().GetName()},
+					Id:             localDst.GetId(),
+					NetworkService: localDst.NetworkService,
+					Context:        localDst.GetContext(),
+					Labels:         localDst.GetLabels(),
+					//  TODO Set requestToken correctly
+					Path: requestConn.GetPath().ExtendPath(localDst.GetId(), cce.model.GetNsm().GetName(), ""),
 				},
 				MechanismPreferences: localM,
 			}
@@ -158,11 +159,11 @@ func (cce *endpointService) createLocalNSERequest(endpoint *registry.NSERegistra
 
 	return &networkservice.NetworkServiceRequest{
 		Connection: &connection.Connection{
-			Id:                     cce.model.ConnectionID(), // ID for NSE is managed by NSMgr
-			NetworkService:         endpoint.GetNetworkService().GetName(),
-			NetworkServiceManagers: []string{cce.model.GetNsm().GetName()},
-			Context:                requestConn.GetContext(),
-			Labels:                 requestConn.GetLabels(),
+			Id:             cce.model.ConnectionID(), // ID for NSE is managed by NSMgr
+			NetworkService: endpoint.GetNetworkService().GetName(),
+			Path:           requestConn.GetPath().ExtendPath(cce.model.ConnectionID(), cce.model.GetNsm().GetName(), ""),
+			Context:        requestConn.GetContext(),
+			Labels:         requestConn.GetLabels(),
 		},
 		MechanismPreferences: localM,
 	}
@@ -183,10 +184,14 @@ func (cce *endpointService) createRemoteNSMRequest(endpoint *registry.NSERegistr
 					Context:                    remoteDst.GetContext(),
 					Labels:                     remoteDst.GetLabels(),
 					NetworkServiceEndpointName: endpoint.GetNetworkServiceEndpoint().GetName(),
-					NetworkServiceManagers: []string{
-						cce.model.GetNsm().GetName(),                  // src
-						endpoint.GetNetworkServiceManager().GetName(), // dst
-					},
+					Path: (&connection.Path{
+						Index: 0,
+						PathSegments: []*connection.PathSegment{
+							{
+								Name: cce.model.GetNsm().GetName(),
+							},
+						},
+					}).ExtendPath(remoteDst.GetId(), endpoint.GetNetworkServiceManager().GetName(), ""),
 				},
 				MechanismPreferences: remoteM,
 			}
@@ -200,10 +205,14 @@ func (cce *endpointService) createRemoteNSMRequest(endpoint *registry.NSERegistr
 			Context:                    requestConn.GetContext(),
 			Labels:                     requestConn.GetLabels(),
 			NetworkServiceEndpointName: endpoint.GetNetworkServiceEndpoint().GetName(),
-			NetworkServiceManagers: []string{
-				cce.model.GetNsm().GetName(),                  // src
-				endpoint.GetNetworkServiceManager().GetName(), // dst
-			},
+			Path: (&connection.Path{
+				Index: 0,
+				PathSegments: []*connection.PathSegment{
+					{
+						Name: cce.model.GetNsm().GetName(),
+					},
+				},
+			}).ExtendPath("-", endpoint.GetNetworkServiceManager().GetName(), ""),
 		},
 		MechanismPreferences: remoteM,
 	}

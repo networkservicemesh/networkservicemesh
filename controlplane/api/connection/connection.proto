@@ -21,6 +21,7 @@ syntax = "proto3";
 package connection;
 option go_package = "connection";
 
+import "ptypes/timestamp/timestamp.proto";
 import "github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext/connectioncontext.proto";
 
 message Mechanism {
@@ -34,13 +35,25 @@ enum State {
   DOWN = 1;
 }
 
+message PathSegment {
+  string name      = 1;
+  string id        = 2;
+  string request_token = 3;
+  string response_token = 4;
+  google.protobuf.Timestamp expires = 5;
+}
+message Path {
+  uint32 index = 1;
+  repeated PathSegment path_segments = 2;
+}
+
 message Connection {
   string id = 1;
   string network_service = 2;
   Mechanism mechanism = 3;
   connectioncontext.ConnectionContext context = 4;
   map<string, string> labels = 5;
-  repeated string network_service_managers = 6;
+  Path path = 6;
   string network_service_endpoint_name = 7;
   State state = 9;
 }

@@ -25,13 +25,26 @@ func newConnection() *model.ClientConnection {
 		Xcon: crossconnect.NewCrossConnect("1", "ip",
 			&connection.Connection{
 				Id: "1",
-				NetworkServiceManagers: []string{
-					"local_nsm",
+				Path: &connection.Path{
+					PathSegments: []*connection.PathSegment{
+						{
+							Name: "local_nsm",
+						},
+					},
 				},
 			},
 			&connection.Connection{
-				Id:                     "-",
-				NetworkServiceManagers: []string{"local_nsm", "remote_nsm"},
+				Id: "-",
+				Path: &connection.Path{
+					PathSegments: []*connection.PathSegment{
+						{
+							Name: "local_nsm",
+						},
+						{
+							Name: "remote_nsm",
+						},
+					},
+				},
 			}),
 	}
 }
@@ -171,14 +184,25 @@ func TestGetClientConnectionByXCon(t *testing.T) {
 			&connection.Connection{
 				Id:             "2",
 				NetworkService: "s2",
-				NetworkServiceManagers: []string{
-					"local_nsm",
+				Path: &connection.Path{
+					PathSegments: []*connection.PathSegment{
+						{
+							Name: "local_nsm",
+						},
+					},
 				},
 			},
 			&connection.Connection{
 				Id: "3",
-				NetworkServiceManagers: []string{
-					"local_nsm", "remote_nsm",
+				Path: &connection.Path{
+					PathSegments: []*connection.PathSegment{
+						{
+							Name: "local_nsm",
+						},
+						{
+							Name: "remote_nsm",
+						},
+					},
 				},
 			}),
 	}
@@ -208,14 +232,25 @@ func createConnections(mdl model.Model) {
 			&connection.Connection{
 				Id:             "2",
 				NetworkService: "s2",
-				NetworkServiceManagers: []string{
-					"local_nsm",
+				Path: &connection.Path{
+					PathSegments: []*connection.PathSegment{
+						{
+							Name: "local_nsm",
+						},
+					},
 				},
 			},
 			&connection.Connection{
 				Id: "3",
-				NetworkServiceManagers: []string{
-					"local_nsm", "remote_nsm",
+				Path: &connection.Path{
+					PathSegments: []*connection.PathSegment{
+						{
+							Name: "local_nsm",
+						},
+						{
+							Name: "remote_nsm",
+						},
+					},
 				},
 			}),
 	})
@@ -230,14 +265,25 @@ func createConnections(mdl model.Model) {
 			&connection.Connection{
 				Id:             "3",
 				NetworkService: "s2",
-				NetworkServiceManagers: []string{
-					"nsm1", "remote_nsm",
+				Path: &connection.Path{
+					PathSegments: []*connection.PathSegment{
+						{
+							Name: "nsm1",
+						},
+						{
+							Name: "remote_nsm",
+						},
+					},
 				},
 			},
 			&connection.Connection{
 				Id: "4",
-				NetworkServiceManagers: []string{
-					"local_nsm",
+				Path: &connection.Path{
+					PathSegments: []*connection.PathSegment{
+						{
+							Name: "local_nsm",
+						},
+					},
 				},
 			}),
 	})

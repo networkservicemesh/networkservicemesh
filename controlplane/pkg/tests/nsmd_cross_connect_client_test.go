@@ -70,8 +70,17 @@ func TestNSMDCrossConnectClientRemote(t *testing.T) {
 			ConnectionID: "1",
 			Xcon: &crossconnect.CrossConnect{
 				Source: &connection.Connection{
-					Id:                     "1",
-					NetworkServiceManagers: []string{"nsm1", "nsm2"},
+					Id: "1",
+					Path: &connection.Path{
+						PathSegments: []*connection.PathSegment{
+							{
+								Name: "nsm1",
+							},
+							{
+								Name: "nsm2",
+							},
+						},
+					},
 				},
 				Destination: &connection.Connection{
 					Id: "2",
@@ -95,8 +104,8 @@ func TestNSMDCrossConnectClientRemote(t *testing.T) {
 	conn, ok := ents["1"]
 	g.Expect(ok).To(Equal(true))
 	g.Expect(conn.Id).To(Equal("1"))
-	g.Expect(len(conn.NetworkServiceManagers)).To(Equal(2))
-	g.Expect(conn.NetworkServiceManagers[1]).To(Equal("nsm2"))
+	g.Expect(len(conn.GetPath().GetPathSegments())).To(Equal(2))
+	g.Expect(conn.GetPath().GetPathSegments()[1].Name).To(Equal("nsm2"))
 }
 
 func TestNSMDCrossConnectClientLocal(t *testing.T) {
@@ -126,8 +135,14 @@ func TestNSMDCrossConnectClientLocal(t *testing.T) {
 			ConnectionID: "1",
 			Xcon: &crossconnect.CrossConnect{
 				Source: &connection.Connection{
-					Id:                     "1",
-					NetworkServiceManagers: []string{"nsm1"},
+					Id: "1",
+					Path: &connection.Path{
+						PathSegments: []*connection.PathSegment{
+							{
+								Name: "nsm1",
+							},
+						},
+					},
 				},
 				Destination: &connection.Connection{
 					Id: "2",

@@ -457,15 +457,45 @@ func (data *healTestData) createCrossConnection(isRemoteSrc, isRemoteDst bool, s
 
 	xcon.Source = &unified.Connection{Id: srcID}
 	if isRemoteSrc {
-		xcon.Source.NetworkServiceManagers = []string{"src", "dst"}
+		xcon.Source.Path = &connection.Path{
+			PathSegments: []*connection.PathSegment{
+				{
+					Name: "src",
+				},
+				{
+					Name: "dst",
+				},
+			},
+		}
 	} else {
-		xcon.Source.NetworkServiceManagers = []string{"src"}
+		xcon.Source.Path = &connection.Path{
+			PathSegments: []*connection.PathSegment{
+				{
+					Name: "src",
+				},
+			},
+		}
 	}
 	xcon.Destination = &unified.Connection{Id: dstID}
 	if isRemoteDst {
-		xcon.Destination.NetworkServiceManagers = []string{"src", "dst"}
+		xcon.Destination.Path = &connection.Path{
+			PathSegments: []*connection.PathSegment{
+				{
+					Name: "src",
+				},
+				{
+					Name: "dst",
+				},
+			},
+		}
 	} else {
-		xcon.Destination.NetworkServiceManagers = []string{"src"}
+		xcon.Destination.Path = &connection.Path{
+			PathSegments: []*connection.PathSegment{
+				{
+					Name: "src",
+				},
+			},
+		}
 	}
 
 	return xcon
@@ -475,16 +505,31 @@ func (data *healTestData) createRequest(isRemote bool) *networkservice.NetworkSe
 	if isRemote {
 		return &networkservice.NetworkServiceRequest{
 			Connection: &connection.Connection{
-				NetworkService:         networkServiceName,
-				NetworkServiceManagers: []string{"local", "remove"},
+				NetworkService: networkServiceName,
+				Path: &connection.Path{
+					PathSegments: []*connection.PathSegment{
+						{
+							Name: "local",
+						},
+						{
+							Name: "remove",
+						},
+					},
+				},
 			},
 		}
 	}
 
 	return &networkservice.NetworkServiceRequest{
 		Connection: &connection.Connection{
-			NetworkService:         networkServiceName,
-			NetworkServiceManagers: []string{"local"},
+			NetworkService: networkServiceName,
+			Path: &connection.Path{
+				PathSegments: []*connection.PathSegment{
+					{
+						Name: "local",
+					},
+				},
+			},
 		},
 	}
 }

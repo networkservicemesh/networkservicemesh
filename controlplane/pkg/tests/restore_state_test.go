@@ -54,7 +54,13 @@ func TestRestoreConnectionShouldNotPanic(t *testing.T) {
 				common.Workspace: nsmClient.Workspace,
 			},
 		},
-		NetworkServiceManagers: []string{"src"},
+		Path: &connection.Path{
+			PathSegments: []*connection.PathSegment{
+				{
+					Name: "src",
+				},
+			},
+		},
 	}
 
 	dstConnection := &connection.Connection{
@@ -65,8 +71,14 @@ func TestRestoreConnectionShouldNotPanic(t *testing.T) {
 				kernel.WorkspaceNSEName: "nse1",
 			},
 		},
-		NetworkService:         "ns1",
-		NetworkServiceManagers: []string{"src"},
+		NetworkService: "ns1",
+		Path: &connection.Path{
+			PathSegments: []*connection.PathSegment{
+				{
+					Name: "src",
+				},
+			},
+		},
 	}
 	xcons := []*crossconnect.CrossConnect{
 		{
@@ -99,7 +111,13 @@ func TestRestoreConnectionStateWrongDst(t *testing.T) {
 				common.Workspace: nsmClient.Workspace + "?",
 			},
 		},
-		NetworkServiceManagers: []string{"src"},
+		Path: &connection.Path{
+			PathSegments: []*connection.PathSegment{
+				{
+					Name: "src",
+				},
+			},
+		},
 	}
 
 	dstConnection := &connection.Connection{
@@ -110,8 +128,14 @@ func TestRestoreConnectionStateWrongDst(t *testing.T) {
 				kernel.WorkspaceNSEName: "nse1",
 			},
 		},
-		NetworkService:         "ns1",
-		NetworkServiceManagers: []string{"src"},
+		NetworkService: "ns1",
+		Path: &connection.Path{
+			PathSegments: []*connection.PathSegment{
+				{
+					Name: "src",
+				},
+			},
+		},
 	}
 	xcons := []*crossconnect.CrossConnect{
 		{
