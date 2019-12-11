@@ -1,4 +1,4 @@
-FROM lobkovilya/spire-server:kind as builder
+FROM gcr.io/spiffe-io/spire-server:0.9.0 as builder
 
 FROM alpine
 RUN apk add dumb-init
