@@ -24,7 +24,7 @@ CLUSTERS=$(gcloud container clusters list --project="$GKE_PROJECT_ID" --format="
 # shellcheck disable=SC2206
 IFS=$'\n' rows=($CLUSTERS); # Split result to string array by rows
 
-for cluster_info in ${rows[@]}; do
+for cluster_info in "${rows[@]}"; do
     # shellcheck disable=SC2206
     IFS=$' ' cols=(${cluster_info}); # Split each row to values array by space ([0]=name, [1]=zone, [2]=createTime)
     echo "Deleting cluster ${cols[0]} (created ${cols[2]})"

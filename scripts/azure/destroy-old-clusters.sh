@@ -35,7 +35,7 @@ CLUSTERS=$(az aks list -g "nsm-ci" --query "[].{Name:name,Id:id,Group:resourceGr
 # shellcheck disable=SC2206
 IFS=$'\n' rows=($CLUSTERS); # Split result to string array by rows
 
-for cluster_info in ${rows[@]}; do
+for cluster_info in "${rows[@]}"; do
     # shellcheck disable=SC2206
     IFS=$'\t' cols=(${cluster_info}); # Split each row to values array by \t separator ([0]=name, [1]=id, [2]=resourceGroup)
     
