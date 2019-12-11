@@ -78,9 +78,8 @@ jobs:
     environment:
       GO111MODULE: "on"
 
-#performance and concurrency testing
-  performance-concurrency-testing:
-    resource_class: xlarge
+# performance and concurrency testing
+  performance-concurrency-tests:
     working_directory: /go/src/github.com/networkservicemesh/networkservicemesh
     docker:
       - image: circleci/golang:1.13-stretch
@@ -94,7 +93,7 @@ jobs:
             export INSECURE="true"
             ./scripts/run_tests.sh "-short -race -tags=unit_test"
             ./scripts/run_tests.sh "-short -tags=performance"
-        - store_test_results:
+      - store_test_results:
           path: ~/junit
       - store_artifacts:
           path: ~/junit
@@ -275,11 +274,11 @@ workflows:
           requires:
             - test-sanity-check
 
-#Performance and concurrency testing
-      - test-performance-concurrency:
+# Performance and concurrency testing
+      - performance-concurrency-tests:
           name: "test-performance-concurrency"
           requires:
-            - test-sanity-chec
+            - test-sanity-check
 
 # Integration testing
       - integration-tests:
