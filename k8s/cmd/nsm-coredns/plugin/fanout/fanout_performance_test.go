@@ -150,7 +150,7 @@ func errorServer() *server {
 	return newServer(func(w dns.ResponseWriter, r *dns.Msg) {
 		<-time.After(time.Millisecond * 100)
 		//TODO: fix for forward plugin
-		//msg := testNxdomainMsg()
+		//msg := nxdomainMsg()
 		//msg.SetRcode(r, msg.Rcode)
 		//w.WriteMsg(msg)
 	})

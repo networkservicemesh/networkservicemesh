@@ -5,7 +5,6 @@ package fanout
 import (
 	"context"
 	"fmt"
-	"net"
 	"sync"
 	"testing"
 	"time"
@@ -16,58 +15,9 @@ import (
 	"github.com/miekg/dns"
 )
 
-type cachedDNSWriter struct {
-	answers []*dns.Msg
-	mutex   sync.Mutex
-	*test.ResponseWriter
-}
-
-func (w *cachedDNSWriter) WriteMsg(m *dns.Msg) error {
-	w.mutex.Lock()
-	defer w.mutex.Unlock()
-	w.answers = append(w.answers, m)
-	return w.ResponseWriter.WriteMsg(m)
-}
-
-type server struct {
-	Addr  string
-	inner *dns.Server
-}
-
-func (s *server) close() {
-	s.inner.Shutdown()
-}
-
-func newServer(f dns.HandlerFunc) *server {
-	ch := make(chan bool)
-	s := &dns.Server{}
-	s.Handler = f
-
-	for i := 0; i < 10; i++ {
-		s.Listener, _ = net.Listen("tcp", ":0")
-		if s.Listener != nil {
-			break
-		}
-	}
-	if s.Listener == nil {
-		panic("failed to create new client")
-	}
-
-	s.NotifyStartedFunc = func() { close(ch) }
-	go s.ActivateAndServe()
-
-	<-ch
-	return &server{inner: s, Addr: s.Listener.Addr().String()}
-}
-
-func makeRecordA(rr string) *dns.A {
-	r, _ := dns.NewRR(rr)
-	return r.(*dns.A)
-}
-
 func TestFanoutCanReturnUnsuccessRespnse(t *testing.T) {
 	s := newServer(func(w dns.ResponseWriter, r *dns.Msg) {
-		msg := testNxdomainMsg()
+		msg := nxdomainMsg()
 		msg.SetRcode(r, msg.Rcode)
 		w.WriteMsg(msg)
 	})
@@ -92,7 +42,7 @@ func TestFanoutTwoServersNotSuccessResponse(t *testing.T) {
 	rcodeMutex := sync.Mutex{}
 	s1 := newServer(func(w dns.ResponseWriter, r *dns.Msg) {
 		if r.Question[0].Name == "example1." {
-			msg := testNxdomainMsg()
+			msg := nxdomainMsg()
 			rcodeMutex.Lock()
 			msg.SetRcode(r, rcode)
 			rcode++
@@ -213,11 +163,5 @@ func TestFanout(t *testing.T) {
 	}
 	if x := rec.Msg.Answer[0].Header().Name; x != "example.org." {
 		t.Errorf("Expected %s, got %s", "example.org.", x)
-	}
-}
-func testNxdomainMsg() *dns.Msg {
-	return &dns.Msg{MsgHdr: dns.MsgHdr{Rcode: dns.RcodeNameError},
-		Question: []dns.Question{{Name: "wwww.example1.", Qclass: dns.ClassINET, Qtype: dns.TypeTXT}},
-		Ns: []dns.RR{test.SOA("example1.	1800	IN	SOA	example1.net. example1.com 1461471181 14400 3600 604800 14400")},
 	}
 }

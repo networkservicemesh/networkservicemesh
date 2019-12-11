@@ -74,3 +74,10 @@ func makeRecordA(rr string) *dns.A {
 	r, _ := dns.NewRR(rr)
 	return r.(*dns.A)
 }
+
+func nxdomainMsg() *dns.Msg {
+	return &dns.Msg{MsgHdr: dns.MsgHdr{Rcode: dns.RcodeNameError},
+		Question: []dns.Question{{Name: "wwww.example1.", Qclass: dns.ClassINET, Qtype: dns.TypeTXT}},
+		Ns: []dns.RR{test.SOA("example1.	1800	IN	SOA	example1.net. example1.com 1461471181 14400 3600 604800 14400")},
+	}
+}
