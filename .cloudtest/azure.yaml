@@ -33,4 +33,4 @@ providers:
         make spire-install-azure
         make spire-wait-registration
       cleanup: |
-        ./scripts/azure/destroy-old-clusters.sh -t 4 -p "^azure"
+        ./scripts/azure/destroy-old-clusters.sh 4 "^azure"

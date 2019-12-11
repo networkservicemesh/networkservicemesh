@@ -11,47 +11,39 @@ get_last_cluster_activity() {
         --query "[].{Tiem:eventTimestamp}" \
         -o tsv
 }
+
 usage() { echo "Cleanup azure cloud from old clusters
 
-Usage: $0 [-t <hours>] [-p <string>]
-
-Flags:
-  -t    Time has passed since the creation of the cluster
-  -p    Cluster name pattern
-" 1>&2; exit 1; }
+Usage: $0 <cluster_age_hours> <cluster_name_pattern>" 1>&2; exit 1; }
 numreg='^[0-9]+$'
 
-while getopts ":t:p:" o; do
-    case "${o}" in
-        p)
-            pattern=${OPTARG}
-            ;;
-        t)
-            time_passed=${OPTARG}
-            if ! [[ $time_passed =~ $numreg ]] ; then
-                usage
-            fi
-            ;;
-        *)
-            usage
-            ;;
-    esac
-done
-shift $((OPTIND-1))
+time_passed=$1
+pattern=$2
 
+# Check arguments are set
 if [ -z "${time_passed}" ] || [ -z "${pattern}" ]; then
     usage
 fi
 
+# Check time is a number value
+if ! [[ $time_passed =~ $numreg ]] ; then
+    usage
+fi
+
 CLUSTERS=$(az aks list -g "nsm-ci" --query "[].{Name:name,Id:id,Group:resourceGroup}" -o tsv | grep "${pattern}")
-IFS=$'\n'; 
+
 # shellcheck disable=SC2206
-raws=($CLUSTERS); 
-unset IFS;
-for ((i=1;i<=${#raws[@]};i++)); do
-    IFS=$'\t'; read -r -a cols <<< "${raws[$i-1]}"; unset IFS;
+IFS=$'\n' rows=($CLUSTERS); # Split result to string array by rows
+
+for ((i=0;i<${#rows[@]};i++)); do
+    cluster_info=${rows[$i]}
+    
+    # shellcheck disable=SC2206
+    IFS=$'\t' cols=(${cluster_info}); # Split each row to values array by \t separator ([0]=name, [1]=id, [2]=resourceGroup)
+    
     last_activity=$(get_date "$(get_last_cluster_activity "${cols[1]}")")
     countdown=$(get_date "-${time_passed}hours")
+    
     if [[ $last_activity < $countdown ]]; then
         echo "Deleting cluster ${cols[2]} ${cols[0]} (created $last_activity)"
         "$(dirname "${BASH_SOURCE[0]}")"/destroy-aks-cluster.sh "${cols[2]}" "${cols[0]}"
@@ -59,4 +51,3 @@ for ((i=1;i<=${#raws[@]};i++)); do
         echo "Skip cluster ${cols[0]} (created $last_activity)" 
     fi
 done
-
