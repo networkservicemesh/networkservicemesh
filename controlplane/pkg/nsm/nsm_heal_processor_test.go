@@ -1,3 +1,5 @@
+// +build unit_test
+
 package nsm
 
 import (

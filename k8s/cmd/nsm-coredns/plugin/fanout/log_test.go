@@ -1,3 +1,5 @@
+// +build !unit_test
+
 package fanout
 
 import clog "github.com/coredns/coredns/plugin/pkg/log"

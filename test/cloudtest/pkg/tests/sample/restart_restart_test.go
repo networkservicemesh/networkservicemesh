@@ -16,7 +16,6 @@
 
 // +build request_restart
 
-// Package sample - an example tests
 package sample
 
 import (
