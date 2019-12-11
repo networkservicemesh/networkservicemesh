@@ -28,4 +28,7 @@ providers:
       start: |
         make azure-start
       stop: make azure-destroy
-      prepare: scripts/prepare-cluster.sh
+      prepare: |
+        make k8s-config helm-init
+        make spire-install-azure
+        make spire-wait-registration
