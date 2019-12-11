@@ -112,46 +112,52 @@ func (cce *forwarderService) selectRemoteMechanism(request *networkservice.Netwo
 
 	switch mechanism.GetType() {
 	case vxlan.MECHANISM:
-		parameters := mechanism.GetParameters()
-		dpParameters := dpMechanism.GetParameters()
-
-		parameters[vxlan.DstIP] = dpParameters[vxlan.SrcIP]
-		var vni uint32
-
-		extSrcIP := parameters[vxlan.SrcIP]
-		extDstIP := dpParameters[vxlan.SrcIP]
-		srcIP := parameters[vxlan.SrcIP]
-		dstIP := dpParameters[vxlan.SrcIP]
-
-		if ip, ok := parameters[vxlan.SrcOriginalIP]; ok {
-			srcIP = ip
-		}
-
-		if ip, ok := parameters[vxlan.DstExternalIP]; ok {
-			extDstIP = ip
-		}
-
-		if extDstIP != extSrcIP {
-			vni = cce.serviceRegistry.VniAllocator().Vni(extDstIP, extSrcIP)
-		} else {
-			vni = cce.serviceRegistry.VniAllocator().Vni(dstIP, srcIP)
-		}
-
-		parameters[vxlan.VNI] = strconv.FormatUint(uint64(vni), 10)
+		cce.configureVXLANParameters(mechanism.GetParameters(), dpMechanism.GetParameters())
 
 	case srv6.MECHANISM:
+		connectionID := request.GetConnection().GetId()
 		parameters := mechanism.GetParameters()
 		dpParameters := dpMechanism.GetParameters()
 
-		parameters[srv6.DstHardwareAddress] = dpParameters[srv6.SrcHardwareAddress]
-		parameters[srv6.DstHostIP] = dpParameters[srv6.SrcHostIP]
-		parameters[srv6.DstHostLocalSID] = dpParameters[srv6.SrcHostLocalSID]
-		parameters[srv6.DstBSID] = cce.serviceRegistry.SIDAllocator().SID(request.GetConnection().GetId())
-		parameters[srv6.DstLocalSID] = cce.serviceRegistry.SIDAllocator().SID(request.GetConnection().GetId())
+		cce.configureSRv6Parameters(connectionID, parameters, dpParameters)
 	}
 
 	logrus.Infof("NSM:(5.1) Remote mechanism selected %v", mechanism)
 	return mechanism, nil
+}
+
+func (cce *forwarderService) configureVXLANParameters(parameters, dpParameters map[string]string) {
+	parameters[vxlan.DstIP] = dpParameters[vxlan.SrcIP]
+
+	extSrcIP := parameters[vxlan.SrcIP]
+	extDstIP := dpParameters[vxlan.SrcIP]
+	srcIP := parameters[vxlan.SrcIP]
+	dstIP := dpParameters[vxlan.SrcIP]
+
+	if ip, ok := parameters[vxlan.SrcOriginalIP]; ok {
+		srcIP = ip
+	}
+
+	if ip, ok := parameters[vxlan.DstExternalIP]; ok {
+		extDstIP = ip
+	}
+
+	var vni uint32
+	if extDstIP != extSrcIP {
+		vni = cce.serviceRegistry.VniAllocator().Vni(extDstIP, extSrcIP)
+	} else {
+		vni = cce.serviceRegistry.VniAllocator().Vni(dstIP, srcIP)
+	}
+
+	parameters[vxlan.VNI] = strconv.FormatUint(uint64(vni), 10)
+}
+
+func (cce *forwarderService) configureSRv6Parameters(connectionID string, parameters, dpParameters map[string]string) {
+	parameters[srv6.DstHardwareAddress] = dpParameters[srv6.SrcHardwareAddress]
+	parameters[srv6.DstHostIP] = dpParameters[srv6.SrcHostIP]
+	parameters[srv6.DstHostLocalSID] = dpParameters[srv6.SrcHostLocalSID]
+	parameters[srv6.DstBSID] = cce.serviceRegistry.SIDAllocator().SID(connectionID)
+	parameters[srv6.DstLocalSID] = cce.serviceRegistry.SIDAllocator().SID(connectionID)
 }
 
 func (cce *forwarderService) updateMechanism(request *networkservice.NetworkServiceRequest, dp *model.Forwarder) error {
