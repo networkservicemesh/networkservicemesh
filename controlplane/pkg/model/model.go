@@ -4,6 +4,7 @@ import (
 	"context"
 	"strconv"
 	"sync"
+        "os"
 
 	"github.com/sirupsen/logrus"
 
@@ -119,11 +120,28 @@ func (m *model) ListenerCount() int {
 
 // NewModel returns new instance of Model
 func NewModel() Model {
+
+	// Check for the selection method : RoundRobin or Maglev
+	var selector_method string
+        selector_method = os.Getenv("SELECTOR")
+	logrus.Infof(" get selector_method %s ",selector_method)
+	
+	var Selector_method selector.Selector
+	if selector_method == "Maglev" {
+		Selector_method = selector.NewMatchMaglevSelector()
+
+	} else{ // default selector is RoundRobin
+		
+		Selector_method = selector.NewMatchSelector()
+	
+		 
+	}
 	return &model{
 		clientConnectionDomain: newClientConnectionDomain(),
 		endpointDomain:         newEndpointDomain(),
 		forwarderDomain:        newForwarderDomain(),
-		selector:               selector.NewMatchSelector(),
+		//selector:               selector.NewMatchSelector(),
+		selector:               Selector_method,
 		listeners:              make(map[Listener]func()),
 	}
 }
