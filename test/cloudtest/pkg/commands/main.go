@@ -1205,48 +1205,50 @@ func (ctx *executionContext) createClusters() error {
 	}
 
 	for _, cl := range ctx.cloudTestConfig.Providers {
-		if enable, testCount := ctx.shouldEnableCluster(cl); enable {
-			logrus.Infof("Initialize provider for config: %v %v", cl.Name, cl.Kind)
-			provider, ok := clusterProviders[cl.Kind]
-			if !ok {
-				msg := fmt.Sprintf("Cluster provider '%s' not found", cl.Kind)
-				logrus.Errorf(msg)
-				return errors.New(msg)
-			}
-			instances := []*clusterInstance{}
-			group := &clustersGroup{
-				provider:  provider,
-				config:    cl,
-				tasks:     map[string]*testTask{},
-				completed: map[string]*testTask{},
-			}
-			testsPerInstance := int(math.Min(float64(ctx.cloudTestConfig.TestsPerClusterInstance), 20))
-			// initial value of cl.Instances is treated as allowed maximum
-			cl.Instances = int(math.Ceil(math.Min(float64(testCount)/float64(testsPerInstance), float64(cl.Instances))))
-			logrus.Infof("Creating %d instances of '%s' cluster to run %d test(s)", cl.Instances, cl.Name, testCount)
-			for i := 0; i < cl.Instances; i++ {
-				cluster, err := provider.CreateCluster(cl, ctx.factory, ctx.manager, ctx.arguments.instanceOptions)
-				if err != nil {
-					msg := fmt.Sprintf("Failed to create cluster instance. Error %v", err)
-					logrus.Errorf(msg)
-					return errors.New(msg)
-				}
-				instances = append(instances, &clusterInstance{
-					instance:  cluster,
-					startTime: time.Now(),
-					state:     clusterAdded,
-					id:        cluster.GetID(),
-					group:     group,
-				})
-			}
-			group.instances = instances
-			if len(instances) == 0 {
-				msg := fmt.Sprintf("No instances are specified for %s.", cl.Name)
-				logrus.Errorf(msg)
-				return errors.New(msg)
-			}
-			ctx.clusters = append(ctx.clusters, group)
+		enable, testCount := ctx.shouldEnableCluster(cl)
+		if !enable {
+			continue
 		}
+		logrus.Infof("Initialize provider for config: %v %v", cl.Name, cl.Kind)
+		provider, ok := clusterProviders[cl.Kind]
+		if !ok {
+			msg := fmt.Sprintf("Cluster provider '%s' not found", cl.Kind)
+			logrus.Errorf(msg)
+			return errors.New(msg)
+		}
+		instances := []*clusterInstance{}
+		group := &clustersGroup{
+			provider:  provider,
+			config:    cl,
+			tasks:     map[string]*testTask{},
+			completed: map[string]*testTask{},
+		}
+		testsPerInstance := int(math.Min(float64(ctx.cloudTestConfig.TestsPerClusterInstance), 20))
+		// initial value of cl.Instances is treated as allowed maximum
+		cl.Instances = int(math.Ceil(math.Min(float64(testCount)/float64(testsPerInstance), float64(cl.Instances))))
+		logrus.Infof("Creating %d instances of '%s' cluster to run %d test(s)", cl.Instances, cl.Name, testCount)
+		for i := 0; i < cl.Instances; i++ {
+			cluster, err := provider.CreateCluster(cl, ctx.factory, ctx.manager, ctx.arguments.instanceOptions)
+			if err != nil {
+				msg := fmt.Sprintf("Failed to create cluster instance. Error %v", err)
+				logrus.Errorf(msg)
+				return errors.New(msg)
+			}
+			instances = append(instances, &clusterInstance{
+				instance:  cluster,
+				startTime: time.Now(),
+				state:     clusterAdded,
+				id:        cluster.GetID(),
+				group:     group,
+			})
+		}
+		group.instances = instances
+		if len(instances) == 0 {
+			msg := fmt.Sprintf("No instances are specified for %s.", cl.Name)
+			logrus.Errorf(msg)
+			return errors.New(msg)
+		}
+		ctx.clusters = append(ctx.clusters, group)
 	}
 	if len(ctx.clusters) == 0 {
 		msg := "there is no clusters defined. Exiting"
