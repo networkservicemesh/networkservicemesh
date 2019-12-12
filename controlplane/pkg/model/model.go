@@ -11,8 +11,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/selector"
 )
 
-const BAD_CONST = ""
-
 type Model interface {
 	GetEndpointsByNetworkService(nsName string) []*Endpoint
 
