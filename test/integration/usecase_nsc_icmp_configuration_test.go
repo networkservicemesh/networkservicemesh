@@ -44,7 +44,7 @@ func TestNSCAndICMPWebhookRemote(t *testing.T) {
 		return
 	}
 
-	testNSCAndICMP(t, 2, true, false, "SRV6")
+	testNSCAndICMP(t, 2, true, false, "")
 }
 
 func TestNSCAndICMPLocalVeth(t *testing.T) {
