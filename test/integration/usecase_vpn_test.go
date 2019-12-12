@@ -240,7 +240,13 @@ func testVPN(t *testing.T, ptnum, nodesCount int, affinity map[string]int, verbo
 
 	g.Expect(strings.Contains(routeResponse, "nsm")).To(Equal(true))
 	for i := 1; i <= 1; i++ {
-		pingResponse, errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, pingCommand, dstIP, "-A", "-c", "10")
+		// 3 Attempts (sometimes ping command fails on first try)
+		for att := 0; att < 3; att++ {
+			pingResponse, errOut, err = k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, pingCommand, dstIP, "-A", "-c", "10")
+			if err == nil {
+				break
+			}
+		}
 		g.Expect(err).To(BeNil())
 		g.Expect(strings.Contains(pingResponse, "10 packets received")).To(Equal(true))
 		logrus.Printf("VPN NSC Ping succeeded:%s", pingResponse)
