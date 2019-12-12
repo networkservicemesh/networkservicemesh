@@ -37,8 +37,17 @@ func TempIfName() string {
 	return rv
 }
 
-// UseVHostNet - returns true if /dev/vhost-net is exist and ForwarderAllowVHost env is true
-func UseVHostNet() bool {
+//GetDstInterfaceName returns name of dst interface by id
+func GetDstInterfaceName(id string) string {
+	return fmt.Sprintf(dstInterfaceFormat, id)
+}
+
+//GetSrcInterfaceName returns name of src interface by id
+func GetSrcInterfaceName(id string) string {
+	return fmt.Sprintf(srcInterfaceFormat, id)
+}
+
+func useVHostNet() bool {
 	vhostAllowed := os.Getenv(ForwarderAllowVHost)
 	if vhostAllowed == "false" {
 		return false
@@ -47,24 +56,6 @@ func UseVHostNet() bool {
 		return true
 	}
 	return false
-}
-
-//GetDstInterfaceName returns name of dst interface by id
-func GetDstInterfaceName(id string) string {
-	return getInterfaceNameWithFormat(dstInterfaceFormat, id)
-}
-
-//GetSrcInterfaceName returns name of src interface by id
-func GetSrcInterfaceName(id string) string {
-	return getInterfaceNameWithFormat(srcInterfaceFormat, id)
-}
-
-func getInterfaceNameWithFormat(format, id string) string {
-	result := fmt.Sprintf(format, id)
-	if !UseVHostNet() {
-		return fmt.Sprintf("%v-veth", result)
-	}
-	return result
 }
 
 func extractCleanIPAddress(addr string) string {

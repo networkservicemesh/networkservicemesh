@@ -78,7 +78,7 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 
 	// If we have access to /dev/vhost-net, we can use tapv2.  Otherwise fall back to
 	// veth pairs
-	if UseVHostNet() {
+	if useVHostNet() {
 		// We append an Interfaces.  Interfaces creates the vpp side of an interface.
 		//   In this case, a Tapv2 interface that has one side in vpp, and the other
 		//   as a Linux kernel interface

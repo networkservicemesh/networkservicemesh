@@ -93,6 +93,9 @@ func setEthernetContext(ctx context.Context, c *crossconnect.CrossConnect) {
 func getVppDestinationInterfaceMacById(ctx context.Context, id string) string {
 	dstName := converter.GetDstInterfaceName(id)
 	dumpResp := dumpRequest(ctx)
+	if dumpResp == nil {
+		return ""
+	}
 	for _, iface := range dumpResp.LinuxConfig.Interfaces {
 		if iface.Name == dstName {
 			return iface.PhysAddress
@@ -106,6 +109,7 @@ func dumpRequest(ctx context.Context) *configurator.Config {
 	dumpResp, err := client.Dump(context.Background(), &configurator.DumpRequest{})
 	if err != nil {
 		Logger(ctx).Errorf("An error during client.Dump: %v", err)
+		return nil
 	} else {
 		Logger(ctx).Infof("Dump response: %v", dumpResp.String())
 	}
