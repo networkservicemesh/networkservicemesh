@@ -72,7 +72,7 @@ func (cce *endpointService) closeEndpoint(ctx context.Context, cc *model.ClientC
 func (cce *endpointService) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 	logger := Log(ctx)
 	clientConnection := ModelConnection(ctx)
-	dp := Forwarder(ctx)
+	fwd := Forwarder(ctx)
 	endpoint := Endpoint(ctx)
 
 	if clientConnection == nil {
@@ -100,7 +100,7 @@ func (cce *endpointService) Request(ctx context.Context, request *networkservice
 		connId = ""
 	}
 
-	message := cce.requestBuilder.Build(connId, endpoint, dp, conn)
+	message := cce.requestBuilder.Build(connId, endpoint, fwd, conn)
 
 	logger.Infof("NSM:(7.2.6.2) Requesting NSE with request %v", message)
 
