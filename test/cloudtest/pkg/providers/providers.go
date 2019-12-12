@@ -1,6 +1,7 @@
 package providers
 
 import (
+	"context"
 	"time"
 
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/config"
@@ -49,6 +50,10 @@ type ClusterProvider interface {
 
 	// ValidateConfig - Check if config are valid and all parameters required by this cluster are fit.
 	ValidateConfig(config *config.ClusterProviderConfig) error
+
+	// CleanupClusters - Cleaning up leaked clusters (running scripts from cluster configuration file)
+	CleanupClusters(ctx context.Context, config *config.ClusterProviderConfig,
+		manager execmanager.ExecutionManager, instanceOptions InstanceOptions)
 }
 
 // ClusterProviderFunction - function type to create cluster provider
