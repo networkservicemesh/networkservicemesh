@@ -23,27 +23,30 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 )
 
+// RequestBuilder for the endpoint service
 type RequestBuilder interface {
 	Build(string, *registry.NSERegistration, *model.Forwarder, *connection.Connection) *networkservice.NetworkServiceRequest
 }
 
+// LocalRequestBuilder is for the endpoint service in local service server
 type LocalRequestBuilder struct {
 	nsmName     string
 	idGenerator func() string
 }
 
+// RemoteRequestBuilder is for endpoint service in the remote service server
 type RemoteRequestBuilder struct {
 	nsmName     string
 	idGenerator func() string
 }
 
-func createLocalNSERequest(connectionId string, idGenerator func() string, nsmName string, localMechanisms []*connection.Mechanism, requestConn *connection.Connection) *networkservice.NetworkServiceRequest {
-	if connectionId == "" {
-		connectionId = idGenerator()
+func createLocalNSERequest(connectionID string, idGenerator func() string, nsmName string, localMechanisms []*connection.Mechanism, requestConn *connection.Connection) *networkservice.NetworkServiceRequest {
+	if connectionID == "" {
+		connectionID = idGenerator()
 	}
 	return &networkservice.NetworkServiceRequest{
 		Connection: &connection.Connection{
-			Id:                     connectionId, // ID for NSE is managed by NSMgr
+			Id:                     connectionID, // ID for NSE is managed by NSMgr
 			NetworkService:         requestConn.GetNetworkService(),
 			Context:                requestConn.GetContext(),
 			Labels:                 requestConn.GetLabels(),
@@ -53,10 +56,10 @@ func createLocalNSERequest(connectionId string, idGenerator func() string, nsmNa
 	}
 }
 
-func createRemoteNSMRequest(connectionId string, srcNsmName string, endpoint *registry.NSERegistration, remoteMechanisms []*connection.Mechanism, requestConn *connection.Connection) *networkservice.NetworkServiceRequest {
+func createRemoteNSMRequest(connectionID, srcNsmName string, endpoint *registry.NSERegistration, remoteMechanisms []*connection.Mechanism, requestConn *connection.Connection) *networkservice.NetworkServiceRequest {
 	return &networkservice.NetworkServiceRequest{
 		Connection: &connection.Connection{
-			Id:                         connectionId,
+			Id:                         connectionID,
 			NetworkService:             requestConn.GetNetworkService(),
 			Context:                    requestConn.GetContext(),
 			Labels:                     requestConn.GetLabels(),
@@ -70,18 +73,21 @@ func createRemoteNSMRequest(connectionId string, srcNsmName string, endpoint *re
 	}
 }
 
-func (builder *LocalRequestBuilder) Build(connectionId string, endpoint *registry.NSERegistration, fwd *model.Forwarder, requestConn *connection.Connection) *networkservice.NetworkServiceRequest {
+// Build request for the endpoint service in local service server
+func (builder *LocalRequestBuilder) Build(connectionID string, endpoint *registry.NSERegistration, fwd *model.Forwarder, requestConn *connection.Connection) *networkservice.NetworkServiceRequest {
 	if builder.nsmName == endpoint.GetNetworkServiceEndpoint().GetNetworkServiceManagerName() {
-		return createLocalNSERequest(connectionId, builder.idGenerator, builder.nsmName, fwd.LocalMechanisms, requestConn)
+		return createLocalNSERequest(connectionID, builder.idGenerator, builder.nsmName, fwd.LocalMechanisms, requestConn)
 	}
-	return createRemoteNSMRequest(connectionId, builder.nsmName, endpoint, fwd.RemoteMechanisms, requestConn)
+	return createRemoteNSMRequest(connectionID, builder.nsmName, endpoint, fwd.RemoteMechanisms, requestConn)
 }
 
-func (builder *RemoteRequestBuilder) Build(connectionId string, endpoint *registry.NSERegistration, fwd *model.Forwarder,
+// Build request for the endpoint service in remote service server
+func (builder *RemoteRequestBuilder) Build(connectionID string, _ *registry.NSERegistration, fwd *model.Forwarder,
 	requestConn *connection.Connection) *networkservice.NetworkServiceRequest {
-	return createLocalNSERequest(connectionId, builder.idGenerator, builder.nsmName, fwd.LocalMechanisms, requestConn)
+	return createLocalNSERequest(connectionID, builder.idGenerator, builder.nsmName, fwd.LocalMechanisms, requestConn)
 }
 
+// NewLocalRequestBuilder creates new request builder for the endpoint service in local service server
 func NewLocalRequestBuilder(m model.Model) *LocalRequestBuilder {
 	return &LocalRequestBuilder{
 		nsmName: m.GetNsm().GetName(),
@@ -91,6 +97,7 @@ func NewLocalRequestBuilder(m model.Model) *LocalRequestBuilder {
 	}
 }
 
+// NewRemoteRequestBuilder creates new request builder for the endpoint service in remote service server
 func NewRemoteRequestBuilder(m model.Model) *RemoteRequestBuilder {
 	return &RemoteRequestBuilder{
 		nsmName: m.GetNsm().GetName(),

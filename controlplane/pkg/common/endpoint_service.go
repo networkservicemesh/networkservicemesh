@@ -90,17 +90,17 @@ func (cce *endpointService) Request(ctx context.Context, request *networkservice
 	}()
 
 	var conn *connection.Connection
-	var connId string
+	var connID string
 
 	if clientConnection.ConnectionState == model.ClientConnectionHealing && endpoint == clientConnection.Endpoint {
 		conn = clientConnection.Xcon.GetDestination()
-		connId = conn.Id
+		connID = conn.Id
 	} else {
 		conn = request.Connection
-		connId = ""
+		connID = ""
 	}
 
-	message := cce.requestBuilder.Build(connId, endpoint, fwd, conn)
+	message := cce.requestBuilder.Build(connID, endpoint, fwd, conn)
 
 	logger.Infof("NSM:(7.2.6.2) Requesting NSE with request %v", message)
 
