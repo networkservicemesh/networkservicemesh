@@ -3,19 +3,18 @@ package vppagent
 import (
 	"context"
 	"fmt"
-	"io"
+	"net"
 	"time"
 
+
+	"go.ligato.io/vpp-agent/v3/proto/ligato/configurator"
 	vpp_interfaces "go.ligato.io/vpp-agent/v3/proto/ligato/vpp/interfaces"
-
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-
-	"github.com/golang/protobuf/proto"
-	"github.com/sirupsen/logrus"
-	rpc "go.ligato.io/vpp-agent/v3/proto/ligato/configurator"
+	"google.golang.org/grpc"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/metrics"
+
+	"github.com/sirupsen/logrus"
 )
 
 type MetricsCollector struct {
@@ -35,59 +34,65 @@ func (m *MetricsCollector) CollectAsync(monitor metrics.MetricsMonitor, endpoint
 }
 
 func (m *MetricsCollector) collect(monitor metrics.MetricsMonitor, endpoint string) {
-	conn, err := tools.DialTCPInsecure(endpoint)
+	conn, err := grpc.Dial("unix",
+		grpc.WithInsecure(),
+		grpc.WithDialer(dialer("tcp", endpoint, m.requestPeriod)))
+
 	if err != nil {
 		logrus.Errorf("Metrics collector: can't dial %v", err)
 		return
 	}
 	logrus.Infof("Metrics collector: creating notification client for %v", endpoint)
-	notificationClient := rpc.NewConfiguratorServiceClient(conn)
+
+	notificationClient := configurator.NewStatsPollerServiceClient(conn)
 	m.startListenNotifications(monitor, notificationClient)
 }
 
-func (m *MetricsCollector) startListenNotifications(monitor metrics.MetricsMonitor, client rpc.ConfiguratorServiceClient) {
-	var nextIdx uint32 = 0
-	for {
-		logrus.Infof("Metrics collector: request %v", nextIdx)
-		request := &rpc.NotifyRequest{
-			Idx: nextIdx,
-		}
-		stream, err := client.Notify(context.Background(), request)
-		if err != nil {
-			logrus.Errorf("Metrics collector: an error during getting stream %v", err)
-			return
-		}
-		err = m.handleNotifications(monitor, stream, &nextIdx)
-		if err != nil && err != io.EOF {
-			logrus.Errorf("Metrics collector: an error during handling notifications %v", err)
-			return
-		}
-		time.Sleep(m.requestPeriod)
+func (m *MetricsCollector) startListenNotifications(monitor metrics.MetricsMonitor, client configurator.StatsPollerServiceClient) {
+	req := &configurator.PollStatsRequest{
+		PeriodSec: uint32(m.requestPeriod.Seconds()),
 	}
-}
-func (m *MetricsCollector) handleNotifications(monitor metrics.MetricsMonitor, stream rpc.ConfiguratorService_NotifyClient, nextIndex *uint32) error {
+
+	ctx := context.Background()
+	stream, err := client.PollStats(ctx, req)
+	if err != nil {
+		logrus.Errorf("MetricsCollector: PollStats err: %v", err)
+		return
+	}
+
 	for {
-		notification, err := stream.Recv()
+		resp, err := stream.Recv()
 		if err != nil {
-			return err
+			logrus.Errorf("MetricsCollector: stream.Recv() err: %v", err)
+		} else {
+			vppStats := resp.GetStats().GetVppStats()
+			if vppStats.Interface != nil {
+				monitor.HandleMetrics(convertStatistics(vppStats.Interface))
+			}
+			logrus.Infof("MetricsCollector: GetStats(): %v", vppStats)
 		}
-		*nextIndex = notification.NextIdx
-		statistics := convertStatistics(notification.Notification.GetVppNotification().Interface.GetState())
-		logrus.Infof("Metrics collector: new statistics %v", proto.MarshalTextString(notification.Notification))
-		monitor.HandleMetrics(statistics)
+
+		<-time.After(m.requestPeriod)
+	}
+
+}
+
+func dialer(socket, address string, timeoutVal time.Duration) func(string, time.Duration) (net.Conn, error) {
+	return func(addr string, timeout time.Duration) (net.Conn, error) {
+		addr, timeout = address, timeoutVal
+		return net.DialTimeout(socket, addr, timeoutVal)
 	}
 }
 
-func convertStatistics(state *vpp_interfaces.InterfaceState) map[string]*crossconnect.Metrics {
-	stats := state.Statistics
+func convertStatistics(stats *vpp_interfaces.InterfaceStats) map[string]*crossconnect.Metrics {
 	metrics := make(map[string]string)
-	metrics["rx_bytes"] = fmt.Sprint(stats.InBytes)
-	metrics["tx_bytes"] = fmt.Sprint(stats.OutBytes)
-	metrics["rx_packets"] = fmt.Sprint(stats.InPackets)
-	metrics["tx_packets"] = fmt.Sprint(stats.OutPackets)
-	metrics["rx_error_packets"] = fmt.Sprint(stats.InErrorPackets)
-	metrics["tx_error_packets"] = fmt.Sprint(stats.OutErrorPackets)
+	metrics["rx_bytes"] = fmt.Sprint(stats.Rx.Bytes)
+	metrics["tx_bytes"] = fmt.Sprint(stats.Tx.Bytes)
+	metrics["rx_packets"] = fmt.Sprint(stats.Rx.Packets)
+	metrics["tx_packets"] = fmt.Sprint(stats.Tx.Packets)
+	metrics["rx_error_packets"] = fmt.Sprint(stats.RxError)
+	metrics["tx_error_packets"] = fmt.Sprint(stats.TxError)
 	return map[string]*crossconnect.Metrics{
-		state.Name: {Metrics: metrics},
+		stats.Name: {Metrics: metrics},
 	}
 }
