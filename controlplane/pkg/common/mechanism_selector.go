@@ -110,3 +110,13 @@ func (selector *LocalMechanismSelector) Select(request *networkservice.NetworkSe
 func (selector *LocalMechanismSelector) Find(fwd *model.Forwarder, mechanismType string) *connection.Mechanism {
 	return findMechanism(fwd.LocalMechanisms, mechanismType)
 }
+
+func NewLocalMechanismSelector() *LocalMechanismSelector {
+	return &LocalMechanismSelector{}
+}
+
+func NewRemoteMechanismSelector(allocator vni.VniAllocator) *RemoteMechanismSelector {
+	return &RemoteMechanismSelector{
+		vniAllocator: allocator,
+	}
+}

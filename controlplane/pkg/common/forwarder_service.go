@@ -151,7 +151,6 @@ func (cce *forwarderService) doFailureClose(ctx context.Context) {
 }
 
 func (cce *forwarderService) Close(ctx context.Context, conn *connection.Connection) (*empty.Empty, error) {
-
 	cc := ModelConnection(ctx)
 	logger := Log(ctx)
 	empt, err := ProcessClose(ctx, conn)
@@ -271,9 +270,10 @@ func (cce *forwarderService) updateClientConnection(ctx context.Context, conn *c
 }
 
 // NewForwarderService -  creates a service to program forwarder.
-func NewForwarderService(model model.Model, serviceRegistry serviceregistry.ServiceRegistry) networkservice.NetworkServiceServer {
+func NewForwarderService(model model.Model, serviceRegistry serviceregistry.ServiceRegistry, selector MechanismSelector) networkservice.NetworkServiceServer {
 	return &forwarderService{
-		model:           model,
-		serviceRegistry: serviceRegistry,
+		model:             model,
+		serviceRegistry:   serviceRegistry,
+		mechanismSelector: selector,
 	}
 }
