@@ -51,7 +51,7 @@ type ClusterProvider interface {
 	// ValidateConfig - Check if config are valid and all parameters required by this cluster are fit.
 	ValidateConfig(config *config.ClusterProviderConfig) error
 
-	// CleanupClusters - Cleaning up leaked clusters
+	// CleanupClusters - Cleaning up leaked clusters (running scripts from cluster configuration file)
 	CleanupClusters(ctx context.Context, config *config.ClusterProviderConfig,
 		manager execmanager.ExecutionManager, instanceOptions InstanceOptions)
 }

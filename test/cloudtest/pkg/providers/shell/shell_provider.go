@@ -207,21 +207,23 @@ func (si *shellInstance) doInstall(context context.Context) (string, error) {
 }
 
 func selectZone(ctx context.Context, shellInterface shell.Manager, zoneSelectorScript []string) (string, error) {
+	if len(zoneSelectorScript) > 0 {
+		return "", nil
+	}
+
 	selectedZone := ""
 
-	if len(zoneSelectorScript) > 0 {
-		zones, err := shellInterface.RunRead(ctx, zoneSelector, zoneSelectorScript, nil)
-		if err != nil {
-			logrus.Errorf("Failed to select zones...")
-			return "", err
-		}
-		zonesList := strings.Split(zones, "\n")
-		if len(zonesList) == 0 {
-			return "", errors.New("failed to retrieve a zone list")
-		}
-
-		selectedZone += zonesList[rand.Intn(len(zonesList))]
+	zones, err := shellInterface.RunRead(ctx, zoneSelector, zoneSelectorScript, nil)
+	if err != nil {
+		logrus.Errorf("Failed to select zones...")
+		return "", err
 	}
+	zonesList := strings.Split(zones, "\n")
+	if len(zonesList) == 0 {
+		return "", errors.New("failed to retrieve a zone list")
+	}
+
+	selectedZone += zonesList[rand.Intn(len(zonesList))]
 
 	return selectedZone, nil
 }
@@ -285,7 +287,7 @@ func (p *shellProvider) CleanupClusters(ctx context.Context, config *config.Clus
 
 	p.Lock()
 	// Do prepare
-	if !instanceOptions.NoInstall && !p.installDone[config.Name] {
+	if skipInstall := instanceOptions.NoInstall || p.installDone[config.Name]; !skipInstall {
 		if iScript, ok := config.Scripts[installScript]; ok {
 			_, err := shellInterface.RunCmd(ctx, "install", utils.ParseScript(iScript), config.Env)
 			if err != nil {

@@ -105,7 +105,7 @@ func doCleanup(cmd *packetCleanupCmd) {
 
 	helper, err := packethelper.NewPacketHelper(projectID, token)
 	if err != nil {
-		logrus.Errorf("Error accessing packet : %v", err)
+		logrus.Errorf("Error accessing packet: %v", err)
 		os.Exit(1)
 	}
 	if cmd.cmdArguments.deleteSSHKeys {

@@ -632,7 +632,7 @@ func (p *packetProvider) CleanupClusters(ctx context.Context, config *config.Clu
 
 	p.Lock()
 	// Do prepare
-	if !instanceOptions.NoInstall && !p.installDone[config.Name] {
+	if skipInstall := instanceOptions.NoInstall || p.installDone[config.Name]; !skipInstall {
 		if iScript, ok := config.Scripts[installScript]; ok {
 			_, err := shellInterface.RunCmd(ctx, "install", utils.ParseScript(iScript), config.Env)
 			if err != nil {

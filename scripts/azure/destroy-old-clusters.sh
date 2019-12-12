@@ -1,7 +1,9 @@
 #!/bin/bash
+
 get_date() {
     date --utc --date="$1" +"%Y-%m-%dT%H:%M:%S"
 }
+
 get_last_cluster_activity() {
     az monitor activity-log list \
         --max-events 1 \
@@ -12,21 +14,23 @@ get_last_cluster_activity() {
         -o tsv
 }
 
-usage() { echo "Cleanup azure cloud from old clusters
+usage() {
+    echo -e "Cleanup azure cloud from old clusters\n\nUsage: $0 <cluster_age_hours> <cluster_name_pattern>" 1>&2
+    exit 1
+}
 
-Usage: $0 <cluster_age_hours> <cluster_name_pattern>" 1>&2; exit 1; }
 numreg='^[0-9]+$'
 
-time_passed=$1
+max_cluster_age=$1
 pattern=$2
 
 # Check arguments are set
-if [ -z "${time_passed}" ] || [ -z "${pattern}" ]; then
+if [ -z "${max_cluster_age}" ] || [ -z "${pattern}" ]; then
     usage
 fi
 
 # Check time is a number value
-if ! [[ $time_passed =~ $numreg ]] ; then
+if ! [[ $max_cluster_age =~ $numreg ]] ; then
     usage
 fi
 
@@ -40,7 +44,7 @@ for cluster_info in "${rows[@]}"; do
     IFS=$'\t' cols=(${cluster_info}); # Split each row to values array by \t separator ([0]=name, [1]=id, [2]=resourceGroup)
     
     last_activity=$(get_date "$(get_last_cluster_activity "${cols[1]}")")
-    countdown=$(get_date "-${time_passed}hours")
+    countdown=$(get_date "-${max_cluster_age}hours")
     
     if [[ $last_activity < $countdown ]]; then
         echo "Deleting cluster ${cols[2]} ${cols[0]} (created $last_activity)"

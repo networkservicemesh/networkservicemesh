@@ -1,25 +1,26 @@
 #!/bin/bash
 
-usage() { echo "Cleanup gke cloud from old clusters
+usage() {
+    echo -e "Cleanup gke cloud from old clusters.\n\nUsage: $0 <cluster_age_hours> <cluster_name_pattern>" 1>&2
+    exit 1
+}
 
-Usage: $0 <cluster_age_hours> <cluster_name_pattern>" 1>&2; exit 1; }
 numreg='^[0-9]+$'
 
-time_passed=$1
+max_cluster_age=$1
 pattern=$2
 
 # Check arguments are set
-if [ -z "${time_passed}" ] || [ -z "${pattern}" ]; then
+if [ -z "${max_cluster_age}" ] || [ -z "${pattern}" ]; then
     usage
 fi
 
 # Check time is a number value
-if ! [[ $time_passed =~ $numreg ]] ; then
+if ! [[ $max_cluster_age =~ $numreg ]] ; then
     usage
 fi
 
-
-CLUSTERS=$(gcloud container clusters list --project="$GKE_PROJECT_ID" --format="table[no-heading](name,zone,createTime)" --filter="createTime<-PT${time_passed}H" | grep  "${pattern}")
+CLUSTERS=$(gcloud container clusters list --project="$GKE_PROJECT_ID" --format="table[no-heading](name,zone,createTime)" --filter="createTime<-PT${max_cluster_age}H" | grep  "${pattern}")
 
 # shellcheck disable=SC2206
 IFS=$'\n' rows=($CLUSTERS); # Split result to string array by rows
