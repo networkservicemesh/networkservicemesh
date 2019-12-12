@@ -1,10 +1,18 @@
 package converter
 
 import (
+	"fmt"
 	"net"
+	"os"
 
 	"github.com/rs/xid"
 	"github.com/sirupsen/logrus"
+)
+
+const (
+	ForwarderAllowVHost = "FORWARDER_ALLOW_VHOST" // To disallow VHOST please pass "false" into this env variable.
+	dstInterfaceFormat  = "DST-%v"
+	srcInterfaceFormat  = "SRC-%v"
 )
 
 func TempIfName() string {
@@ -27,6 +35,27 @@ func TempIfName() string {
 	rv = rv[:7] + rv[16:]
 	logrus.Infof("Generated unique TempIfName: %s len(TempIfName) %d", rv, len(rv))
 	return rv
+}
+
+//GetDstInterfaceName returns name of dst interface by id
+func GetDstInterfaceName(id string) string {
+	return fmt.Sprintf(dstInterfaceFormat, id)
+}
+
+//GetSrcInterfaceName returns name of src interface by id
+func GetSrcInterfaceName(id string) string {
+	return fmt.Sprintf(srcInterfaceFormat, id)
+}
+
+func useVHostNet() bool {
+	vhostAllowed := os.Getenv(ForwarderAllowVHost)
+	if vhostAllowed == "false" {
+		return false
+	}
+	if _, err := os.Stat("/dev/vhost-net"); err == nil {
+		return true
+	}
+	return false
 }
 
 func extractCleanIPAddress(addr string) string {

@@ -109,7 +109,7 @@ func testInterdomainNSMHeal(t *testing.T, clustersCount int, killIndex int, dele
 	logrus.Infof("Waiting for connection recovery...")
 	k8ss[0].K8s.WaitLogsContains(k8ss[0].NodesSetup[0].Nsmd, "nsmd", "Heal: Connection recovered:", defaultTimeout)
 	logrus.Infof("Waiting for connection recovery Done...")
-	kubetest.HealTestingPodFixture(g).CheckNsc(k8ss[0].K8s, nscPodNode)
+	kubetest.DefaultTestingPodFixture(g).CheckNsc(k8ss[0].K8s, nscPodNode)
 }
 
 func testInterdomainHealLocalNSMD(k8ss []*kubetest.ExtK8s, clustersCount int) {

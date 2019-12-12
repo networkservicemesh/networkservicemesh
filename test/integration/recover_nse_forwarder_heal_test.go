@@ -43,9 +43,9 @@ func TestForwarderHealMultiNodesLocal(t *testing.T) {
 	}
 
 	g := NewWithT(t)
-
-	testForwarderHeal(t, 0, 2, kubetest.HealTestingPodFixture(g))
+	testForwarderHeal(t, 0, 2, kubetest.DefaultTestingPodFixture(g))
 }
+
 func TestForwarderHealMultiNodesRemote(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
@@ -54,7 +54,7 @@ func TestForwarderHealMultiNodesRemote(t *testing.T) {
 
 	g := NewWithT(t)
 
-	testForwarderHeal(t, 1, 2, kubetest.HealTestingPodFixture(g))
+	testForwarderHeal(t, 1, 2, kubetest.DefaultTestingPodFixture(g))
 }
 
 /**

@@ -68,7 +68,8 @@ func (v *VPPAgent) CreateForwarderServer(config *common.ForwarderConfig) forward
 		sdk.Connect(v.endpoint()),
 		sdk.KernelInterfaces(config.NSMBaseDir),
 		sdk.ClearMechanisms(config.NSMBaseDir),
-		sdk.Commit(v.downstreamResync))
+		sdk.Commit(v.downstreamResync),
+		sdk.EthernetContextSetter())
 }
 
 // MonitorMechanisms sends mechanism updates
