@@ -3,13 +3,14 @@ package vppagent
 import (
 	"context"
 	"fmt"
-	"net"
 	"time"
 
 
 	"go.ligato.io/vpp-agent/v3/proto/ligato/configurator"
 	vpp_interfaces "go.ligato.io/vpp-agent/v3/proto/ligato/vpp/interfaces"
-	"google.golang.org/grpc"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/metrics"
@@ -34,9 +35,7 @@ func (m *MetricsCollector) CollectAsync(monitor metrics.MetricsMonitor, endpoint
 }
 
 func (m *MetricsCollector) collect(monitor metrics.MetricsMonitor, endpoint string) {
-	conn, err := grpc.Dial("unix",
-		grpc.WithInsecure(),
-		grpc.WithDialer(dialer("tcp", endpoint, m.requestPeriod)))
+	conn, err := tools.DialTCPInsecure(endpoint)
 
 	if err != nil {
 		logrus.Errorf("Metrics collector: can't dial %v", err)
@@ -74,15 +73,8 @@ func (m *MetricsCollector) startListenNotifications(monitor metrics.MetricsMonit
 
 		<-time.After(m.requestPeriod)
 	}
-
 }
 
-func dialer(socket, address string, timeoutVal time.Duration) func(string, time.Duration) (net.Conn, error) {
-	return func(addr string, timeout time.Duration) (net.Conn, error) {
-		addr, timeout = address, timeoutVal
-		return net.DialTimeout(socket, addr, timeoutVal)
-	}
-}
 
 func convertStatistics(stats *vpp_interfaces.InterfaceStats) map[string]*crossconnect.Metrics {
 	metrics := make(map[string]string)
