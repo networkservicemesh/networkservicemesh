@@ -39,14 +39,14 @@ func NewMatchSelector() Selector {
 }
 
 // isSubset checks if B is a subset of A. TODO: reconsider this as a part of "tools"
-func isSubset(A, B, nsLabels map[string]string) bool {
-	if len(A) < len(B) {
+func isSubset(a, b, nsLabels map[string]string) bool {
+	if len(a) < len(b) {
 		return false
 	}
-	for k, v := range B {
-		if A[k] != v {
+	for k, v := range b {
+		if a[k] != v {
 			result := ProcessLabels(v, nsLabels)
-			if A[k] != result {
+			if a[k] != result {
 				return false
 			}
 		}
@@ -102,6 +102,7 @@ func (m *matchSelector) SelectEndpoint(requestConnection *connection.Connection,
 	return m.matchEndpoint(requestConnection.GetLabels(), ns, networkServiceEndpoints)
 }
 
+// ProcessLabels generates matches based on destination label selectors that specify templating.
 func ProcessLabels(str string, vars interface{}) string {
 	tmpl, err := template.New("tmpl").Parse(str)
 
