@@ -16,7 +16,9 @@
 package selector
 
 import (
+	"bytes"
 	"sync"
+	"text/template"
 
 	"github.com/sirupsen/logrus"
 
@@ -37,13 +39,16 @@ func NewMatchSelector() Selector {
 }
 
 // isSubset checks if B is a subset of A. TODO: reconsider this as a part of "tools"
-func isSubset(A, B map[string]string) bool {
-	if len(A) < len(B) {
+func isSubset(a, b, nsLabels map[string]string) bool {
+	if len(a) < len(b) {
 		return false
 	}
-	for k, v := range B {
-		if A[k] != v {
-			return false
+	for k, v := range b {
+		if a[k] != v {
+			result := ProcessLabels(v, nsLabels)
+			if a[k] != result {
+				return false
+			}
 		}
 	}
 	return true
@@ -56,7 +61,7 @@ func (m *matchSelector) matchEndpoint(nsLabels map[string]string, ns *registry.N
 	//Iterate through the matches
 	for _, match := range ns.GetMatches() {
 		// All match source selector labels should be present in the requested labels map
-		if !isSubset(nsLabels, match.GetSourceSelector()) {
+		if !isSubset(nsLabels, match.GetSourceSelector(), nsLabels) {
 			continue
 		}
 
@@ -74,7 +79,7 @@ func (m *matchSelector) matchEndpoint(nsLabels map[string]string, ns *registry.N
 		for _, destination := range match.GetRoutes() {
 			// Each NSE should be matched against that destination
 			for _, nse := range networkServiceEndpoints {
-				if isSubset(nse.GetLabels(), destination.GetDestinationSelector()) {
+				if isSubset(nse.GetLabels(), destination.GetDestinationSelector(), nsLabels) {
 					nseCandidates = append(nseCandidates, nse)
 				}
 			}
@@ -95,4 +100,24 @@ func (m *matchSelector) SelectEndpoint(requestConnection *connection.Connection,
 	}
 
 	return m.matchEndpoint(requestConnection.GetLabels(), ns, networkServiceEndpoints)
+}
+
+// ProcessLabels generates matches based on destination label selectors that specify templating.
+func ProcessLabels(str string, vars interface{}) string {
+	tmpl, err := template.New("tmpl").Parse(str)
+
+	if err != nil {
+		panic(err)
+	}
+	return process(tmpl, vars)
+}
+
+func process(t *template.Template, vars interface{}) string {
+	var tmplBytes bytes.Buffer
+
+	err := t.Execute(&tmplBytes, vars)
+	if err != nil {
+		panic(err)
+	}
+	return tmplBytes.String()
 }
