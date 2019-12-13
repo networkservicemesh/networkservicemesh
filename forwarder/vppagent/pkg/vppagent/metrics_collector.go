@@ -8,7 +8,7 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 
-	"github.com/gogo/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 	rpc "github.com/ligato/vpp-agent/api/configurator"
 	interfaces "github.com/ligato/vpp-agent/api/models/vpp/interfaces"
 	"github.com/sirupsen/logrus"

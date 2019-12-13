@@ -24,7 +24,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
-	"github.com/gogo/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/ligato/vpp-agent/api/configurator"
 	"github.com/ligato/vpp-agent/api/models/vpp"

@@ -4,7 +4,6 @@ require (
 	github.com/caddyserver/caddy v1.0.3
 	github.com/coredns/coredns v1.5.2
 	github.com/dnstap/golang-dnstap v0.1.0
-	github.com/gogo/protobuf v1.2.2-0.20190723190241-65acae22fc9d
 	github.com/golang/protobuf v1.3.2
 	github.com/miekg/dns v1.1.15
 	github.com/networkservicemesh/networkservicemesh/controlplane v0.2.0

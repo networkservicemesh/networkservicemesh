@@ -5,7 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/gogo/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/ligato/vpp-agent/api/configurator"
 	"github.com/sirupsen/logrus"

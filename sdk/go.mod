@@ -2,12 +2,11 @@ module github.com/networkservicemesh/networkservicemesh/sdk
 
 require (
 	github.com/fsnotify/fsnotify v1.4.7
-	github.com/gogo/protobuf v1.2.2-0.20190723190241-65acae22fc9d
 	github.com/golang/protobuf v1.3.2
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/ligato/cn-infra v2.2.0+incompatible // indirect
 	github.com/ligato/vpp-agent v2.5.1+incompatible
-	github.com/mesos/mesos-go v0.0.9
+	github.com/mesos/mesos-go v0.0.9 // indirect
 	github.com/networkservicemesh/networkservicemesh/controlplane/api v0.2.0
 	github.com/networkservicemesh/networkservicemesh/pkg v0.2.0
 	github.com/networkservicemesh/networkservicemesh/utils v0.2.0
