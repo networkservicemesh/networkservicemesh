@@ -1,5 +1,7 @@
 module github.com/networkservicemesh/networkservicemesh/test
 
+go 1.13
+
 require (
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/ghodss/yaml v1.0.0
@@ -31,8 +33,9 @@ require (
 	k8s.io/kubernetes v1.16.3
 )
 
+// ./scripts/switch_k8s_version.sh to change k8s version
+
 replace (
-	// ./scripts/switch_k8s_version.sh to change k8s version
 	github.com/census-instrumentation/opencensus-proto v0.1.0-0.20181214143942-ba49f56771b8 => github.com/census-instrumentation/opencensus-proto v0.0.3-0.20181214143942-ba49f56771b8
 	gonum.org/v1/gonum => github.com/gonum/gonum v0.0.0-20190331200053-3d26580ed485
 	gonum.org/v1/netlib => github.com/gonum/netlib v0.0.0-20190331212654-76723241ea4e
@@ -77,5 +80,3 @@ replace (
 	github.com/networkservicemesh/networkservicemesh/test => ../test
 	github.com/networkservicemesh/networkservicemesh/utils => ../utils
 )
-
-go 1.13

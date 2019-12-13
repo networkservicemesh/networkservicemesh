@@ -1,5 +1,7 @@
 module github.com/networkservicemesh/networkservicemesh/sdk
 
+go 1.13
+
 require (
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/golang/protobuf v1.3.2
@@ -29,5 +31,3 @@ replace (
 	github.com/networkservicemesh/networkservicemesh/side-cars => ../side-cars
 	github.com/networkservicemesh/networkservicemesh/utils => ../utils
 )
-
-go 1.13

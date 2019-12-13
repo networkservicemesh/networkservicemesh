@@ -1,5 +1,7 @@
 module github.com/networkservicemesh/networkservicemesh/forwarder
 
+go 1.13
+
 require (
 	github.com/golang/protobuf v1.3.2
 	github.com/ligato/vpp-agent v2.5.1+incompatible
@@ -32,5 +34,3 @@ replace (
 	github.com/networkservicemesh/networkservicemesh/side-cars => ../side-cars
 	github.com/networkservicemesh/networkservicemesh/utils => ../utils
 )
-
-go 1.13
