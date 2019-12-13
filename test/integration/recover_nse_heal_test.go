@@ -49,7 +49,7 @@ func TestNSEHealRemoteToLocal(t *testing.T) {
 	testNSEHeal(t, 2, map[string]int{
 		"icmp-responder-nse-1": 1,
 		"icmp-responder-nse-2": 0,
-	}, kubetest.HealTestingPodFixture(g), "VXLAN")
+	}, kubetest.DefaultTestingPodFixture(g), "VXLAN")
 }
 
 func TestNSEHealRemote(t *testing.T) {

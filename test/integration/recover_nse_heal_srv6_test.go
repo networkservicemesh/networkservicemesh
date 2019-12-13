@@ -37,7 +37,7 @@ func TestNSEHealRemoteSRv6ToLocal(t *testing.T) {
 	testNSEHeal(t, 2, map[string]int{
 		"icmp-responder-nse-1": 1,
 		"icmp-responder-nse-2": 0,
-	}, kubetest.HealTestingPodFixture(g), "SRV6")
+	}, kubetest.DefaultTestingPodFixture(g), "SRV6")
 }
 
 func TestNSEHealRemoteSRv6(t *testing.T) {
@@ -51,5 +51,5 @@ func TestNSEHealRemoteSRv6(t *testing.T) {
 	testNSEHeal(t, 2, map[string]int{
 		"icmp-responder-nse-1": 1,
 		"icmp-responder-nse-2": 1,
-	}, kubetest.HealTestingPodFixture(g), "SRV6")
+	}, kubetest.DefaultTestingPodFixture(g), "SRV6")
 }
