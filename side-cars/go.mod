@@ -1,5 +1,7 @@
 module github.com/networkservicemesh/networkservicemesh/side-cars
 
+go 1.13
+
 require (
 	github.com/networkservicemesh/networkservicemesh/controlplane v0.2.0
 	github.com/networkservicemesh/networkservicemesh/controlplane/api v0.2.0
@@ -27,5 +29,3 @@ replace (
 	github.com/networkservicemesh/networkservicemesh/side-cars => ../side-cars
 	github.com/networkservicemesh/networkservicemesh/utils => ../utils
 )
-
-go 1.13

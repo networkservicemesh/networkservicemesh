@@ -1,7 +1,8 @@
 module github.com/networkservicemesh/networkservicemesh/controlplane
 
+go 1.13
+
 require (
-	github.com/gogo/protobuf v1.2.2-0.20190723190241-65acae22fc9d
 	github.com/golang/protobuf v1.3.2
 	github.com/networkservicemesh/networkservicemesh/controlplane/api v0.2.0
 	github.com/networkservicemesh/networkservicemesh/forwarder/api v0.2.0
@@ -32,5 +33,3 @@ replace (
 	github.com/networkservicemesh/networkservicemesh/side-cars => ../side-cars
 	github.com/networkservicemesh/networkservicemesh/utils => ../utils
 )
-
-go 1.13

@@ -12,7 +12,7 @@ import (
 	unified "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 
-	"github.com/gogo/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	net_context "golang.org/x/net/context"

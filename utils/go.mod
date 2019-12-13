@@ -1,5 +1,7 @@
 module github.com/networkservicemesh/networkservicemesh/utils
 
+go 1.13
+
 require (
 	github.com/networkservicemesh/networkservicemesh/controlplane/api v0.2.0
 	github.com/onsi/gomega v1.7.0
@@ -15,5 +17,3 @@ replace (
 	github.com/networkservicemesh/networkservicemesh/pkg => ../pkg
 	github.com/networkservicemesh/networkservicemesh/utils => ./
 )
-
-go 1.13

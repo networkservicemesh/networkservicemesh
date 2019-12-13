@@ -1,5 +1,7 @@
 module github.com/networkservicemesh/networkservicemesh/controllers/sriov-controller
 
+go 1.13
+
 require (
 	github.com/ghodss/yaml v1.0.0
 	github.com/networkservicemesh/networkservicemesh/pkg v0.2.0
@@ -54,5 +56,3 @@ replace (
 	github.com/networkservicemesh/networkservicemesh/side-cars => ../../side-cars
 	github.com/networkservicemesh/networkservicemesh/utils => ../../utils
 )
-
-go 1.13
