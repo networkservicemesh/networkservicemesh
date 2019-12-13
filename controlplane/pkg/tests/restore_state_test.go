@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
+	cmn "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
 
@@ -54,7 +55,7 @@ func TestRestoreConnectionShouldNotPanic(t *testing.T) {
 				common.Workspace: nsmClient.Workspace,
 			},
 		},
-		NetworkServiceManagers: []string{"src"},
+		Path: cmn.Strings2Path("src"),
 	}
 
 	dstConnection := &connection.Connection{
@@ -65,8 +66,8 @@ func TestRestoreConnectionShouldNotPanic(t *testing.T) {
 				kernel.WorkspaceNSEName: "nse1",
 			},
 		},
-		NetworkService:         "ns1",
-		NetworkServiceManagers: []string{"src"},
+		NetworkService: "ns1",
+		Path:           cmn.Strings2Path("src"),
 	}
 	xcons := []*crossconnect.CrossConnect{
 		{
@@ -99,7 +100,7 @@ func TestRestoreConnectionStateWrongDst(t *testing.T) {
 				common.Workspace: nsmClient.Workspace + "?",
 			},
 		},
-		NetworkServiceManagers: []string{"src"},
+		Path: cmn.Strings2Path("src"),
 	}
 
 	dstConnection := &connection.Connection{
@@ -110,8 +111,8 @@ func TestRestoreConnectionStateWrongDst(t *testing.T) {
 				kernel.WorkspaceNSEName: "nse1",
 			},
 		},
-		NetworkService:         "ns1",
-		NetworkServiceManagers: []string{"src"},
+		NetworkService: "ns1",
+		Path:           cmn.Strings2Path("src"),
 	}
 	xcons := []*crossconnect.CrossConnect{
 		{

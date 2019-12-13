@@ -5,6 +5,8 @@ import (
 
 	. "github.com/onsi/gomega"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 )
@@ -26,14 +28,14 @@ func newXcon(eventType crossconnect.CrossConnectEventType, srcUp, dstUp, empty b
 			"newid": {
 				Id: "newid",
 				Source: &connection.Connection{
-					Id:                     "1",
-					State:                  srcState,
-					NetworkServiceManagers: []string{"local"},
+					Id:    "1",
+					State: srcState,
+					Path:  common.Strings2Path("local"),
 				},
 				Destination: &connection.Connection{
-					Id:                     "2",
-					State:                  dstState,
-					NetworkServiceManagers: []string{"local"},
+					Id:    "2",
+					State: dstState,
+					Path:  common.Strings2Path("local"),
 				},
 			},
 		}
