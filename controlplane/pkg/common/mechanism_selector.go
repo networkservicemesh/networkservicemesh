@@ -30,15 +30,18 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/vni"
 )
 
+// MechanismSelector is for selecting and finding forwarding mechanisms. It is used in forwarder service.
 type MechanismSelector interface {
 	Select(*networkservice.NetworkServiceRequest, *model.Forwarder) (*connection.Mechanism, error)
 	Find(*model.Forwarder, string) *connection.Mechanism
 }
 
+// RemoteMechanismSelector for remote mechanisms
 type RemoteMechanismSelector struct {
 	vniAllocator vni.VniAllocator
 }
 
+// LocalMechanismSelector for remote mechanisms
 type LocalMechanismSelector struct{}
 
 func findMechanism(mechanismPreferences []*connection.Mechanism, mechanismType string) *connection.Mechanism {
@@ -50,25 +53,26 @@ func findMechanism(mechanismPreferences []*connection.Mechanism, mechanismType s
 	return nil
 }
 
-func (selector *RemoteMechanismSelector) Select(request *networkservice.NetworkServiceRequest, dp *model.Forwarder) (*connection.Mechanism, error) {
+// Select remote mechanisms of particular type from forwarder
+func (selector *RemoteMechanismSelector) Select(request *networkservice.NetworkServiceRequest, fwd *model.Forwarder) (*connection.Mechanism, error) {
 	for _, mechanism := range request.GetRequestMechanismPreferences() {
-		dpMechanism := selector.Find(dp, vxlan.MECHANISM)
-		if dpMechanism == nil {
+		fwdMechanism := selector.Find(fwd, vxlan.MECHANISM)
+		if fwdMechanism == nil {
 			continue
 		}
 		// TODO: Add other mechanisms support
 
 		if mechanism.GetType() == vxlan.MECHANISM {
 			parameters := mechanism.GetParameters()
-			dpParameters := dpMechanism.GetParameters()
+			fwdParameters := fwdMechanism.GetParameters()
 
-			parameters[vxlan.DstIP] = dpParameters[vxlan.SrcIP]
+			parameters[vxlan.DstIP] = fwdParameters[vxlan.SrcIP]
 			var vni uint32
 
 			extSrcIP := parameters[vxlan.SrcIP]
-			extDstIP := dpParameters[vxlan.SrcIP]
+			extDstIP := fwdParameters[vxlan.SrcIP]
 			srcIP := parameters[vxlan.SrcIP]
-			dstIP := dpParameters[vxlan.SrcIP]
+			dstIP := fwdParameters[vxlan.SrcIP]
 
 			if ip, ok := parameters[vxlan.SrcOriginalIP]; ok {
 				srcIP = ip
@@ -94,27 +98,32 @@ func (selector *RemoteMechanismSelector) Select(request *networkservice.NetworkS
 	return nil, errors.New("failed to select mechanism, no matched mechanisms found")
 }
 
+// Find remote mechanisms with particular type in forwarder
 func (selector *RemoteMechanismSelector) Find(fwd *model.Forwarder, mechanismType string) *connection.Mechanism {
 	return findMechanism(fwd.RemoteMechanisms, mechanismType)
 }
 
-func (selector *LocalMechanismSelector) Select(request *networkservice.NetworkServiceRequest, dp *model.Forwarder) (*connection.Mechanism, error) {
+// Select local mechanisms of particular type from forwarder
+func (selector *LocalMechanismSelector) Select(request *networkservice.NetworkServiceRequest, fwd *model.Forwarder) (*connection.Mechanism, error) {
 	for _, m := range request.GetRequestMechanismPreferences() {
-		if dpMechanism := selector.Find(dp, m.GetType()); dpMechanism != nil {
+		if fwdMechanism := selector.Find(fwd, m.GetType()); fwdMechanism != nil {
 			return m, nil
 		}
 	}
 	return nil, errors.New("failed to select mechanism, no matched mechanisms found")
 }
 
+// Find local mechanisms with particular type in forwarder
 func (selector *LocalMechanismSelector) Find(fwd *model.Forwarder, mechanismType string) *connection.Mechanism {
 	return findMechanism(fwd.LocalMechanisms, mechanismType)
 }
 
+// NewLocalMechanismSelector creates LocalMechanismSelector
 func NewLocalMechanismSelector() *LocalMechanismSelector {
 	return &LocalMechanismSelector{}
 }
 
+// NewRemoteMechanismSelector creates RemoteMechanismSelector
 func NewRemoteMechanismSelector(allocator vni.VniAllocator) *RemoteMechanismSelector {
 	return &RemoteMechanismSelector{
 		vniAllocator: allocator,
