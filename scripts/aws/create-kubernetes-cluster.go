@@ -34,13 +34,12 @@ func (ac *AWSCluster) checkError(err error) {
 			case "ResourceInUseException":
 			case "InvalidKeyPair.Duplicate":
 			case "InvalidPermission.Duplicate":
-			case "Throttling":
 			default:
-				log.Fatalf("Error (%s): %s\n", aerr.Code(), aerr.Message())
+				panic(aerr)
 			}
 			log.Printf("Warning (%s): %s\n", aerr.Code(), aerr.Message())
 		} else {
-			log.Fatalf("Error: %s\n", err.Error())
+			panic(err)
 		}
 	}
 }
