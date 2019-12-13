@@ -5,7 +5,7 @@ cluster_id=${PACKET_CLUSTER_ID:-1}
 master_ip="$(terraform output master${cluster_id}.public_ip)"
 worker_ip="$(terraform output worker${cluster_id}_1.public_ip)"
 
-SSH_OPTS="-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
+SSH_OPTS="-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o IdentitiesOnly=yes"
 
 
 # Install kubeadm, kubelet and kubectl

@@ -18,7 +18,8 @@ include $(foreach module, $(modules), ./$(module)/build.mk)
 
 BIN_DIR = $(PWD)/build/dist
 VERSION = $(shell git describe --tags --always)
-VPP_AGENT=ligato/vpp-agent:v2.3.0
+# Temporary while image is not uploaded to ligato docker hub repo
+VPP_AGENT=artembelov/vpp-agent:v2.5.1
 CGO_ENABLED=0
 GOOS=linux
 DOCKER=./build

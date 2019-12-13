@@ -5,11 +5,13 @@ function check_diff() {
 }
 
 attempts=10
+status=0
 result=""
+
 for (( i=0; i < "${attempts}"; i++ ))
 do
     echo "Attempt $i"
-    result="$(check_diff)"
+    result="$(check_diff)" || status=1
     if ! [[ "${result}" == *"failed to load program with go/packages"* ]] ; then
         break
     fi
@@ -19,3 +21,4 @@ do
     fi
 done
 echo "${result}"
+exit $status

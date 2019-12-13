@@ -41,6 +41,7 @@ replace (
 	github.com/networkservicemesh/networkservicemesh/forwarder/api => ./forwarder/api
 	github.com/networkservicemesh/networkservicemesh/k8s => ./k8s
 	github.com/networkservicemesh/networkservicemesh/k8s/api => ./k8s/api
+	github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis => ./k8s/pkg/apis
 	github.com/networkservicemesh/networkservicemesh/pkg => ./pkg
 	github.com/networkservicemesh/networkservicemesh/scripts/aws => ./scripts/aws
 	github.com/networkservicemesh/networkservicemesh/sdk => ./sdk

@@ -7,7 +7,6 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/gogo/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/ligato/vpp-agent/api/configurator"
 
@@ -16,6 +15,7 @@ import (
 )
 
 type commit struct {
+	downstreamResync func()
 }
 
 func (c *commit) Request(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error) {
@@ -28,9 +28,10 @@ func (c *commit) Request(ctx context.Context, crossConnect *crossconnect.CrossCo
 	_, err = client.Update(updateSpan.Context(), &configurator.UpdateRequest{Update: dataChange})
 	updateSpan.LogError(err)
 	if err != nil {
+		// Error in vpp-agent Update request may cause vpp - vpp agent desynchronization
+		c.downstreamResync()
 		return nil, err
 	}
-	printVppAgentConfiguration(updateSpan.Context(), client)
 	updateSpan.Finish()
 	next := Next(ctx)
 	if next == nil {
@@ -48,7 +49,6 @@ func (c *commit) Close(ctx context.Context, crossConnect *crossconnect.CrossConn
 	if err != nil {
 		return nil, err
 	}
-	printVppAgentConfiguration(ctx, client)
 	next := Next(ctx)
 	if next == nil {
 		return new(empty.Empty), nil
@@ -68,15 +68,9 @@ func getDataChangeAndClient(ctx context.Context) (*configurator.Config, configur
 	return dataChange, client, nil
 }
 
-func printVppAgentConfiguration(ctx context.Context, client configurator.ConfiguratorClient) {
-	dumpResult, err := client.Dump(context.Background(), &configurator.DumpRequest{})
-	if err != nil {
-		Logger(ctx).Errorf("Failed to dump VPP-agent state %v", err)
-	}
-	Logger(ctx).Infof("VPP Agent Configuration: %v", proto.MarshalTextString(dumpResult))
-}
-
 // Commit commits changes
-func Commit() forwarder.ForwarderServer {
-	return &commit{}
+func Commit(downstreamResync func()) forwarder.ForwarderServer {
+	return &commit{
+		downstreamResync: downstreamResync,
+	}
 }

@@ -6,7 +6,7 @@ require (
 	github.com/golang/protobuf v1.3.2
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/ligato/cn-infra v2.2.0+incompatible // indirect
-	github.com/ligato/vpp-agent v2.3.0+incompatible
+	github.com/ligato/vpp-agent v2.5.1+incompatible
 	github.com/mesos/mesos-go v0.0.9
 	github.com/networkservicemesh/networkservicemesh/controlplane/api v0.2.0
 	github.com/networkservicemesh/networkservicemesh/pkg v0.2.0

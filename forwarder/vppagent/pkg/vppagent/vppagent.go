@@ -52,6 +52,7 @@ const (
 type VPPAgent struct {
 	metricsCollector *MetricsCollector
 	common           *common.ForwarderConfig
+	downstreamResync func()
 }
 
 func CreateVPPAgent() *VPPAgent {
@@ -67,7 +68,8 @@ func (v *VPPAgent) CreateForwarderServer(config *common.ForwarderConfig) forward
 		sdk.Connect(v.endpoint()),
 		sdk.KernelInterfaces(config.NSMBaseDir),
 		sdk.ClearMechanisms(config.NSMBaseDir),
-		sdk.Commit())
+		sdk.Commit(v.downstreamResync),
+		sdk.EthernetContextSetter())
 }
 
 // MonitorMechanisms sends mechanism updates
@@ -277,6 +279,8 @@ func (v *VPPAgent) configureVPPAgent() error {
 	if kvSchedulerClient, err = kvschedclient.NewKVSchedulerClient(v.endpoint()); err != nil {
 		return err
 	}
+
+	v.downstreamResync = kvSchedulerClient.DownstreamResync
 	common.CreateNSMonitor(v.common.Monitor, kvSchedulerClient.DownstreamResync)
 
 	v.common.MechanismsUpdateChannel = make(chan *common.Mechanisms, 1)

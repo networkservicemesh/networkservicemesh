@@ -10,6 +10,7 @@ require (
 	github.com/networkservicemesh/networkservicemesh/controlplane v0.2.0
 	github.com/networkservicemesh/networkservicemesh/controlplane/api v0.2.0
 	github.com/networkservicemesh/networkservicemesh/k8s/api v0.2.0
+	github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis v0.2.0
 	github.com/networkservicemesh/networkservicemesh/pkg v0.2.0
 	github.com/networkservicemesh/networkservicemesh/sdk v0.2.0
 	github.com/networkservicemesh/networkservicemesh/utils v0.2.0
@@ -61,7 +62,8 @@ replace (
 	github.com/networkservicemesh/networkservicemesh/controlplane/api => ../controlplane/api
 	github.com/networkservicemesh/networkservicemesh/forwarder => ../forwarder
 	github.com/networkservicemesh/networkservicemesh/forwarder/api => ../forwarder/api
-	github.com/networkservicemesh/networkservicemesh/k8s/api => ../k8s/api
+	github.com/networkservicemesh/networkservicemesh/k8s/api => ./api
+	github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis => ./pkg/apis
 	github.com/networkservicemesh/networkservicemesh/pkg => ../pkg
 	github.com/networkservicemesh/networkservicemesh/sdk => ../sdk
 	github.com/networkservicemesh/networkservicemesh/side-cars => ../side-cars

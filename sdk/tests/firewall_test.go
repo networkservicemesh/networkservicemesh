@@ -28,11 +28,11 @@ func TestFirewallMemif(t *testing.T) {
 	defer ClearFolder(rootDir, false)
 
 	configuration := (&common.NSConfiguration{
-		MechanismType:    memif.MECHANISM,
-		NsmServerSocket:  rootDir + "/server.sock",
-		NsmClientSocket:  rootDir + "/client.sock",
-		Workspace:        rootDir,
-		AdvertiseNseName: "my_network_sercice",
+		MechanismType:          memif.MECHANISM,
+		NsmServerSocket:        rootDir + "/server.sock",
+		NsmClientSocket:        rootDir + "/client.sock",
+		Workspace:              rootDir,
+		EndpointNetworkService: "my_network_sercice",
 	}).FromEnv()
 
 	mechanism, err := common.NewMechanism(cls.LOCAL, memif.MECHANISM, "memif_outgoing", "")
