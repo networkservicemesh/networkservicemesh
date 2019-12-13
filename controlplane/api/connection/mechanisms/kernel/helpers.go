@@ -23,6 +23,13 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 )
 
+const (
+	// location of network namespace for a process
+	netnsfile = "/proc/self/ns/net"
+	// MaxSymLink is maximum length of Symbolic Link
+	maxSymLink = 8192
+)
+
 // Mechanism - kernel mechanism helper
 type Mechanism interface {
 	// GetNetNsInode - return net ns inode

@@ -54,8 +54,18 @@ replace (
 )
 
 require (
-	github.com/networkservicemesh/networkservicemesh/controllers/sriov-controller v0.0.0-00010101000000-000000000000 // indirect
-	github.com/networkservicemesh/networkservicemesh/scripts/aws v0.0.0-00010101000000-000000000000 // indirect
-	github.com/networkservicemesh/networkservicemesh/test v0.0.0-00010101000000-000000000000 // indirect
-	github.com/onsi/gomega v1.8.1 // indirect
+	github.com/golang/protobuf v1.3.2
+	github.com/google/uuid v1.1.1
+	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
+	github.com/ligato/vpp-agent v2.5.1+incompatible
+	github.com/networkservicemesh/networkservicemesh/controlplane/api v0.2.0
+	github.com/networkservicemesh/networkservicemesh/pkg v0.2.0
+	github.com/networkservicemesh/networkservicemesh/sdk v0.2.0
+	github.com/networkservicemesh/networkservicemesh/utils v0.2.0
+	github.com/pkg/errors v0.8.1
+	github.com/sirupsen/logrus v1.4.2
+	github.com/spf13/viper v1.5.0
+	golang.org/x/sys v0.0.0-20190618155005-516e3c20635f // indirect
+	google.golang.org/grpc v1.26.0
+	k8s.io/kubernetes v1.16.3
 )
