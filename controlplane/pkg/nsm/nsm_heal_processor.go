@@ -356,12 +356,6 @@ func (p *healProcessor) nseIsNewAndAvailable(ctx context.Context, endpointName s
 		return false
 	}
 
-	// Check local only if not waiting for specific NSE.
-	if p.model.GetNsm().GetName() == reg.GetNetworkServiceManager().GetName() {
-		// Another local endpoint is found, success.
-		return true
-	}
-
 	// Check remote is accessible.
 	if p.nseManager.CheckUpdateNSE(ctx, reg) {
 		logrus.Infof("NSE is available and Remote NSMD is accessible. %s.", reg.NetworkServiceManager.Url)
