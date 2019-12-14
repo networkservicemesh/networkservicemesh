@@ -26,3 +26,6 @@ spire:
 global:
   # set to true to enable Jaeger tracing for NSM components
   JaegerTracing: false
+
+  # List of (extra) DNS nameservers to query
+  #ExtraDnsServers: "10.96.0.10 8.8.8.8"
