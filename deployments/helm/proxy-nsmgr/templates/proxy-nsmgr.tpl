@@ -13,6 +13,7 @@ spec:
       labels:
         app: proxy-nsmgr-daemonset
     spec:
+      serviceAccount: nsmgr-acc
       containers:
         - name: proxy-nsmd
           image: {{ .Values.registry }}/{{ .Values.org }}/proxy-nsmd:{{ .Values.tag }}
@@ -20,13 +21,28 @@ spec:
           ports:
             - containerPort: 5006
               hostPort: 5006
+          env:
+            - name: INSECURE
+{{- if .Values.insecure }}
+              value: "true"
+{{- else }}
+              value: "false"
+{{- end }}
+            - name: PROXY_NSMD_K8S_REMOTE_PORT
+              value: "5005"
         - name: proxy-nsmd-k8s
           image: {{ .Values.registry }}/{{ .Values.org }}/proxy-nsmd-k8s:{{ .Values.tag }}
           imagePullPolicy: {{ .Values.pullPolicy }}
           ports:
-            - containerPort: 80
+            - containerPort: 5005
               hostPort: 5005
           env:
+            - name: INSECURE
+{{- if .Values.insecure }}
+              value: "true"
+{{- else }}
+              value: "false"
+{{- end }}
             - name: NODE_NAME
               valueFrom:
                 fieldRef:
@@ -39,6 +55,8 @@ spec:
             - name: JAEGER_AGENT_PORT
               value: "6831"
 {{- end }}
+            - name: PROXY_NSMD_K8S_REMOTE_PORT
+              value: "5005"
 ---
 apiVersion: v1
 kind: Service
