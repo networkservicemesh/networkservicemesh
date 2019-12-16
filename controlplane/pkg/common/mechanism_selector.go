@@ -60,7 +60,6 @@ func (selector *RemoteMechanismSelector) Select(request *networkservice.NetworkS
 		if fwdMechanism == nil {
 			continue
 		}
-		// TODO: Add other mechanisms support
 
 		if mechanism.GetType() == vxlan.MECHANISM {
 			parameters := mechanism.GetParameters()
