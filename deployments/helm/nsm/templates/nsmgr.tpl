@@ -58,6 +58,9 @@ spec:
             - name: JAEGER_AGENT_PORT
               value: "6831"
 {{- end }}
+          ports:
+            - containerPort: 5001
+              hostPort: 5001
           volumeMounts:
             - name: nsm-socket
               mountPath: /var/lib/networkservicemesh
