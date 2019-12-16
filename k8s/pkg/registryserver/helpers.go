@@ -14,8 +14,12 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/utils"
 )
 
-const PodNameEnv = utils.EnvVar("POD_NAME")
-const PodUIDEnv = utils.EnvVar("POD_UID")
+const (
+	// PodNameEnv - Current Pod Name Environment variable
+	PodNameEnv = utils.EnvVar("POD_NAME")
+	// PodUIDEnv - Current Pod UID Environment variable
+	PodUIDEnv = utils.EnvVar("POD_UID")
+)
 
 func mapNsmToCustomResource(nsm *registry.NetworkServiceManager) *v1.NetworkServiceManager {
 	nsmCr := &v1.NetworkServiceManager{
@@ -31,10 +35,10 @@ func mapNsmToCustomResource(nsm *registry.NetworkServiceManager) *v1.NetworkServ
 		},
 	}
 
-	podUid := PodUIDEnv.StringValue()
+	podUID := PodUIDEnv.StringValue()
 	podName := PodNameEnv.StringValue()
-	if len(podUid) > 0 && len(podName) > 0 {
-		nsmCr.OwnerReferences = append(nsmCr.OwnerReferences, generateOwnerReference(podUid, podName))
+	if len(podUID) > 0 && len(podName) > 0 {
+		nsmCr.OwnerReferences = append(nsmCr.OwnerReferences, generateOwnerReference(podUID, podName))
 	}
 
 	return nsmCr

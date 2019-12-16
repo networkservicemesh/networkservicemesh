@@ -18,8 +18,6 @@ const (
 	monitorServerKey    contextKeyType = "MonitorServer"
 	nextKey             contextKeyType = "Next"
 	logKey              contextKeyType = "Log"
-	podUIDKey           contextKeyType = "PodUID"
-	podNameKey          contextKeyType = "PodName"
 )
 
 // WithClientConnection -
@@ -112,32 +110,4 @@ func MonitorServer(ctx context.Context) connectionMonitor.MonitorServer {
 		return nil
 	}
 	return value.(connectionMonitor.MonitorServer)
-}
-
-func WithPodUID(parent context.Context, podUID string) context.Context {
-	if parent == nil {
-		parent = context.Background()
-	}
-	return context.WithValue(parent, podUIDKey, podUID)
-}
-
-func PodUID(ctx context.Context) string {
-	if v, ok := ctx.Value(podUIDKey).(string); ok {
-		return v
-	}
-	return ""
-}
-
-func WithPodName(parent context.Context, podName string) context.Context {
-	if parent == nil {
-		parent = context.Background()
-	}
-	return context.WithValue(parent, podNameKey, podName)
-}
-
-func PodName(ctx context.Context) string {
-	if v, ok := ctx.Value(podNameKey).(string); ok {
-		return v
-	}
-	return ""
 }
