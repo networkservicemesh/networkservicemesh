@@ -25,8 +25,3 @@ retest:  # Allow to do test re-run if some kind of failures are detected, line C
     - "unable to establish connection to VPP (VPP API socket file /run/vpp/api.sock does not exist)"  # a VPP is not started, it will be re-started in general, but will cause test fail.
 reporting:
   junit-report: "results/junit.xml"
-health-check:
-  - message: "Branch is not up to date"
-    interval: 60
-    run: |
-      ./.circleci/check_repo_uptodated.sh
