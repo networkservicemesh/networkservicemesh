@@ -80,12 +80,11 @@ func (cce *endpointService) Request(ctx context.Context, request *networkservice
 	}
 	client, err := cce.nseManager.CreateNSEClient(ctx, endpoint)
 	if err != nil {
-		// 7.2.6.1
-		return nil, errors.Errorf("NSM:(7.2.6.1) Failed to create NSE Client. %v", err)
+		return nil, errors.Errorf("NSM:(endpointService) Failed to create NSE Client. %v", err)
 	}
 	defer func() {
 		if cleanupErr := client.Cleanup(); cleanupErr != nil {
-			logger.Errorf("NSM:(7.2.6.2) Error during Cleanup: %v", cleanupErr)
+			logger.Errorf("NSM:(endpointService) Error during Cleanup: %v", cleanupErr)
 		}
 	}()
 
@@ -102,7 +101,7 @@ func (cce *endpointService) Request(ctx context.Context, request *networkservice
 
 	message := cce.requestBuilder.Build(connID, endpoint, fwd, conn)
 
-	logger.Infof("NSM:(7.2.6.2) Requesting NSE with request %v", message)
+	logger.Infof("NSM:(endpointService) Requesting NSE with request %v", message)
 
 	span := spanhelper.FromContext(ctx, "nse.request")
 	ctx = span.Context()
@@ -112,18 +111,17 @@ func (cce *endpointService) Request(ctx context.Context, request *networkservice
 	nseConn, e := client.Request(ctx, message)
 	span.LogObject("nse.response", nseConn)
 	if e != nil {
-		e = errors.Errorf("NSM:(7.2.6.2.1) error requesting networkservice from %+v with message %#v error: %s", endpoint, message, e)
+		e = errors.Errorf("NSM:(endpointService) error requesting networkservice from %+v with message %#v error: %s", endpoint, message, e)
 		span.LogError(e)
 		return nil, e
 	}
-	// 7.2.6.2.2
 	if err = cce.updateConnectionContext(ctx, request.GetConnection(), nseConn); err != nil {
-		err = errors.Errorf("NSM:(7.2.6.2.2) failure Validating NSE Connection: %s", err)
+		err = errors.Errorf("NSM:(endpointService) failure Validating NSE Connection: %s", err)
 		span.LogError(err)
 		return nil, err
 	}
 
-	// 7.2.6.2.3 update connection parameters, add workspace if local nse
+	// Update connection parameters, add workspace if local nse
 	cce.updateConnectionParameters(nseConn, endpoint)
 
 	ctx = WithEndpointConnection(ctx, nseConn)
@@ -169,7 +167,7 @@ func (cce *endpointService) updateConnectionParameters(nseConn *connection.Conne
 			nseConn.GetMechanism().GetParameters()[mechanismCommon.Workspace] = modelEp.Workspace
 			nseConn.GetMechanism().GetParameters()[kernel.WorkspaceNSEName] = modelEp.Endpoint.GetNetworkServiceEndpoint().GetName()
 		}
-		logrus.Infof("NSM:(7.2.6.2.4) Update Local NSE connection parameters: %v", nseConn.Mechanism)
+		logrus.Infof("NSM:(endpointService) Update Local NSE connection parameters: %v", nseConn.Mechanism)
 	}
 }
 
