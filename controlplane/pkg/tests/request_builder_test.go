@@ -99,7 +99,7 @@ var testConnection = &connection.Connection{
 	NetworkService: "network_service",
 }
 
-func TestBuildLocalNSERequestFromLocalEndpointService(t *testing.T) {
+func TestLocalRequestBuilder_LocalNSERequest(t *testing.T) {
 	g := NewWithT(t)
 
 	builder := common.NewLocalRequestBuilder(newTestModel())
@@ -114,7 +114,7 @@ func TestBuildLocalNSERequestFromLocalEndpointService(t *testing.T) {
 	g.Expect(request2.Connection.Id).To(Equal("1"))
 }
 
-func TestBuildRemoteNSMRequestFromLocalEndpointService(t *testing.T) {
+func TestLocalRequestBuilder_RemoteNSMRequest(t *testing.T) {
 	g := NewWithT(t)
 
 	builder := common.NewLocalRequestBuilder(newTestModel())
@@ -129,7 +129,7 @@ func TestBuildRemoteNSMRequestFromLocalEndpointService(t *testing.T) {
 	g.Expect(request2.Connection.Id).To(Equal(""))
 }
 
-func TestBuildRequestFromRemoteEndpointService(t *testing.T) {
+func TestRemoteRequestBuilder(t *testing.T) {
 	g := NewWithT(t)
 
 	builder := common.NewRemoteRequestBuilder(newTestModel())
