@@ -118,8 +118,8 @@ func testFloatingInterdomainDie(t *testing.T, clustersCount int, killPod string)
 	k8ss[clustersCount-1].K8s.WaitLogsContains(nsmrsPod, "nsmrs", "Returned from RegisterNSE", defaultTimeout)
 
 	nscPodNode := kubetest.DeployNSCWithEnv(k8ss[0].K8s, k8ss[0].NodesSetup[0].Node, "nsc-1", defaultTimeout, map[string]string{
-		"OUTGOING_NSC_LABELS": "app=icmp",
-		"OUTGOING_NSC_NAME":   fmt.Sprintf("icmp-responder@%s", nsmrsExternalIP),
+		"CLIENT_LABELS":          "app=icmp",
+		"CLIENT_NETWORK_SERVICE": fmt.Sprintf("icmp-responder@%s", nsmrsExternalIP),
 	})
 
 	kubetest.CheckNSC(k8ss[0].K8s, nscPodNode)
