@@ -28,6 +28,7 @@ const (
 	configScript  = "config"  //#3
 	prepareScript = "prepare" //#4
 	stopScript    = "stop"    // #5
+	cleanupScript = "cleanup" // #6
 	zoneSelector  = "zone-selector"
 )
 
@@ -101,21 +102,9 @@ func (si *shellInstance) Start(timeout time.Duration) (string, error) {
 		}
 	}
 
-	selectedZone := ""
-
-	if len(si.zoneSelectorScript) > 0 {
-		var zones string
-		zones, err = si.shellInterface.RunRead(context, zoneSelector, si.zoneSelectorScript, nil)
-		if err != nil {
-			logrus.Errorf("Failed to select zones...")
-			return "", err
-		}
-		zonesList := strings.Split(zones, "\n")
-		if len(zonesList) == 0 {
-			return "", errors.New("failed to retrieve a zone list")
-		}
-
-		selectedZone += zonesList[rand.Intn(len(zonesList))]
+	selectedZone, err := selectZone(context, si.shellInterface, si.zoneSelectorScript)
+	if err != nil {
+		return "", err
 	}
 
 	// Process and prepare environment variables
@@ -217,6 +206,28 @@ func (si *shellInstance) doInstall(context context.Context) (string, error) {
 	return "", nil
 }
 
+func selectZone(ctx context.Context, shellInterface shell.Manager, zoneSelectorScript []string) (string, error) {
+	if len(zoneSelectorScript) > 0 {
+		return "", nil
+	}
+
+	selectedZone := ""
+
+	zones, err := shellInterface.RunRead(ctx, zoneSelector, zoneSelectorScript, nil)
+	if err != nil {
+		logrus.Errorf("Failed to select zones...")
+		return "", err
+	}
+	zonesList := strings.Split(zones, "\n")
+	if len(zonesList) == 0 {
+		return "", errors.New("failed to retrieve a zone list")
+	}
+
+	selectedZone += zonesList[rand.Intn(len(zonesList))]
+
+	return selectedZone, nil
+}
+
 func (p *shellProvider) getProviderID(provider string) string {
 	val, ok := p.indexes[provider]
 	if ok {
@@ -259,6 +270,63 @@ func (p *shellProvider) CreateCluster(config *config.ClusterProviderConfig, fact
 	}
 
 	return clusterInstance, nil
+}
+
+// CleanupClusters - Cleaning up leaked clusters
+func (p *shellProvider) CleanupClusters(ctx context.Context, config *config.ClusterProviderConfig,
+	manager execmanager.ExecutionManager, instanceOptions providers.InstanceOptions) {
+	if _, ok := config.Scripts[cleanupScript]; !ok {
+		// Skip
+		return
+	}
+
+	clusterID := fmt.Sprintf("%s-cleanup", config.Name)
+
+	logrus.Infof("Starting cleaning up clusters for %s", config.Name)
+	shellInterface := shell.NewManager(manager, clusterID, config, instanceOptions)
+
+	p.Lock()
+	// Do prepare
+	if skipInstall := instanceOptions.NoInstall || p.installDone[config.Name]; !skipInstall {
+		if iScript, ok := config.Scripts[installScript]; ok {
+			_, err := shellInterface.RunCmd(ctx, "install", utils.ParseScript(iScript), config.Env)
+			if err != nil {
+				logrus.Warnf("Install command for cluster %s finished with error: %v", config.Name, err)
+			} else {
+				p.installDone[config.Name] = true
+			}
+		}
+	}
+	p.Unlock()
+
+	var selectedZone string
+	var err error
+	if zScript, ok := config.Scripts[zoneSelector]; ok {
+		selectedZone, err = selectZone(ctx, shellInterface, utils.ParseScript(zScript))
+		if err != nil {
+			logrus.Warnf("Select zone command for cluster %s finished with error: %v", config.Name, err)
+			return
+		}
+	}
+
+	// Process and prepare environment variables
+	err = shellInterface.ProcessEnvironment(
+		clusterID, config.Name, p.root, config.Env,
+		map[string]string{
+			"zone-selector": selectedZone,
+		})
+	if err != nil {
+		logrus.Warnf("Select zone command for cluster %s finished with error: %v", config.Name, err)
+		return
+	}
+
+	printableEnv := shellInterface.PrintEnv(shellInterface.GetProcessedEnv())
+	manager.AddLog(clusterID, "environment", printableEnv)
+
+	_, err = shellInterface.RunCmd(ctx, "cleanup", utils.ParseScript(config.Scripts[cleanupScript]), nil)
+	if err != nil {
+		logrus.Warnf("Cleanup command for cluster %s finished with error: %v", config.Name, err)
+	}
 }
 
 // NewShellClusterProvider - Creates new shell provider

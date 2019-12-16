@@ -78,7 +78,7 @@ func (nsme *nsmEndpoint) serve(listener net.Listener) {
 }
 
 func (nsme *nsmEndpoint) Start() error {
-	nsme.tracerCloser = jaeger.InitJaeger(nsme.Configuration.AdvertiseNseName)
+	nsme.tracerCloser = jaeger.InitJaeger(nsme.Configuration.EndpointNetworkService)
 
 	nsme.grpcServer = tools.NewServer(nsme.Context)
 	unified.RegisterNetworkServiceServer(nsme.grpcServer, nsme)
@@ -100,20 +100,20 @@ func (nsme *nsmEndpoint) Start() error {
 	// spawn the listnening thread
 	nsme.serve(listener)
 
-	span := spanhelper.FromContext(nsme.Context, fmt.Sprintf("Endpoint-%v-Start", nsme.Configuration.AdvertiseNseName))
-	span.LogObject("labels", nsme.Configuration.AdvertiseNseLabels)
+	span := spanhelper.FromContext(nsme.Context, fmt.Sprintf("Endpoint-%v-Start", nsme.Configuration.EndpointNetworkService))
+	span.LogObject("labels", nsme.Configuration.EndpointLabels)
 	defer span.Finish()
 
 	// Registering NSE API, it will listen for Connection requests from NSM and return information
 	// needed for NSE's forwarder programming.
 	nse := &registry.NetworkServiceEndpoint{
-		NetworkServiceName: nsme.Configuration.AdvertiseNseName,
+		NetworkServiceName: nsme.Configuration.EndpointNetworkService,
 		Payload:            "IP",
-		Labels:             tools.ParseKVStringToMap(nsme.Configuration.AdvertiseNseLabels, ",", "="),
+		Labels:             tools.ParseKVStringToMap(nsme.Configuration.EndpointLabels, ",", "="),
 	}
 	registration := &registry.NSERegistration{
 		NetworkService: &registry.NetworkService{
-			Name:    nsme.Configuration.AdvertiseNseName,
+			Name:    nsme.Configuration.EndpointNetworkService,
 			Payload: "IP",
 		},
 		NetworkServiceEndpoint: nse,
@@ -134,7 +134,7 @@ func (nsme *nsmEndpoint) Start() error {
 }
 
 func (nsme *nsmEndpoint) Delete() error {
-	span := spanhelper.FromContext(context.Background(), fmt.Sprintf("Endpoint-%v-Delete", nsme.Configuration.AdvertiseNseName))
+	span := spanhelper.FromContext(context.Background(), fmt.Sprintf("Endpoint-%v-Delete", nsme.Configuration.EndpointNetworkService))
 	defer span.Finish()
 	// prepare and defer removing of the advertised endpoint
 	removeNSE := &registry.RemoveNSERequest{

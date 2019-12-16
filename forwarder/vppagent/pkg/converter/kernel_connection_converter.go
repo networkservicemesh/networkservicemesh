@@ -1,7 +1,7 @@
 package converter
 
 import (
-	"os"
+	"strings"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
@@ -19,8 +19,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
 )
-
-const ForwarderAllowVHost = "FORWARDER_ALLOW_VHOST" // To disallow VHOST please pass "false" into this env variable.
 
 type KernelConnectionConverter struct {
 	*connection.Connection
@@ -62,11 +60,18 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 		return nil, err
 	}
 	var ipAddresses []string
+	var mac string
 	if c.conversionParameters.Side == DESTINATION {
 		ipAddresses = []string{c.Connection.GetContext().GetIpContext().GetDstIpAddr()}
+		if !c.GetContext().IsEthernetContextEmtpy() {
+			mac = c.GetContext().EthernetContext.DstMac
+		}
 	}
 	if c.conversionParameters.Side == SOURCE {
 		ipAddresses = []string{c.Connection.GetContext().GetIpContext().GetSrcIpAddr()}
+		if !c.GetContext().IsEthernetContextEmtpy() {
+			mac = c.GetContext().EthernetContext.SrcMac
+		}
 	}
 
 	logrus.Infof("m.GetParameters()[%s]: %s", common.InterfaceNameKey, m.GetParameters()[common.InterfaceNameKey])
@@ -96,6 +101,7 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 			Type:        linux_interfaces.Interface_TAP_TO_VPP,
 			Enabled:     true,
 			IpAddresses: ipAddresses,
+			PhysAddress: mac,
 			HostIfName:  m.GetParameters()[common.InterfaceNameKey],
 			Namespace: &linux_namespace.NetNamespace{
 				Type:      linux_namespace.NetNamespace_FD,
@@ -125,6 +131,7 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 			Type:        linux_interfaces.Interface_VETH,
 			Enabled:     true,
 			IpAddresses: ipAddresses,
+			PhysAddress: mac,
 			HostIfName:  m.GetParameters()[common.InterfaceNameKey],
 			Namespace: &linux_namespace.NetNamespace{
 				Type:      linux_namespace.NetNamespace_FD,
@@ -149,7 +156,7 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 	}
 
 	// Process static routes
-	routes := []*connectioncontext.Route{}
+	var routes []*connectioncontext.Route
 	switch c.conversionParameters.Side {
 	case SOURCE:
 		routes = c.Connection.GetContext().GetIpContext().GetDstRoutes()
@@ -179,18 +186,14 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 				HwAddress: neightbour.HardwareAddress,
 			})
 		}
+		if c.GetContext().EthernetContext != nil && c.GetContext().EthernetContext.DstMac != "" {
+			logrus.Infof("set arp for: %v", c.GetContext().String())
+			rv.LinuxConfig.ArpEntries = append(rv.LinuxConfig.ArpEntries, &linux.ARPEntry{
+				IpAddress: strings.Split(c.GetContext().IpContext.DstIpAddr, "/")[0],
+				Interface: c.conversionParameters.Name,
+				HwAddress: c.GetContext().EthernetContext.DstMac,
+			})
+		}
 	}
-
 	return rv, nil
-}
-
-func useVHostNet() bool {
-	vhostAllowed := os.Getenv(ForwarderAllowVHost)
-	if vhostAllowed == "false" {
-		return false
-	}
-	if _, err := os.Stat("/dev/vhost-net"); err == nil {
-		return true
-	}
-	return false
 }

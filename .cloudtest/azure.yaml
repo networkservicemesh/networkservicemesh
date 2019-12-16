@@ -32,3 +32,5 @@ providers:
         make k8s-config helm-init
         make spire-install-azure
         make spire-wait-registration
+      cleanup: |
+        ./scripts/azure/destroy-old-clusters.sh 4 "^azure"

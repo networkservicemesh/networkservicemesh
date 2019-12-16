@@ -442,22 +442,22 @@ func InitSpireSecurity(k8s *K8s) func() {
 func defaultICMPEnv(useIPv6 bool) map[string]string {
 	if !useIPv6 {
 		return map[string]string{
-			"ADVERTISE_NSE_NAME":   "icmp-responder",
-			"ADVERTISE_NSE_LABELS": "app=icmp",
-			"IP_ADDRESS":           "172.16.1.0/24",
+			"ENDPOINT_NETWORK_SERVICE": "icmp-responder",
+			"ENDPOINT_LABELS":          "app=icmp",
+			"IP_ADDRESS":               "172.16.1.0/24",
 		}
 	}
 	return map[string]string{
-		"ADVERTISE_NSE_NAME":   "icmp-responder",
-		"ADVERTISE_NSE_LABELS": "app=icmp",
-		"IP_ADDRESS":           "100::/64",
+		"ENDPOINT_NETWORK_SERVICE": "icmp-responder",
+		"ENDPOINT_LABELS":          "app=icmp",
+		"IP_ADDRESS":               "100::/64",
 	}
 }
 
 func defaultNSCEnv() map[string]string {
 	return map[string]string{
-		"OUTGOING_NSC_LABELS": "app=icmp",
-		"OUTGOING_NSC_NAME":   "icmp-responder",
+		"CLIENT_LABELS":          "app=icmp",
+		"CLIENT_NETWORK_SERVICE": "icmp-responder",
 	}
 }
 
@@ -824,26 +824,6 @@ func checkNSCConfig(k8s *K8s, nscPodNode *v1.Pod, checkIP, pingIP string) *NSCCh
 		logrus.Printf("NSC Ping, OK")
 	}
 	return info
-}
-
-// HealNscChecker checks that heal worked properly
-func HealNscChecker(k8s *K8s, nscPod *v1.Pod) *NSCCheckInfo {
-	const attempts = 10
-	success := false
-	var rv *NSCCheckInfo
-	for i := 0; i < attempts; i++ {
-		info := &NSCCheckInfo{}
-		info.pingResponse = pingNse(k8s, nscPod)
-
-		if !strings.Contains(info.pingResponse, "100% packet loss") {
-			success = true
-			rv = info
-			break
-		}
-		<-time.After(time.Second)
-	}
-	k8s.g.Expect(success).To(BeTrue())
-	return rv
 }
 
 // IsBrokeTestsEnabled - Check if broken tests are enabled

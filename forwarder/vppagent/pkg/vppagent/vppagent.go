@@ -24,7 +24,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
-	"github.com/gogo/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/ligato/vpp-agent/api/configurator"
 	"github.com/ligato/vpp-agent/api/models/vpp"
@@ -68,7 +68,8 @@ func (v *VPPAgent) CreateForwarderServer(config *common.ForwarderConfig) forward
 		sdk.Connect(v.endpoint()),
 		sdk.KernelInterfaces(config.NSMBaseDir),
 		sdk.ClearMechanisms(config.NSMBaseDir),
-		sdk.Commit(v.downstreamResync))
+		sdk.Commit(v.downstreamResync),
+		sdk.EthernetContextSetter())
 }
 
 // MonitorMechanisms sends mechanism updates

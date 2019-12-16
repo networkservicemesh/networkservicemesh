@@ -24,10 +24,16 @@ import (
 	"time"
 
 	"github.com/networkservicemesh/networkservicemesh/test/cloudtest/pkg/providers/packet/packethelper"
+	"github.com/networkservicemesh/networkservicemesh/utils"
 
 	"github.com/packethost/packngo"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+)
+
+const (
+	packetAuthToken = utils.EnvVar("PACKET_AUTH_TOKEN")
+	packetProjectID = utils.EnvVar("PACKET_PROJECT_ID")
 )
 
 type packetCleanupCmd struct {
@@ -40,22 +46,18 @@ type packetCleanupCmd struct {
 type Arguments struct {
 	clusterPrefix   []string
 	sshPrefix       string
-	token           string
-	projectID       string
 	clusterLifetime time.Duration
 	deleteSSHKeys   bool
 	deleteClusters  bool
 }
 
 func initCmd(rootCmd *packetCleanupCmd) {
-	rootCmd.Flags().BoolVarP(&rootCmd.cmdArguments.deleteSSHKeys, "ssh", "k", false, "Delete ssh keys")
-	rootCmd.Flags().BoolVarP(&rootCmd.cmdArguments.deleteClusters, "clusters", "c", false, "Delete ssh keys")
-	rootCmd.Flags().DurationVarP(&rootCmd.cmdArguments.clusterLifetime, "since", "s", 4*time.Hour, "Since timeout, if exceed ssh/cluster will be deleted")
-	rootCmd.Flags().StringVarP(&rootCmd.cmdArguments.token, "token", "t", "", "Packet Token")
-	rootCmd.Flags().StringVarP(&rootCmd.cmdArguments.projectID, "project", "p", "", "ProjectId")
+	rootCmd.Flags().BoolVarP(&rootCmd.cmdArguments.deleteSSHKeys, "ssh-keys", "k", false, "Delete ssh keys")
+	rootCmd.Flags().BoolVarP(&rootCmd.cmdArguments.deleteClusters, "clusters", "c", false, "Delete clusters")
+	rootCmd.Flags().DurationVarP(&rootCmd.cmdArguments.clusterLifetime, "older", "o", 4*time.Hour, "Cluster usage time in hours, if exceed ssh key/cluster will be deleted")
 
 	rootCmd.Flags().StringVar(&rootCmd.cmdArguments.sshPrefix, "ssh-prefix", "dev-ci-cloud", "SSH key prefix to delete")
-	rootCmd.Flags().StringArrayVar(&rootCmd.cmdArguments.clusterPrefix, "cluster-prefix", []string{"Worker-packet-", "Master-packet-"}, "SSH key prefix to delete")
+	rootCmd.Flags().StringArrayVar(&rootCmd.cmdArguments.clusterPrefix, "cluster-prefix", []string{"Worker-packet-", "Master-packet-"}, "Cluster name prefix to delete")
 
 	var versionCmd = &cobra.Command{
 		Use:   "version",
@@ -76,7 +78,7 @@ func main() {
 	}
 	rootCmd.Use = "packet_cleanup"
 	rootCmd.Short = "Packet cleanup tool"
-	rootCmd.Long = `Allow to cleanup packet instance from ssh keys and old clusters`
+	rootCmd.Long = `Cleanup packet instance from ssh keys and old clusters`
 	rootCmd.Run = func(cmd *cobra.Command, args []string) {
 		doCleanup(rootCmd)
 	}
@@ -93,14 +95,17 @@ func main() {
 }
 
 func doCleanup(cmd *packetCleanupCmd) {
-	if cmd.cmdArguments.projectID == "" || cmd.cmdArguments.token == "" {
+	projectID := packetProjectID.StringValue()
+	token := packetAuthToken.StringValue()
+
+	if projectID == "" || token == "" {
 		logrus.Errorf("Please specify both projectID and token")
 		os.Exit(1)
 	}
 
-	helper, err := packethelper.NewPacketHelper(cmd.cmdArguments.projectID, cmd.cmdArguments.token)
+	helper, err := packethelper.NewPacketHelper(projectID, token)
 	if err != nil {
-		logrus.Errorf("Error accessing packet %v", err)
+		logrus.Errorf("Error accessing packet: %v", err)
 		os.Exit(1)
 	}
 	if cmd.cmdArguments.deleteSSHKeys {
@@ -138,7 +143,7 @@ func deleteClusters(cmd *packetCleanupCmd, helper *packethelper.PacketHelper) {
 			logrus.Infof("Checking cluster %v uptime: %v, state: %v", d.Hostname, sinceValue, d.State)
 			if checkPrefix(d.Hostname, cmd.cmdArguments.clusterPrefix) {
 				if sinceValue > cmd.cmdArguments.clusterLifetime {
-					logrus.Infof("-----> Device is marked for deletion.")
+					logrus.Infof("-----> Cluster %s is marked for deletion.", d.Hostname)
 					_, errd := helper.Client.Devices.Delete(d.ID)
 					if errd != nil {
 						logrus.Errorf("Error during delete %v", errd)

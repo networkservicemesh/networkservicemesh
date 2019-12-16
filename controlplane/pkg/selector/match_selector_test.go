@@ -509,6 +509,94 @@ func Test_matchSelector_SelectEndpoint(t *testing.T) {
 			},
 			want: nil,
 		},
+		{
+			name: "match with node selector",
+			args: args{
+				requestConnection: &connection.Connection{
+					Labels: map[string]string{
+						"nodeName": "node1",
+					},
+				},
+				ns: &registry.NetworkService{
+					Name: "same-node-ns",
+					Matches: []*registry.Match{
+						{
+							Routes: []*registry.Destination{
+								{
+									DestinationSelector: map[string]string{
+										"nodeName": "{{index . \"nodeName\"}}",
+									},
+								},
+							},
+						},
+					},
+				},
+				networkServiceEndpoints: []*registry.NetworkServiceEndpoint{
+					{
+						Name: "icmp-responder-same-node",
+						Labels: map[string]string{
+							"nodeName": "node1",
+						},
+					},
+					{
+						Name: "icmp-responder-node-2",
+						Labels: map[string]string{
+							"nodeName": "node2",
+						},
+					},
+				},
+			},
+			want: &registry.NetworkServiceEndpoint{
+				Name: "icmp-responder-same-node",
+				Labels: map[string]string{
+					"nodeName": "node1",
+				},
+			},
+		},
+		{
+			name: "match with with label selector",
+			args: args{
+				requestConnection: &connection.Connection{
+					Labels: map[string]string{
+						"app": "firewall",
+					},
+				},
+				ns: &registry.NetworkService{
+					Name: "firewall-ns",
+					Matches: []*registry.Match{
+						{
+							Routes: []*registry.Destination{
+								{
+									DestinationSelector: map[string]string{
+										"app": "{{index . \"app\"}}",
+									},
+								},
+							},
+						},
+					},
+				},
+				networkServiceEndpoints: []*registry.NetworkServiceEndpoint{
+					{
+						Name: "icmp-responder",
+						Labels: map[string]string{
+							"app": "icmp-responder",
+						},
+					},
+					{
+						Name: "firewall",
+						Labels: map[string]string{
+							"app": "firewall",
+						},
+					},
+				},
+			},
+			want: &registry.NetworkServiceEndpoint{
+				Name: "firewall",
+				Labels: map[string]string{
+					"app": "firewall",
+				},
+			},
+		},
 	}
 
 	m := NewMatchSelector()
