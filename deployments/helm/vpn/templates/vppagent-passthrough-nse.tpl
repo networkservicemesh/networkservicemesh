@@ -36,6 +36,14 @@ spec:
               value: jaeger.nsm-system
             - name: JAEGER_AGENT_PORT
               value: "6831"
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_UID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.uid
 {{- end }}
           resources:
             limits:
@@ -76,6 +84,14 @@ spec:
               value: "app=passthrough-2"
             - name: TRACER_ENABLED
               value: "true"
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_UID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.uid
           resources:
             limits:
               networkservicemesh.io/socket: 1
@@ -115,6 +131,14 @@ spec:
               value: "app=passthrough-3"
             - name: TRACER_ENABLED
               value: "true"
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_UID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.uid
           resources:
             limits:
               networkservicemesh.io/socket: 1
