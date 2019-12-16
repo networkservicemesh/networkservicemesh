@@ -69,7 +69,7 @@ INSECURE=true
 
 For creating kind kubeconfig file you can use:
 ```
-KIND_CLUSTER_NAME=cluster1 make kind-export-config
+KIND_CLUSTER_NAME=cluster1 make kind-export-kubeconfig
 ```
 It will create kubeconfig file `cluster1-kubeconfig`.
 

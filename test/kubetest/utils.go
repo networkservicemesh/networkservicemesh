@@ -105,7 +105,7 @@ func DeployCorefile(k8s *K8s, name, content string) error {
 	return err
 }
 
-func findNsmAndForwarder(k8s *K8s, ns string, nodes []v1.Node) []*NodeConf {
+func findNsmAndForwarder(k8s *K8s, ns string, nodes []v1.Node, nodeCount int) []*NodeConf {
 	configs := make([]*NodeConf, len(nodes))
 	pods := k8s.ListPodsByNs(ns)
 	for j := range nodes {
@@ -128,23 +128,26 @@ func findNsmAndForwarder(k8s *K8s, ns string, nodes []v1.Node) []*NodeConf {
 			}
 		}
 	}
-	for j := 0; j < len(nodes); j++ {
+	var result []*NodeConf
+	for j := 0; j < len(configs); j++ {
 		c := configs[j]
 		if c.Forwarder == nil || c.Nsmd == nil {
-			return nil
+			continue
+		} else {
+			result = append(result, c)
 		}
 	}
-	return configs
+	return result
 }
 
 // SetupNodesConfig - Setup NSMgr and Forwarder for particular number of nodes in cluster
-func SetupNodesConfig(k8s *K8s, nodesCount int, timeout time.Duration, conf []*pods.NSMgrPodConfig, ns string) ([]*NodeConf, error) {
+func SetupNodesConfig(k8s *K8s, nodeCount int, timeout time.Duration, conf []*pods.NSMgrPodConfig, ns string) ([]*NodeConf, error) {
 	if k8s.resourcesBehaviour == ReuseNSMResources {
-		nodesCount = 2
+		nodeCount = 2
 	}
-	nodes := k8s.GetNodesWait(nodesCount, timeout)
+	nodes := k8s.GetNodesWait(nodeCount, timeout)
 	//var jaegerPod *v1.Pod
-	k8s.g.Expect(len(nodes) >= nodesCount).To(Equal(true),
+	k8s.g.Expect(len(nodes) >= nodeCount).To(Equal(true),
 		"At least one Kubernetes node is required for this test")
 	//if tools_jaeger.IsOpentracingEnabled() && jaeger.AgentHost.IsEmpty() &&
 	//	(k8s.artifactManager.Config().SaveBehavior()&(artifact.SaveAsDir|artifact.SaveAsArchive)) > 0 {
@@ -155,15 +158,15 @@ func SetupNodesConfig(k8s *K8s, nodesCount int, timeout time.Duration, conf []*p
 	var wg sync.WaitGroup
 	if k8s.resourcesBehaviour == ReuseNSMResources {
 		for _, ns := range []string{namespace.GetNamespace(), k8s.namespace} {
-			conf := findNsmAndForwarder(k8s, ns, nodes)
-			if len(conf) > 0 {
+			conf := findNsmAndForwarder(k8s, ns, nodes, nodeCount)
+			if len(conf) == nodeCount {
 				return conf, nil
 			}
 		}
 	}
 	var resultError error
-	var confs = make([]*NodeConf, nodesCount)
-	for ii := 0; ii < nodesCount; ii++ {
+	var confs = make([]*NodeConf, nodeCount)
+	for ii := 0; ii < nodeCount; ii++ {
 		wg.Add(1)
 		i := ii
 		go func() {

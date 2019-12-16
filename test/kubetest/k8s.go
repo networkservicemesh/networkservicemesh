@@ -871,7 +871,7 @@ func (k8s *K8s) Cleanup() {
 
 func filterNsmInfrastructure(pods ...*v1.Pod) []*v1.Pod {
 	var result []*v1.Pod
-	skipNames := []string{"nsmgr", "forwarder"}
+	skipNames := []string{"nsmgr", "forwarder", "nsmd"}
 	excludeNames := []string{"pnsmgr"}
 	containsFunc := func(where string, what []string) bool {
 		for i := range what {

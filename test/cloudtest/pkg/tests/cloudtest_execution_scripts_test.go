@@ -80,7 +80,7 @@ func TestCloudTestAfterAllWorksCorrectly(t *testing.T) {
 
 	g.Expect(report).NotTo(BeNil())
 
-	path := path.Join(tmpDir, provider.Name+"-1", "007-test2-run.log")
+	path := path.Join(tmpDir, provider.Name+"-1", "006-test2-run.log")
 	content, err := ioutil.ReadFile(path)
 	g.Expect(err).Should(BeNil())
 	g.Expect(string(content)).Should(ContainSubstring("AfterAll worked"))
