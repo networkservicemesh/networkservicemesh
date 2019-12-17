@@ -23,10 +23,12 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/rest"
+	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/util/flowcontrol"
 )
 
+// createHTTPClient creates an http.Client that will invoke the provided roundTripper func
+// when a request is made.
 func createHTTPClient(roundTripper func(*http.Request) (*http.Response, error)) *http.Client {
 	return &http.Client{
 		Transport: roundTripperFunc(roundTripper),
@@ -39,34 +41,49 @@ func (f roundTripperFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 	return f(req)
 }
 
+// restClient provides a fake restClient interface. It is used to mock network
+// interactions via a rest.Request, or to make them via the provided Client to
+// a specific server.
 type restClient struct {
-	Client               *http.Client
 	NegotiatedSerializer runtime.NegotiatedSerializer
 	GroupVersion         schema.GroupVersion
+	VersionedAPIPath     string
+
+	// Err is returned when any request would be made to the server. If Err is set,
+	// Req will not be recorded, Resp will not be returned, and Client will not be
+	// invoked.
+	Err error
+	// Req is set to the last request that was executed (had the methods Do/DoRaw) invoked.
+	Req *http.Request
+	// If Client is specified, the client will be invoked instead of returning Resp if
+	// Err is not set.
+	Client *http.Client
+	// Resp is returned to the caller after Req is recorded, unless Err or Client are set.
+	Resp *http.Response
 }
 
-func (c *restClient) Get() *rest.Request {
-	return c.request("GET")
+func (c *restClient) Get() *restclient.Request {
+	return c.Verb("GET")
 }
 
-func (c *restClient) Put() *rest.Request {
-	return c.request("PUT")
+func (c *restClient) Put() *restclient.Request {
+	return c.Verb("PUT")
 }
 
-func (c *restClient) Patch(pt types.PatchType) *rest.Request {
-	return c.request("PATCH").SetHeader("Content-Type", string(pt))
+func (c *restClient) Patch(pt types.PatchType) *restclient.Request {
+	return c.Verb("PATCH").SetHeader("Content-Type", string(pt))
 }
 
-func (c *restClient) Post() *rest.Request {
-	return c.request("POST")
+func (c *restClient) Post() *restclient.Request {
+	return c.Verb("POST")
 }
 
-func (c *restClient) Delete() *rest.Request {
-	return c.request("DELETE")
+func (c *restClient) Delete() *restclient.Request {
+	return c.Verb("DELETE")
 }
 
-func (c *restClient) Verb(verb string) *rest.Request {
-	return c.request(verb)
+func (c *restClient) Verb(verb string) *restclient.Request {
+	return c.request().Verb(verb)
 }
 
 func (c *restClient) APIVersion() schema.GroupVersion {
@@ -77,29 +94,23 @@ func (c *restClient) GetRateLimiter() flowcontrol.RateLimiter {
 	return nil
 }
 
-func (c *restClient) request(verb string) *rest.Request {
-	config := rest.ContentConfig{
-		ContentType:          runtime.ContentTypeJSON,
-		GroupVersion:         &c.GroupVersion,
-		NegotiatedSerializer: c.NegotiatedSerializer,
+func (c *restClient) request() *restclient.Request {
+	config := restclient.ClientContentConfig{
+		ContentType:  runtime.ContentTypeJSON,
+		GroupVersion: c.GroupVersion,
+		Negotiator:   runtime.NewClientNegotiator(c.NegotiatedSerializer, c.GroupVersion),
 	}
-
-	ns := c.NegotiatedSerializer
-	info, _ := runtime.SerializerInfoForMediaType(ns.SupportedMediaTypes(), runtime.ContentTypeJSON)
-	serializers := rest.Serializers{
-		Encoder: ns.EncoderForVersion(info.Serializer, c.GroupVersion),
-		Decoder: ns.DecoderToVersion(info.Serializer, c.GroupVersion),
-	}
-	if info.StreamSerializer != nil {
-		serializers.StreamingSerializer = info.StreamSerializer.Serializer
-		serializers.Framer = info.StreamSerializer.Framer
-	}
-	return rest.NewRequest(c, verb, &url.URL{Host: "localhost"}, "", config, serializers, nil, nil, 0)
+	return restclient.NewRequestWithClient(&url.URL{Scheme: "https", Host: "localhost"}, c.VersionedAPIPath, config, createHTTPClient(c.do))
 }
 
-func (c *restClient) Do(req *http.Request) (*http.Response, error) {
+// do is invoked when a Request() created by this client is executed.
+func (c *restClient) do(req *http.Request) (*http.Response, error) {
+	if c.Err != nil {
+		return nil, c.Err
+	}
+	c.Req = req
 	if c.Client != nil {
 		return c.Client.Do(req)
 	}
-	return nil, nil
+	return c.Resp, nil
 }
