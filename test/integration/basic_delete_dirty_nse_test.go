@@ -64,5 +64,5 @@ func TestDeleteDirtyNSEWithClient(t *testing.T) {
 
 	k8s.DeletePods(nsePod)
 
-	kubetest.ExpectNSEsCountToBe(k8s, 1, 1)
+	kubetest.ExpectNSEsCountToBe(k8s, 1, 0)
 }

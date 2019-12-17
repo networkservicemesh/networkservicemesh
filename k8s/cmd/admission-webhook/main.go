@@ -84,6 +84,14 @@ func getTracerEnabled() string {
 	return os.Getenv(tracerEnabledEnv)
 }
 
+func getNamespace() string {
+	ns := os.Getenv(namespaceEnv)
+	if ns == "" {
+		ns = namespaceDefault
+	}
+	return ns
+}
+
 func getJaegerHost() string {
 	return os.Getenv(jaegerHostEnv)
 }

@@ -3,7 +3,7 @@ package registryserver
 import (
 	"time"
 
-	"github.com/gogo/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/networkservicemesh/networkservicemesh/utils"

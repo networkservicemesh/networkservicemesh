@@ -1,7 +1,8 @@
 module github.com/networkservicemesh/networkservicemesh/controlplane
 
+go 1.13
+
 require (
-	github.com/gogo/protobuf v1.2.2-0.20190723190241-65acae22fc9d
 	github.com/golang/protobuf v1.3.2
 	github.com/networkservicemesh/networkservicemesh/controlplane/api v0.2.0
 	github.com/networkservicemesh/networkservicemesh/forwarder/api v0.2.0
@@ -11,6 +12,7 @@ require (
 	github.com/onsi/gomega v1.7.0
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/pkg/errors v0.8.1
+	github.com/prometheus/client_golang v0.9.3
 	github.com/sirupsen/logrus v1.4.2
 	golang.org/x/net v0.0.0-20190812203447-cdfb69ac37fc
 	golang.org/x/sys v0.0.0-20190618155005-516e3c20635f
@@ -32,5 +34,3 @@ replace (
 	github.com/networkservicemesh/networkservicemesh/side-cars => ../side-cars
 	github.com/networkservicemesh/networkservicemesh/utils => ../utils
 )
-
-go 1.13

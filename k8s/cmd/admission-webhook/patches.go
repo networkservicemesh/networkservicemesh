@@ -95,10 +95,17 @@ func createDNSPatch(tuple *podSpecAndMeta, annotationValue string) (patch []patc
 func createNsmInitContainerPatch(annotationValue string) []patchOperation {
 	var patch []patchOperation
 
-	envVals := []corev1.EnvVar{{
-		Name:  client.AnnotationEnv,
-		Value: annotationValue,
-	}}
+	namespace := getNamespace()
+	envVals := []corev1.EnvVar{
+		{
+			Name:  client.AnnotationEnv,
+			Value: annotationValue,
+		},
+		{
+			Name:  client.NamespaceEnv,
+			Value: namespace,
+		},
+	}
 	jaegerHost := getJaegerHost()
 	if jaegerHost != "" {
 		envVals = append(envVals,

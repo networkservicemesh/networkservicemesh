@@ -413,16 +413,10 @@ func (nsm *nsmServer) deleteEndpointWithClient(ctx context.Context, name string,
 	return nil
 }
 
-// DeleteEndpointWithBrokenConnection deletes endpoint if it has no active connections
+// DeleteEndpointWithBrokenConnection deletes endpoint from the model and k8s-registry
 func (nsm *nsmServer) DeleteEndpointWithBrokenConnection(ctx context.Context, endpoint *model.Endpoint) error {
 	span := spanhelper.FromContext(ctx, "DeleteEndpointWithBrokenConnection")
 	defer span.Finish()
-	// If endpoint has active client connection, it should be handled by MonitorNetNsInodeServer
-	for _, clientConnection := range nsm.model.GetAllClientConnections() {
-		if endpoint.EndpointName() == clientConnection.Endpoint.GetNetworkServiceEndpoint().GetName() {
-			return nil
-		}
-	}
 
 	client, err := nsm.serviceRegistry.NseRegistryClient(span.Context())
 	if err != nil {

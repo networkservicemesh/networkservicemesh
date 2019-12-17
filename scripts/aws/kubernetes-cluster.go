@@ -2,12 +2,14 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path"
 	"runtime"
 	"strconv"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/sirupsen/logrus"
 )
 
@@ -50,6 +52,21 @@ func printUsage() {
 		"	DeleteAll N		Destroy All EKS clusters older than N hours (Example: DeleteAll 24) \n")
 }
 
+func makeCreateClusterAttempt(cluster *AWSCluster) (resultErr error) {
+	defer func() {
+		rErr := recover()
+		if err, ok := rErr.(error); ok {
+			resultErr = err
+		}
+		if err, ok := rErr.(awserr.Error); ok {
+			resultErr = err
+		}
+	}()
+
+	cluster.CreateAWSKubernetesCluster()
+	return nil
+}
+
 func main() {
 	if len(os.Args) < 2 {
 		printUsage()
@@ -58,7 +75,21 @@ func main() {
 
 	switch os.Args[1] {
 	case "Create":
-		NewAWSCluster(os.Getenv("NSM_AWS_SERVICE_SUFFIX")).CreateAWSKubernetesCluster()
+		cluster := NewAWSCluster(os.Getenv("NSM_AWS_SERVICE_SUFFIX"))
+		for {
+			err := makeCreateClusterAttempt(cluster)
+			if aerr, ok := err.(awserr.Error); ok {
+				if aerr.Code() == "Throttling" {
+					log.Printf("Warning (%s): %s\n", aerr.Code(), aerr.Message())
+					log.Printf("Restarting AWS kubernetes cluster creation...")
+					continue
+				}
+				log.Fatalf("Error (%s): %s\n", aerr.Code(), aerr.Message())
+			} else if err != nil {
+				log.Fatalf("Error: %s\n", err.Error())
+			}
+			break
+		}
 	case "Delete":
 		err := NewAWSCluster(os.Getenv("NSM_AWS_SERVICE_SUFFIX")).DeleteAWSKubernetesCluster()
 		if err != nil {
