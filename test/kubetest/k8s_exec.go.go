@@ -34,6 +34,7 @@ func (o *K8s) Exec(pod *v1.Pod, container string, command ...string) (string, st
 			<-time.After(100 * time.Millisecond)
 			continue
 		}
+		logrus.Infof("RETRY COUNT: %d, command: %v", retryCount, command)
 		break
 	}
 	return resp1, resp2, err
