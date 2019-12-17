@@ -852,27 +852,31 @@ func (ctx *executionContext) executeTask(task *testTask, clusterConfigs []string
 			inst.taskCancel = cancel
 			if task != nil && task.test != nil && inst.runningExecution != task.test.ExecutionConfig {
 				if inst.runningExecution != nil {
-					err = ctx.handleScript(&runScriptArgs{
-						Name:          "AfterAll",
-						ClusterTaskId: task.clusterTaskID,
-						Script:        inst.runningExecution.AfterAll,
-						Env:           append(inst.runningExecution.Env, env...),
-						Out:           writer,
-					})
-					if err != nil {
-						logrus.Warnf("An error during run AfterAll script for execution: %v, error: %v", task.test.ExecutionConfig.Name, err)
+					for _, cfg := range clusterConfigs {
+						err = ctx.handleScript(&runScriptArgs{
+							Name:          "AfterAll",
+							ClusterTaskId: task.clusterTaskID,
+							Script:        inst.runningExecution.AfterAll,
+							Env:           append(inst.runningExecution.Env, fmt.Sprintf("KUBECONFIG=%v", cfg)),
+							Out:           writer,
+						})
+						if err != nil {
+							logrus.Warnf("An error during run AfterAll script for execution: %v, error: %v", task.test.ExecutionConfig.Name, err)
+						}
 					}
 				}
 				inst.runningExecution = task.test.ExecutionConfig
-				err = ctx.handleScript(&runScriptArgs{
-					Name:          "BeforeAll",
-					ClusterTaskId: task.clusterTaskID,
-					Script:        task.test.ExecutionConfig.BeforeAll,
-					Env:           append(task.test.ExecutionConfig.Env, env...),
-					Out:           writer,
-				})
-				if err != nil {
-					logrus.Warnf("An error during run BeforeAll script for execution: %v, error: %v", task.test.ExecutionConfig.Name, err)
+				for _, cfg := range clusterConfigs {
+					err = ctx.handleScript(&runScriptArgs{
+						Name:          "BeforeAll",
+						ClusterTaskId: task.clusterTaskID,
+						Script:        task.test.ExecutionConfig.BeforeAll,
+						Env:           append(task.test.ExecutionConfig.Env, fmt.Sprintf("KUBECONFIG=%v", cfg)),
+						Out:           writer,
+					})
+					if err != nil {
+						logrus.Warnf("An error during run BeforeAll script for execution: %v, error: %v", task.test.ExecutionConfig.Name, err)
+					}
 				}
 
 			}

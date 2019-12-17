@@ -37,7 +37,6 @@ executions:
       make k8s-delete-nsm-namespaces
   - name: "Interdomain tests azure-gke"
     env:
-      - STORE_POD_LOGS_IN_FILES=true
       - ARTIFACTS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/$(test-name)
       - NSM_NAMESPACE=nsm-system
     tags:
