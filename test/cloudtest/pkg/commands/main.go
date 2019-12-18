@@ -189,7 +189,7 @@ func performImport(testConfig *config.CloudTestConfig) error {
 	return nil
 }
 
-// PerformTesting performs cloud test testing. Returns junit report file.
+// PerformTesting performs testing uses cloud test config. Returns the junit report when testing finished.
 func PerformTesting(config *config.CloudTestConfig, factory k8s.ValidationFactory, arguments *Arguments) (*reporting.JUnitFile, error) {
 	ctx := &executionContext{
 		cloudTestConfig:  config,
@@ -284,13 +284,21 @@ func (ctx *executionContext) performExecution() error {
 			ctx.printStatistics()
 		}
 	}()
+	statsTimeout := time.Minute
+	if ctx.cloudTestConfig.Statistics.Enabled && ctx.cloudTestConfig.Statistics.Interval > 0 {
+		statsTimeout = time.Duration(ctx.cloudTestConfig.Statistics.Interval) * time.Second
+	}
+	healthCheckChannel := RunHealthChecks(ctx.cloudTestConfig.HealthCheck)
+	termChannel := tools.NewOSSignalChannel()
+	statTicker := time.NewTicker(statsTimeout)
+	defer statTicker.Stop()
 
 	for len(ctx.tasks) > 0 || len(ctx.running) > 0 {
 		// WE take 1 test task from list and do execution.
 		ctx.assignTasks()
 		ctx.checkClustersUsage()
 
-		if err := ctx.pollEvents(timeoutCtx); err != nil {
+		if err := ctx.pollEvents(timeoutCtx, termChannel, healthCheckChannel, statTicker.C); err != nil {
 			return err
 		}
 
@@ -302,15 +310,7 @@ func (ctx *executionContext) performExecution() error {
 	return nil
 }
 
-func (ctx *executionContext) pollEvents(c context.Context) error {
-	statsTimeout := 60 * time.Second
-	if ctx.cloudTestConfig.Statistics.Enabled && ctx.cloudTestConfig.Statistics.Interval > 0 {
-		statsTimeout = time.Duration(ctx.cloudTestConfig.Statistics.Interval) * time.Second
-	}
-	statTicker := time.NewTicker(statsTimeout)
-	defer statTicker.Stop()
-	healthCheckChannel := RunHealthChecks(ctx.cloudTestConfig.HealthCheck)
-	termChannel := tools.NewOSSignalChannel()
+func (ctx *executionContext) pollEvents(c context.Context, osCh <-chan os.Signal, healthCh <-chan error, statsCh <-chan time.Time) error {
 	select {
 	case event := <-ctx.operationChannel:
 		switch event.kind {
@@ -320,13 +320,13 @@ func (ctx *executionContext) pollEvents(c context.Context) error {
 			// Remove from running onces.
 			ctx.processTaskUpdate(event)
 		}
-	case <-termChannel:
+	case <-osCh:
 		return errors.New("termination request is received")
 	case <-c.Done():
 		return errors.Errorf("global timeout elapsed: %v seconds", ctx.cloudTestConfig.Timeout)
-	case err := <-healthCheckChannel:
+	case err := <-healthCh:
 		return errors.Wrapf(err, "health check probe failed")
-	case <-statTicker.C:
+	case <-statsCh:
 		if ctx.cloudTestConfig.Statistics.Enabled {
 			ctx.printStatistics()
 		}
