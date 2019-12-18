@@ -34,8 +34,6 @@ $(INSTALL_CHARTS):
 	--set org="${CONTAINER_REPO}",tag="${CONTAINER_TAG}" \
 	--set forwardingPlane="${FORWARDING_PLANE}" \
 	--set insecure="${INSECURE}" \
-	--set prometheus="${PROMETHEUS}" \
-	--set metricsCollectorEnabled="${METRICS_COLLECTOR_ENABLED}" \
 	--set global.JaegerTracing="true" \
 	--set spire.enabled="${SPIRE_ENABLED}",spire.org="${CONTAINER_REPO}",spire.tag="${CONTAINER_TAG}" \
 	--set admission-webhook.org="${CONTAINER_REPO}",admission-webhook.tag="${CONTAINER_TAG}" \

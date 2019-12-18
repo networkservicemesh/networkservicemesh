@@ -42,8 +42,6 @@ spec:
               value: "true"
             - name: IP_ADDRESS
               value: "172.16.1.0/24"
-            - name: NSM_NAMESPACE
-              value: "nsm-system"
 {{- if .Values.global.JaegerTracing }}
             - name: TRACER_ENABLED
               value: "true"

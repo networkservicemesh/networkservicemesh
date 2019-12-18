@@ -6,6 +6,4 @@ const (
 	AnnotationEnv = "NS_NETWORKSERVICEMESH_IO"
 	// NSMConnectRetries - Specify how many time we could retry to do a connection retrying.
 	NSMConnectRetries = "NSM_CLIENT_CONNECT_RETRIES"
-	// NamespaceEnv - NamespaceEnv is the namespace a container is running in
-	NamespaceEnv = "NSM_NAMESPACE"
 )

@@ -40,8 +40,6 @@ spec:
               value: "{{ .Values.org }}"
             - name: TAG
               value: "{{ .Values.tag }}"
-            - name: NSM_NAMESPACE
-              value: "nsm-system"
 {{- if .Values.global.JaegerTracing }}
             - name: TRACER_ENABLED
               value: "true"

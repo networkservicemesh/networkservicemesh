@@ -27,12 +27,6 @@ spec:
 {{- else }}
               value: "false"
 {{- end }}
-            - name: METRICS_COLLECTOR_ENABLED
-{{- if .Values.metricsCollectorEnabled }}
-              value: "true"
-{{- else }}
-              value: "false"
-{{- end }}
 {{- if .Values.global.JaegerTracing }}
             - name: TRACER_ENABLED
               value: "true"

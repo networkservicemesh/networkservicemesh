@@ -4,11 +4,11 @@ kind: Deployment
 spec:
   selector:
     matchLabels:
-      app: crossconnect-monitor
+      app: nsmgr-daemonset
   template:
     metadata:
       labels:
-        app: crossconnect-monitor
+        app: nsmgr-daemonset
     spec:
       serviceAccount: nsmgr-acc
       containers:
@@ -18,18 +18,6 @@ spec:
           env:
             - name: INSECURE
 {{- if .Values.insecure }}
-              value: "true"
-{{- else }}
-              value: "false"
-{{- end }}
-            - name: METRICS_COLLECTOR_ENABLED
-{{- if .Values.metricsCollectorEnabled }}
-              value: "true"
-{{- else }}
-              value: "false"
-{{- end }}
-            - name: PROMETHEUS
-{{- if .Values.prometheus }}
               value: "true"
 {{- else }}
               value: "false"
@@ -46,23 +34,3 @@ spec:
 metadata:
   name: crossconnect-monitor
   namespace: {{ .Release.Namespace }}
-
-{{- if .Values.prometheus }}
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: crossconnect-monitor-svc
-  namespace: nsm-system
-  labels:
-    app: crossconnect-monitor
-
-spec:
-  selector:
-    app: crossconnect-monitor
-  ports:
-    - port: 9095
-      protocol: TCP
-      targetPort: 9090
-{{- end }}
-
