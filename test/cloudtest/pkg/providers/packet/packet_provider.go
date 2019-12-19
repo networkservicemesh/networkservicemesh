@@ -305,16 +305,17 @@ func (pi *packetInstance) createDevice(devCfg *config.DeviceConfig) (*packngo.De
 	}
 	var device *packngo.Device
 	var response *packngo.Response
-	for {
+	for i := 0; i < len(pi.facilitiesList); i++ {
+		devReq.Facility = []string{pi.facilitiesList[i]}
 		device, response, err = pi.client.Devices.Create(devReq)
 		msg := fmt.Sprintf("HostName=%v\n%v - %v", hostName, response, err)
 		logrus.Infof(fmt.Sprintf("%s-%v", pi.id, msg))
 		pi.manager.AddLog(pi.id, fmt.Sprintf("create-device-%s", devCfg.Name), msg)
-		if err == nil || err != nil && !strings.Contains(err.Error(), "has no provisionable") || len(devReq.Facility) <= 1 {
+		if err == nil || err != nil &&
+			!strings.Contains(err.Error(), "has no provisionable") &&
+			!strings.Contains(err.Error(), "Oh snap, something went wrong") {
 			break
 		}
-
-		devReq.Facility = devReq.Facility[1:]
 	}
 	return device, err
 }
