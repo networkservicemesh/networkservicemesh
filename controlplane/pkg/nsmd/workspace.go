@@ -22,18 +22,17 @@ import (
 	"sync"
 	"time"
 
-	connectionMonitor "github.com/networkservicemesh/networkservicemesh/sdk/monitor/connectionmonitor"
-
+	"github.com/google/uuid"
 	"google.golang.org/grpc"
-
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
+	"google.golang.org/grpc/metadata"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	unified "github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
+	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 )
 
 type WorkspaceState int
@@ -44,17 +43,21 @@ const (
 	CLOSED
 )
 
+type tokenType string
+
+const (
+	workspaceTokenKey tokenType = "WorkspaceToken"
+)
+
 type Workspace struct {
-	name                    string
-	listener                net.Listener
-	networkServiceServer    networkservice.NetworkServiceServer
-	monitorConnectionServer connectionMonitor.MonitorServer
-	grpcServer              *grpc.Server
+	name       string
+	listener   net.Listener
+	grpcServer *grpc.Server
 	sync.Mutex
 	state            WorkspaceState
 	locationProvider serviceregistry.WorkspaceLocationProvider
 	ctx              context.Context
-	discoveryServer  registry.NetworkServiceDiscoveryServer
+	token            string
 }
 
 // NewWorkSpace - constructs a new workspace.
@@ -67,6 +70,7 @@ func NewWorkSpace(ctx context.Context, nsm *nsmServer, name string, restore bool
 		name:             name,
 		state:            NEW,
 		ctx:              span.Context(),
+		token:            fmt.Sprintf("%s-%s", name, uuid.New().String()),
 	}
 	defer w.cleanup() // Cleans up if and only iff we are not in state RUNNING
 	span.LogValue("restore", restore)
@@ -80,57 +84,61 @@ func NewWorkSpace(ctx context.Context, nsm *nsmServer, name string, restore bool
 		span.Logger().Errorf("can't create folder: %s, error: %v", w.NsmDirectory(), err)
 		return nil, err
 	}
+
+	if err := w.startServer(span, nsm); err != nil {
+		return nil, err
+	}
+
+	span.Logger().Infof("Created new workspace: %+v", w)
+	return w, nil
+}
+
+func (w *Workspace) startServer(span spanhelper.SpanHelper, nsm *nsmServer) error {
 	socket := w.NsmServerSocket()
 	span.Logger().Infof("Creating new listener on: %s", socket)
 	listener, err := NewCustomListener(socket)
 	if err != nil {
 		span.LogError(err)
-		return nil, err
+		return err
 	}
 	w.listener = listener
 
-	registerWorkspaceServices(span, w, nsm)
+	span.Logger().Infof("Creating GRPC Server for the workspace")
+	w.grpcServer = tools.NewServer(w.ctx,
+		tools.WithChainedServerInterceptor(workspaceTokenExtractor()))
+	w.registerServices(span, nsm)
+
 	w.state = RUNNING
 	go func() {
 		defer w.Close()
 		err = w.grpcServer.Serve(w.listener)
 		if err != nil {
-			span.Logger().Errorf("Failed to server workspace %+v: %s", w, err)
+			span.Logger().Errorf("Serve() failed at workspace %+v: %v", w, err)
 			return
 		}
 	}()
 
+	// Check that the server we created responds
 	conn, err := tools.DialUnix(socket)
 	if err != nil {
-		span.Logger().Errorf("failure to communicate with the socket %s with error: %+v", socket, err)
-		return nil, err
+		span.Logger().Errorf("failed to connect the socket at %s: %v", socket, err)
+		return err
 	}
 	_ = conn.Close()
-	span.Logger().Infof("grpcserver for workspace %+v is operational", w)
-	span.Logger().Infof("Created new workspace: %+v", w)
-	return w, nil
+
+	span.Logger().Infof("gRPC server for workspace %s is operational", w.name)
+	return nil
 }
 
-func registerWorkspaceServices(span spanhelper.SpanHelper, w *Workspace, nsm *nsmServer) {
-	w.discoveryServer = NewNetworkServiceDiscoveryServer(nsm.serviceRegistry)
-
-	span.Logger().Infof("Creating new MonitorConnectionServer")
-	w.monitorConnectionServer = connectionMonitor.NewMonitorServer("LocalConnection")
-
-	span.Logger().Infof("Creating new NetworkServiceServer")
-	w.networkServiceServer = NewNetworkServiceServer(nsm.model, w, nsm.manager)
-
-	span.Logger().Infof("Creating new GRPC MonitorServer")
-	w.grpcServer = tools.NewServer(span.Context())
-
+func (w *Workspace) registerServices(span spanhelper.SpanHelper, nsm *nsmServer) {
 	span.Logger().Infof("Registering NetworkServiceRegistryServer with registerServer")
 	registry.RegisterNetworkServiceRegistryServer(w.grpcServer, nsm.registryServer)
 	span.Logger().Infof("Registering NetworkServiceDiscoveryServer with discoveryServer")
-	registry.RegisterNetworkServiceDiscoveryServer(w.grpcServer, w.discoveryServer)
+	registry.RegisterNetworkServiceDiscoveryServer(w.grpcServer, nsm.discoveryServer)
 	span.Logger().Infof("Registering NetworkServiceServer with registerServer")
-	unified.RegisterNetworkServiceServer(w.grpcServer, w.networkServiceServer)
+	unified.RegisterNetworkServiceServer(w.grpcServer, nsm.localServiceServer)
 	span.Logger().Infof("Registering MonitorConnectionServer with registerServer")
-	connection.RegisterMonitorConnectionServer(w.grpcServer, w.monitorConnectionServer)
+	connection.RegisterMonitorConnectionServer(w.grpcServer, nsm.connectionMonitorServer)
 }
 
 func (w *Workspace) Name() string {
@@ -157,12 +165,9 @@ func (w *Workspace) NsmClientSocket() string {
 	return w.NsmDirectory() + "/" + w.locationProvider.NsmClientSocket()
 }
 
-// MonitorConnectionServer returns workspace.monitorConnectionServer
-func (w *Workspace) MonitorConnectionServer() connectionMonitor.MonitorServer {
-	if w == nil {
-		return nil
-	}
-	return w.monitorConnectionServer
+// Token returns string token generated by NSM for the workspace
+func (w *Workspace) Token() string {
+	return w.token
 }
 
 func (w *Workspace) Close() {
@@ -223,4 +228,39 @@ func (w *Workspace) clearContents(ctx context.Context) error {
 	span.Logger().Infof("Removing exist content im %s", w.NsmDirectory())
 	err := os.RemoveAll(w.NsmDirectory())
 	return err
+}
+
+// WithWorkspaceToken - creates a context with given workspace token
+func WithWorkspaceToken(parent context.Context, token string) context.Context {
+	if parent == nil {
+		parent = context.Background()
+	}
+	return context.WithValue(parent, workspaceTokenKey, token)
+}
+
+// WorkspaceToken - extracts a workspace token form the context
+func WorkspaceToken(ctx context.Context) string {
+	value := ctx.Value(workspaceTokenKey)
+	if value == nil {
+		return ""
+	}
+	return value.(string)
+}
+
+// Extracts workspace token from incoming request headers and adds it to request's context
+func workspaceTokenExtractor() grpc.UnaryServerInterceptor {
+	return func(
+		ctx context.Context,
+		req interface{},
+		info *grpc.UnaryServerInfo,
+		handler grpc.UnaryHandler,
+	) (resp interface{}, err error) {
+		if md, ok := metadata.FromIncomingContext(ctx); ok {
+			if tokens := md.Get(common.WorkspaceTokenHeader); len(tokens) > 0 {
+				ctx = WithWorkspaceToken(ctx, tokens[0])
+			}
+		}
+
+		return handler(ctx, req)
+	}
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
@@ -25,6 +26,11 @@ const (
 	insecureDefault    = false
 	dialTimeoutDefault = 15 * time.Second
 )
+
+type serverInterceptor struct {
+	grpc.ServerOption
+	interceptor grpc.UnaryServerInterceptor
+}
 
 // DialConfig represents configuration of grpc connection, one per instance
 type DialConfig struct {
@@ -54,6 +60,26 @@ func InitConfig(c DialConfig) {
 	})
 }
 
+// WithChainedServerInterceptor allows to add multiple unary server interceptors when using NewServer()
+func WithChainedServerInterceptor(interceptor grpc.UnaryServerInterceptor) grpc.ServerOption {
+	return serverInterceptor{interceptor: interceptor}
+}
+
+func mergeServerInterceptors(opts ...grpc.ServerOption) (rv []grpc.ServerOption) {
+	var interceptors []grpc.UnaryServerInterceptor
+	for _, o := range opts {
+		if i, ok := o.(serverInterceptor); ok {
+			interceptors = append(interceptors, i.interceptor)
+		} else {
+			rv = append(rv, o)
+		}
+	}
+	if len(interceptors) > 0 {
+		rv = append(rv, grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(interceptors...)))
+	}
+	return
+}
+
 // NewServer checks DialConfig and calls grpc.NewServer with certain grpc.ServerOption
 func NewServer(ctx context.Context, opts ...grpc.ServerOption) *grpc.Server {
 	span := spanhelper.FromContext(ctx, "NewServer")
@@ -73,7 +99,7 @@ func NewServer(ctx context.Context, opts ...grpc.ServerOption) *grpc.Server {
 		opts = append(opts, openTracingOpts()...)
 	}
 
-	return grpc.NewServer(opts...)
+	return grpc.NewServer(mergeServerInterceptors(opts...)...)
 }
 
 func NewServerInsecure(opts ...grpc.ServerOption) *grpc.Server {
@@ -82,12 +108,12 @@ func NewServerInsecure(opts ...grpc.ServerOption) *grpc.Server {
 		opts = append(opts, openTracingOpts()...)
 	}
 
-	return grpc.NewServer(opts...)
+	return grpc.NewServer(mergeServerInterceptors(opts...)...)
 }
 
 func openTracingOpts() []grpc.ServerOption {
 	return []grpc.ServerOption{
-		grpc.UnaryInterceptor(
+		WithChainedServerInterceptor(
 			CloneArgsServerInterceptor(
 				otgrpc.OpenTracingServerInterceptor(opentracing.GlobalTracer()))),
 		grpc.StreamInterceptor(

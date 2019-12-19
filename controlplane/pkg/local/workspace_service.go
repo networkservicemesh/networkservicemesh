@@ -19,30 +19,34 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 
-	mechanismCommon "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
-
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
-
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	mechanismCommon "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 )
 
+// WorkspaceProvider provides workspace search function
+type WorkspaceProvider interface {
+	WorkspaceNameByGRPCContext(ctx context.Context) string
+}
+
 type workspaceProviderService struct {
-	name string
+	workspaceProvider WorkspaceProvider
 }
 
 // NewWorkspaceService - creates a service to update workspace information for request
-func NewWorkspaceService(name string) networkservice.NetworkServiceServer {
+func NewWorkspaceService(workspaceProvider WorkspaceProvider) networkservice.NetworkServiceServer {
 	return &workspaceProviderService{
-		name: name,
+		workspaceProvider: workspaceProvider,
 	}
 }
 
 func (srv *workspaceProviderService) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
-	logrus.Infof("Received request from client to connect to NetworkService: %v", request)
-	srv.updateMechanisms(request)
+	workspace := srv.workspaceProvider.WorkspaceNameByGRPCContext(ctx)
+	logrus.Infof("Workspace service request: client: %s, request: %v", workspace, request)
+	srv.updateMechanisms(request, workspace)
 
-	ctx = common.WithWorkspaceName(ctx, srv.name)
+	ctx = common.WithWorkspaceName(ctx, workspace)
 	result, err := common.ProcessNext(ctx, request)
 	if result != nil {
 		// Remove workspace field since clients doesn't require them.
@@ -52,17 +56,18 @@ func (srv *workspaceProviderService) Request(ctx context.Context, request *netwo
 	return result, err
 }
 
-func (srv *workspaceProviderService) updateMechanisms(request *networkservice.NetworkServiceRequest) {
+func (srv *workspaceProviderService) updateMechanisms(request *networkservice.NetworkServiceRequest, workspace string) {
 	// Update passed local mechanism parameters to contains a workspace name
 	for _, mechanism := range request.MechanismPreferences {
 		if mechanism.Parameters == nil {
 			mechanism.Parameters = map[string]string{}
 		}
-		mechanism.Parameters[mechanismCommon.Workspace] = srv.name
+		mechanism.Parameters[mechanismCommon.Workspace] = workspace
 	}
 }
 
 func (srv *workspaceProviderService) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
-	ctx = common.WithWorkspaceName(ctx, srv.name)
+	workspace := srv.workspaceProvider.WorkspaceNameByGRPCContext(ctx)
+	ctx = common.WithWorkspaceName(ctx, workspace)
 	return common.ProcessClose(ctx, connection)
 }

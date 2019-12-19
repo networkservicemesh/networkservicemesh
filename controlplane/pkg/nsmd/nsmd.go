@@ -71,7 +71,12 @@ type nsmServer struct {
 	crossConnectMonitor     monitor_crossconnect.MonitorServer
 	remoteConnectionMonitor remoteMonitor.MonitorServer
 	remoteServer            unified.NetworkServiceServer
+
+	// local request servers
+	discoveryServer         registry.NetworkServiceDiscoveryServer
+	connectionMonitorServer connectionmonitor.MonitorServer
 	registryServer          NSERegistryServer
+	localServiceServer      unified.NetworkServiceServer
 }
 
 func (nsm *nsmServer) XconManager() *services.ClientConnectionManager {
@@ -83,13 +88,7 @@ func (nsm *nsmServer) Manager() nsm.NetworkServiceManager {
 }
 
 func (nsm *nsmServer) LocalConnectionMonitor(workspace string) connectionmonitor.MonitorServer {
-	nsm.Lock()
-	defer nsm.Unlock()
-	if ws := nsm.workspaces[workspace]; ws != nil {
-		return ws.MonitorConnectionServer()
-	}
-
-	return nil
+	return nsm.connectionMonitorServer
 }
 
 func (nsm *nsmServer) CrossConnectMonitor() monitor_crossconnect.MonitorServer {
@@ -142,11 +141,12 @@ func (nsm *nsmServer) RequestClientConnection(ctx context.Context, request *nsmd
 	nsm.workspaces[workspace.Name()] = workspace
 	nsm.Unlock()
 	reply := &nsmdapi.ClientConnectionReply{
-		Workspace:       workspace.Name(),
-		HostBasedir:     workspace.locationProvider.HostBaseDir(),
-		ClientBaseDir:   workspace.locationProvider.ClientBaseDir(),
-		NsmServerSocket: workspace.locationProvider.NsmServerSocket(),
-		NsmClientSocket: workspace.locationProvider.NsmClientSocket(),
+		Workspace:         workspace.Name(),
+		HostBasedir:       workspace.locationProvider.HostBaseDir(),
+		ClientBaseDir:     workspace.locationProvider.ClientBaseDir(),
+		NsmServerSocket:   workspace.locationProvider.NsmServerSocket(),
+		NsmClientSocket:   workspace.locationProvider.NsmClientSocket(),
+		NsmWorkspaceToken: workspace.Token(),
 	}
 	span.LogObject("ClientConnectionReply", reply)
 	return reply, nil
@@ -486,10 +486,15 @@ func StartNSMServer(ctx context.Context, model model.Model, manager nsm.NetworkS
 	span.Logger().Infof("create monitor servers")
 	nsm.initMonitorServers()
 
+	// create local servers
+	nsm.registryServer = NewRegistryServer(nsm)
+	nsm.discoveryServer = NewNetworkServiceDiscoveryServer(nsm.serviceRegistry)
+	span.Logger().Infof("Creating local NetworkServiceServer")
+	nsm.localServiceServer = NewNetworkServiceServer(nsm.model, nsm.connectionMonitorServer, nsm.manager, nsm)
+
 	nsm.remoteServer = remote.NewRemoteNetworkServiceServer(nsm.manager, nsm.remoteConnectionMonitor)
 	nsm.manager.SetRemoteServer(nsm.remoteServer)
 
-	nsm.registryServer = NewRegistryServer(nsm)
 	// Restore existing clients in case of NSMd restart.
 	nsm.restore(span.Context(), endpoints)
 
@@ -512,6 +517,7 @@ func (nsm *nsmServer) initMonitorServers() {
 	nsm.xconManager = services.NewClientConnectionManager(nsm.model, nsm.manager, nsm.serviceRegistry)
 	// Start CrossConnect monitor server
 	nsm.crossConnectMonitor = monitor_crossconnect.NewMonitorServer()
+	nsm.connectionMonitorServer = connectionmonitor.NewMonitorServer("LocalConnection")
 	// Start Connection monitor server
 	nsm.remoteConnectionMonitor = remoteMonitor.NewMonitorServer(nsm.xconManager)
 }
@@ -575,14 +581,24 @@ func (nsm *nsmServer) StartAPIServerAt(ctx context.Context, sock net.Listener, p
 	span.Logger().Infof("NSM gRPC API Server: %s is operational", sock.Addr().String())
 }
 
-// WorkspaceFromContext finds workspace by clientToken stored in the Context
+// WorkspaceFromContext finds workspace by token stored in the Context
 func (nsm *nsmServer) WorkspaceFromContext(ctx context.Context) *Workspace {
-	if clientToken := endpoint.ClientToken(ctx); len(clientToken) > 0 {
+	if token := WorkspaceToken(ctx); len(token) > 0 {
+		nsm.Lock()
+		defer nsm.Unlock()
 		for _, w := range nsm.workspaces {
-			if w.clientToken == clientToken {
+			if w.token == token {
 				return w
 			}
 		}
 	}
 	return nil
+}
+
+// WorkspaceNameByGRPCContext finds workspace by its workspace token passed via GRPC context
+func (nsm *nsmServer) WorkspaceNameByGRPCContext(ctx context.Context) string {
+	if w := nsm.WorkspaceFromContext(ctx); w != nil {
+		return w.Name()
+	}
+	return ""
 }

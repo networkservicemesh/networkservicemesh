@@ -16,9 +16,8 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
 	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/connectionmonitor"
 
-	"github.com/pkg/errors"
-
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 
@@ -41,8 +40,10 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/pkg/probes"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
+	nsm_common "github.com/networkservicemesh/networkservicemesh/sdk/common"
 	monitor_crossconnect "github.com/networkservicemesh/networkservicemesh/sdk/monitor/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/sdk/prefix_pool"
+	"github.com/networkservicemesh/networkservicemesh/utils"
 )
 
 const (
@@ -497,6 +498,10 @@ func (srv *nsmdFullServerImpl) RequestNSM(clientName string) *nsmdapi.ClientConn
 	if response.Workspace != clientName {
 		panic(errors.Errorf("%s is not equal to %s", response.Workspace, clientName))
 	}
+
+	// Emulate pod creation hook behavior in nsmdp.Allocate()
+	utils.EnvVar(nsm_common.NsmWorkspaceTokenEnv).Set(response.NsmWorkspaceToken)
+
 	return response
 }
 

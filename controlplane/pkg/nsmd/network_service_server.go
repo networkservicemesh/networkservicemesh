@@ -6,15 +6,16 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/local"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
+	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/connectionmonitor"
 )
 
 // NewNetworkServiceServer - construct a local network service chain
-func NewNetworkServiceServer(model model.Model, ws *Workspace,
-	nsmManager nsm.NetworkServiceManager) networkservice.NetworkServiceServer {
+func NewNetworkServiceServer(model model.Model, connectionMonitorServer connectionmonitor.MonitorServer,
+	nsmManager nsm.NetworkServiceManager, workspaceProvider local.WorkspaceProvider) networkservice.NetworkServiceServer {
 	return common.NewCompositeService("Local",
 		common.NewRequestValidator(),
-		common.NewMonitorService(ws.MonitorConnectionServer()),
-		local.NewWorkspaceService(ws.Name()),
+		common.NewMonitorService(connectionMonitorServer),
+		local.NewWorkspaceService(workspaceProvider),
 		local.NewConnectionService(model),
 		local.NewForwarderService(model, nsmManager.ServiceRegistry()),
 		local.NewEndpointSelectorService(nsmManager.NseManager()),

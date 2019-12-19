@@ -91,11 +91,11 @@ func (n *nsmClientEndpoints) Allocate(ctx context.Context, reqs *pluginapi.Alloc
 				ReadOnly:      false,
 			}
 			envs := map[string]string{
-				nsmd.NsmDevicePluginEnv:   "true",
-				common.NsmServerSocketEnv: mount.ContainerPath + workspace.NsmServerSocket,
-				common.NsmClientSocketEnv: mount.ContainerPath + workspace.NsmClientSocket,
-				common.NsmClientTokenEnv:  workspace.NsmClientToken,
-				common.WorkspaceEnv:       workspace.ClientBaseDir,
+				nsmd.NsmDevicePluginEnv:     "true",
+				common.NsmServerSocketEnv:   mount.ContainerPath + workspace.NsmServerSocket,
+				common.NsmClientSocketEnv:   mount.ContainerPath + workspace.NsmClientSocket,
+				common.NsmWorkspaceTokenEnv: workspace.NsmWorkspaceToken,
+				common.WorkspaceEnv:         workspace.ClientBaseDir,
 			}
 
 			if n.insecure {

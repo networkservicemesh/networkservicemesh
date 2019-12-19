@@ -22,9 +22,11 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"github.com/networkservicemesh/networkservicemesh/utils"
 )
 
 // NsmConnection is a NSM manager connection
@@ -64,7 +66,8 @@ func NewNSMConnection(ctx context.Context, configuration *NSConfiguration) (*Nsm
 	}
 
 	var err error
-	conn.GrpcClient, err = tools.DialUnix(configuration.NsmServerSocket)
+	conn.GrpcClient, err = tools.DialUnix(configuration.NsmServerSocket,
+		grpc.WithChainUnaryInterceptor(workspaceTokenInjector()))
 	if err != nil {
 		logrus.Errorf("nse: failure to communicate with the registrySocket %s with error: %+v", configuration.NsmServerSocket, err)
 		return nil, err
@@ -74,4 +77,25 @@ func NewNSMConnection(ctx context.Context, configuration *NSConfiguration) (*Nsm
 	conn.NsClient = networkservice.NewNetworkServiceClient(conn.GrpcClient)
 
 	return &conn, nil
+}
+
+func workspaceTokenInjector() grpc.UnaryClientInterceptor {
+	return func(
+		ctx context.Context,
+		method string,
+		req, reply interface{},
+		cc *grpc.ClientConn,
+		invoker grpc.UnaryInvoker,
+		opts ...grpc.CallOption,
+	) error {
+		if token := utils.EnvVar(NsmWorkspaceTokenEnv).StringValue(); len(token) > 0 {
+			md := metadata.Pairs(WorkspaceTokenHeader, token)
+			if oldMD, ok := metadata.FromOutgoingContext(ctx); ok {
+				md = metadata.Join(oldMD, md)
+			}
+			ctx = metadata.NewOutgoingContext(ctx, md)
+		}
+
+		return invoker(ctx, method, req, reply, cc, opts...)
+	}
 }
