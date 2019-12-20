@@ -675,7 +675,10 @@ func (ctx *executionContext) createTask(test *model.TestEntry, taskIndex, taskOr
 	} else if len(task.clusters) < test.ExecutionConfig.ClusterCount {
 		logrus.Errorf("%s: not all clusters defined of required %v", test.Name, selector)
 		task.test.Status = model.StatusSkipped
+	} else {
+		task.clusterTaskID = makeTaskClusterID(task.clusters)
 	}
+
 	return taskIndex
 }
 
@@ -716,19 +719,34 @@ func (ctx *executionContext) createSingleTask(taskIndex int, test *model.TestEnt
 	return task
 }
 
-func (ctx *executionContext) startTask(task *testTask, instances []*clusterInstance) error {
-	ids := ""
-	for _, ci := range instances {
-		if len(ids) > 0 {
-			ids += "_"
+func makeTaskClusterID(v interface{}) string {
+	var ids []string
+
+	switch list := v.(type) {
+	case []*clusterInstance:
+		for _, ci := range list {
+			ids = append(ids, ci.id)
 		}
-		ids += ci.id
+	case []*clustersGroup:
+		for _, cg := range list {
+			ids = append(ids, cg.config.Name)
+		}
+	}
+
+	return strings.Join(ids, "_")
+}
+
+func (ctx *executionContext) startTask(task *testTask, instances []*clusterInstance) error {
+	for _, ci := range instances {
 		ctx.Lock()
 		ci.state = clusterBusy
 		ci.currentTask = task.test.Name
 		ctx.Unlock()
 	}
-	fileName, file, err := ctx.manager.OpenFileTest(ids, task.test.Name, "run")
+
+	task.clusterTaskID = makeTaskClusterID(instances)
+
+	fileName, file, err := ctx.manager.OpenFileTest(task.clusterTaskID, task.test.Name, "run")
 	if err != nil {
 		return err
 	}
@@ -745,16 +763,15 @@ func (ctx *executionContext) startTask(task *testTask, instances []*clusterInsta
 	}
 
 	task.clusterInstances = instances
-	task.clusterTaskID = ids
 
 	timeout := ctx.getTestTimeout(task)
 
 	var runner runners.TestRunner
 	switch task.test.Kind {
 	case model.TestEntryKindShellTest:
-		runner = runners.NewShellTestRunner(ids, task.test)
+		runner = runners.NewShellTestRunner(task.clusterTaskID, task.test)
 	case model.TestEntryKindGoTest:
-		runner = runners.NewGoTestRunner(ids, task.test, timeout)
+		runner = runners.NewGoTestRunner(task.clusterTaskID, task.test, timeout)
 	default:
 		return errors.New("invalid task runner")
 	}
