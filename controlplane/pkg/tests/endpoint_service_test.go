@@ -19,6 +19,10 @@ package tests
 import (
 	"context"
 	"testing"
+	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/properties"
 
 	"github.com/golang/mock/gomock"
 
@@ -45,16 +49,16 @@ func TestRequestToLocalEndpointService(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	testEndpoint1 := &registry.NSERegistration{
+	testEndpoint := &registry.NSERegistration{
 		NetworkService: &registry.NetworkService{
 			Name: "network_service",
 		},
 		NetworkServiceManager: &registry.NetworkServiceManager{
-			Name: "nsm1",
+			Name: "nsm",
 		},
 		NetworkServiceEndpoint: &registry.NetworkServiceEndpoint{
 			Name:                      "nse",
-			NetworkServiceManagerName: "nsm1",
+			NetworkServiceManagerName: "nsm",
 			NetworkServiceName:        "network_service",
 		},
 	}
@@ -84,7 +88,7 @@ func TestRequestToLocalEndpointService(t *testing.T) {
 	nseManagerMock.EXPECT().IsLocalEndpoint(gomock.Any()).Return(true)
 	nseManagerMock.EXPECT().CreateNSEClient(gomock.Any(), gomock.Any()).DoAndReturn(
 		func(_ context.Context, endpoint *registry.NSERegistration) (nsm.NetworkServiceClient, error) {
-			if endpoint != testEndpoint1 {
+			if endpoint != testEndpoint {
 				return nil, errors.Errorf("Given endpoint doesn't equal to expected")
 			}
 			return nseClientMock, nil
@@ -95,19 +99,21 @@ func TestRequestToLocalEndpointService(t *testing.T) {
 	ctx := common.WithForwarder(context.Background(), testForwarder1)
 	ctx = common.WithLog(ctx, logrus.New())
 	ctx = common.WithModelConnection(ctx, &model.ClientConnection{})
-	ctx = common.WithEndpoint(ctx, testEndpoint1)
+	ctx = common.WithEndpoint(ctx, testEndpoint)
 
 	// Initialize model
 	testModel := newTestModel()
 	testModel.AddEndpoint(context.Background(),
 		&model.Endpoint{
-			Endpoint:  testEndpoint1,
+			Endpoint:  testEndpoint,
 			Workspace: "workspace",
 		},
 	)
 
 	builder := common.NewLocalRequestBuilder(testModel)
 	service := common.NewEndpointService(nseManagerMock, nil, testModel, builder)
+
+	g.Expect(service).NotTo(BeNil())
 
 	request := &networkservice.NetworkServiceRequest{Connection: testConnection}
 	conn, err := service.Request(ctx, request)
@@ -120,6 +126,164 @@ func TestRequestToLocalEndpointService(t *testing.T) {
 	// Check nse connection parameters are updated
 	g.Expect(nseConn.GetMechanism().GetParameters()[mechanismCommon.Workspace]).To(Equal("workspace"))
 	g.Expect(nseConn.GetMechanism().GetParameters()[kernel.WorkspaceNSEName]).To(Equal("nse"))
+}
 
-	g.Expect(conn.Id).To(Equal(""))
+func TestRequestToRemoteEndpointService(t *testing.T) {
+	g := NewWithT(t)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	testEndpoint := &registry.NSERegistration{
+		NetworkService: &registry.NetworkService{
+			Name: "network_service",
+		},
+		NetworkServiceManager: &registry.NetworkServiceManager{
+			Name: "nsm",
+		},
+		NetworkServiceEndpoint: &registry.NetworkServiceEndpoint{
+			Name:                      "nse",
+			NetworkServiceManagerName: "nsm",
+			NetworkServiceName:        "network_service",
+		},
+	}
+
+	nseConn := &connection.Connection{
+		Id:             "0",
+		NetworkService: "network_service",
+		Context:        &connectioncontext.ConnectionContext{IpContext: &connectioncontext.IPContext{}},
+		Mechanism: &connection.Mechanism{
+			Type:       vxlan.MECHANISM,
+			Parameters: map[string]string{mechanismCommon.Workspace: "", kernel.WorkspaceNSEName: ""},
+		},
+	}
+
+	// Mock NSE client
+	nseClientMock := mock.NewMockNetworkServiceClient(ctrl)
+	nseClientMock.EXPECT().Cleanup().Return(nil)
+	nseClientMock.EXPECT().Request(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+		if request == nil {
+			return nil, errors.Errorf("Request should not be nil")
+		}
+		return nseConn, nil
+	})
+
+	// Mock NSE manager
+	nseManagerMock := mock.NewMockNetworkServiceEndpointManager(ctrl)
+	nseManagerMock.EXPECT().IsLocalEndpoint(gomock.Any()).Return(false)
+	nseManagerMock.EXPECT().CreateNSEClient(gomock.Any(), gomock.Any()).DoAndReturn(
+		func(_ context.Context, endpoint *registry.NSERegistration) (nsm.NetworkServiceClient, error) {
+			if endpoint != testEndpoint {
+				return nil, errors.Errorf("Given endpoint doesn't equal to expected")
+			}
+			return nseClientMock, nil
+		},
+	)
+
+	// Initialize context for the request
+	ctx := common.WithForwarder(context.Background(), testForwarder1)
+	ctx = common.WithLog(ctx, logrus.New())
+	ctx = common.WithModelConnection(ctx, &model.ClientConnection{})
+	ctx = common.WithEndpoint(ctx, testEndpoint)
+
+	// Initialize model
+	testModel := newTestModel()
+	testModel.AddEndpoint(context.Background(),
+		&model.Endpoint{
+			Endpoint:  testEndpoint,
+			Workspace: "workspace",
+		},
+	)
+
+	builder := common.NewLocalRequestBuilder(testModel)
+	service := common.NewEndpointService(nseManagerMock, nil, testModel, builder)
+
+	g.Expect(service).NotTo(BeNil())
+
+	request := &networkservice.NetworkServiceRequest{Connection: testConnection}
+	conn, err := service.Request(ctx, request)
+
+	g.Expect(err).To(BeNil())
+
+	// Check that source connection context is updated and the same as dst context
+	g.Expect(conn.Context).To(Equal(nseConn.Context))
+
+	// Check nse connection parameters are not updated
+	g.Expect(nseConn.GetMechanism().GetParameters()[mechanismCommon.Workspace]).To(Equal(""))
+	g.Expect(nseConn.GetMechanism().GetParameters()[kernel.WorkspaceNSEName]).To(Equal(""))
+}
+
+func TestEndpointServiceCloseConnection(t *testing.T) {
+	g := NewWithT(t)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	testEndpoint := &registry.NSERegistration{
+		NetworkService: &registry.NetworkService{
+			Name: "network_service",
+		},
+		NetworkServiceManager: &registry.NetworkServiceManager{
+			Name: "nsm",
+		},
+		NetworkServiceEndpoint: &registry.NetworkServiceEndpoint{
+			Name:                      "nse",
+			NetworkServiceManagerName: "nsm",
+			NetworkServiceName:        "network_service",
+		},
+	}
+
+	nseConn := &connection.Connection{
+		Id:             "0",
+		NetworkService: "network_service",
+		Context:        &connectioncontext.ConnectionContext{IpContext: &connectioncontext.IPContext{}},
+		Mechanism: &connection.Mechanism{
+			Type:       vxlan.MECHANISM,
+			Parameters: map[string]string{mechanismCommon.Workspace: "", kernel.WorkspaceNSEName: ""},
+		},
+	}
+
+	clientConnection := &model.ClientConnection{
+		Endpoint: testEndpoint,
+		Xcon:     crossconnect.NewCrossConnect("id", "payload", nil, nseConn),
+	}
+
+	// Mock NSE client
+	nseClientMock := mock.NewMockNetworkServiceClient(ctrl)
+
+	// Flag to check if Close() was called on client
+	closeCalled := false
+
+	nseClientMock.EXPECT().Close(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, _ *connection.Connection) error {
+		closeCalled = true
+		return nil
+	})
+
+	// Mock NSE manager
+	nseManagerMock := mock.NewMockNetworkServiceEndpointManager(ctrl)
+	nseManagerMock.EXPECT().CreateNSEClient(gomock.Any(), gomock.Any()).DoAndReturn(
+		func(_ context.Context, endpoint *registry.NSERegistration) (nsm.NetworkServiceClient, error) {
+			if endpoint != testEndpoint {
+				return nil, errors.Errorf("Given endpoint doesn't equal to expected")
+			}
+			return nseClientMock, nil
+		},
+	)
+
+	// Initialize context for the request
+	ctx := common.WithLog(context.Background(), logrus.New())
+	ctx = common.WithModelConnection(ctx, clientConnection)
+
+	// Initialize model
+	testModel := newTestModel()
+
+	builder := common.NewLocalRequestBuilder(newTestModel())
+	service := common.NewEndpointService(nseManagerMock, &properties.Properties{CloseTimeout: time.Second * 5}, testModel, builder)
+
+	g.Expect(service).NotTo(BeNil())
+
+	_, err := service.Close(ctx, testConnection)
+
+	g.Expect(err).To(BeNil())
+
+	// Check if Close() was called on client
+	g.Expect(closeCalled).To(BeTrue())
 }
