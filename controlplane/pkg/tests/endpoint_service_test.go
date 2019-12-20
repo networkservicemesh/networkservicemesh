@@ -20,6 +20,10 @@ import (
 	"context"
 	"testing"
 
+	"github.com/golang/mock/gomock"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/tests/mock"
+
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -36,57 +40,10 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 )
 
-// TODO: replace all these with mocks
-type testNseManager struct {
-	nsm.NetworkServiceManager
-	nseConnection    *connection.Connection
-	expectedEndpoint *registry.NSERegistration
-}
-
-type testNSEClient struct {
-	nsm.NetworkServiceClient
-	nseConnection *connection.Connection
-}
-
-func (nseClient *testNSEClient) Request(_ context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
-	if request == nil {
-		return nil, errors.Errorf("Request should not be nil")
-	}
-	return nseClient.nseConnection, nil
-}
-
-func (nseClient *testNSEClient) Cleanup() error {
-	return nil
-}
-
-func (nseM *testNseManager) CreateNSEClient(_ context.Context, endpoint *registry.NSERegistration) (nsm.NetworkServiceClient, error) {
-	if endpoint != nseM.expectedEndpoint {
-		return nil, errors.Errorf("Given endpoint doesn't equal to expected")
-	}
-	return &testNSEClient{
-		nseConnection: nseM.nseConnection,
-	}, nil
-}
-
-func (nseM *testNseManager) IsLocalEndpoint(_ *registry.NSERegistration) bool {
-	return true
-}
-
-func (nseM *testNseManager) GetEndpoint(_ context.Context, _ *connection.Connection, _ map[registry.EndpointNSMName]*registry.NSERegistration) (*registry.NSERegistration, error) {
-	return nil, nil
-}
-
-func (nseM *testNseManager) CheckUpdateNSE(_ context.Context, _ *registry.NSERegistration) bool {
-	return false
-}
-
 func TestRequestToLocalEndpointService(t *testing.T) {
 	g := NewWithT(t)
-
-	// Initialize context for the request
-	ctx := common.WithForwarder(context.Background(), testForwarder1)
-	ctx = common.WithLog(ctx, logrus.New())
-	ctx = common.WithModelConnection(ctx, &model.ClientConnection{})
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
 	testEndpoint1 := &registry.NSERegistration{
 		NetworkService: &registry.NetworkService{
@@ -102,10 +59,6 @@ func TestRequestToLocalEndpointService(t *testing.T) {
 		},
 	}
 
-	ctx = common.WithEndpoint(ctx, testEndpoint1)
-
-	builder := common.NewLocalRequestBuilder(newTestModel())
-
 	nseConn := &connection.Connection{
 		Id:             "0",
 		NetworkService: "network_service",
@@ -116,8 +69,35 @@ func TestRequestToLocalEndpointService(t *testing.T) {
 		},
 	}
 
-	nseManager := &testNseManager{nseConnection: nseConn, expectedEndpoint: testEndpoint1}
+	// Mock NSE client
+	nseClientMock := mock.NewMockNetworkServiceClient(ctrl)
+	nseClientMock.EXPECT().Cleanup().Return(nil)
+	nseClientMock.EXPECT().Request(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+		if request == nil {
+			return nil, errors.Errorf("Request should not be nil")
+		}
+		return nseConn, nil
+	})
 
+	// Mock NSE manager
+	nseManagerMock := mock.NewMockNetworkServiceEndpointManager(ctrl)
+	nseManagerMock.EXPECT().IsLocalEndpoint(gomock.Any()).Return(true)
+	nseManagerMock.EXPECT().CreateNSEClient(gomock.Any(), gomock.Any()).DoAndReturn(
+		func(_ context.Context, endpoint *registry.NSERegistration) (nsm.NetworkServiceClient, error) {
+			if endpoint != testEndpoint1 {
+				return nil, errors.Errorf("Given endpoint doesn't equal to expected")
+			}
+			return nseClientMock, nil
+		},
+	)
+
+	// Initialize context for the request
+	ctx := common.WithForwarder(context.Background(), testForwarder1)
+	ctx = common.WithLog(ctx, logrus.New())
+	ctx = common.WithModelConnection(ctx, &model.ClientConnection{})
+	ctx = common.WithEndpoint(ctx, testEndpoint1)
+
+	// Initialize model
 	testModel := newTestModel()
 	testModel.AddEndpoint(context.Background(),
 		&model.Endpoint{
@@ -126,9 +106,10 @@ func TestRequestToLocalEndpointService(t *testing.T) {
 		},
 	)
 
-	service := common.NewEndpointService(nseManager, nil, testModel, builder)
-	request := &networkservice.NetworkServiceRequest{Connection: testConnection}
+	builder := common.NewLocalRequestBuilder(testModel)
+	service := common.NewEndpointService(nseManagerMock, nil, testModel, builder)
 
+	request := &networkservice.NetworkServiceRequest{Connection: testConnection}
 	conn, err := service.Request(ctx, request)
 
 	g.Expect(err).To(BeNil())
