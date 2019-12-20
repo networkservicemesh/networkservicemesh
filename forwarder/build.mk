@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+forwarder_images = vppagent-forwarder kernel-forwarder
+
 # TODO: files in forwarder doesn't follow the regular structure: ./module/cmd/app,
 # after fixing 'kernel-forwarder' and 'vppagent-forwarder' targets could be eliminated
 .PHONY: go-kernel-forwarder-build
@@ -37,12 +39,16 @@ docker-vppagent-forwarder-prepare: docker-%-prepare: go-%-build
 		forwarder/vppagent/conf/supervisord/supervisord.conf \
 		forwarder/vppagent/conf/supervisord/govpp.conf)
 
+.PHONY: docker-forwarder-list
+docker-forwarder-list:
+	@echo $(forwarder_images)
+
 .PHONY: docker-forwarder-build
-docker-forwarder-build: docker-vppagent-forwarder-build docker-kernel-forwarder-build
+docker-forwarder-build: $(addsuffix -build, $(addprefix docker-, $(forwarder_images)))
 
 .PHONY: docker-forwarder-save
-docker-forwarder-save: docker-vppagent-forwarder-save docker-kernel-forwarder-save
+docker-forwarder-save: $(addsuffix -save, $(addprefix docker-, $(forwarder_images)))
 
 .PHONY: docker-forwarder-push
-docker-forwarder-push: docker-vppagent-forwarder-push docker-kernel-forwarder-push
+docker-forwarder-push: $(addsuffix -push, $(addprefix docker-, $(forwarder_images)))
 

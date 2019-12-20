@@ -15,6 +15,10 @@
 k8s_apps = $(shell ls ./k8s/cmd/)
 k8s_targets = $(addsuffix -build, $(addprefix go-, $(k8s_apps)))
 
+.PHONY: docker-k8s-list
+docker-k8s-list:
+	@echo $(k8s_apps)
+
 .PHONY: $(k8s_targets)
 $(k8s_targets): go-%-build: k8s-%-build
 
