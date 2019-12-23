@@ -43,6 +43,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/networkservicemesh/networkservicemesh/sdk/prefix_pool"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
+	nsmrbac "github.com/networkservicemesh/networkservicemesh/test/kubetest/rbac"
 )
 
 type NodeConf struct {
@@ -982,4 +983,99 @@ func ExpectNSMsCountToBe(k8s *K8s, countWas, countExpected int) {
 
 	k8s.g.Expect(err).To(BeNil())
 	k8s.g.Expect(len(nsmList)).To(Equal(countExpected), fmt.Sprint(nsmList))
+}
+
+// DeployPrometheus deploys prometheus roles, configMap, deployment and service
+func DeployPrometheus(k8s *K8s) ([]nsmrbac.Role, *appsv1.Deployment, *v1.Service) {
+	roles := CreatePrometheusClusterRoles(k8s)
+	CreatePrometheusConfigMap(k8s)
+	depl := CreatePrometheusDeployment(k8s)
+	svc := CreatePrometheusService(k8s)
+
+	return roles, depl, svc
+}
+
+// DeletePrometheus deletes prometheus roles, configMap, deployment and service
+func DeletePrometheus(k8s *K8s, roles []nsmrbac.Role, depl *appsv1.Deployment, svc *v1.Service) {
+	_, err := k8s.DeleteRoles(roles)
+	k8s.g.Expect(err).To(BeNil())
+
+	err = k8s.DeleteService(svc, k8s.GetK8sNamespace())
+	k8s.g.Expect(err).To(BeNil())
+
+	err = k8s.DeleteDeployment(depl, k8s.GetK8sNamespace())
+	k8s.g.Expect(err).To(BeNil())
+}
+
+// CreatePrometheusClusterRoles creates prometheus roles
+func CreatePrometheusClusterRoles(k8s *K8s) []nsmrbac.Role {
+	promRoles, err := k8s.CreateRoles("prometheus", "prometheus_binding")
+	k8s.g.Expect(err).To(BeNil())
+
+	return promRoles
+}
+
+// CreatePrometheusConfigMap creates prometheus configMap
+func CreatePrometheusConfigMap(k8s *K8s) *v1.ConfigMap {
+	cfgmap, err := k8s.CreateConfigMap(pods.PrometheusConfigMap(k8s.GetK8sNamespace()))
+	k8s.g.Expect(err).To(BeNil())
+
+	return cfgmap
+}
+
+// CreatePrometheusDeployment creates prometheus deployment
+func CreatePrometheusDeployment(k8s *K8s) *appsv1.Deployment {
+	deployment := pods.PrometheusDeployment(k8s.GetK8sNamespace())
+
+	promDepl, err := k8s.CreateDeployment(deployment, k8s.GetK8sNamespace())
+	k8s.g.Expect(err).To(BeNil())
+
+	return promDepl
+}
+
+// CreatePrometheusService creates prometheus service
+func CreatePrometheusService(k8s *K8s) *v1.Service {
+	service := pods.PrometheusService(k8s.GetK8sNamespace())
+
+	promSvc, err := k8s.CreateService(service, k8s.GetK8sNamespace())
+	k8s.g.Expect(err).To(BeNil())
+
+	return promSvc
+}
+
+// DeployCrossConnectMonitor deploys crossconnect-monitor
+func DeployCrossConnectMonitor(k8s *K8s, image string) (*appsv1.Deployment, *v1.Service) {
+	depl := CreateCrossConnectMonitorDeployment(k8s, image)
+	svc := CreateCrossConnectMonitorService(k8s)
+
+	return depl, svc
+}
+
+// DeleteCrossConnectMonitor deletes crossconnect-monitor deployment
+func DeleteCrossConnectMonitor(k8s *K8s, depl *appsv1.Deployment, svc *v1.Service) {
+	err := k8s.DeleteService(svc, k8s.GetK8sNamespace())
+	k8s.g.Expect(err).To(BeNil())
+
+	err = k8s.DeleteDeployment(depl, k8s.GetK8sNamespace())
+	k8s.g.Expect(err).To(BeNil())
+}
+
+// CreateCrossConnectMonitorDeployment creates crossconnect-monitor deployment
+func CreateCrossConnectMonitorDeployment(k8s *K8s, image string) *appsv1.Deployment {
+	deployment := pods.CrossConnectMonitorDeployment(k8s.GetK8sNamespace(), image)
+
+	ccDepl, err := k8s.CreateDeployment(deployment, k8s.GetK8sNamespace())
+	k8s.g.Expect(err).To(BeNil())
+
+	return ccDepl
+}
+
+// CreateCrossConnectMonitorService creates crossconnect-monitor service
+func CreateCrossConnectMonitorService(k8s *K8s) *v1.Service {
+	service := pods.CrossConnectMonitorService(k8s.GetK8sNamespace())
+
+	ccSvc, err := k8s.CreateService(service, k8s.GetK8sNamespace())
+	k8s.g.Expect(err).To(BeNil())
+
+	return ccSvc
 }

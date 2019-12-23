@@ -216,7 +216,7 @@ func importFiles(testConfig *config.CloudTestConfig, files ...string) error {
 
 }
 
-// PerformTesting - PerformTesting
+// PerformTesting performs testing uses cloud test config. Returns the junit report when testing finished.
 func PerformTesting(config *config.CloudTestConfig, factory k8s.ValidationFactory, arguments *Arguments) (*reporting.JUnitFile, error) {
 	ctx := &executionContext{
 		cloudTestConfig:  config,
@@ -227,17 +227,19 @@ func PerformTesting(config *config.CloudTestConfig, factory k8s.ValidationFactor
 		tests:            []*model.TestEntry{},
 		factory:          factory,
 		arguments:        arguments,
+		manager:          execmanager.NewExecutionManager(config.ConfigRoot),
 	}
-	ctx.manager = execmanager.NewExecutionManager(ctx.cloudTestConfig.ConfigRoot)
+	return performTestingContext(ctx)
+}
+
+func performTestingContext(ctx *executionContext) (*reporting.JUnitFile, error) {
 	// Create cluster instance handles
 	if err := ctx.createClusters(); err != nil {
 		return nil, err
 	}
-
 	cleanupCtx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	go ctx.cleanupClusters(cleanupCtx)
-
 	// Collect tests
 	if err := ctx.findTests(); err != nil {
 		logrus.Errorf("Error finding tests %v", err)
@@ -249,14 +251,14 @@ func PerformTesting(config *config.CloudTestConfig, factory k8s.ValidationFactor
 	ctx.createTasks()
 
 	err := ctx.performExecution()
-	reportfile, err2 := ctx.generateJUnitReportFile()
+	result, err2 := ctx.generateJUnitReportFile()
 	if err2 != nil {
 		logrus.Errorf("Error during generation of report: %v", err2)
 	}
 	if err != nil {
-		return reportfile, err
+		return result, err
 	}
-	return reportfile, err2
+	return result, err2
 }
 
 func parseConfig(cloudTestConfig *config.CloudTestConfig, configFileContent []byte) error {
@@ -304,51 +306,58 @@ func (ctx *executionContext) performExecution() error {
 	timeoutCtx, cancelFunc := context.WithTimeout(context.Background(), time.Duration(ctx.cloudTestConfig.Timeout)*time.Second)
 	defer cancelFunc()
 
-	termChannel := tools.NewOSSignalChannel()
-	defer ctx.printStatistics()
-
-	statsTimeout := 60 * time.Second
+	defer func() {
+		if ctx.cloudTestConfig.Statistics.Enabled {
+			ctx.printStatistics()
+		}
+	}()
+	statsTimeout := time.Minute
 	if ctx.cloudTestConfig.Statistics.Enabled && ctx.cloudTestConfig.Statistics.Interval > 0 {
 		statsTimeout = time.Duration(ctx.cloudTestConfig.Statistics.Interval) * time.Second
 	}
+	healthCheckChannel := RunHealthChecks(ctx.cloudTestConfig.HealthCheck)
+	termChannel := tools.NewOSSignalChannel()
 	statTicker := time.NewTicker(statsTimeout)
 	defer statTicker.Stop()
-
-	healthCheckChannel := RunHealthChecks(ctx.cloudTestConfig.HealthCheck)
 
 	for len(ctx.tasks) > 0 || len(ctx.running) > 0 {
 		// WE take 1 test task from list and do execution.
 		ctx.assignTasks()
 		ctx.checkClustersUsage()
 
+		if err := ctx.pollEvents(timeoutCtx, termChannel, healthCheckChannel, statTicker.C); err != nil {
+			return err
+		}
+
 		if len(ctx.tasks) == 0 && len(ctx.running) == 0 {
-			// No tasks left to execute.
 			break
 		}
+	}
+	logrus.Info("Finished test execution")
+	return nil
+}
 
-		select {
-		case event := <-ctx.operationChannel:
-			switch event.kind {
-			case eventClusterUpdate:
-				ctx.performClusterUpdate(event)
-			case eventTaskUpdate:
-				// Remove from running onces.
-				ctx.processTaskUpdate(event)
-			}
-		case <-termChannel:
-			return errors.New("termination request is received")
-		case <-timeoutCtx.Done():
-			return errors.Errorf("global timeout elapsed: %v seconds", ctx.cloudTestConfig.Timeout)
-		case err := <-healthCheckChannel:
-			return errors.Wrapf(err, "health check probe failed")
-		case <-statTicker.C:
-			if ctx.cloudTestConfig.Statistics.Enabled {
-				ctx.printStatistics()
-			}
+func (ctx *executionContext) pollEvents(c context.Context, osCh <-chan os.Signal, healthCh <-chan error, statsCh <-chan time.Time) error {
+	select {
+	case event := <-ctx.operationChannel:
+		switch event.kind {
+		case eventClusterUpdate:
+			ctx.performClusterUpdate(event)
+		case eventTaskUpdate:
+			// Remove from running onces.
+			ctx.processTaskUpdate(event)
+		}
+	case <-osCh:
+		return errors.New("termination request is received")
+	case <-c.Done():
+		return errors.Errorf("global timeout elapsed: %v seconds", ctx.cloudTestConfig.Timeout)
+	case err := <-healthCh:
+		return errors.Wrapf(err, "health check probe failed")
+	case <-statsCh:
+		if ctx.cloudTestConfig.Statistics.Enabled {
+			ctx.printStatistics()
 		}
 	}
-
-	logrus.Info("Finished test execution")
 	return nil
 }
 
@@ -449,7 +458,7 @@ func (ctx *executionContext) processTaskUpdate(event operationEvent) {
 	} else {
 		if event.task.test.Status == model.StatusRerunRequest && ctx.cloudTestConfig.RetestConfig.WarmupTimeout > 0 {
 			go func() {
-				ids := []string{}
+				var ids []string
 				for _, ci := range event.task.clusterInstances {
 					ids = append(ids, ci.id)
 				}
@@ -460,12 +469,8 @@ func (ctx *executionContext) processTaskUpdate(event operationEvent) {
 				ctx.rescheduleTask(event)
 				logrus.Infof("Re schedule task %v reason: %v", event.task.test.Name, statusName(event.task.test.Status))
 			}()
-		} else if event.task.test.Status == model.StatusRerunRequest {
-			// Make cluster as ready
-			ctx.rescheduleTask(event)
-			logrus.Infof("Re schedule task %v reason: %v", event.task.test.Name, statusName(event.task.test.Status))
 		} else {
-			ctx.completeTask(event)
+			ctx.rescheduleTask(event)
 			logrus.Infof("Re schedule task %v reason: %v", event.task.test.Name, statusName(event.task.test.Status))
 		}
 	}
