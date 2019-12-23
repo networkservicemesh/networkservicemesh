@@ -1000,7 +1000,7 @@ func DeletePrometheus(k8s *K8s, roles []nsmrbac.Role, depl *appsv1.Deployment, s
 	_, err := k8s.DeleteRoles(roles)
 	k8s.g.Expect(err).To(BeNil())
 
-	err = k8s.DeleteService(svc, k8s.GetK8sNamespace())
+	err = k8s.DeleteService(svc)
 	k8s.g.Expect(err).To(BeNil())
 
 	err = k8s.DeleteDeployment(depl, k8s.GetK8sNamespace())
@@ -1053,7 +1053,7 @@ func DeployCrossConnectMonitor(k8s *K8s, image string) (*appsv1.Deployment, *v1.
 
 // DeleteCrossConnectMonitor deletes crossconnect-monitor deployment
 func DeleteCrossConnectMonitor(k8s *K8s, depl *appsv1.Deployment, svc *v1.Service) {
-	err := k8s.DeleteService(svc, k8s.GetK8sNamespace())
+	err := k8s.DeleteService(svc)
 	k8s.g.Expect(err).To(BeNil())
 
 	err = k8s.DeleteDeployment(depl, k8s.GetK8sNamespace())

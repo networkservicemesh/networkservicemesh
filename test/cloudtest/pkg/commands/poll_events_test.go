@@ -52,7 +52,7 @@ func TestUpdateTaskWithTimeout_ShouldNotCompleteTask(t *testing.T) {
 	ctx.cloudTestConfig.Statistics.Enabled = false
 	task := &testTask{
 		test: &model.TestEntry{
-			ExecutionConfig: &config.ExecutionConfig{
+			ExecutionConfig: &config.Execution{
 				Timeout: 1,
 			},
 			Status: model.StatusSkipped,
