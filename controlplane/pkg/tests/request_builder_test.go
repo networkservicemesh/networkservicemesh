@@ -30,10 +30,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 )
 
-var testNsm = &registry.NetworkServiceManager{
-	Name: "nsm1",
-}
-
 type testModel struct {
 	model.Model
 }
@@ -46,57 +42,70 @@ func newTestModel() *testModel {
 	m := &testModel{
 		Model: model.NewModel(),
 	}
+	testNsm := &registry.NetworkServiceManager{
+		Name: "nsm1",
+	}
 	m.SetNsm(testNsm)
 	return m
 }
 
-var testForwarderWithLocalMechanism = &model.Forwarder{
-	LocalMechanisms: []*connection.Mechanism{
-		{
-			Type: kernel.MECHANISM,
+func getTestFwdWithLocalMechanism() *model.Forwarder {
+	return &model.Forwarder{
+		LocalMechanisms: []*connection.Mechanism{
+			{
+				Type: kernel.MECHANISM,
+			},
 		},
-	},
+	}
 }
 
-var testForwarderWithRemoteMechanism = &model.Forwarder{
-	RemoteMechanisms: []*connection.Mechanism{
-		{
-			Type: vxlan.MECHANISM,
+func getTestFwdWithRemoteMechanism() *model.Forwarder {
+	return &model.Forwarder{
+		RemoteMechanisms: []*connection.Mechanism{
+			{
+				Type: vxlan.MECHANISM,
+			},
 		},
-	},
+	}
 }
 
-var testEndpoint1 = &registry.NSERegistration{
-	NetworkService: &registry.NetworkService{
-		Name: "network_service",
-	},
-	NetworkServiceManager: &registry.NetworkServiceManager{
-		Name: "nsm1",
-	},
-	NetworkServiceEndpoint: &registry.NetworkServiceEndpoint{
-		Name:                      "nse",
-		NetworkServiceManagerName: "nsm1",
-		NetworkServiceName:        "network_service",
-	},
+func getLocalTestEndpoint() *registry.NSERegistration {
+	return &registry.NSERegistration{
+		NetworkService: &registry.NetworkService{
+			Name: "network_service",
+		},
+		NetworkServiceManager: &registry.NetworkServiceManager{
+			Name: "nsm1",
+		},
+		NetworkServiceEndpoint: &registry.NetworkServiceEndpoint{
+			Name:                      "nse",
+			NetworkServiceManagerName: "nsm1",
+			NetworkServiceName:        "network_service",
+		},
+	}
 }
 
-var testEndpoint2 = &registry.NSERegistration{
-	NetworkService: &registry.NetworkService{
-		Name: "network_service",
-	},
-	NetworkServiceManager: &registry.NetworkServiceManager{
-		Name: "nsm2",
-	},
-	NetworkServiceEndpoint: &registry.NetworkServiceEndpoint{
-		Name:                      "nse",
-		NetworkServiceManagerName: "nsm2",
-		NetworkServiceName:        "network_service",
-	},
+func getRemoteTestEndpoint() *registry.NSERegistration {
+	return &registry.NSERegistration{
+		NetworkService: &registry.NetworkService{
+			Name: "network_service",
+		},
+		NetworkServiceManager: &registry.NetworkServiceManager{
+			Name: "nsm2",
+		},
+		NetworkServiceEndpoint: &registry.NetworkServiceEndpoint{
+			Name:                      "nse",
+			NetworkServiceManagerName: "nsm2",
+			NetworkServiceName:        "network_service",
+		},
+	}
 }
 
-var testConnection = &connection.Connection{
-	Labels:         map[string]string{"key": "value"},
-	NetworkService: "network_service",
+func getTestConnection() *connection.Connection {
+	return &connection.Connection{
+		Labels:         map[string]string{"key": "value"},
+		NetworkService: "network_service",
+	}
 }
 
 func TestLocalRequestBuilder_LocalNSERequest(t *testing.T) {
@@ -104,12 +113,12 @@ func TestLocalRequestBuilder_LocalNSERequest(t *testing.T) {
 
 	builder := common.NewLocalRequestBuilder(newTestModel())
 
-	request1 := builder.Build("0", testEndpoint1, testForwarderWithLocalMechanism, testConnection)
+	request1 := builder.Build("0", getLocalTestEndpoint(), getTestFwdWithLocalMechanism(), getTestConnection())
 	checkLocalNSERequest(g, request1)
 	g.Expect(request1.Connection.Id).To(Equal("0"))
 
 	// Check request if ID is absent.
-	request2 := builder.Build("", testEndpoint1, testForwarderWithLocalMechanism, testConnection)
+	request2 := builder.Build("", getLocalTestEndpoint(), getTestFwdWithLocalMechanism(), getTestConnection())
 	checkLocalNSERequest(g, request2)
 	g.Expect(request2.Connection.Id).To(Equal("1"))
 }
@@ -119,12 +128,12 @@ func TestLocalRequestBuilder_RemoteNSMRequest(t *testing.T) {
 
 	builder := common.NewLocalRequestBuilder(newTestModel())
 
-	request1 := builder.Build("0", testEndpoint2, testForwarderWithRemoteMechanism, testConnection)
+	request1 := builder.Build("0", getRemoteTestEndpoint(), getTestFwdWithRemoteMechanism(), getTestConnection())
 	checkRemoteNSMRequest(g, request1)
 	g.Expect(request1.Connection.Id).To(Equal("0"))
 
 	// Check request if ID is absent.
-	request2 := builder.Build("", testEndpoint2, testForwarderWithRemoteMechanism, testConnection)
+	request2 := builder.Build("", getRemoteTestEndpoint(), getTestFwdWithRemoteMechanism(), getTestConnection())
 	checkRemoteNSMRequest(g, request2)
 	g.Expect(request2.Connection.Id).To(Equal(""))
 }
@@ -134,12 +143,12 @@ func TestRemoteRequestBuilder(t *testing.T) {
 
 	builder := common.NewRemoteRequestBuilder(newTestModel())
 
-	request1 := builder.Build("0", testEndpoint1, testForwarderWithLocalMechanism, testConnection)
+	request1 := builder.Build("0", getLocalTestEndpoint(), getTestFwdWithLocalMechanism(), getTestConnection())
 	checkLocalNSERequest(g, request1)
 	g.Expect(request1.Connection.Id).To(Equal("0"))
 
 	// Check request if ID is absent.
-	request2 := builder.Build("", testEndpoint1, testForwarderWithLocalMechanism, testConnection)
+	request2 := builder.Build("", getLocalTestEndpoint(), getTestFwdWithLocalMechanism(), getTestConnection())
 	checkLocalNSERequest(g, request2)
 	g.Expect(request2.Connection.Id).To(Equal("1"))
 }

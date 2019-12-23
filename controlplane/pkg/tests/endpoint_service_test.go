@@ -44,11 +44,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 )
 
-func TestRequestToLocalEndpointService(t *testing.T) {
-	g := NewWithT(t)
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
+func getTestEndpointAndNSEConnection() (*registry.NSERegistration, *connection.Connection) {
 	testEndpoint := &registry.NSERegistration{
 		NetworkService: &registry.NetworkService{
 			Name: "network_service",
@@ -72,6 +68,15 @@ func TestRequestToLocalEndpointService(t *testing.T) {
 			Parameters: map[string]string{mechanismCommon.Workspace: "", kernel.WorkspaceNSEName: ""},
 		},
 	}
+	return testEndpoint, nseConn
+}
+
+func TestRequestToLocalEndpointService(t *testing.T) {
+	g := NewWithT(t)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	testEndpoint, nseConn := getTestEndpointAndNSEConnection()
 
 	// Mock NSE client
 	nseClientMock := mock.NewMockNetworkServiceClient(ctrl)
@@ -115,7 +120,7 @@ func TestRequestToLocalEndpointService(t *testing.T) {
 
 	g.Expect(service).NotTo(BeNil())
 
-	request := &networkservice.NetworkServiceRequest{Connection: testConnection}
+	request := &networkservice.NetworkServiceRequest{Connection: getTestConnection()}
 	conn, err := service.Request(ctx, request)
 
 	g.Expect(err).To(BeNil())
@@ -133,29 +138,7 @@ func TestRequestToRemoteEndpointService(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	testEndpoint := &registry.NSERegistration{
-		NetworkService: &registry.NetworkService{
-			Name: "network_service",
-		},
-		NetworkServiceManager: &registry.NetworkServiceManager{
-			Name: "nsm",
-		},
-		NetworkServiceEndpoint: &registry.NetworkServiceEndpoint{
-			Name:                      "nse",
-			NetworkServiceManagerName: "nsm",
-			NetworkServiceName:        "network_service",
-		},
-	}
-
-	nseConn := &connection.Connection{
-		Id:             "0",
-		NetworkService: "network_service",
-		Context:        &connectioncontext.ConnectionContext{IpContext: &connectioncontext.IPContext{}},
-		Mechanism: &connection.Mechanism{
-			Type:       vxlan.MECHANISM,
-			Parameters: map[string]string{mechanismCommon.Workspace: "", kernel.WorkspaceNSEName: ""},
-		},
-	}
+	testEndpoint, nseConn := getTestEndpointAndNSEConnection()
 
 	// Mock NSE client
 	nseClientMock := mock.NewMockNetworkServiceClient(ctrl)
@@ -199,7 +182,7 @@ func TestRequestToRemoteEndpointService(t *testing.T) {
 
 	g.Expect(service).NotTo(BeNil())
 
-	request := &networkservice.NetworkServiceRequest{Connection: testConnection}
+	request := &networkservice.NetworkServiceRequest{Connection: getTestConnection()}
 	conn, err := service.Request(ctx, request)
 
 	g.Expect(err).To(BeNil())
@@ -217,29 +200,7 @@ func TestEndpointServiceCloseConnection(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	testEndpoint := &registry.NSERegistration{
-		NetworkService: &registry.NetworkService{
-			Name: "network_service",
-		},
-		NetworkServiceManager: &registry.NetworkServiceManager{
-			Name: "nsm",
-		},
-		NetworkServiceEndpoint: &registry.NetworkServiceEndpoint{
-			Name:                      "nse",
-			NetworkServiceManagerName: "nsm",
-			NetworkServiceName:        "network_service",
-		},
-	}
-
-	nseConn := &connection.Connection{
-		Id:             "0",
-		NetworkService: "network_service",
-		Context:        &connectioncontext.ConnectionContext{IpContext: &connectioncontext.IPContext{}},
-		Mechanism: &connection.Mechanism{
-			Type:       vxlan.MECHANISM,
-			Parameters: map[string]string{mechanismCommon.Workspace: "", kernel.WorkspaceNSEName: ""},
-		},
-	}
+	testEndpoint, nseConn := getTestEndpointAndNSEConnection()
 
 	clientConnection := &model.ClientConnection{
 		Endpoint: testEndpoint,
@@ -280,7 +241,7 @@ func TestEndpointServiceCloseConnection(t *testing.T) {
 
 	g.Expect(service).NotTo(BeNil())
 
-	_, err := service.Close(ctx, testConnection)
+	_, err := service.Close(ctx, getTestConnection())
 
 	g.Expect(err).To(BeNil())
 
