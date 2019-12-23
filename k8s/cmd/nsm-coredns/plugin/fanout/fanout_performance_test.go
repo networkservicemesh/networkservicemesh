@@ -16,7 +16,6 @@
 
 // +build  performance
 
-//TODO: add memory benchmark tests
 package fanout
 
 import (
@@ -41,23 +40,18 @@ import (
 type testServerType rune
 
 const (
-	Good        testServerType = 'g'
-	Error       testServerType = 'e'
-	Unreachable testServerType = 'u'
+	WorkingServer    testServerType = 'g'
+	UnreachableSerer testServerType = 'e'
 )
 
-//TODO: split samples on different tests
-func samples() []string {
-	return []string{
-		"g",
-		"ge",
-		"gu",
-		"eeg",
-		"uug",
-		"ggg",
+func samples() [][]testServerType {
+	return [][]testServerType{
+		{WorkingServer},
+		{WorkingServer, UnreachableSerer},
+		{UnreachableSerer, WorkingServer},
+		{UnreachableSerer, UnreachableSerer, WorkingServer},
 	}
 }
-
 func BenchmarkFanoutPlugin(b *testing.B) {
 	samples := samples()
 	for i := 0; i < b.N; i++ {
@@ -69,7 +63,6 @@ func BenchmarkFanoutPlugin(b *testing.B) {
 		}
 	}
 }
-
 func BenchmarkForwardPlugin(b *testing.B) {
 	samples := samples()
 	for i := 0; i < b.N; i++ {
@@ -82,7 +75,7 @@ func BenchmarkForwardPlugin(b *testing.B) {
 	}
 }
 
-func benchmarkSample(b *testing.B, handler plugin.Handler, add func(string), sample string) {
+func benchmarkSample(b *testing.B, handler plugin.Handler, add func(string), sample []testServerType) {
 	b.StopTimer()
 	writer := &cachedDNSWriter{ResponseWriter: new(test.ResponseWriter)}
 	writer.TCP = true
@@ -102,7 +95,7 @@ func benchmarkSample(b *testing.B, handler plugin.Handler, add func(string), sam
 	b.StartTimer()
 }
 
-func preparePlugin(addClient func(string), sample string) (clearFunc func()) {
+func preparePlugin(addClient func(string), sample []testServerType) (clearFunc func()) {
 	var servers []*server
 	for _, r := range sample {
 		s := createServerByType(testServerType(r))
@@ -118,11 +111,9 @@ func preparePlugin(addClient func(string), sample string) (clearFunc func()) {
 
 func createServerByType(t testServerType) *server {
 	switch t {
-	case Good:
+	case WorkingServer:
 		return testServer()
-	case Error:
-		return errorServer()
-	case Unreachable:
+	case UnreachableSerer:
 		return dummyServer()
 	}
 	panic(errors.New(fmt.Sprintf("unknown server type %v", t)))
@@ -143,15 +134,5 @@ func testServer() *server {
 func dummyServer() *server {
 	return newServer(func(w dns.ResponseWriter, r *dns.Msg) {
 		<-time.After(time.Millisecond * 100)
-	})
-}
-
-func errorServer() *server {
-	return newServer(func(w dns.ResponseWriter, r *dns.Msg) {
-		<-time.After(time.Millisecond * 100)
-		//TODO: fix for forward plugin
-		//msg := nxdomainMsg()
-		//msg.SetRcode(r, msg.Rcode)
-		//w.WriteMsg(msg)
 	})
 }

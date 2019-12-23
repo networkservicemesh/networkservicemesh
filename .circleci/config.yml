@@ -91,8 +91,9 @@ jobs:
             export CONTAINER_REPO="networkservicemeshci"
             export CONTAINER_FORCE_PULL="true"
             export INSECURE="true"
+            export ARTIFACTS_DIR="/home/circleci/project/.tests/"
             ./scripts/run_tests.sh "-short -race -tags=unit_test"
-            ./scripts/run_tests.sh "-short -tags=performance"
+            ./scripts/for-each-module.sh "go test -bench=. -benchmem ./... -tags=performance >> ${ARTIFACTS_DIR}/performance_tests_result.txt"
       - store_test_results:
           path: ~/junit
       - store_artifacts:
