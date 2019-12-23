@@ -165,6 +165,13 @@ jobs:
             popd
             ./cloudtest
           no_output_timeout: 40m
+      - run:
+          name: Cleanup CI images from DockerHub unless it's master branch
+          command: |
+            [ "${CIRCLE_BRANCH}" == "master" ] && exit
+            echo "Cleaning up CI images from DockerHub.."
+            CONTAINER_TAG="ci_${CIRCLE_WORKFLOW_ID}_${CIRCLE_SHA1:8:8}"
+            REPO=networkservicemeshci TAGS="$CONTAINER_TAG" IMAGES=$(make docker-list) .circleci/dockerhub-image-remove
       - store_test_results:
           path: .tests/cloud_test/results/
       - store_artifacts:
@@ -192,7 +199,10 @@ jobs:
             export CONTAINER_REPO="networkservicemeshci"
             export GOPROXY=https://proxy.golang.org,direct
             # resource_class xlarge has 8 core, multiple by 1.5 for hyperthreading for -j factor
-            make -j 12 -O docker-push
+            make -j 12 -O docker-push && exit
+            echo "Build failed, cleaning up CI images from DockerHub.."
+            REPO=$CONTAINER_REPO TAGS="$CONTAINER_TAG" IMAGES=$(make docker-list) .circleci/dockerhub-image-remove
+            exit 1
 
 # docker push
   docker-push-tag:
@@ -216,6 +226,12 @@ jobs:
               docker tag ${PULL_REPO}/${c}:${PULL_TAG} ${REPO}/${c}:${CONTAINER_TAG}
               docker push ${REPO}/${c}:${CONTAINER_TAG}
             done
+      - run:
+          name: Cleanup CI images from DockerHub
+          command: |
+            echo "Cleaning up CI images from DockerHub.."
+            CONTAINER_TAG="ci_${CIRCLE_WORKFLOW_ID}_${CIRCLE_SHA1:8:8}"
+            REPO=networkservicemeshci TAGS="$CONTAINER_TAG" IMAGES=$(make docker-list) .circleci/dockerhub-image-remove
 
 # helm
   test-helm-charts:
