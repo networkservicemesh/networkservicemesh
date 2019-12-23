@@ -90,19 +90,15 @@ func (builder *RemoteRequestBuilder) Build(connectionID string, _ *registry.NSER
 // NewLocalRequestBuilder creates new request builder for the endpoint service in local service server
 func NewLocalRequestBuilder(m model.Model) *LocalRequestBuilder {
 	return &LocalRequestBuilder{
-		nsmName: m.GetNsm().GetName(),
-		idGenerator: func() string {
-			return m.ConnectionID()
-		},
+		nsmName:     m.GetNsm().GetName(),
+		idGenerator: m.ConnectionID,
 	}
 }
 
 // NewRemoteRequestBuilder creates new request builder for the endpoint service in remote service server
 func NewRemoteRequestBuilder(m model.Model) *RemoteRequestBuilder {
 	return &RemoteRequestBuilder{
-		nsmName: m.GetNsm().GetName(),
-		idGenerator: func() string {
-			return m.ConnectionID()
-		},
+		nsmName:     m.GetNsm().GetName(),
+		idGenerator: m.ConnectionID,
 	}
 }
