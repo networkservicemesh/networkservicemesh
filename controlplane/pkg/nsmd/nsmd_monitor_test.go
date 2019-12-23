@@ -88,8 +88,7 @@ func setupServer(g *gomega.WithT) (int, func()) {
 		}
 	}()
 
-	return l.Addr().(*net.TCPAddr).Port,
-		grpcServer.Stop
+	return l.Addr().(*net.TCPAddr).Port, grpcServer.Stop
 }
 
 type testEvent struct {

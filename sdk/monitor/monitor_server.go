@@ -3,6 +3,7 @@ package monitor
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
@@ -33,6 +34,7 @@ type Server interface {
 }
 
 type server struct {
+	recipientsMutex          sync.Mutex
 	eventFactory             EventFactory
 	eventCh                  chan Event
 	newMonitorRecipientCh    chan Recipient
@@ -86,6 +88,8 @@ func (s *server) MonitorEntities(stream grpc.ServerStream) {
 
 // SendAll sends event to all server recipients
 func (s *server) SendAll(event Event) {
+	s.recipientsMutex.Lock()
+	defer s.recipientsMutex.Unlock()
 	s.send(event, s.recipients...)
 }
 
@@ -97,11 +101,15 @@ func (s *server) Serve() {
 		case newRecipient := <-s.newMonitorRecipientCh:
 			initialStateTransferEvent := s.eventFactory.NewEvent(context.Background(), EventTypeInitialStateTransfer, s.entities)
 			s.send(initialStateTransferEvent, newRecipient)
+			s.recipientsMutex.Lock()
 			s.recipients = append(s.recipients, newRecipient)
+			s.recipientsMutex.Unlock()
 		case closedRecipient := <-s.closedMonitorRecipientCh:
 			for j, r := range s.recipients {
 				if r == closedRecipient {
+					s.recipientsMutex.Lock()
 					s.recipients = append(s.recipients[:j], s.recipients[j+1:]...)
+					s.recipientsMutex.Unlock()
 					break
 				}
 			}
