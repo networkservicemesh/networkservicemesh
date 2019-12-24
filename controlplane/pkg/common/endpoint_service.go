@@ -30,9 +30,8 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
-
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/properties"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 )
 
 type endpointService struct {
@@ -72,7 +71,6 @@ func (cce *endpointService) closeEndpoint(ctx context.Context, cc *model.ClientC
 func (cce *endpointService) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 	logger := Log(ctx)
 	clientConnection := ModelConnection(ctx)
-	fwd := Forwarder(ctx)
 	endpoint := Endpoint(ctx)
 
 	if clientConnection == nil {
@@ -80,11 +78,11 @@ func (cce *endpointService) Request(ctx context.Context, request *networkservice
 	}
 	client, err := cce.nseManager.CreateNSEClient(ctx, endpoint)
 	if err != nil {
-		return nil, errors.Errorf("NSM:(endpointService) Failed to create NSE Client. %v", err)
+		return nil, errors.Errorf("NSM: endpointService failed to create NSE Client. %v", err)
 	}
 	defer func() {
 		if cleanupErr := client.Cleanup(); cleanupErr != nil {
-			logger.Errorf("NSM:(endpointService) Error during Cleanup: %v", cleanupErr)
+			logger.Errorf("NSM: endpointService: error during Cleanup: %v", cleanupErr)
 		}
 	}()
 
@@ -99,9 +97,9 @@ func (cce *endpointService) Request(ctx context.Context, request *networkservice
 		connID = ""
 	}
 
-	message := cce.requestBuilder.Build(connID, endpoint, fwd, conn)
+	message := cce.requestBuilder.Build(connID, endpoint, Forwarder(ctx), conn)
 
-	logger.Infof("NSM:(endpointService) Requesting NSE with request %v", message)
+	logger.Infof("NSM: endpointService: requesting NSE with request %v", message)
 
 	span := spanhelper.FromContext(ctx, "nse.request")
 	ctx = span.Context()
@@ -111,12 +109,12 @@ func (cce *endpointService) Request(ctx context.Context, request *networkservice
 	nseConn, e := client.Request(ctx, message)
 	span.LogObject("nse.response", nseConn)
 	if e != nil {
-		e = errors.Errorf("NSM:(endpointService) error requesting networkservice from %+v with message %#v error: %s", endpoint, message, e)
+		e = errors.Errorf("NSM: endpointService: error requesting networkservice from %+v with message %#v error: %s", endpoint, message, e)
 		span.LogError(e)
 		return nil, e
 	}
 	if err = cce.updateConnectionContext(ctx, request.GetConnection(), nseConn); err != nil {
-		err = errors.Errorf("NSM:(endpointService) failure Validating NSE Connection: %s", err)
+		err = errors.Errorf("NSM: endpointService: failure Validating NSE Connection: %s", err)
 		span.LogError(err)
 		return nil, err
 	}
@@ -167,7 +165,7 @@ func (cce *endpointService) updateConnectionParameters(nseConn *connection.Conne
 			nseConn.GetMechanism().GetParameters()[mechanismCommon.Workspace] = modelEp.Workspace
 			nseConn.GetMechanism().GetParameters()[kernel.WorkspaceNSEName] = modelEp.Endpoint.GetNetworkServiceEndpoint().GetName()
 		}
-		logrus.Infof("NSM:(endpointService) Update Local NSE connection parameters: %v", nseConn.Mechanism)
+		logrus.Infof("NSM: endpointService: update Local NSE connection parameters: %v", nseConn.Mechanism)
 	}
 }
 

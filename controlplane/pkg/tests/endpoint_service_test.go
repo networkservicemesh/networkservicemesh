@@ -21,13 +21,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/properties"
-
 	"github.com/golang/mock/gomock"
-
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/tests/mock"
-
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -37,14 +31,17 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/properties"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/tests/mock"
 )
 
-func getTestEndpointAndNSEConnection() (*registry.NSERegistration, *connection.Connection) {
+func createTestEndpointAndNSEConnection() (*registry.NSERegistration, *connection.Connection) {
 	testEndpoint := &registry.NSERegistration{
 		NetworkService: &registry.NetworkService{
 			Name: "network_service",
@@ -76,7 +73,7 @@ func TestRequestToLocalEndpointService(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	testEndpoint, nseConn := getTestEndpointAndNSEConnection()
+	testEndpoint, nseConn := createTestEndpointAndNSEConnection()
 
 	// Mock NSE client
 	nseClientMock := mock.NewMockNetworkServiceClient(ctrl)
@@ -138,7 +135,7 @@ func TestRequestToRemoteEndpointService(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	testEndpoint, nseConn := getTestEndpointAndNSEConnection()
+	testEndpoint, nseConn := createTestEndpointAndNSEConnection()
 
 	// Mock NSE client
 	nseClientMock := mock.NewMockNetworkServiceClient(ctrl)
@@ -200,7 +197,7 @@ func TestEndpointServiceCloseConnection(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	testEndpoint, nseConn := getTestEndpointAndNSEConnection()
+	testEndpoint, nseConn := createTestEndpointAndNSEConnection()
 
 	clientConnection := &model.ClientConnection{
 		Endpoint: testEndpoint,
