@@ -260,7 +260,9 @@ func (cce *forwarderService) updateClientConnection(ctx context.Context, conn *c
 
 	clientConnection.ForwarderRegisteredName = dp.RegisteredName
 	clientConnection.ForwarderState = model.ForwarderStateReady
-
+	if clientConnection.GetConnectionDestination() != nil && clientConnection.GetConnectionDestination().GetContext() != nil {
+		conn.Context.EthernetContext = clientConnection.GetConnectionDestination().GetContext().EthernetContext
+	}
 	return conn, nil
 }
 
