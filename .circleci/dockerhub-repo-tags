@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+#set -x
+error(){ echo "error: $*" >&2; exit 1; }
+info(){ echo "info: $*" >&2; }
+trace(){ [ "$DEBUG" != "1" ] && echo "trace: $*" >&2; }
+
+initParameter() {
+  name=$1
+  val=$2
+  dflt=$3
+  if [ -z "$val" ]; then
+    info "Set '$name' to default: $dflt"
+    eval "$name=$dflt"
+  else
+    eval "$name=$val"
+  fi
+}
+
+REPO=$1
+initParameter ORGANIZATION "${REPO%%/*}" networkservicemeshci
+initParameter IMAGE "${REPO##*/}" nsmd
+
+if [ -n "$MIN_AGE_DAYS" ]; then
+  [[ "$MIN_AGE_DAYS" == +([0-9]) ]] || error "MIN_AGE_DAYS: an integer is expected, got '$MIN_AGE_DAYS'"
+  minAge=$((MIN_AGE_DAYS * 24 * 60 * 60))
+  NOW=$(date --utc +%s)
+fi
+
+# read field(s) from json
+field() {  echo "$1" | jq -r "$2"; }
+
+next="https://hub.docker.com/v2/repositories/${ORGANIZATION}/${IMAGE}/tags"
+
+while [[ "$next" != null ]]; do
+  list=$(curl -s "$next") || error "failed to fetch URL: $next"
+  tagCount=$(field "$list" '.results[].name' | wc -l)
+  for ((i=0; i < tagCount; ++i)); do
+    tagInfo=$(field "$list" ".results[$i]")
+    if [ -n "$minAge" ]; then
+      timestamp=$(field "$tagInfo" .last_updated)
+      ts=$(date -d "$timestamp" +%s)
+      (( (NOW - ts) < minAge)) && continue
+    fi
+    name=$(field "$tagInfo" .name)
+    echo "$name"
+  done
+
+  next=$(field "$list" .next)
+#  trace "next: $next"
+done

@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+
+error(){ echo "error: $*" >&2; exit 1; }
+info(){ echo "$*" >&2; }
+
+JWT_TOKEN=$(curl -s -H "Content-Type: application/json" -X POST \
+  -d '{"username": "'$DOCKER_USERNAME'", "password": "'$DOCKER_PASSWORD'"}' \
+  https://hub.docker.com/v2/users/login/ \
+    | jq -r .token) || error "failed to get access token"
+
+image=${1%%:*}
+[ -n "$image" ] && IMAGES=$image # Override with value from command line
+[ -z "$IMAGES" ] && info "No IMAGES given, nothing to do" && exit
+
+[ "$image" != "$1" ] && tag=${1##*:}
+[ -n "$tag" ] && TAGS=$tag # Override with value from command line
+[ -z "$TAGS" ] && info "No TAGS given, nothing to do" && exit
+
+for tag in $TAGS; do
+  echo "Removing images for tag $tag:"
+  for image in $IMAGES; do
+    echo -n "$image "
+    repo="$REPO/$image"
+    curl -s "https://hub.docker.com/v2/repositories/${repo}/tags/${tag}/" \
+      -X DELETE \
+      -H "Authorization: JWT ${JWT_TOKEN}" || echo -n "FAILED"
+  done
+  echo
+done
+
+echo Done

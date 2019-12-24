@@ -228,6 +228,19 @@ jobs:
           command: |
             .circleci/helm/test-charts.sh
 
+  cleanup-images:
+    docker:
+      - image: circleci/golang:1.13-stretch
+    steps:
+      - checkout
+      - run:
+          name: Cleanup old CI images from DockerHub
+          command: |
+            CONTAINER_REPO="networkservicemeshci"
+            # Limit the number of tags to remove so it doesn't take much time of every CI run
+            tags=$(MIN_AGE_DAYS=7 .circleci/dockerhub-repo-tags $CONTAINER_REPO/nsmd | head -10) || true
+            REPO=$CONTAINER_REPO TAGS="$tags" IMAGES=$(make docker-list) .circleci/dockerhub-image-remove
+
 # workflows
 workflows:
   version: 2
@@ -262,3 +275,5 @@ workflows:
           filters:
             branches:
               only: master
+
+      - cleanup-images
