@@ -81,7 +81,7 @@ func copyEvent(event *crossconnect.CrossConnectEvent) *crossconnect.CrossConnect
 func (m *MonitorNetNsInodeServer) MonitorNetNsInode() {
 	for {
 		select {
-		case <-time.After(3 * time.Second):
+		case <-time.After(1 * time.Second):
 			if err := m.checkCrossConnectLiveness(); err != nil {
 				logrus.Error(err)
 			}
