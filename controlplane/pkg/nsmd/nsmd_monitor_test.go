@@ -13,6 +13,9 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+// +build unit_test
+
 package nsmd
 
 import (
@@ -85,8 +88,7 @@ func setupServer(g *gomega.WithT) (int, func()) {
 		}
 	}()
 
-	return l.Addr().(*net.TCPAddr).Port,
-		grpcServer.Stop
+	return l.Addr().(*net.TCPAddr).Port, grpcServer.Stop
 }
 
 type testEvent struct {

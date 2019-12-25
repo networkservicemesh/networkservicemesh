@@ -70,7 +70,31 @@ jobs:
             export CONTAINER_REPO="networkservicemeshci"
             export CONTAINER_FORCE_PULL="true"
             export INSECURE="true"
-            ./scripts/run_unit_tests.sh
+            ./scripts/run_tests.sh "-short -tags=unit_test"
+      - store_test_results:
+          path: ~/junit
+      - store_artifacts:
+          path: ~/junit
+    environment:
+      GO111MODULE: "on"
+
+# performance and concurrency testing
+  performance-concurrency-tests:
+    working_directory: /go/src/github.com/networkservicemesh/networkservicemesh
+    docker:
+      - image: circleci/golang:1.13-stretch
+    steps:
+      - checkout
+      - run:
+          command: |
+            export CONTAINER_TAG="ci_${CIRCLE_WORKFLOW_ID}_${CIRCLE_SHA1:8:8}"
+            export CONTAINER_REPO="networkservicemeshci"
+            export CONTAINER_FORCE_PULL="true"
+            export INSECURE="true"
+            export ARTIFACTS_DIR="/home/circleci/project/.tests/"
+            mkdir -p ~/junit/
+            ./scripts/run_tests.sh "-short -race -tags=unit_test"
+            ./scripts/for-each-module.sh "go test -bench=. -benchmem ./... -tags=performance >> ${ARTIFACTS_DIR}/performance_tests_result.txt"
       - store_test_results:
           path: ~/junit
       - store_artifacts:
@@ -252,11 +276,18 @@ workflows:
           requires:
             - test-sanity-check
 
+# Performance and concurrency testing
+      - performance-concurrency-tests:
+          name: "test-performance-concurrency"
+          requires:
+            - test-sanity-check
+
 # Integration testing
       - integration-tests:
           name: "test-integration"
           requires:
             - build-containers
+
 # helm
       - test-helm-charts:
           name: "test-helm-charts"
