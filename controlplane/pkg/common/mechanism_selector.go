@@ -44,8 +44,8 @@ type RemoteMechanismSelector struct {
 // LocalMechanismSelector for remote mechanisms
 type LocalMechanismSelector struct{}
 
-func findMechanism(mechanismPreferences []*connection.Mechanism, mechanismType string) *connection.Mechanism {
-	for _, m := range mechanismPreferences {
+func findMechanism(mechanisms []*connection.Mechanism, mechanismType string) *connection.Mechanism {
+	for _, m := range mechanisms {
 		if m.GetType() == mechanismType {
 			return m
 		}
@@ -90,7 +90,7 @@ func (selector *RemoteMechanismSelector) Select(request *networkservice.NetworkS
 			parameters[vxlan.VNI] = strconv.FormatUint(uint64(vni), 10)
 		}
 
-		logrus.Infof("NSM:(5.1) Remote mechanism selected %v", mechanism)
+		logrus.Infof("NSM:forwarderService: Remote mechanism selected %v", mechanism)
 		return mechanism, nil
 	}
 

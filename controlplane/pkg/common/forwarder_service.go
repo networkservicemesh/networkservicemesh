@@ -117,7 +117,7 @@ func (cce *forwarderService) Request(ctx context.Context, request *networkservic
 	if err != nil {
 		// Close Datplane connection, if had existing one and NSE is closed.
 		cce.doFailureClose(ctx)
-		return nil, errors.Errorf("NSM:(5.1) %v", err)
+		return nil, errors.Errorf("NSM: forwarderService: %v", err)
 	}
 
 	span.LogObject("dataplane", fwd)
@@ -195,7 +195,7 @@ func (cce *forwarderService) programForwarder(ctx context.Context, conn *connect
 	if forwarderConn != nil { // Required for testing
 		defer func() {
 			if closeErr := forwarderConn.Close(); closeErr != nil {
-				span.Logger().Errorf("NSM:(forwarderService) Error during close Forwarder connection: %v", closeErr)
+				span.Logger().Errorf("NSM: forwarderService: Error during close Forwarder connection: %v", closeErr)
 			}
 		}()
 	}
@@ -212,21 +212,21 @@ func (cce *forwarderService) programForwarder(ctx context.Context, conn *connect
 		defer attemptSpan.Finish()
 		attemptSpan.LogObject("attempt", fwdRetry)
 
-		span.Logger().Infof("NSM:(forwarderService) Sending request to forwarder")
+		span.Logger().Infof("NSM: forwarderService: Sending request to forwarder")
 		attemptSpan.LogObject("request", clientConnection.Xcon)
 
 		fwdCtx, cancel := context.WithTimeout(attemptSpan.Context(), ForwarderTimeout)
 		newXcon, err = forwarderClient.Request(fwdCtx, clientConnection.Xcon)
 		cancel()
 		if err != nil {
-			attemptSpan.Logger().Errorf("NSM:(forwarderService) Forwarder request failed: %v retry: %v", err, fwdRetry)
+			attemptSpan.Logger().Errorf("NSM: forwarderService: Forwarder request failed: %v retry: %v", err, fwdRetry)
 			// Let's try again with a short delay
 			if fwdRetry < ForwarderRetryCount-1 {
 				<-time.After(ForwarderRetryDelay)
 				continue
 			}
-			attemptSpan.Logger().Errorf("NSM:(forwarderService) Forwarder request  all retry attempts failed: %v", clientConnection.Xcon)
-			// If dataplane configuration are failed, we need to close remove NSE actually.
+			attemptSpan.Logger().Errorf("NSM: forwarderService: Forwarder request  all retry attempts failed: %v", clientConnection.Xcon)
+			// If forwarder configuration was failed, we need to close/remove NSE actually.
 			cce.doFailureClose(attemptSpan.Context())
 			attemptSpan.Finish()
 			return conn, err
@@ -243,7 +243,7 @@ func (cce *forwarderService) programForwarder(ctx context.Context, conn *connect
 
 		clientConnection.Xcon = newXcon
 
-		attemptSpan.Logger().Infof("NSM:(forwarderService) Forwarder configuration successful")
+		attemptSpan.Logger().Infof("NSM: forwarderService: Forwarder configuration successful")
 		attemptSpan.LogObject("crossConnection", clientConnection.Xcon)
 		break
 	}
