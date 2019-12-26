@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package forwarder
+package vppagent
 
 import (
 	"context"
@@ -33,8 +33,8 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/forwarder/api/forwarder"
 )
 
-//EthernetContextSetter fills ethernet context for dst interface if it is empty
-func EthernetContextSetter() forwarder.ForwarderServer {
+//UseEthernetContext fills ethernet context for dst interface if it is empty
+func UseEthernetContext() forwarder.ForwarderServer {
 	return &ethernetContextUpdater{}
 }
 
@@ -42,12 +42,15 @@ type ethernetContextUpdater struct {
 }
 
 func (c *ethernetContextUpdater) Request(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error) {
-	setEthernetContext(ctx, crossConnect)
 	next := Next(ctx)
 	if next == nil {
 		return crossConnect, nil
 	}
-	return next.Request(ctx, crossConnect)
+	resp, err := next.Request(ctx, crossConnect)
+	if err == nil {
+		setEthernetContext(ctx, crossConnect)
+	}
+	return resp, err
 }
 
 func (c *ethernetContextUpdater) Close(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*empty.Empty, error) {
@@ -65,7 +68,7 @@ func setEthernetContext(ctx context.Context, c *crossconnect.CrossConnect) {
 	if c.GetLocalSource() != nil && !c.GetLocalSource().GetContext().IsEthernetContextEmtpy() {
 		return
 	}
-	mac := getVppDestinationInterfaceMacById(ctx, c.Id)
+	mac := getVppDestinationInterfaceMacByID(ctx, c.Id)
 	if mac == "" {
 		Logger(ctx).Warn("DST mac is empty")
 		return
@@ -74,7 +77,6 @@ func setEthernetContext(ctx context.Context, c *crossconnect.CrossConnect) {
 		c.GetLocalDestination().GetContext().EthernetContext = &connectioncontext.EthernetContext{
 			DstMac: mac,
 		}
-
 	}
 	if c.GetLocalSource() != nil {
 		dataChange := DataChange(ctx)
@@ -90,7 +92,7 @@ func setEthernetContext(ctx context.Context, c *crossconnect.CrossConnect) {
 	}
 }
 
-func getVppDestinationInterfaceMacById(ctx context.Context, id string) string {
+func getVppDestinationInterfaceMacByID(ctx context.Context, id string) string {
 	dstName := converter.GetDstInterfaceName(id)
 	dumpResp := dumpRequest(ctx)
 	if dumpResp == nil {
@@ -106,12 +108,15 @@ func getVppDestinationInterfaceMacById(ctx context.Context, id string) string {
 
 func dumpRequest(ctx context.Context) *configurator.Config {
 	client := ConfiguratorClient(ctx)
+	if client == nil {
+		Logger(ctx).Warn("Configuration client is empty, can not request dump")
+		return nil
+	}
 	dumpResp, err := client.Dump(context.Background(), &configurator.DumpRequest{})
 	if err != nil {
 		Logger(ctx).Errorf("An error during client.Dump: %v", err)
 		return nil
-	} else {
-		Logger(ctx).Infof("Dump response: %v", dumpResp.String())
 	}
+	Logger(ctx).Infof("Dump response: %v", dumpResp.String())
 	return dumpResp.Dump
 }

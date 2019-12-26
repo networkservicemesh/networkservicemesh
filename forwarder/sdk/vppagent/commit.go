@@ -1,4 +1,4 @@
-package forwarder
+package vppagent
 
 import (
 	"context"
@@ -68,7 +68,7 @@ func getDataChangeAndClient(ctx context.Context) (*configurator.Config, configur
 	return dataChange, client, nil
 }
 
-// Commit commits changes
+// Commit creates handler for commits changes to vpp-agent
 func Commit(downstreamResync func()) forwarder.ForwarderServer {
 	return &commit{
 		downstreamResync: downstreamResync,
