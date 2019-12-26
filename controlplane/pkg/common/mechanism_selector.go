@@ -56,7 +56,7 @@ func findMechanism(mechanisms []*connection.Mechanism, mechanismType string) *co
 // Select remote mechanisms of particular type from forwarder
 func (selector *RemoteMechanismSelector) Select(request *networkservice.NetworkServiceRequest, fwd *model.Forwarder) (*connection.Mechanism, error) {
 	for _, mechanism := range request.GetRequestMechanismPreferences() {
-		fwdMechanism := selector.Find(fwd, vxlan.MECHANISM)
+		fwdMechanism := selector.Find(fwd, mechanism.GetType())
 		if fwdMechanism == nil {
 			continue
 		}
