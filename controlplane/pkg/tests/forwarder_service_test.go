@@ -29,7 +29,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
-	tests "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/tests/mock"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/tests/mock"
 
 	. "github.com/onsi/gomega"
 
@@ -79,10 +79,10 @@ func TestForwarderServiceRequest(t *testing.T) {
 		Xcon: testXCon,
 	}
 
-	forwarderClient := tests.NewMockForwarderClient(ctrl)
+	forwarderClient := mock.NewMockForwarderClient(ctrl)
 	forwarderClient.EXPECT().Request(gomock.Any(), gomock.Any()).Return(testXCon, nil)
 
-	serviceReg := tests.NewMockServiceRegistry(ctrl)
+	serviceReg := mock.NewMockServiceRegistry(ctrl)
 	serviceReg.EXPECT().WaitForForwarderAvailable(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 	serviceReg.EXPECT().ForwarderConnection(gomock.Any(), gomock.Any()).Return(
 		forwarderClient, grpcClientConn, nil)
@@ -141,13 +141,13 @@ func TestForwarderServiceClose(t *testing.T) {
 
 	clientCloseCalled := false
 
-	forwarderClient := tests.NewMockForwarderClient(ctrl)
+	forwarderClient := mock.NewMockForwarderClient(ctrl)
 	forwarderClient.EXPECT().Close(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, _ *crossconnect.CrossConnect, _ ...grpc.CallOption) (*empty.Empty, error) {
 		clientCloseCalled = true
 		return &empty.Empty{}, nil
 	})
 
-	serviceReg := tests.NewMockServiceRegistry(ctrl)
+	serviceReg := mock.NewMockServiceRegistry(ctrl)
 	serviceReg.EXPECT().ForwarderConnection(gomock.Any(), gomock.Any()).Return(
 		forwarderClient, grpcClientConn, nil)
 
