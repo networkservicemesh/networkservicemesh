@@ -21,6 +21,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/tests/mock"
+
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
@@ -38,7 +40,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/properties"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/tests/mock"
 )
 
 func createTestEndpointAndNSEConnection() (*registry.NSERegistration, *connection.Connection) {
