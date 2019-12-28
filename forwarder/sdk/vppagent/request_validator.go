@@ -1,4 +1,4 @@
-package forwarder
+package vppagent
 
 import (
 	"context"
@@ -9,15 +9,15 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/forwarder/api/forwarder"
 )
 
-//ConnectionValidator returns Forwarder Server with validation for Request and Close
-func ConnectionValidator() forwarder.ForwarderServer {
-	return &validator{}
+//RequestValidator returns Forwarder Server with validation for Request and Close
+func RequestValidator() forwarder.ForwarderServer {
+	return &requestValidator{}
 }
 
-type validator struct {
+type requestValidator struct {
 }
 
-func (n *validator) Request(ctx context.Context, request *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error) {
+func (n *requestValidator) Request(ctx context.Context, request *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error) {
 	if err := request.IsValid(); err != nil {
 		Logger(ctx).Errorf("Reuqest: %v is not valid, reason: %v", request, err)
 		return nil, err
@@ -28,7 +28,7 @@ func (n *validator) Request(ctx context.Context, request *crossconnect.CrossConn
 	return request, nil
 }
 
-func (n *validator) Close(ctx context.Context, request *crossconnect.CrossConnect) (*empty.Empty, error) {
+func (n *requestValidator) Close(ctx context.Context, request *crossconnect.CrossConnect) (*empty.Empty, error) {
 	if err := request.IsValid(); err != nil {
 		Logger(ctx).Errorf("Close: %v is not valid, reason: %v", request, err)
 		return new(empty.Empty), err

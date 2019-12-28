@@ -1,4 +1,4 @@
-package forwarder
+package vppagent
 
 import (
 	"context"
@@ -10,8 +10,8 @@ import (
 	monitor_crossconnect "github.com/networkservicemesh/networkservicemesh/sdk/monitor/crossconnect"
 )
 
-//UseMonitor creates forwarder server handler with updating crossconnect monitor server
-func UseMonitor(monitor monitor_crossconnect.MonitorServer) forwarder.ForwarderServer {
+//UseCrossConnectMonitor creates forwarder server handler with updating crossconnect monitor server
+func UseCrossConnectMonitor(monitor monitor_crossconnect.MonitorServer) forwarder.ForwarderServer {
 	return &useMonitor{
 		monitor: monitor,
 	}

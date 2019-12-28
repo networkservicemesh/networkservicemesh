@@ -1,4 +1,4 @@
-package forwarder
+package vppagent
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/forwarder/vppagent/pkg/converter"
 )
 
-//KernelInterfaces creates dataplnae server handler with creation dataChange config for kernel and not direct memif connections
+//KernelInterfaces creates forwarder server handler with creation dataChange config for kernel and not direct memif connections
 func KernelInterfaces(baseDir string) forwarder.ForwarderServer {
 	return &kernelInterfaces{baseDir: baseDir}
 }
@@ -34,6 +34,7 @@ func (c *kernelInterfaces) Request(ctx context.Context, crossConnect *crossconne
 	}
 	return next.Request(nextCtx, crossConnect)
 }
+
 func (c *kernelInterfaces) Close(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*empty.Empty, error) {
 	conversionParameters := &converter.CrossConnectConversionParameters{
 		BaseDir: c.baseDir,

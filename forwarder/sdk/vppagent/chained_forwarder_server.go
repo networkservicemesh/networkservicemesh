@@ -1,4 +1,5 @@
-package forwarder
+//Package vppagent provides sdk API for creating chaining vppagent forwarders
+package vppagent
 
 import (
 	"context"
