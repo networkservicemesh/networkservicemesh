@@ -52,3 +52,5 @@ replace (
 	github.com/networkservicemesh/networkservicemesh/test => ./test
 	github.com/networkservicemesh/networkservicemesh/utils => ./utils
 )
+
+require github.com/golang/mock v1.3.1 // indirect
