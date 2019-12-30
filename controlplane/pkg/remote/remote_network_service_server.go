@@ -28,7 +28,7 @@ func NewRemoteNetworkServiceServer(manager nsm.NetworkServiceManager, connection
 		common.NewMonitorService(connectionMonitor),
 		NewConnectionService(manager.Model()),
 		NewForwarderService(manager.Model(), manager.ServiceRegistry()),
-		NewEndpointSelectorService(manager.NseManager(), manager.Model()),
+		NewEndpointSelectorService(manager.Model()),
 		common.NewExcludedPrefixesService(),
 		NewEndpointService(manager.NseManager(), manager.GetHealProperties(), manager.Model()),
 		common.NewCrossConnectService(),
