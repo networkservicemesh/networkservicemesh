@@ -143,9 +143,21 @@ k8s-forward:
 	@$(kubectl) port-forward $$($(kubectl) get pods | grep $(pod) | cut -d \  -f1) $(port1):$(port2)
 
 .PHONY: k8s-check
-k8s-check:
+k8s-check: k8s-icmp-check k8s-vpn-check
+
+.PHONY: k8s-icmp-check
+k8s-icmp-check:
+	$(info Checking icmp...)
 	@NSM_NAMESPACE=${NSM_NAMESPACE} ./scripts/nsc_ping_all.sh
+
+.PHONY: k8s-vpn-check
+k8s-vpn-check:
+	$(info Checking vpn...)
 	@NSM_NAMESPACE=${NSM_NAMESPACE} ./scripts/verify_vpn_gateway.sh
+
+.PHONY: k8s-crossconnect-monitor-check
+k8s-crossconnect-monitor-check:
+	@NSM_NAMESPACE=${NSM_NAMESPACE} ./scripts/verify_crossconnect_monitor.sh
 
 .PHONY: k8s-logs-snapshot
 k8s-logs-snapshot:
