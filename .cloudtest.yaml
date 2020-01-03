@@ -168,12 +168,7 @@ executions:
     run: |
       test/shell/vpn_test.sh
     on_fail: |
-      kubectl get pods -n "${NSM_NAMESPACE}"
-      make k8s-logs-snapshot
-      make helm-delete-vpn helm-delete-nsm
-      make k8s-delete-nsm-namespaces
-      make k8s-deconfig k8s-config
-      kubectl delete pods --force --grace-period 0 -n "${NSM_NAMESPACE}" --all
+      test/shell/on_fail.sh
 
   - name: "Example-helm-icmp"
     kind: shell
@@ -189,12 +184,7 @@ executions:
     run: |
       test/shell/icmp_test.sh
     on_fail: |
-      kubectl get pods -n "${NSM_NAMESPACE}"
-      make k8s-logs-snapshot
-      make helm-delete-icmp-responder helm-delete-nsm
-      make k8s-delete-nsm-namespaces
-      make k8s-deconfig k8s-config
-      kubectl delete pods --force --grace-period 0 -n "${NSM_NAMESPACE}" --all
+      test/shell/on_fail.sh
 
   - name: "Example-helm-icmp kernel-forwarder"
     kind: shell
@@ -211,12 +201,7 @@ executions:
     run: |
       test/shell/icmp_test.sh
     on_fail: |
-      kubectl get pods -n "${NSM_NAMESPACE}"
-      make k8s-logs-snapshot
-      make helm-delete-icmp-responder helm-delete-nsm
-      make k8s-delete-nsm-namespaces
-      make k8s-deconfig k8s-config
-      kubectl delete pods --force --grace-period 0 -n "${NSM_NAMESPACE}" --all
+      test/shell/on_fail.sh
 
   - name: "Example-helm-crossconnect-monitor"
     kind: shell
@@ -232,11 +217,4 @@ executions:
     run: |
       test/shell/crossconnect_monitor_test.sh
     on_fail: |
-      kubectl get pods -n "${NSM_NAMESPACE}"
-      make k8s-logs-snapshot
-      make helm-delete-crossconnect-monitor
-      make helm-delete-icmp-responder
-      make helm-delete-nsm
-      make k8s-delete-nsm-namespaces
-      make k8s-deconfig k8s-config
-      kubectl delete pods --force --grace-period 0 -n "${NSM_NAMESPACE}" --all
+      test/shell/on_fail.sh

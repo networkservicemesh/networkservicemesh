@@ -13,10 +13,7 @@ make k8s-crossconnect-monitor-check || exit $?
 make k8s-logs-snapshot-only-master
 
 # cleanup
-make helm-delete-crossconnect-monitor
-make helm-delete-icmp-responder
-make helm-delete-nsm
-kubectl delete pods --force --grace-period 0 -n "${NSM_NAMESPACE}" --all
+make helm-delete k8s-terminating-cleanup
 
 # restore CRDs and RBAC
 make k8s-deconfig k8s-config

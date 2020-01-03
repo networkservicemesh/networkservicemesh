@@ -11,9 +11,7 @@ make k8s-vpn-check || exit $?
 make k8s-logs-snapshot-only-master
 
 # cleanup
-make helm-delete-vpn
-make helm-delete-nsm
-kubectl delete pods --force --grace-period 0 -n "${NSM_NAMESPACE}" --all
+make helm-delete k8s-terminating-cleanup
 
 # restore CRDs and RBAC
 make k8s-deconfig k8s-config
