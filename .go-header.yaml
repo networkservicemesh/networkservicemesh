@@ -5,7 +5,7 @@ scope:
   policy: "new"
   master-branch: "origin/master"
 rules:
-  - template-path: ".license/boilerplate.txt"
+  - template-path: ".license/template.txt"
     paths:
       - ".*[.]go$"
     exclude-paths:
