@@ -118,7 +118,8 @@ func findNsmAndForwarder(k8s *K8s, ns string, nodes []v1.Node, nodeCount int) []
 			pod := &pods[i]
 			logrus.Infof("Checking pod: %v", pod.String())
 			if pod.Spec.NodeName == node.Name {
-				if strings.Contains(pod.Name, "nsmgr") {
+				if strings.Contains(pod.Name, "nsmgr") ||
+					strings.Contains(pod.Name, "nsmd") && !strings.Contains(pod.Name, "forwarder") {
 					configs[j].Nsmd = pod
 					continue
 				}
