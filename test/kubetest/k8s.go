@@ -611,7 +611,6 @@ func (k8s *K8s) buildNSMConfigMap() *v1.ConfigMap {
 			prefix_pool.PrefixesFile: "",
 		},
 	}
-
 }
 
 // Delete POD with completion check
