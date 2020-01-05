@@ -11,3 +11,9 @@ insecure: false
 
 spire:
   enabled: true
+
+# Variable used to deploy Prometheus
+# Values can be true or false
+prometheus: false
+
+metricsCollectorEnabled: false

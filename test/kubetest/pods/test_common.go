@@ -38,7 +38,13 @@ func TestCommonPod(name string, command []string, node *v1.Node, env map[string]
 						},
 					},
 					Env: envVars,
+					VolumeMounts: []v1.VolumeMount{
+						nsmConfigVolumeMount(),
+					},
 				}),
+			},
+			Volumes: []v1.Volume{
+				nsmConfigVolume(),
 			},
 			TerminationGracePeriodSeconds: &ZeroGraceTimeout,
 		},

@@ -24,11 +24,6 @@ func DefaultTestingPodFixture(g *WithT) TestingPodFixture {
 	return NewCustomTestingPodFixture(g, DeployNSC, DeployICMP, CheckNSC)
 }
 
-// HealTestingPodFixture - Creates a testing tool specific for healing
-func HealTestingPodFixture(g *WithT) TestingPodFixture {
-	return NewCustomTestingPodFixture(g, DeployNSC, DeployICMP, HealNscChecker)
-}
-
 // NewCustomTestingPodFixture - Creates a custom testing tool
 func NewCustomTestingPodFixture(g *WithT, deployNscFunc, deployNseFunc PodSupplier, checkNscFunc NscChecker) TestingPodFixture {
 	g.Expect(deployNscFunc).ShouldNot(BeNil())

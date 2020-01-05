@@ -32,6 +32,7 @@ const (
 	configScript    = "config"  //#5
 	prepareScript   = "prepare" //#6
 	stopScript      = "stop"    // #7
+	cleanupScript   = "cleanup" // #8
 	packetProjectID = "PACKET_PROJECT_ID"
 )
 
@@ -304,16 +305,17 @@ func (pi *packetInstance) createDevice(devCfg *config.DeviceConfig) (*packngo.De
 	}
 	var device *packngo.Device
 	var response *packngo.Response
-	for {
+	for i := 0; i < len(pi.facilitiesList); i++ {
+		devReq.Facility = []string{pi.facilitiesList[i]}
 		device, response, err = pi.client.Devices.Create(devReq)
 		msg := fmt.Sprintf("HostName=%v\n%v - %v", hostName, response, err)
 		logrus.Infof(fmt.Sprintf("%s-%v", pi.id, msg))
 		pi.manager.AddLog(pi.id, fmt.Sprintf("create-device-%s", devCfg.Name), msg)
-		if err == nil || err != nil && !strings.Contains(err.Error(), "has no provisionable") || len(devReq.Facility) <= 1 {
+		if err == nil || err != nil &&
+			!strings.Contains(err.Error(), "has no provisionable") &&
+			!strings.Contains(err.Error(), "Oh snap, something went wrong") {
 			break
 		}
-
-		devReq.Facility = devReq.Facility[1:]
 	}
 	return device, err
 }
@@ -616,6 +618,37 @@ func (p *packetProvider) CreateCluster(config *config.ClusterProviderConfig, fac
 	}
 
 	return clusterInstance, nil
+}
+
+// CleanupClusters - Cleaning up leaked clusters
+func (p *packetProvider) CleanupClusters(ctx context.Context, config *config.ClusterProviderConfig,
+	manager execmanager.ExecutionManager, instanceOptions providers.InstanceOptions) {
+	if _, ok := config.Scripts[cleanupScript]; !ok {
+		// Skip
+		return
+	}
+
+	logrus.Infof("Starting cleaning up clusters for %s", config.Name)
+	shellInterface := shell.NewManager(manager, fmt.Sprintf("%s-cleanup", config.Name), config, instanceOptions)
+
+	p.Lock()
+	// Do prepare
+	if skipInstall := instanceOptions.NoInstall || p.installDone[config.Name]; !skipInstall {
+		if iScript, ok := config.Scripts[installScript]; ok {
+			_, err := shellInterface.RunCmd(ctx, "install", utils.ParseScript(iScript), config.Env)
+			if err != nil {
+				logrus.Warnf("Install command for cluster %s finished with error: %v", config.Name, err)
+			} else {
+				p.installDone[config.Name] = true
+			}
+		}
+	}
+	p.Unlock()
+
+	_, err := shellInterface.RunCmd(ctx, "cleanup", utils.ParseScript(config.Scripts[cleanupScript]), config.Env)
+	if err != nil {
+		logrus.Warnf("Cleanup command for cluster %s finished with error: %v", config.Name, err)
+	}
 }
 
 // NewPacketClusterProvider - create new packet provider.

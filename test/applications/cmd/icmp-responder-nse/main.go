@@ -25,7 +25,7 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/test/applications/cmd/icmp-responder-nse/flags"
 
-	"github.com/gogo/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
@@ -63,7 +63,8 @@ func main() {
 	endpoints = append(endpoints, ipamEndpoint)
 
 	routeAddr := endpoint.CreateRouteMutator([]string{"8.8.8.8/30"})
-	if common.IsIPv6(ipamEndpoint.PrefixPool.GetPrefixes()[0]) {
+	prefixes := ipamEndpoint.PrefixPool.GetPrefixes()
+	if len(prefixes) > 0 && common.IsIPv6(prefixes[0]) {
 		routeAddr = endpoint.CreateRouteMutator([]string{"2001:4860:4860::8888/126"})
 	}
 	if flags.Routes {

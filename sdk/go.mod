@@ -1,12 +1,13 @@
 module github.com/networkservicemesh/networkservicemesh/sdk
 
+go 1.13
+
 require (
-	github.com/gogo/protobuf v1.2.2-0.20190723190241-65acae22fc9d
+	github.com/fsnotify/fsnotify v1.4.7
 	github.com/golang/protobuf v1.3.2
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/ligato/cn-infra v2.2.0+incompatible // indirect
-	github.com/ligato/vpp-agent v2.3.0+incompatible
-	github.com/mesos/mesos-go v0.0.9
+	github.com/ligato/vpp-agent v2.5.1+incompatible
 	github.com/networkservicemesh/networkservicemesh/controlplane/api v0.2.0
 	github.com/networkservicemesh/networkservicemesh/pkg v0.2.0
 	github.com/networkservicemesh/networkservicemesh/utils v0.2.0
@@ -14,6 +15,7 @@ require (
 	github.com/pkg/errors v0.8.1
 	github.com/satori/go.uuid v1.2.1-0.20181028125025-b2ce2384e17b // indirect
 	github.com/sirupsen/logrus v1.4.2
+	github.com/spf13/viper v1.5.0
 	github.com/teris-io/shortid v0.0.0-20171029131806-771a37caa5cf
 	google.golang.org/grpc v1.23.1
 )
@@ -29,5 +31,3 @@ replace (
 	github.com/networkservicemesh/networkservicemesh/side-cars => ../side-cars
 	github.com/networkservicemesh/networkservicemesh/utils => ../utils
 )
-
-go 1.13

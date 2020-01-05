@@ -33,20 +33,12 @@ func TestDeploymentOrder2EndpointClient(t *testing.T) {
 }
 
 func TestDeploymentOrder2EndpointClientWebhook(t *testing.T) {
-	if !kubetest.IsBrokeTestsEnabled() {
-		t.Skip("Skip, issue - https://github.com/networkservicemesh/networkservicemesh/issues/1372")
-		return
-	}
 	testDeploymentOrder(t, []Deployment{
 		DeployEndpoint, DeployEndpoint,
 		DeployClientWebhook})
 }
 
 func TestDeploymentOrder2EndpointClientAndWebhook(t *testing.T) {
-	if !kubetest.IsBrokeTestsEnabled() {
-		t.Skip("Skip, issue - https://github.com/networkservicemesh/networkservicemesh/issues/1372")
-		return
-	}
 	testDeploymentOrder(t, []Deployment{
 		DeployEndpoint, DeployEndpoint,
 		DeployClient,
@@ -127,10 +119,6 @@ func TestDeploymentOrderServiceClientEndpointClient(t *testing.T) {
 }
 
 func TestDeploymentOrderServiceClientWebhookEndpoint(t *testing.T) {
-	if !kubetest.IsBrokeTestsEnabled() {
-		t.Skip("Skip, issue - https://github.com/networkservicemesh/networkservicemesh/issues/1372")
-		return
-	}
 	testDeploymentOrder(t, []Deployment{
 		DeployService,
 		DeployClientWebhook,
@@ -138,10 +126,6 @@ func TestDeploymentOrderServiceClientWebhookEndpoint(t *testing.T) {
 }
 
 func TestDeploymentOrderService4ClientWebhook2Endpoint(t *testing.T) {
-	if !kubetest.IsBrokeTestsEnabled() {
-		t.Skip("Skip, issue - https://github.com/networkservicemesh/networkservicemesh/issues/1372")
-		return
-	}
 	testDeploymentOrder(t, []Deployment{
 		DeployService,
 		DeployClientWebhook, DeployClientWebhook, DeployClientWebhook, DeployClientWebhook,
@@ -182,10 +166,11 @@ func testDeploymentOrder(t *testing.T, order []Deployment) {
 	for _, deploy := range order {
 		waitgroup.Add(1)
 
+		dp := deploy
 		go func() {
 			scheduled <- true
-			defer func() { waitgroup.Done() }()
-			switch deploy {
+			defer waitgroup.Done()
+			switch dp {
 			case DeployService:
 				nscrd, err := crds.NewNSCRD(k8s.GetK8sNamespace())
 				g.Expect(err).To(BeNil())

@@ -22,33 +22,33 @@ import (
 )
 
 const (
-	NamespaceEnv          = "NSM_NAMESPACE"
-	advertiseNseNameEnv   = "ADVERTISE_NSE_NAME"
-	advertiseNseLabelsEnv = "ADVERTISE_NSE_LABELS"
-	outgoingNscNameEnv    = "OUTGOING_NSC_NAME"
-	outgoingNscLabelsEnv  = "OUTGOING_NSC_LABELS"
-	nscInterfaceName      = "NSC_INTERFACE_NAME"
-	mechanismTypeEnv      = "MECHANISM_TYPE"
-	ipAddressEnv          = "IP_ADDRESS"
-	routesEnv             = "ROUTES"
-	podNameEnv            = "POD_NAME"
+	namespaceEnv              = "NSM_NAMESPACE"
+	endpointNetworkServiceEnv = "ENDPOINT_NETWORK_SERVICE"
+	endpointLabelsEnv         = "ENDPOINT_LABELS"
+	clientNetworkServiceEnv   = "CLIENT_NETWORK_SERVICE"
+	clientLabelsEnv           = "CLIENT_LABELS"
+	nscInterfaceNameEnv       = "NSC_INTERFACE_NAME"
+	mechanismTypeEnv          = "MECHANISM_TYPE"
+	ipAddressEnv              = "IP_ADDRESS"
+	routesEnv                 = "ROUTES"
+	podNameEnv                = "POD_NAME"
 )
 
 // NSConfiguration contains the full configuration used in the SDK
 type NSConfiguration struct {
-	NsmServerSocket    string
-	NsmClientSocket    string
-	Workspace          string
-	AdvertiseNseName   string
-	OutgoingNscName    string
-	AdvertiseNseLabels string
-	OutgoingNscLabels  string
-	NscInterfaceName   string
-	MechanismType      string
-	IPAddress          string
-	Routes             []string
-	PodName            string
-	Namespace          string
+	NsmServerSocket        string
+	NsmClientSocket        string
+	Workspace              string
+	EndpointNetworkService string
+	ClientNetworkService   string
+	EndpointLabels         string
+	ClientLabels           string
+	NscInterfaceName       string
+	MechanismType          string
+	IPAddress              string
+	Routes                 []string
+	PodName                string
+	Namespace              string
 }
 
 // FromEnv creates a new NSConfiguration and fills all unset options from the env variables
@@ -74,24 +74,24 @@ func (configuration *NSConfiguration) FromEnv() *NSConfiguration {
 		configuration.Workspace = getEnv(WorkspaceEnv, "workspace", true)
 	}
 
-	if configuration.AdvertiseNseName == "" {
-		configuration.AdvertiseNseName = getEnv(advertiseNseNameEnv, "Advertise Network Service Name", false)
+	if configuration.EndpointNetworkService == "" {
+		configuration.EndpointNetworkService = getEnv(endpointNetworkServiceEnv, "Advertise Network Service Name", false)
 	}
 
-	if configuration.OutgoingNscName == "" {
-		configuration.OutgoingNscName = getEnv(outgoingNscNameEnv, "Outgoing Network Service Name", false)
+	if configuration.ClientNetworkService == "" {
+		configuration.ClientNetworkService = getEnv(clientNetworkServiceEnv, "Outgoing Network Service Name", false)
 	}
 
-	if configuration.AdvertiseNseLabels == "" {
-		configuration.AdvertiseNseLabels = getEnv(advertiseNseLabelsEnv, "Advertise labels", false)
+	if configuration.EndpointLabels == "" {
+		configuration.EndpointLabels = getEnv(endpointLabelsEnv, "Advertise labels", false)
 	}
 
-	if configuration.OutgoingNscLabels == "" {
-		configuration.OutgoingNscLabels = getEnv(outgoingNscLabelsEnv, "Outgoing labels", false)
+	if configuration.ClientLabels == "" {
+		configuration.ClientLabels = getEnv(clientLabelsEnv, "Outgoing labels", false)
 	}
 
 	if configuration.NscInterfaceName == "" {
-		configuration.NscInterfaceName = getEnv(nscInterfaceName, "NSC Interface name", false)
+		configuration.NscInterfaceName = getEnv(nscInterfaceNameEnv, "NSC Interface name", false)
 	}
 
 	if configuration.MechanismType == "" {
@@ -107,7 +107,7 @@ func (configuration *NSConfiguration) FromEnv() *NSConfiguration {
 	}
 
 	if configuration.Namespace == "" {
-		configuration.Namespace = getEnv(NamespaceEnv, "Namespace", false)
+		configuration.Namespace = getEnv(namespaceEnv, "Namespace", false)
 	}
 
 	if len(configuration.Routes) == 0 {
@@ -127,7 +127,7 @@ func (configuration *NSConfiguration) FromNSUrl(url *tools.NSUrl) *NSConfigurati
 	if configuration == nil {
 		return nil
 	}
-	configuration.OutgoingNscName = url.NsName
+	configuration.ClientNetworkService = url.NsName
 	configuration.NscInterfaceName = url.Intf
 	var labels strings.Builder
 	separator := false
@@ -141,12 +141,12 @@ func (configuration *NSConfiguration) FromNSUrl(url *tools.NSUrl) *NSConfigurati
 		labels.WriteRune('=')
 		labels.WriteString(v[0])
 	}
-	configuration.OutgoingNscLabels = labels.String()
+	configuration.ClientLabels = labels.String()
 	return configuration
 }
 
 func GetNamespace() string {
-	namespace := getEnv(NamespaceEnv, "Namespace", false)
+	namespace := getEnv(namespaceEnv, "Namespace", false)
 	if len(namespace) == 0 {
 		return "default"
 	}

@@ -25,7 +25,7 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
-	"github.com/gogo/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"

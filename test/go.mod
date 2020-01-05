@@ -1,17 +1,19 @@
 module github.com/networkservicemesh/networkservicemesh/test
 
+go 1.13
+
 require (
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/ghodss/yaml v1.0.0
-	github.com/gogo/protobuf v1.2.2-0.20190723190241-65acae22fc9d
 	github.com/golang/protobuf v1.3.2
 	github.com/google/uuid v1.1.1
-	github.com/ligato/vpp-agent v2.3.0+incompatible
+	github.com/ligato/vpp-agent v2.5.1+incompatible
 	github.com/networkservicemesh/networkservicemesh/controlplane v0.2.0
 	github.com/networkservicemesh/networkservicemesh/controlplane/api v0.2.0
 	github.com/networkservicemesh/networkservicemesh/forwarder v0.2.0
 	github.com/networkservicemesh/networkservicemesh/forwarder/api v0.2.0
 	github.com/networkservicemesh/networkservicemesh/k8s v0.2.0
+	github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis v0.2.0
 	github.com/networkservicemesh/networkservicemesh/pkg v0.2.0
 	github.com/networkservicemesh/networkservicemesh/sdk v0.2.0
 	github.com/networkservicemesh/networkservicemesh/side-cars v0.2.0
@@ -19,9 +21,10 @@ require (
 	github.com/onsi/gomega v1.7.0
 	github.com/packethost/packngo v0.1.1-0.20190507131943-1343be729ca2
 	github.com/pkg/errors v0.8.1
+	github.com/prometheus/client_golang v1.0.0
 	github.com/sirupsen/logrus v1.4.2
 	github.com/spf13/cobra v0.0.5
-	github.com/spf13/viper v1.4.0
+	github.com/spf13/viper v1.5.0
 	github.com/spiffe/spire v0.0.0-20190515205011-c8123525fba8
 	google.golang.org/grpc v1.23.1
 	gopkg.in/yaml.v2 v2.2.4
@@ -31,8 +34,9 @@ require (
 	k8s.io/kubernetes v1.16.3
 )
 
+// ./scripts/switch_k8s_version.sh to change k8s version
+
 replace (
-	// ./scripts/switch_k8s_version.sh to change k8s version
 	github.com/census-instrumentation/opencensus-proto v0.1.0-0.20181214143942-ba49f56771b8 => github.com/census-instrumentation/opencensus-proto v0.0.3-0.20181214143942-ba49f56771b8
 	gonum.org/v1/gonum => github.com/gonum/gonum v0.0.0-20190331200053-3d26580ed485
 	gonum.org/v1/netlib => github.com/gonum/netlib v0.0.0-20190331212654-76723241ea4e
@@ -70,11 +74,10 @@ replace (
 	github.com/networkservicemesh/networkservicemesh/forwarder/api => ../forwarder/api
 	github.com/networkservicemesh/networkservicemesh/k8s => ../k8s
 	github.com/networkservicemesh/networkservicemesh/k8s/api => ../k8s/api
+	github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis => ../k8s/pkg/apis
 	github.com/networkservicemesh/networkservicemesh/pkg => ../pkg
 	github.com/networkservicemesh/networkservicemesh/sdk => ../sdk
 	github.com/networkservicemesh/networkservicemesh/side-cars => ../side-cars
 	github.com/networkservicemesh/networkservicemesh/test => ../test
 	github.com/networkservicemesh/networkservicemesh/utils => ../utils
 )
-
-go 1.13

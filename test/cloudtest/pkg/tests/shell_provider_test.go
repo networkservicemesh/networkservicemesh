@@ -47,7 +47,7 @@ func (*testValidationFactory) CreateValidator(config *config.ClusterProviderConf
 func TestShellProvider(t *testing.T) {
 	g := NewWithT(t)
 
-	testConfig := &config.CloudTestConfig{}
+	testConfig := config.NewCloudTestConfig()
 
 	testConfig.Timeout = 300
 
@@ -111,7 +111,7 @@ func createProvider(testConfig *config.CloudTestConfig, name string) *config.Clu
 func TestInvalidProvider(t *testing.T) {
 	g := NewWithT(t)
 
-	testConfig := &config.CloudTestConfig{}
+	testConfig := config.NewCloudTestConfig()
 
 	testConfig.Timeout = 300
 
@@ -140,7 +140,7 @@ func TestInvalidProvider(t *testing.T) {
 func TestRequireEnvVars(t *testing.T) {
 	g := NewWithT(t)
 
-	testConfig := &config.CloudTestConfig{}
+	testConfig := config.NewCloudTestConfig()
 
 	testConfig.Timeout = 300
 
@@ -174,7 +174,7 @@ func TestRequireEnvVars(t *testing.T) {
 func TestRequireEnvVars_DEPS(t *testing.T) {
 	g := NewWithT(t)
 
-	testConfig := &config.CloudTestConfig{}
+	testConfig := config.NewCloudTestConfig()
 
 	testConfig.Timeout = 300
 
@@ -222,7 +222,7 @@ func TestRequireEnvVars_DEPS(t *testing.T) {
 func TestShellProviderShellTest(t *testing.T) {
 	g := NewWithT(t)
 
-	testConfig := &config.CloudTestConfig{}
+	testConfig := config.NewCloudTestConfig()
 
 	testConfig.Timeout = 300
 
@@ -280,8 +280,8 @@ func TestShellProviderShellTest(t *testing.T) {
 func TestUnusedClusterShutdownByMonitor(t *testing.T) {
 	g := NewWithT(t)
 	logKeeper := utils.NewLogKeeper()
-
-	testConfig := &config.CloudTestConfig{}
+	defer logKeeper.Stop()
+	testConfig := config.NewCloudTestConfig()
 
 	testConfig.Timeout = 300
 
@@ -321,17 +321,17 @@ func TestUnusedClusterShutdownByMonitor(t *testing.T) {
 	g.Expect(report.Suites[0].Tests).To(Equal(3))
 	g.Expect(len(report.Suites[0].TestCases)).To(Equal(3))
 
-	g.Expect(logKeeper.CheckMessagesOrder([]string{
+	logKeeper.CheckMessagesOrder(t, []string{
 		"All tasks for cluster group a_provider are complete. Starting cluster shutdown",
 		"Destroying cluster  a_provider-",
 		"Finished test execution",
-	})).To(BeTrue())
+	})
 }
 
 func TestMultiClusterTest(t *testing.T) {
 	g := NewWithT(t)
 
-	testConfig := &config.CloudTestConfig{}
+	testConfig := config.NewCloudTestConfig()
 
 	testConfig.Timeout = 300
 
@@ -396,7 +396,7 @@ func TestMultiClusterTest(t *testing.T) {
 func TestGlobalTimeout(t *testing.T) {
 	g := NewWithT(t)
 
-	testConfig := &config.CloudTestConfig{}
+	testConfig := config.NewCloudTestConfig()
 	testConfig.Timeout = 3
 
 	tmpDir, err := ioutil.TempDir(os.TempDir(), "cloud-test-temp")

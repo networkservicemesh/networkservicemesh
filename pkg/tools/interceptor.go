@@ -7,7 +7,7 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
-	"github.com/gogo/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 	"google.golang.org/grpc"
 )
 

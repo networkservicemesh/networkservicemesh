@@ -1,11 +1,11 @@
-package forwarder
+package vppagent
 
 import (
 	"context"
 
 	"github.com/pkg/errors"
 
-	"github.com/gogo/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/ligato/vpp-agent/api/configurator"
 	"github.com/sirupsen/logrus"
@@ -40,17 +40,17 @@ func (c *clearMechanisms) Request(ctx context.Context, crossConnect *crossconnec
 		logrus.Infof("montir has not entry with id %v", crossConnect.GetId())
 		return nextRequest(ctx, crossConnect)
 	}
-	clearDataChange, cErr := converter.NewCrossConnectConverter(entity.(*crossconnect.CrossConnect), conversionParameters).MechanismsToDataRequest(nil, false)
-	if cErr == nil && clearDataChange != nil {
+	clearDataChange, err := converter.NewCrossConnectConverter(entity.(*crossconnect.CrossConnect), conversionParameters).MechanismsToDataRequest(nil, false)
+	if err == nil && clearDataChange != nil {
 		logrus.Infof("Sending clearing DataChange to vppagent: %v", proto.MarshalTextString(clearDataChange))
 		client := ConfiguratorClient(ctx)
 		if client == nil {
 			return nil, errors.New("configuration client is not passed for clear mechanism")
 		}
-		_, cErr = client.Delete(ctx, &configurator.DeleteRequest{Delete: clearDataChange})
+		_, err = client.Delete(ctx, &configurator.DeleteRequest{Delete: clearDataChange})
 	}
-	if cErr != nil {
-		logrus.Warnf("Connection Mechanism was not cleared properly before updating: %s", cErr.Error())
+	if err != nil {
+		logrus.Warnf("Connection Mechanism was not cleared properly before updating: %s", err.Error())
 	}
 	return nextRequest(ctx, crossConnect)
 }

@@ -24,7 +24,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
-	"github.com/gogo/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/ligato/vpp-agent/api/configurator"
 	"github.com/ligato/vpp-agent/api/models/vpp"
@@ -37,7 +37,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/forwarder/api/forwarder"
 	"github.com/networkservicemesh/networkservicemesh/forwarder/pkg/common"
 	sdk "github.com/networkservicemesh/networkservicemesh/forwarder/sdk/vppagent"
-	"github.com/networkservicemesh/networkservicemesh/forwarder/vppagent/pkg/vppagent/nsmonitor"
+	"github.com/networkservicemesh/networkservicemesh/forwarder/vppagent/pkg/vppagent/kvschedclient"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/utils"
 )
@@ -52,6 +52,7 @@ const (
 type VPPAgent struct {
 	metricsCollector *MetricsCollector
 	common           *common.ForwarderConfig
+	downstreamResync func()
 }
 
 func CreateVPPAgent() *VPPAgent {
@@ -61,13 +62,14 @@ func CreateVPPAgent() *VPPAgent {
 //CreateForwarderServer creates ForwarderServer handler
 func (v *VPPAgent) CreateForwarderServer(config *common.ForwarderConfig) forwarder.ForwarderServer {
 	return sdk.ChainOf(
-		sdk.ConnectionValidator(),
-		sdk.UseMonitor(config.Monitor),
+		sdk.RequestValidator(),
+		sdk.UseCrossConnectMonitor(config.Monitor),
 		sdk.DirectMemifInterfaces(config.NSMBaseDir),
 		sdk.Connect(v.endpoint()),
 		sdk.KernelInterfaces(config.NSMBaseDir),
+		sdk.UseEthernetContext(),
 		sdk.ClearMechanisms(config.NSMBaseDir),
-		sdk.Commit())
+		sdk.Commit(v.downstreamResync))
 }
 
 // MonitorMechanisms sends mechanism updates
@@ -271,9 +273,16 @@ func (v *VPPAgent) endpoint() string {
 
 func (v *VPPAgent) configureVPPAgent() error {
 	logrus.Infof("vppAgentEndpoint: %s", v.endpoint())
-	if err := nsmonitor.CreateMonitorNetNsInodeServer(v.common.Monitor, v.endpoint()); err != nil {
+	var kvSchedulerClient *kvschedclient.KVSchedulerClient
+	var err error
+
+	if kvSchedulerClient, err = kvschedclient.NewKVSchedulerClient(v.endpoint()); err != nil {
 		return err
 	}
+
+	v.downstreamResync = kvSchedulerClient.DownstreamResync
+	common.CreateNSMonitor(v.common.Monitor, kvSchedulerClient.DownstreamResync)
+
 	v.common.MechanismsUpdateChannel = make(chan *common.Mechanisms, 1)
 	v.common.Mechanisms = &common.Mechanisms{
 		LocalMechanisms: []*connection.Mechanism{
@@ -293,7 +302,7 @@ func (v *VPPAgent) configureVPPAgent() error {
 			},
 		},
 	}
-	err := v.reset()
+	err = v.reset()
 	if err != nil {
 		logrus.Errorf("Error resetting the VPP Agent: %s", err)
 		return err

@@ -34,14 +34,16 @@ spec:
           command: ["/bin/icmp-responder-nse"]
           imagePullPolicy: {{ .Values.pullPolicy }}
           env:
-            - name: ADVERTISE_NSE_NAME
+            - name: ENDPOINT_NETWORK_SERVICE
               value: "icmp-responder"
-            - name: ADVERTISE_NSE_LABELS
+            - name: ENDPOINT_LABELS
               value: "app=icmp-responder"
             - name: TRACER_ENABLED
               value: "true"
             - name: IP_ADDRESS
               value: "172.16.1.0/24"
+            - name: NSM_NAMESPACE
+              value: "nsm-system"
 {{- if .Values.global.JaegerTracing }}
             - name: TRACER_ENABLED
               value: "true"

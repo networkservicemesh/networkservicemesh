@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-KIND_CLUSTER_NAME="nsm"
+KIND_CLUSTER_NAME?="nsm"
 KIND_IMAGE_PATH=$(IMAGE_DIR)
 
 .PHONY: kind-config
@@ -27,16 +27,15 @@ kind-install:
 
 .PHONY: kind-start
 kind-start: kind-config
-	@kind get clusters | grep nsm  >/dev/null 2>&1 && exit 0 || \
-		( kind create cluster --name="$(KIND_CLUSTER_NAME)" --config ./scripts/kind.yaml && \
+	@kind get clusters | grep $(KIND_CLUSTER_NAME)  >/dev/null 2>&1 && exit 0 || \
+		( kind create cluster --name="$(KIND_CLUSTER_NAME)" --config ./scripts/kind.yaml --wait 120s && \
 		until \
-			KUBECONFIG="$$(kind get kubeconfig-path --name="$(KIND_CLUSTER_NAME)")" \
 			kubectl taint node $(KIND_CLUSTER_NAME)-control-plane node-role.kubernetes.io/master:NoSchedule- ; \
 		do echo "Waiting for the cluster to come up" && sleep 3; done )
 
-.PHONY: kind-config-location
-kind-config-location:
-	@kind get kubeconfig-path --name="$(KIND_CLUSTER_NAME)"
+.PHONY: kind-export-kubeconfig
+kind-export-kubeconfig:
+	@kind get kubeconfig --name $(KIND_CLUSTER_NAME) > $(KIND_CLUSTER_NAME)-kubeconfig
 
 .PHONY: kind-stop
 kind-stop:

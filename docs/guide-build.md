@@ -45,7 +45,6 @@ Network Service Mesh provides a handy [Kind](https://github.com/kubernetes-sigs/
 ```bash
 make k8s-save                                                # build and save the NSM docker containers
 make kind-start                                              # start up an nsm cluster named kind
-export KUBECONFIG="$(kind get kubeconfig-path --name="nsm")" # Point kubectl at your kind instance
 make k8s-load-images                                         # load NSM docker containers into kind
 make helm-init                                               # initialize helm
 make helm-install-nsm                                        # install the nsm infrastructure
