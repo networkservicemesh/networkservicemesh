@@ -1,4 +1,4 @@
-package forwarder
+package vppagent
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/forwarder/api/forwarder"
 )
 
-//Connect creates forwarder server handler with connection to vpp-agent confgirator server
+//Connect creates handler with connection to vpp-agent confgirator server
 func Connect(endpoint string) forwarder.ForwarderServer {
 	return &connect{endpoint: endpoint}
 }

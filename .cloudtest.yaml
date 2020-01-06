@@ -22,6 +22,8 @@ retest:  # Allow to do test re-run if some kind of failures are detected, line C
     - "NetworkPlugin cni failed to set up pod"    # Error in AWS dur to leak of IPs or not ability to assign them.
     - "etcdserver: request timed out"  # Error in any could, reason unknown.
     - "unable to establish connection to VPP (VPP API socket file /run/vpp/api.sock does not exist)"  # a VPP is not started, it will be re-started in general, but will cause test fail.
+    # Sometimes (rarely) docker registry is unavailable for a moment
+    - "Error response from daemon: Get https://.*docker.io/.*: dial tcp: lookup registry"
 reporting:
   junit-report: "results/junit.xml"
 health-check:

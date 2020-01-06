@@ -1,4 +1,4 @@
-package forwarder
+package vppagent
 
 import (
 	"context"
@@ -12,18 +12,18 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/forwarder/vppagent/pkg/memif"
 )
 
-//DirectMemifInterfaces creates forwarder server handler with direct memif connection/ disconnection
+//DirectMemifInterfaces creates forwarder server handler for direct memif connections
 func DirectMemifInterfaces(baseDir string) forwarder.ForwarderServer {
-	return &directMemifInterface{
+	return &directMemifInterfaces{
 		directMemifConnector: memif.NewDirectMemifConnector(baseDir),
 	}
 }
 
-type directMemifInterface struct {
+type directMemifInterfaces struct {
 	directMemifConnector *memif.DirectMemifConnector
 }
 
-func (c *directMemifInterface) Request(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error) {
+func (c *directMemifInterfaces) Request(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error) {
 	if isDirectMemif(crossConnect) {
 		return c.directMemifConnector.Connect(crossConnect)
 	}
@@ -34,7 +34,7 @@ func (c *directMemifInterface) Request(ctx context.Context, crossConnect *crossc
 	return next.Request(ctx, crossConnect)
 }
 
-func (c *directMemifInterface) Close(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*empty.Empty, error) {
+func (c *directMemifInterfaces) Close(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*empty.Empty, error) {
 	if isDirectMemif(crossConnect) {
 		c.directMemifConnector.Disconnect(crossConnect)
 		return new(empty.Empty), nil

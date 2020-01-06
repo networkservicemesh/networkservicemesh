@@ -66,7 +66,7 @@ func TestNSEHealRemote(t *testing.T) {
 	}, kubetest.DefaultTestingPodFixture(g), "")
 }
 
-func TestNSEHealLocalMemif(t *testing.T) {
+func TestNSEHealLocalVpp(t *testing.T) {
 	g := NewWithT(t)
 
 	if testing.Short() {
@@ -75,7 +75,49 @@ func TestNSEHealLocalMemif(t *testing.T) {
 	}
 
 	testNSEHeal(t, 1, map[string]int{
-		"icmp-responder-nse-1": 0,
-		"icmp-responder-nse-2": 0,
+		"vpp-agent-nse-1": 0,
+		"vpp-agent-nse-2": 0,
+	}, kubetest.VppAgentTestingPodFixture(g), "")
+}
+
+func TestNSEHealToLocalVpp(t *testing.T) {
+	g := NewWithT(t)
+
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+
+	testNSEHeal(t, 2, map[string]int{
+		"vpp-agent-nse-1": 1,
+		"vpp-agent-nse-2": 0,
+	}, kubetest.VppAgentTestingPodFixture(g), "")
+}
+
+func TestNSEHealToRemoteVpp(t *testing.T) {
+	g := NewWithT(t)
+
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+
+	testNSEHeal(t, 2, map[string]int{
+		"vpp-agent-nse-1": 0,
+		"vpp-agent-nse-2": 1,
+	}, kubetest.VppAgentTestingPodFixture(g), "")
+}
+
+func TestNSEHealRemoteVpp(t *testing.T) {
+	g := NewWithT(t)
+
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+
+	testNSEHeal(t, 2, map[string]int{
+		"vpp-agent-nse-1": 1,
+		"vpp-agent-nse-2": 1,
 	}, kubetest.VppAgentTestingPodFixture(g), "")
 }
