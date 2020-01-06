@@ -3,6 +3,7 @@ package nsm
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/properties"
@@ -29,8 +30,10 @@ type healProcessor struct {
 	model           model.Model
 	props           *properties.Properties
 
-	manager    nsm.NetworkServiceRequestManager
-	nseManager nsm.NetworkServiceEndpointManager
+	healCancellers      map[string]func()
+	healCancellersMutex sync.Mutex
+	manager             nsm.NetworkServiceRequestManager
+	nseManager          nsm.NetworkServiceEndpointManager
 
 	eventCh chan healEvent
 }
@@ -55,6 +58,7 @@ func newNetworkServiceHealProcessor(
 		manager:         manager,
 		nseManager:      nseManager,
 		eventCh:         make(chan healEvent, 1),
+		healCancellers:  make(map[string]func()),
 	}
 	go p.serve()
 
@@ -75,6 +79,12 @@ func (p *healProcessor) Heal(ctx context.Context, clientConnection nsm.ClientCon
 
 	logger := span.Logger()
 	ctx = common.WithLog(ctx, logger)
+
+	ctx, cancelFunc := context.WithCancel(ctx)
+
+	p.healCancellersMutex.Lock()
+	p.healCancellers[clientConnection.GetID()] = cancelFunc
+	p.healCancellersMutex.Unlock()
 
 	healID := create_logid()
 	logger.Infof("NSM_Heal(%v) %v", healID, cc)
@@ -108,6 +118,19 @@ func (p *healProcessor) Heal(ctx context.Context, clientConnection nsm.ClientCon
 
 func (p *healProcessor) CloseConnection(ctx context.Context, conn nsm.ClientConnection) error {
 	var err error
+
+	// Cancel context after closing.
+	defer func() {
+		p.healCancellersMutex.Lock()
+		contextCancelFunc, isHealing := p.healCancellers[conn.GetID()]
+		if isHealing {
+			logrus.Infof("Closing client connection while healing, cancel client context")
+			delete(p.healCancellers, conn.GetID())
+			contextCancelFunc()
+		}
+		p.healCancellersMutex.Unlock()
+	}()
+
 	if conn.GetConnectionSource().IsRemote() {
 		_, err = p.manager.RemoteManager().Close(ctx, conn.GetConnectionSource())
 	} else {
@@ -154,6 +177,9 @@ func (p *healProcessor) serve() {
 			if healed {
 				span.LogValue("status", "healed")
 				logger.Infof("NSM_Heal(%v) Heal: Connection recovered: %v", e.healID, e.cc)
+				p.healCancellersMutex.Lock()
+				delete(p.healCancellers, e.cc.GetID())
+				p.healCancellersMutex.Unlock()
 			} else {
 				span.LogValue("status", "closing")
 				_ = p.CloseConnection(ctx, e.cc)
@@ -199,6 +225,12 @@ func (p *healProcessor) healDstDown(ctx context.Context, cc *model.ClientConnect
 	ctx = p.waitForNSEUpdateContext(ctx, cc.Endpoint, cc)
 	// Fallback to heal with choose of new NSE.
 	for attempt := 0; attempt < p.props.HealRetryCount; attempt++ {
+		// If client context is cancelled, we need to stop attempts.
+		if ctx.Err() != nil {
+			logger.Info("Client context is broken, stopping heal attempts")
+			break
+		}
+
 		attemptSpan := spanhelper.FromContext(ctx, fmt.Sprintf("healing-attempt-%v", attempt))
 		requestCtx, requestCancel := context.WithTimeout(attemptSpan.Context(), p.props.HealRequestTimeout)
 		defer requestCancel()
@@ -410,6 +442,13 @@ func (p *healProcessor) waitNSE(ctx context.Context, endpointName, networkServic
 
 	for {
 		logger.Infof("NSM: RemoteNSE: Waiting for NSE with network service %s. Since elapsed: %v", networkService, time.Since(st))
+
+		// If client context was cancelled, we need to stop waiting.
+		if ctx.Err() != nil {
+			logger.Infof("Client context is cancelled, stop waiting for network service %s", networkService)
+			return false
+		}
+
 		endpointResponse, err := discoveryClient.FindNetworkService(ctx, nseRequest)
 		if err == nil {
 			for _, ep := range endpointResponse.NetworkServiceEndpoints {
