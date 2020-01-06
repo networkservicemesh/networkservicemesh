@@ -1,0 +1,16 @@
+---
+year: 2020
+goroutine-count: 6
+scope:
+  policy: "new"
+  master-branch: "origin/master"
+rules:
+  - template-path: ".license/template.txt"
+    paths:
+      - ".*[.]go$"
+    exclude-paths:
+      - ".*[.]pb"
+custom-patterns:
+  - name: NSM COPYRIGHT HOLDERS
+    pattern: "Copyright (c) {YEAR} {COPYRIGHT HOLDER}."
+    separator: "\n//\n// "

@@ -62,14 +62,14 @@ func CreateVPPAgent() *VPPAgent {
 //CreateForwarderServer creates ForwarderServer handler
 func (v *VPPAgent) CreateForwarderServer(config *common.ForwarderConfig) forwarder.ForwarderServer {
 	return sdk.ChainOf(
-		sdk.ConnectionValidator(),
-		sdk.UseMonitor(config.Monitor),
+		sdk.RequestValidator(),
+		sdk.UseCrossConnectMonitor(config.Monitor),
 		sdk.DirectMemifInterfaces(config.NSMBaseDir),
 		sdk.Connect(v.endpoint()),
 		sdk.KernelInterfaces(config.NSMBaseDir),
+		sdk.UseEthernetContext(),
 		sdk.ClearMechanisms(config.NSMBaseDir),
-		sdk.Commit(v.downstreamResync),
-		sdk.EthernetContextSetter())
+		sdk.Commit(v.downstreamResync))
 }
 
 // MonitorMechanisms sends mechanism updates

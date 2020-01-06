@@ -19,7 +19,7 @@ require (
 	github.com/networkservicemesh/networkservicemesh/side-cars v0.2.0
 	github.com/networkservicemesh/networkservicemesh/utils v0.2.0
 	github.com/onsi/gomega v1.7.0
-	github.com/packethost/packngo v0.1.1-0.20190507131943-1343be729ca2
+	github.com/packethost/packngo v0.2.0
 	github.com/pkg/errors v0.8.1
 	github.com/prometheus/client_golang v1.0.0
 	github.com/sirupsen/logrus v1.4.2
