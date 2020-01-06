@@ -85,6 +85,7 @@ func (cce *forwarderService) selectRemoteMechanism(request *networkservice.Netwo
 				if dpm := cce.findMechanism(dp.RemoteMechanisms, m.GetType()); dpm != nil {
 					mechanism = m
 					dpMechanism = dpm
+					break
 				}
 			}
 		}

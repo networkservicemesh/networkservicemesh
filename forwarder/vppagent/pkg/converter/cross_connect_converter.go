@@ -83,8 +83,12 @@ func (c *CrossConnectConverter) ToDataRequest(rv *configurator.Config, connect b
 		return rv, err
 	}
 
+	if len(rv.VppConfig.Interfaces) > 2 {
+		return nil, errors.Errorf("created too many interfaces to cross connect, expected 2, got %d", len(rv.VppConfig.Interfaces))
+	}
+
 	// For connections mechanisms with xconnect required (For example SRv6 does not require xconnect)
-	if len(rv.VppConfig.Interfaces) >= 2 {
+	if len(rv.VppConfig.Interfaces) == 2 {
 		ifaces := rv.VppConfig.Interfaces[len(rv.VppConfig.Interfaces)-2:]
 		rv.VppConfig.XconnectPairs = append(rv.VppConfig.XconnectPairs, &vpp_l2.XConnectPair{
 			ReceiveInterface:  ifaces[0].Name,

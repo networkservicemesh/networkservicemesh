@@ -176,6 +176,7 @@ func NewEgressInterface(srcIP net.IP) (EgressInterfaceType, error) {
 		}
 
 		var v6 *net.IPNet
+		// Some clouds require localSID to be equal local ipv6 address, or gateway will deny packets
 		var localSID net.IP
 		for _, addr := range addrs {
 			switch v := addr.(type) {

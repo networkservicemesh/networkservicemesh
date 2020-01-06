@@ -280,6 +280,7 @@ func (v *VPPAgent) endpoint() string {
 
 func (v *VPPAgent) extendProgramMgmtInterfaceDataRequestForSRv6(dataRequest *configurator.UpdateRequest) {
 	if v.common.EgressInterface.SrcLocalSID() == nil {
+		logrus.Warnf("SRv6 remote mechanism is not supported: Mgmt Interface does not have local IPv6 address")
 		return
 	}
 
