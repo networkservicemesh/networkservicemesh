@@ -22,13 +22,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
-	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
-
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/remote"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 )
 
 /**
@@ -49,7 +48,7 @@ func testNSEHeal(t *testing.T, nodesCount int, affinity map[string]int, fixture 
 			Variables:          pods.DefaultNSMD(),
 			ForwarderVariables: kubetest.DefaultForwarderVariables(k8s.GetForwardingPlane()),
 		}
-		cfg.Variables[nsmd.PreferredRemoteMechanism] = remoteMechanism
+		cfg.Variables[remote.PreferredRemoteMechanism.Name()] = remoteMechanism
 		config = append(config, cfg)
 	}
 	nodesSetup, err := kubetest.SetupNodesConfig(k8s, nodesCount, defaultTimeout, config, k8s.GetK8sNamespace())

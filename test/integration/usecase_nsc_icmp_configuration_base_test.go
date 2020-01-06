@@ -24,7 +24,7 @@ import (
 	. "github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/remote"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 )
@@ -50,7 +50,7 @@ func testNSCAndICMP(t *testing.T, nodesCount int, useWebhook, disableVHost bool,
 		cfg := &pods.NSMgrPodConfig{
 			Variables: pods.DefaultNSMD(),
 		}
-		cfg.Variables[nsmd.PreferredRemoteMechanism] = remoteMechanism
+		cfg.Variables[remote.PreferredRemoteMechanism.Name()] = remoteMechanism
 		cfg.Namespace = k8s.GetK8sNamespace()
 		cfg.ForwarderVariables = kubetest.DefaultForwarderVariables(k8s.GetForwardingPlane())
 		if disableVHost {

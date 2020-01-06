@@ -43,9 +43,6 @@ const (
 	NsmdDeleteLocalRegistry = "NSMD_LOCAL_REGISTRY_DELETE"
 	ForwarderTimeout        = 1 * time.Hour
 	NSEAliveTimeout         = 1 * time.Second
-
-	// PreferredRemoteMechanism - remote mechanism will be checked first
-	PreferredRemoteMechanism = "PREFERRED_REMOTE_MECHANISM"
 )
 
 type NSMServer interface {

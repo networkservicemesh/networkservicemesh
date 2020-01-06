@@ -23,12 +23,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/properties"
-
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/properties"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/remote"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 )
@@ -58,7 +58,7 @@ func testNSMHealRemoteDieNSMD_NSE(t *testing.T, remoteMechanism string) {
 		},
 	}
 	for i := 0; i < 2; i++ {
-		config[i].Variables[nsmd.PreferredRemoteMechanism] = remoteMechanism
+		config[i].Variables[remote.PreferredRemoteMechanism.Name()] = remoteMechanism
 	}
 	nodes_setup, err := kubetest.SetupNodesConfig(k8s, 2, defaultTimeout, config, k8s.GetK8sNamespace())
 	g.Expect(err).To(BeNil())
@@ -111,7 +111,7 @@ func testNSMHealRemoteDieNSMD(t *testing.T, remoteMechanism string) {
 			Variables:          pods.DefaultNSMD(),
 			ForwarderVariables: kubetest.DefaultForwarderVariables(k8s.GetForwardingPlane()),
 		}
-		cfg.Variables[nsmd.PreferredRemoteMechanism] = remoteMechanism
+		cfg.Variables[remote.PreferredRemoteMechanism.Name()] = remoteMechanism
 		config = append(config, cfg)
 	}
 	nodes_setup, err := kubetest.SetupNodesConfig(k8s, 2, defaultTimeout, config, k8s.GetK8sNamespace())

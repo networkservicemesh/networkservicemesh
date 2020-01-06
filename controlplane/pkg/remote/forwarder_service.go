@@ -17,28 +17,23 @@ package remote
 import (
 	"context"
 	"fmt"
-	"os"
 	"strconv"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/srv6"
-
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
-
+	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/pkg/errors"
-
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
-
 	"github.com/sirupsen/logrus"
 
-	"github.com/golang/protobuf/ptypes/empty"
-
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/srv6"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
+	"github.com/networkservicemesh/networkservicemesh/utils"
 )
 
 const (
@@ -51,7 +46,7 @@ const (
 	// ErrorCloseTimeout - timeout to close all stuff in case of error
 	ErrorCloseTimeout = 15 * time.Second
 	// PreferredRemoteMechanism - mechanism name will be chosen by default if supported
-	PreferredRemoteMechanism = "PREFERRED_REMOTE_MECHANISM"
+	PreferredRemoteMechanism = utils.EnvVar("PREFERRED_REMOTE_MECHANISM")
 )
 
 // forwarderService -
@@ -84,7 +79,7 @@ func (cce *forwarderService) selectRemoteMechanism(request *networkservice.Netwo
 	var mechanism *connection.Mechanism
 	var dpMechanism *connection.Mechanism
 
-	if preferredMechanismName := os.Getenv(PreferredRemoteMechanism); len(preferredMechanismName) > 0 {
+	if preferredMechanismName := PreferredRemoteMechanism.StringValue(); len(preferredMechanismName) > 0 {
 		for _, m := range request.GetRequestMechanismPreferences() {
 			if m.GetType() == preferredMechanismName {
 				if dpm := cce.findMechanism(dp.RemoteMechanisms, m.GetType()); dpm != nil {
