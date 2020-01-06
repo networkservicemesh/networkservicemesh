@@ -21,16 +21,21 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/memif"
-
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/memif"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	monitor_crossconnect "github.com/networkservicemesh/networkservicemesh/sdk/monitor/crossconnect"
+	"github.com/networkservicemesh/networkservicemesh/utils"
 	"github.com/networkservicemesh/networkservicemesh/utils/fs"
+)
+
+const (
+	checkCCLivenessIntervalEnv     = utils.EnvVar("CROSS_CONNECT_LIVENESS_CHECK_INTERVAL")
+	checkCCLivenessIntervalDefault = 1 * time.Second
 )
 
 type MonitorNetNsInodeServer struct {
@@ -81,7 +86,7 @@ func copyEvent(event *crossconnect.CrossConnectEvent) *crossconnect.CrossConnect
 func (m *MonitorNetNsInodeServer) MonitorNetNsInode() {
 	for {
 		select {
-		case <-time.After(1 * time.Second):
+		case <-time.After(checkCCLivenessIntervalEnv.GetOrDefaultDuration(checkCCLivenessIntervalDefault)):
 			if err := m.checkCrossConnectLiveness(); err != nil {
 				logrus.Error(err)
 			}
