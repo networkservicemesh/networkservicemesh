@@ -354,7 +354,7 @@ func (ctx *executionContext) assignTasks() {
 
 			assignedClusters, unavailableClusters := ctx.selectClustersForTask(task)
 			if len(unavailableClusters) > 0 {
-				ctx.failTaskDueUnavailableClusters(task, unavailableClusters)
+				ctx.skipTaskDueUnavailableClusters(task, unavailableClusters)
 				continue
 			}
 
@@ -378,16 +378,16 @@ func (ctx *executionContext) assignTasks() {
 	}
 }
 
-func (ctx *executionContext) failTaskDueUnavailableClusters(task *testTask, unavailableClusters []*clustersGroup) {
-	// All attempts to start/recover clusters required for the test failed
+func (ctx *executionContext) skipTaskDueUnavailableClusters(task *testTask, unavailableClusters []*clustersGroup) {
 	var unavailableClusterNames []string
 	for _, cl := range unavailableClusters {
 		unavailableClusterNames = append(unavailableClusterNames, cl.config.Name)
 	}
-	logrus.Errorf("Skip-and-fail %s on %s: %d of %d required cluster(s) unavailable: %v",
+	logrus.Errorf("Skip %s on %s: %d of %d required cluster(s) unavailable: %v",
 		task.test.Name, task.clusterTaskID,
 		len(unavailableClusters), len(task.clusters), unavailableClusterNames)
-	task.test.Status = model.StatusFailed
+
+	task.test.Status = model.StatusSkippedSinceNoClusters
 	for _, cl := range task.clusters {
 		delete(cl.tasks, task.test.Key)
 		cl.completed[task.test.Key] = task
@@ -680,7 +680,10 @@ func (ctx *executionContext) createTask(test *model.TestEntry, taskIndex, taskOr
 	} else if len(task.clusters) < test.ExecutionConfig.ClusterCount {
 		logrus.Errorf("%s: not all clusters defined of required %v", test.Name, selector)
 		task.test.Status = model.StatusSkipped
+	} else {
+		task.clusterTaskID = makeTaskClusterID(task.clusters)
 	}
+
 	return taskIndex
 }
 
@@ -721,19 +724,34 @@ func (ctx *executionContext) createSingleTask(taskIndex int, test *model.TestEnt
 	return task
 }
 
-func (ctx *executionContext) startTask(task *testTask, instances []*clusterInstance) error {
-	ids := ""
-	for _, ci := range instances {
-		if len(ids) > 0 {
-			ids += "_"
+func makeTaskClusterID(v interface{}) string {
+	var ids []string
+
+	switch list := v.(type) {
+	case []*clusterInstance:
+		for _, ci := range list {
+			ids = append(ids, ci.id)
 		}
-		ids += ci.id
+	case []*clustersGroup:
+		for _, cg := range list {
+			ids = append(ids, cg.config.Name)
+		}
+	}
+
+	return strings.Join(ids, "_")
+}
+
+func (ctx *executionContext) startTask(task *testTask, instances []*clusterInstance) error {
+	for _, ci := range instances {
 		ctx.Lock()
 		ci.state = clusterBusy
 		ci.currentTask = task.test.Name
 		ctx.Unlock()
 	}
-	fileName, file, err := ctx.manager.OpenFileTest(ids, task.test.Name, "run")
+
+	task.clusterTaskID = makeTaskClusterID(instances)
+
+	fileName, file, err := ctx.manager.OpenFileTest(task.clusterTaskID, task.test.Name, "run")
 	if err != nil {
 		return err
 	}
@@ -750,16 +768,15 @@ func (ctx *executionContext) startTask(task *testTask, instances []*clusterInsta
 	}
 
 	task.clusterInstances = instances
-	task.clusterTaskID = ids
 
 	timeout := ctx.getTestTimeout(task)
 
 	var runner runners.TestRunner
 	switch task.test.Kind {
 	case model.TestEntryKindShellTest:
-		runner = runners.NewShellTestRunner(ids, task.test)
+		runner = runners.NewShellTestRunner(task.clusterTaskID, task.test)
 	case model.TestEntryKindGoTest:
-		runner = runners.NewGoTestRunner(ids, task.test, timeout)
+		runner = runners.NewGoTestRunner(task.clusterTaskID, task.test, timeout)
 	default:
 		return errors.New("invalid task runner")
 	}
@@ -1394,12 +1411,8 @@ func (ctx *executionContext) generateTestCaseReport(test *testTask, totalTests i
 		Time: test.test.Duration.String(),
 	}
 
-	totalTests++
-	totalTime += test.test.Duration
 	switch test.test.Status {
 	case model.StatusFailed, model.StatusTimeout:
-		failures++
-
 		message := fmt.Sprintf("Test execution failed %v", test.test.Name)
 		result := strings.Builder{}
 		for idx, ex := range test.test.Executions {
@@ -1416,6 +1429,7 @@ func (ctx *executionContext) generateTestCaseReport(test *testTask, totalTests i
 			Contents: result.String(),
 			Message:  message,
 		}
+		failures++
 	case model.StatusSkipped:
 		msg := "By limit of number of tests to run"
 		if test.test.SkipMessage != "" {
@@ -1426,12 +1440,38 @@ func (ctx *executionContext) generateTestCaseReport(test *testTask, totalTests i
 			Message: msg,
 		}
 	case model.StatusSkippedSinceNoClusters:
-		testCase.SkipMessage = &reporting.SkipMessage{
-			Message: "No clusters are available, all clusters reached restart limits...",
+		message := "No clusters are available, all clusters reached restart limits..."
+		// Treat the test as failed unless 1+ target cluster(s) was completely down
+		if hasFailedCluster(test) {
+			testCase.SkipMessage = &reporting.SkipMessage{
+				Message: message,
+			}
+		} else {
+			testCase.Failure = &reporting.Failure{
+				Type:    "ERROR",
+				Message: message,
+			}
+			failures++
 		}
 	}
 	suite.TestCases = append(suite.TestCases, testCase)
-	return totalTests, totalTime, failures
+
+	return totalTests + 1, totalTime + test.test.Duration, failures
+}
+
+func hasFailedCluster(task *testTask) bool {
+	for _, cg := range task.clusters {
+		failedInstances := 0
+		for _, ci := range cg.instances {
+			if ci.state == clusterNotAvailable {
+				failedInstances++
+			}
+		}
+		if failedInstances == len(cg.instances) {
+			return true
+		}
+	}
+	return false
 }
 
 func (ctx *executionContext) checkClustersUsage() {
