@@ -66,6 +66,7 @@ executions:
   - name: "Interdomain tests packet-aws"
     env:
       - STORE_POD_LOGS_IN_FILES=true
+      - USE_JAEGER_SERVICE=true
       - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)
     tags:
       - interdomain
@@ -83,6 +84,7 @@ executions:
   - name: "Interdomain tests gke-packet"
     env:
       - STORE_POD_LOGS_IN_FILES=true
+      - USE_JAEGER_SERVICE=true
       - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)
     tags:
       - interdomain
@@ -100,6 +102,7 @@ executions:
   - name: "Interdomain tests azure-gke"
     env:
       - STORE_POD_LOGS_IN_FILES=true
+      - USE_JAEGER_SERVICE=true
       - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)
     tags:
       - interdomain
@@ -117,6 +120,7 @@ executions:
   - name: "Interdomain tests aws-azure"
     env:
       - STORE_POD_LOGS_IN_FILES=true
+      - USE_JAEGER_SERVICE=true
       - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)
     tags:
       - interdomain

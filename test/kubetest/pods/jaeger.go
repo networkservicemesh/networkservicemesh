@@ -3,14 +3,10 @@ package pods
 import (
 	"fmt"
 
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest/jaeger"
+
 	v1 "k8s.io/api/core/v1"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"github.com/networkservicemesh/networkservicemesh/utils"
-)
-
-const (
-	JaegerAPIPort utils.EnvVar = "JAEGER_REST_API_PORT"
 )
 
 func JaegerService(pod *v1.Pod) *v1.Service {
@@ -20,9 +16,10 @@ func JaegerService(pod *v1.Pod) *v1.Service {
 			Labels: map[string]string{"run": pod.Name},
 		},
 		Spec: v1.ServiceSpec{
+			Type: v1.ServiceTypeNodePort,
 			Ports: []v1.ServicePort{
 				{Name: "http", Port: 16686, Protocol: "TCP"},
-				{Name: "jaeger", Port: 6831, Protocol: "UDP"},
+				{Name: "jaeger", Port: 6831, NodePort: jaeger.GetJaegerNodePort(), Protocol: "UDP"},
 			},
 			Selector: map[string]string{"run": "jaeger"},
 		},
