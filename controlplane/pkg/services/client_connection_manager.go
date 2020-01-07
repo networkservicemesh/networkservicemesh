@@ -83,7 +83,8 @@ func (m *ClientConnectionManager) UpdateXcon(ctx context.Context, cc nsm.ClientC
 		logger.Info("ClientConnection src state is down. Closing.")
 		go func() {
 			for {
-				if !m.isConnectionPending(m.model.GetClientConnection(cc.GetID())) {
+				actualConn := m.model.GetClientConnection(cc.GetID())
+				if actualConn == nil || !m.isConnectionPending(actualConn) {
 					err := m.manager.CloseConnection(ctx, cc)
 					span.LogError(err)
 					return
