@@ -35,6 +35,12 @@ const (
 	JaegerRestAPIPort utils.EnvVar = "JAEGER_REST_API_PORT"
 	//JaegerAgentHost the hostname for communicating with agent via UDP
 	JaegerAgentHost utils.EnvVar = "JAEGER_AGENT_HOST"
+	//JaegerAgentPort the port for communicating with agent via UDP
+	JaegerAgentPort utils.EnvVar = "JAEGER_AGENT_PORT"
+	//UseJaegerService means use jaeger service. Useful for interdomain cases
+	UseJaegerService utils.EnvVar = "USE_JAEGER_SERVICE"
+	//NodeJaegerPort means jaeger node port
+	NodeJaegerPort utils.EnvVar = "NODE_JAEGER_PORT"
 )
 
 //ShouldStoreJaegerTraces means store jaeger traces as files
@@ -46,6 +52,11 @@ func ShouldStoreJaegerTraces() bool {
 //GetJaegerRestAPIPort returns jaeger API port
 func GetJaegerRestAPIPort() int {
 	return JaegerRestAPIPort.GetIntOrDefault(16686)
+}
+
+//GetJaegerNodePort returns jaeger node port
+func GetJaegerNodePort() int32 {
+	return int32(NodeJaegerPort.GetIntOrDefault(30001))
 }
 
 //DefaultEnvValues returns default jaeger env values

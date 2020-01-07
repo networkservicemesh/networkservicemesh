@@ -345,6 +345,8 @@ type K8s struct {
 	versionedClientSet *versioned.Clientset
 	podLock            sync.Mutex
 	pods               []*v1.Pod
+	servicesLock       sync.Mutex
+	services           []*v1.Service
 	config             *rest.Config
 	roles              []nsmrbac.Role
 	namespace          string
@@ -496,7 +498,7 @@ func NewK8sWithoutRolesForConfig(g *WithT, prepare bool, kubeconfigPath string) 
 		start := time.Now()
 		client.DeletePodsByName("nsmgr", "nsmd", "vppagent", "vpn", "icmp", "nsc", "source", "dest", "xcon", "spire-proxy", "nse", "prefix-service")
 		client.CleanupCRDs()
-		client.CleanupServices("nsm-admission-webhook-svc")
+		client.CleanupServices("nsm-admission-webhook-svc", "jaeger")
 		client.CleanupDeployments()
 		client.CleanupMutatingWebhookConfigurations()
 		client.CleanupSecrets("nsm-admission-webhook-certs")
@@ -575,6 +577,24 @@ func (k8s *K8s) describePod(pod *v1.Pod) []v1.Event {
 		}
 	}
 	return result
+}
+
+func (k8s *K8s) clearServices() {
+	k8s.servicesLock.Lock()
+	defer k8s.servicesLock.Unlock()
+	var wg = sync.WaitGroup{}
+	for i := range k8s.services {
+		s := k8s.services[i]
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			err := k8s.DeleteService(s, s.Namespace)
+			if err != nil {
+				logrus.Errorf("An error during delete service: %v, err: %v", s.Name, err.Error())
+			}
+		}()
+	}
+	wg.Wait()
 }
 
 func (k8s *K8s) buildNSMConfigMap() *v1.ConfigMap {
@@ -817,7 +837,11 @@ func (k8s *K8s) cleanups() {
 		defer wg.Done()
 		_ = k8s.DeleteServiceAccounts()
 	}()
-
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		k8s.clearServices()
+	}()
 	wg.Wait()
 	k8s.pods = nil
 	_ = k8s.DeleteTestNamespace(k8s.namespace)
@@ -1200,6 +1224,9 @@ func (k8s *K8s) CreateService(service *v1.Service, namespace string) (*v1.Servic
 		logrus.Errorf("Error creating service: %v %v", s, err)
 	}
 	logrus.Infof("Service is created: %v", s)
+	k8s.servicesLock.Lock()
+	defer k8s.servicesLock.Unlock()
+	k8s.services = append(k8s.services, s)
 	return s, err
 }
 
