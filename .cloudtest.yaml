@@ -135,7 +135,21 @@ executions:
       - KUBECONFIG_CLUSTER_2
     on_fail: |
       make k8s-delete-nsm-namespaces
-
+  - name: "SRv6 AWS tests"
+    env:
+      - STORE_POD_LOGS_IN_FILES=true
+      - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)
+    tags:
+      - srv6
+    root: ./test/integration
+    timeout: 300
+    cluster-count: 1
+    cluster-selector:
+      - aws
+    kubernetes-env:
+      - KUBECONFIG
+    on_fail: |
+      make k8s-delete-nsm-namespaces
   - name: "Example-helm-vpn"
     kind: shell
     timeout: 300

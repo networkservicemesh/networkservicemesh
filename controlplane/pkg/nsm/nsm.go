@@ -26,6 +26,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	mechanismCommon "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/srv6"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
@@ -350,16 +351,27 @@ func (srv *networkServiceManager) getConnectionParameters(xcon *crossconnect.Cro
 
 		// In case VxLan is used we need to correct vlanId id generator.
 		mm := dst.Mechanism
-		if mm.GetType() == vxlan.MECHANISM {
+		switch mm.GetType() {
+		case vxlan.MECHANISM:
 			m := vxlan.ToMechanism(mm)
 			srcIP, err := m.SrcIP()
 			dstIP, err2 := m.DstIP()
 			vni, err3 := m.VNI()
 			if err != nil || err2 != nil || err3 != nil {
-				logger.Errorf("Error retrieving SRC/DST IP or VNI from Remote connection %v %v", err, err2)
+				logrus.Errorf("Error retrieving SRC/DST IP or VNI from Remote connection %v %v", err, err2)
 			} else {
 				srv.serviceRegistry.VniAllocator().Restore(srcIP, dstIP, vni)
 			}
+		case srv6.MECHANISM:
+			m := srv6.ToMechanism(mm)
+			hardwareAddress, err := m.DstHardwareAddress()
+			srcLocalSID, err2 := m.SrcLocalSID()
+			if err != nil || err2 != nil {
+				logrus.Errorf("Error retrieving SRC/DST IP or VNI from Remote connection %v %v", err, err2)
+			} else {
+				srv.serviceRegistry.SIDAllocator().Restore(hardwareAddress, srcLocalSID)
+			}
+			// Add other mechanisms support here
 		}
 	}
 	return connectionState, networkServiceName, endpointName

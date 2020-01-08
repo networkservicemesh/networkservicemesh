@@ -19,6 +19,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/srv6"
+
 	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
@@ -119,12 +121,36 @@ func (cce *forwarderService) Request(ctx context.Context, request *networkservic
 	span.LogObject("dataplane", dp)
 
 	ctx = common.WithForwarder(ctx, dp)
+	ctx = common.WithRemoteMechanisms(ctx, cce.prepareRemoteMechanisms(request, dp))
 	conn, connErr := common.ProcessNext(ctx, request)
 	if connErr != nil {
 		return conn, connErr
 	}
+
 	// We need to program forwarder.
 	return cce.programForwarder(ctx, conn, dp, clientConnection)
+}
+
+// prepareRemoteMechanisms fills mechanism properties
+func (cce *forwarderService) prepareRemoteMechanisms(request *networkservice.NetworkServiceRequest, dp *model.Forwarder) []*connection.Mechanism {
+	mechanisms := []*connection.Mechanism{}
+
+	for _, mechanism := range dp.RemoteMechanisms {
+		m := mechanism.Clone()
+		switch m.GetType() {
+		case srv6.MECHANISM:
+			parameters := m.GetParameters()
+			if parameters == nil {
+				parameters = map[string]string{}
+			}
+			parameters[srv6.SrcBSID] = cce.serviceRegistry.SIDAllocator().SID(request.Connection.GetId())
+			parameters[srv6.SrcLocalSID] = cce.serviceRegistry.SIDAllocator().SID(request.Connection.GetId())
+			m.Parameters = parameters
+		}
+		mechanisms = append(mechanisms, m)
+	}
+
+	return mechanisms
 }
 
 func (cce *forwarderService) doFailureClose(ctx context.Context) {

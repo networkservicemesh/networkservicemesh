@@ -4,6 +4,8 @@ import (
 	"net"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/sid"
+
 	"golang.org/x/net/context"
 
 	"google.golang.org/grpc"
@@ -41,6 +43,7 @@ type ServiceRegistry interface {
 	WaitForForwarderAvailable(ctx context.Context, model model.Model, timeout time.Duration) error
 
 	VniAllocator() vni.VniAllocator
+	SIDAllocator() sid.Allocator
 
 	NewWorkspaceProvider() WorkspaceLocationProvider
 }

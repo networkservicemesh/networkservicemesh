@@ -93,6 +93,7 @@ linters:
     - varcheck  # deprecated
     - unused  # deprecated
     - goimports
+    - funlen
   enable-all: true
 issues:
   exclude-use-default: false

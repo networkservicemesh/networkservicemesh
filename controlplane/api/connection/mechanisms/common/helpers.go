@@ -29,7 +29,7 @@ func getIPParameter(m *connection.Mechanism, name string) (string, error) {
 
 	ip, ok := m.Parameters[name]
 	if !ok {
-		return "", errors.Errorf("mechanism.Type %s requires mechanism.Parameters[%s] for the VXLAN tunnel", m.GetType(), name)
+		return "", errors.Errorf("mechanism.Type %s requires mechanism.Parameters[%s]", m.GetType(), name)
 	}
 
 	parsedIP := net.ParseIP(ip)

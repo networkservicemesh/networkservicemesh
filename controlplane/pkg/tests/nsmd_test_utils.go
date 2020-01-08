@@ -30,6 +30,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/sid"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/vni"
 	"github.com/networkservicemesh/networkservicemesh/forwarder/api/forwarder"
 	"github.com/networkservicemesh/networkservicemesh/pkg/probes"
@@ -154,7 +155,12 @@ type nsmdTestServiceRegistry struct {
 	testForwarderConnection *testForwarderConnection
 	localTestNSE            networkservice.NetworkServiceClient
 	vniAllocator            vni.VniAllocator
+	sidAllocator            sid.Allocator
 	rootDir                 string
+}
+
+func (impl *nsmdTestServiceRegistry) SIDAllocator() sid.Allocator {
+	return impl.sidAllocator
 }
 
 func (impl *nsmdTestServiceRegistry) VniAllocator() vni.VniAllocator {
