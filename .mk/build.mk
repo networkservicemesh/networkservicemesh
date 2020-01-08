@@ -57,7 +57,6 @@ images += $(modules)
 
 .PHONY: docker-list
 docker-list: $(addsuffix -list, $(addprefix docker-, $(modules)))
-	@echo spire-registration
 
 .PHONY: docker-build
 docker-build: $(addsuffix -build, $(addprefix docker-, $(images)))
