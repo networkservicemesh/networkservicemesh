@@ -14,6 +14,7 @@
 
 test_apps = $(shell ls ./test/applications/cmd/)
 test_targets = $(addsuffix -build, $(addprefix go-, $(test_apps)))
+test_images = test-common vpp-test-common
 
 # TODO: files in test doesn't follow the regular structure: ./module/cmd/app,
 # we should get rid of 'application' directory to have for example ./test/cmd/icmp-responder-nse
@@ -42,12 +43,16 @@ docker-vpp-test-common-prepare: docker-%-prepare: $(addsuffix -build, $(addprefi
 		test/applications/vpp-conf/supervisord.conf \
 		test/applications/vpp-conf/run.sh)
 
+.PHONY: docker-test-list
+docker-test-list:
+	@echo $(test_images)
+
 .PHONY: docker-test-build
-docker-test-build: docker-test-common-build docker-vpp-test-common-build
+docker-test-build: $(addsuffix -build, $(addprefix docker-, $(test_images)))
 
 .PHONY: docker-test-save
-docker-test-save: docker-test-common-save docker-vpp-test-common-save
+docker-test-save: $(addsuffix -save, $(addprefix docker-, $(test_images)))
 
 .PHONY: docker-test-push
-docker-test-push: docker-test-common-push docker-vpp-test-common-push
+docker-test-push: $(addsuffix -push, $(addprefix docker-, $(test_images)))
 
