@@ -3,6 +3,7 @@ module github.com/networkservicemesh/networkservicemesh/controlplane
 go 1.13
 
 require (
+	github.com/golang/mock v1.3.1
 	github.com/golang/protobuf v1.3.2
 	github.com/networkservicemesh/networkservicemesh/controlplane/api v0.2.0
 	github.com/networkservicemesh/networkservicemesh/forwarder/api v0.2.0
