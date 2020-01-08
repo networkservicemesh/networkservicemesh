@@ -1367,7 +1367,8 @@ func (ctx *executionContext) generateJUnitReportFile() (*reporting.JUnitFile, er
 			executionTests += clusterTests
 			executionTime += clusterTime
 
-			clusterSuite.Time = fmt.Sprintf("%v", clusterTime.Round(time.Second))
+			clusterSuite.Time = fmt.Sprintf("%v", clusterTime.Seconds())
+			clusterSuite.Details.FormattedTime = fmt.Sprintf("%v", clusterTime.Round(time.Second))
 			clusterSuite.Failures = clusterFailures
 			clusterSuite.Tests = clusterTests
 			execSuite.Suites = append(execSuite.Suites, clusterSuite)
@@ -1379,7 +1380,8 @@ func (ctx *executionContext) generateJUnitReportFile() (*reporting.JUnitFile, er
 
 		execSuite.Tests = executionTests
 		execSuite.Failures = executionFailures
-		execSuite.Time = fmt.Sprintf("%v", executionTime.Round(time.Second))
+		execSuite.Time = fmt.Sprintf("%v", executionTime.Seconds())
+		execSuite.Details.FormattedTime = fmt.Sprintf("%v", executionTime.Round(time.Second))
 		summarySuite.Suites = append(summarySuite.Suites, execSuite)
 	}
 
@@ -1393,7 +1395,8 @@ func (ctx *executionContext) generateJUnitReportFile() (*reporting.JUnitFile, er
 		summarySuite.Suites = append(summarySuite.Suites, clusterFailuresSuite)
 	}
 
-	summarySuite.Time = fmt.Sprintf("%v", totalTime.Round(time.Second))
+	summarySuite.Time = fmt.Sprintf("%v", totalTime.Seconds())
+	summarySuite.Details.FormattedTime = fmt.Sprintf("%v", totalTime.Round(time.Second))
 	summarySuite.Failures = totalFailures
 	summarySuite.Tests = totalTests
 	ctx.report.Suites = append(ctx.report.Suites, summarySuite)
@@ -1440,7 +1443,8 @@ func (ctx *executionContext) generateClusterFailuresReportSuite() (time.Duration
 			}
 		}
 	}
-	clusterFailuresSuite.Time = fmt.Sprintf("%v", failuresTime)
+	clusterFailuresSuite.Time = fmt.Sprintf("%v", failuresTime.Seconds())
+	clusterFailuresSuite.Details.FormattedTime = fmt.Sprintf("%v", failuresTime.Round(time.Second))
 	return failuresTime, clusterFailures, clusterFailuresSuite
 }
 
@@ -1484,7 +1488,7 @@ func (ctx *executionContext) generateClusterFailedReportEntry(inst *clusterInsta
 	}
 	startCase := &reporting.TestCase{
 		Name: fmt.Sprintf("Startup-%v", inst.id),
-		Time: fmt.Sprintf("%v", exec.duration),
+		Time: fmt.Sprintf("%v", exec.duration.Seconds()),
 	}
 	startCase.Failure = &reporting.Failure{
 		Type:     "ERROR",

@@ -16,8 +16,15 @@ type Suite struct {
 	Time       string      `xml:"time,attr"`
 	Name       string      `xml:"name,attr"`
 	Properties []*Property `xml:"properties>property,omitempty"`
+	Details    SuiteDetails
 	TestCases  []*TestCase
 	Suites     []*Suite
+}
+
+// SuiteDetails holds additional information about test suite.
+type SuiteDetails struct {
+	XMLName       xml.Name `xml:"details"`
+	FormattedTime string   `xml:"formatted_time,attr"`
 }
 
 // TestCase - TestCase
