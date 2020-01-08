@@ -64,7 +64,7 @@ func cleanup(ctx context.Context, client registration.RegistrationClient) error 
 	for _, e := range entries.Entries {
 		_, err = client.DeleteEntry(ctx, &registration.RegistrationEntryID{Id: e.EntryId})
 		if err != nil {
-			return errors.Wrapf(err, "failed to delete entry %v: %v", e.SpiffeId)
+			return errors.Wrapf(err, "failed to delete entry %v", e.SpiffeId)
 		}
 	}
 
