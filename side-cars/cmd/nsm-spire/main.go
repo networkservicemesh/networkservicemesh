@@ -19,14 +19,16 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"io/ioutil"
+	"os"
+
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spiffe/spire/proto/spire/api/registration"
 	"github.com/spiffe/spire/proto/spire/common"
 	"google.golang.org/grpc"
-	"io/ioutil"
-	"os"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
 const (
