@@ -1321,9 +1321,9 @@ func (ctx *executionContext) findGoTest(executionConfig *config.ExecutionConfig)
 }
 
 func buildClusterSuiteName(clusters []*clustersGroup) string {
-	var clusterProviderNames []string
-	for _, cluster := range clusters {
-		clusterProviderNames = append(clusterProviderNames, cluster.config.Name)
+	var clusterProviderNames = make([]string, len(clusters))
+	for i := 0; i < len(clusters); i++ {
+		clusterProviderNames[i] = clusters[i].config.Name
 	}
 	return strings.Join(clusterProviderNames, "-")
 }
@@ -1344,7 +1344,6 @@ func (ctx *executionContext) generateJUnitReportFile() (*reporting.JUnitFile, er
 	totalTime := time.Duration(0)
 	// Generate suites by executions.
 	for execName, executionTasks := range executionsTests {
-
 		execSuite := &reporting.Suite{
 			Name: execName,
 		}
