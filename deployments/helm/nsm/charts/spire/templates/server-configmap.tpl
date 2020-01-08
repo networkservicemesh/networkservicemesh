@@ -19,6 +19,7 @@ data:
       log_level = "DEBUG"
       svid_ttl = "1h"
       upstream_bundle = true
+      registration_uds_path = "/run/spire/sockets/registration.sock"
       ca_subject = {
         Country = ["US"],
         Organization = ["SPIFFE"],

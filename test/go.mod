@@ -23,7 +23,8 @@ require (
 	github.com/sirupsen/logrus v1.4.2
 	github.com/spf13/viper v1.5.0
 	github.com/spiffe/spire v0.0.0-20190515205011-c8123525fba8
-	google.golang.org/grpc v1.23.1
+	google.golang.org/grpc v1.26.0
+	gopkg.in/yaml.v2 v2.2.4
 	k8s.io/api v0.0.0
 	k8s.io/apimachinery v0.0.0
 	k8s.io/client-go v11.0.0+incompatible

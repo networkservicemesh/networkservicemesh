@@ -54,7 +54,6 @@ endef
 $(foreach module, $(modules), $(eval $(call build_rule, $(module))))
 
 images += $(modules)
-images += spire-registration
 
 .PHONY: docker-list
 docker-list: $(addsuffix -list, $(addprefix docker-, $(modules)))
@@ -73,9 +72,6 @@ docker-%-build: docker-%-prepare
 		$(call docker_build,$*,Dockerfile.empty,$(BIN_DIR)/$*); \
 	fi
 
-.PHONY: docker-spire-registration-build
-docker-spire-registration-build: docker-%-build:
-	$(call docker_build,$*,Dockerfile.$*,.)
 
 # Could be overrided in ./module/build.mk files to copy some configs
 # into $(BIN_DIR)/$* before sending it as a Build Context to docker
