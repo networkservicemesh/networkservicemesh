@@ -44,7 +44,7 @@ func newNseRegistryService(nsmName string, cache RegistryCache) *nseRegistryServ
 func (rs *nseRegistryService) RegisterNSE(ctx context.Context, request *registry.NSERegistration) (*registry.NSERegistration, error) {
 	st := time.Now()
 
-	span := spanhelper.FromContext(ctx, "ProxyNsmgr.BulkRegisterNSE")
+	span := spanhelper.FromContext(ctx, "ProxyNsmgr.RegisterNSE")
 	defer span.Finish()
 	logger := span.Logger()
 
