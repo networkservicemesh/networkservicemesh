@@ -163,15 +163,12 @@ jobs:
             pushd test
             CGO_ENABLED=0 GOOS=linux go build -o ../cloudtest ./cloudtest/cmd/cloudtest
             popd
-            ./cloudtest
-          no_output_timeout: 40m
-      - run:
-          name: Cleanup CI images from DockerHub unless it's master branch
-          command: |
-            [ "${CIRCLE_BRANCH}" == "master" ] && exit
+            ./cloudtest || ERR=$?
+            [ "${CIRCLE_BRANCH}" == "master" ] && [ "$ERR" == "" ] && exit 0
             echo "Cleaning up CI images from DockerHub.."
-            CONTAINER_TAG="ci_${CIRCLE_WORKFLOW_ID}_${CIRCLE_SHA1:8:8}"
             REPO=networkservicemeshci TAGS="$CONTAINER_TAG" IMAGES=$(make docker-list) .circleci/dockerhub-image-remove
+            exit $ERR
+          no_output_timeout: 40m
       - store_test_results:
           path: .tests/cloud_test/results/
       - store_artifacts:
