@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Cisco and/or its affiliates.
+// Copyright (c) 2020 Cisco and/or its affiliates.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -18,6 +18,10 @@ package tests
 
 import (
 	"testing"
+
+	"github.com/golang/mock/gomock"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/tests/mock"
 
 	. "github.com/onsi/gomega"
 
@@ -49,6 +53,8 @@ func TestFindLocalMechanism(t *testing.T) {
 
 func TestFindRemoteMechanism(t *testing.T) {
 	g := NewWithT(t)
+	ctrl := gomock.NewController(t)
+
 	fwd := &model.Forwarder{
 		RemoteMechanisms: []*connection.Mechanism{
 			{
@@ -57,7 +63,9 @@ func TestFindRemoteMechanism(t *testing.T) {
 		},
 	}
 
-	selector := common.NewRemoteMechanismSelector(vni.NewVniAllocator())
+	serviceReg := mock.NewMockServiceRegistry(ctrl)
+	serviceReg.EXPECT().VniAllocator().Return(vni.NewVniAllocator())
+	selector := common.NewRemoteMechanismSelector(serviceReg)
 	m := selector.Find(fwd, vxlan.MECHANISM)
 
 	g.Expect(m).NotTo(BeNil())
@@ -92,6 +100,8 @@ func TestSelectLocalMechanism(t *testing.T) {
 
 func TestSelectRemoteMechanism(t *testing.T) {
 	g := NewWithT(t)
+	ctrl := gomock.NewController(t)
+
 	fwd := &model.Forwarder{
 		RemoteMechanisms: []*connection.Mechanism{
 			{
@@ -109,7 +119,9 @@ func TestSelectRemoteMechanism(t *testing.T) {
 	},
 	}
 
-	selector := common.NewRemoteMechanismSelector(vni.NewVniAllocator())
+	serviceReg := mock.NewMockServiceRegistry(ctrl)
+	serviceReg.EXPECT().VniAllocator().Return(vni.NewVniAllocator())
+	selector := common.NewRemoteMechanismSelector(serviceReg)
 
 	m, err := selector.Select(req, fwd)
 

@@ -12,6 +12,7 @@ import (
 	registry "github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	model "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	serviceregistry "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
+	sid "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/sid"
 	vni "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/vni"
 	forwarder "github.com/networkservicemesh/networkservicemesh/forwarder/api/forwarder"
 	grpc "google.golang.org/grpc"
@@ -177,6 +178,20 @@ func (m *MockServiceRegistry) RemoteNetworkServiceClient(arg0 context.Context, a
 func (mr *MockServiceRegistryMockRecorder) RemoteNetworkServiceClient(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoteNetworkServiceClient", reflect.TypeOf((*MockServiceRegistry)(nil).RemoteNetworkServiceClient), arg0, arg1)
+}
+
+// SIDAllocator mocks base method
+func (m *MockServiceRegistry) SIDAllocator() sid.Allocator {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SIDAllocator")
+	ret0, _ := ret[0].(sid.Allocator)
+	return ret0
+}
+
+// SIDAllocator indicates an expected call of SIDAllocator
+func (mr *MockServiceRegistryMockRecorder) SIDAllocator() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SIDAllocator", reflect.TypeOf((*MockServiceRegistry)(nil).SIDAllocator))
 }
 
 // Stop mocks base method

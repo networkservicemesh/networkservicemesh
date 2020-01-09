@@ -21,6 +21,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/srv6"
+	"github.com/networkservicemesh/networkservicemesh/utils"
+
 	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
@@ -46,6 +49,8 @@ const (
 	ForwarderTimeout = 15 * time.Second
 	// ErrorCloseTimeout - timeout to close all stuff in case of error
 	ErrorCloseTimeout = 15 * time.Second
+	// PreferredRemoteMechanism - mechanism name will be chosen by default if supported
+	PreferredRemoteMechanism = utils.EnvVar("PREFERRED_REMOTE_MECHANISM")
 )
 
 // forwarderService -
@@ -65,14 +70,6 @@ func (cce *forwarderService) selectForwarder(request *networkservice.NetworkServ
 		return false
 	})
 	return fwd, err
-}
-func (cce *forwarderService) findMechanism(mechanismPreferences []*connection.Mechanism, mechanismType string) *connection.Mechanism {
-	for _, m := range mechanismPreferences {
-		if m.GetType() == mechanismType {
-			return m
-		}
-	}
-	return nil
 }
 
 func (cce *forwarderService) updateMechanism(request *networkservice.NetworkServiceRequest, fwd *model.Forwarder) error {
@@ -120,9 +117,11 @@ func (cce *forwarderService) Request(ctx context.Context, request *networkservic
 		return nil, errors.Errorf("NSM: forwarderService: %v", err)
 	}
 
-	span.LogObject("dataplane", fwd)
+	span.LogObject("forwarder", fwd)
 
 	ctx = WithForwarder(ctx, fwd)
+	ctx = WithRemoteMechanisms(ctx, cce.prepareRemoteMechanisms(request, fwd))
+
 	conn, connErr := ProcessNext(ctx, request)
 	if connErr != nil {
 		cce.doFailureClose(ctx)
@@ -130,6 +129,28 @@ func (cce *forwarderService) Request(ctx context.Context, request *networkservic
 	}
 	// We need to program forwarder.
 	return cce.programForwarder(ctx, conn, fwd, clientConnection)
+}
+
+// prepareRemoteMechanisms fills mechanism properties
+func (cce *forwarderService) prepareRemoteMechanisms(request *networkservice.NetworkServiceRequest, fwd *model.Forwarder) []*connection.Mechanism {
+	mechanisms := []*connection.Mechanism{}
+
+	for _, mechanism := range fwd.RemoteMechanisms {
+		m := mechanism.Clone()
+		switch m.GetType() {
+		case srv6.MECHANISM:
+			parameters := m.GetParameters()
+			if parameters == nil {
+				parameters = map[string]string{}
+			}
+			parameters[srv6.SrcBSID] = cce.serviceRegistry.SIDAllocator().SID(request.Connection.GetId())
+			parameters[srv6.SrcLocalSID] = cce.serviceRegistry.SIDAllocator().SID(request.Connection.GetId())
+			m.Parameters = parameters
+		}
+		mechanisms = append(mechanisms, m)
+	}
+
+	return mechanisms
 }
 
 func (cce *forwarderService) doFailureClose(ctx context.Context) {
