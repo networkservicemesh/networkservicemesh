@@ -616,8 +616,8 @@ func (stub *endpointManager) DeleteEndpointWithBrokenConnection(ctx context.Cont
 	return nil
 }
 
-func startAPIServer(model model.Model, nsmdApiAddress string) (*grpc.Server, monitor_crossconnect.MonitorServer, net.Listener, error) {
-	sock, err := net.Listen("tcp", nsmdApiAddress)
+func startAPIServer(model model.Model, nsmdAPIAddress string) (*grpc.Server, monitor_crossconnect.MonitorServer, net.Listener, error) {
+	sock, err := net.Listen("tcp", nsmdAPIAddress)
 	if err != nil {
 		return nil, nil, sock, err
 	}
@@ -637,14 +637,14 @@ func startAPIServer(model model.Model, nsmdApiAddress string) (*grpc.Server, mon
 
 	monitorClient := nsmd.NewMonitorCrossConnectClient(model, monitorManager, xconManager, &endpointManager{model: model})
 	model.AddListener(monitorClient)
-	// TODO: Add more public API services here.
+	// Add more public API services here.
 
 	go func() {
 		if err := grpcServer.Serve(sock); err != nil {
 			logrus.Errorf("failed to start gRPC NSMD API server %+v", err)
 		}
 	}()
-	logrus.Infof("NSM gRPC API Server: %s is operational", nsmdApiAddress)
+	logrus.Infof("NSM gRPC API Server: %s is operational", nsmdAPIAddress)
 
 	return grpcServer, monitorManager.crossConnectMonitor, sock, nil
 }
@@ -657,7 +657,7 @@ func readNMSDCrossConnectEvents(address string, count int) []*crossconnect.Cross
 		return nil
 	}
 	defer func() {
-		err := conn.Close()
+		err = conn.Close()
 		if err != nil {
 			logrus.Errorf("An error during close conn: %v", err)
 		}
