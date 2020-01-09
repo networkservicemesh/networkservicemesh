@@ -421,7 +421,9 @@ func (client *NsmMonitorCrossConnectClient) handleXconEvent(event monitor.Event,
 }
 
 func (client *NsmMonitorCrossConnectClient) remotePeerConnectionMonitor(ctx context.Context, remotePeer RemotePeerDescriptor) {
+	client.remotePeerLock.Lock()
 	remoteNsm := remotePeer.RemoteNsm()
+	client.remotePeerLock.Unlock()
 	span := spanhelper.FromContext(ctx, fmt.Sprintf("remotePeerMonitor-%v", remoteNsm.Name))
 	defer span.Finish()
 	grpcConnectionSupplier := func() (*grpc.ClientConn, error) {
@@ -454,7 +456,9 @@ func (client *NsmMonitorCrossConnectClient) remotePeerConnectionMonitor(ctx cont
 			client.xconManager.DestinationDown(ccSpan.Context(), cc, true)
 		}
 	}
+	client.remotePeerLock.Lock()
 	remotePeer.Cancel()
+	client.remotePeerLock.Unlock()
 }
 
 func (client *NsmMonitorCrossConnectClient) handleRemoteConnection(entity monitor.Entity, eventType monitor.EventType, parameters map[string]string) error {
