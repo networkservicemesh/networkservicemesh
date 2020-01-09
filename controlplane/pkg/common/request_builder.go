@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Cisco and/or its affiliates.
+// Copyright (c) 2020 Cisco and/or its affiliates.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -17,6 +17,8 @@
 package common
 
 import (
+	"context"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
@@ -25,7 +27,7 @@ import (
 
 // RequestBuilder for the endpoint service
 type RequestBuilder interface {
-	Build(string, *registry.NSERegistration, *model.Forwarder, *connection.Connection) *networkservice.NetworkServiceRequest
+	Build(context.Context, string, *registry.NSERegistration, *connection.Connection) *networkservice.NetworkServiceRequest
 }
 
 // LocalRequestBuilder is for the endpoint service in local service server
@@ -74,17 +76,17 @@ func createRemoteNSMRequest(connectionID, srcNsmName string, endpoint *registry.
 }
 
 // Build request for the endpoint service in local service server
-func (builder *LocalRequestBuilder) Build(connectionID string, endpoint *registry.NSERegistration, fwd *model.Forwarder, requestConn *connection.Connection) *networkservice.NetworkServiceRequest {
+func (builder *LocalRequestBuilder) Build(ctx context.Context, connectionID string, endpoint *registry.NSERegistration, requestConn *connection.Connection) *networkservice.NetworkServiceRequest {
 	if builder.nsmName == endpoint.GetNetworkServiceEndpoint().GetNetworkServiceManagerName() {
-		return createLocalNSERequest(connectionID, builder.idGenerator, builder.nsmName, fwd.LocalMechanisms, requestConn)
+		return createLocalNSERequest(connectionID, builder.idGenerator, builder.nsmName, Forwarder(ctx).LocalMechanisms, requestConn)
 	}
-	return createRemoteNSMRequest(connectionID, builder.nsmName, endpoint, fwd.RemoteMechanisms, requestConn)
+	return createRemoteNSMRequest(connectionID, builder.nsmName, endpoint, RemoteMechanisms(ctx), requestConn)
 }
 
 // Build request for the endpoint service in remote service server
-func (builder *RemoteRequestBuilder) Build(connectionID string, _ *registry.NSERegistration, fwd *model.Forwarder,
+func (builder *RemoteRequestBuilder) Build(ctx context.Context, connectionID string, _ *registry.NSERegistration,
 	requestConn *connection.Connection) *networkservice.NetworkServiceRequest {
-	return createLocalNSERequest(connectionID, builder.idGenerator, builder.nsmName, fwd.LocalMechanisms, requestConn)
+	return createLocalNSERequest(connectionID, builder.idGenerator, builder.nsmName, Forwarder(ctx).LocalMechanisms, requestConn)
 }
 
 // NewLocalRequestBuilder creates new request builder for the endpoint service in local service server

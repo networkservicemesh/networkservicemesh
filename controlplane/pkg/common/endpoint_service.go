@@ -89,6 +89,7 @@ func (cce *endpointService) Request(ctx context.Context, request *networkservice
 	var conn *connection.Connection
 	var connID string
 
+	// Try Heal only if endpoint are same as for existing connection.
 	if clientConnection.ConnectionState == model.ClientConnectionHealing && endpoint == clientConnection.Endpoint {
 		conn = clientConnection.Xcon.GetDestination()
 		connID = conn.Id
@@ -97,7 +98,7 @@ func (cce *endpointService) Request(ctx context.Context, request *networkservice
 		connID = ""
 	}
 
-	message := cce.requestBuilder.Build(connID, endpoint, Forwarder(ctx), conn)
+	message := cce.requestBuilder.Build(ctx, connID, endpoint, conn)
 
 	logger.Infof("NSM: endpointService: requesting NSE with request %v", message)
 

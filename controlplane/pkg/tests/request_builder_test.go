@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Cisco and/or its affiliates.
+// Copyright (c) 2020 Cisco and/or its affiliates.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -17,6 +17,7 @@
 package tests
 
 import (
+	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -54,16 +55,6 @@ func createTestFwdWithLocalMechanism() *model.Forwarder {
 		LocalMechanisms: []*connection.Mechanism{
 			{
 				Type: kernel.MECHANISM,
-			},
-		},
-	}
-}
-
-func getTestFwdWithRemoteMechanism() *model.Forwarder {
-	return &model.Forwarder{
-		RemoteMechanisms: []*connection.Mechanism{
-			{
-				Type: vxlan.MECHANISM,
 			},
 		},
 	}
@@ -111,14 +102,17 @@ func getTestConnection() *connection.Connection {
 func TestLocalRequestBuilder_LocalNSERequest(t *testing.T) {
 	g := NewWithT(t)
 
+	ctx := context.Background()
+	ctx = common.WithForwarder(ctx, createTestFwdWithLocalMechanism())
+
 	builder := common.NewLocalRequestBuilder(newTestModel())
 
-	request1 := builder.Build("0", createLocalTestEndpoint(), createTestFwdWithLocalMechanism(), getTestConnection())
+	request1 := builder.Build(ctx, "0", createLocalTestEndpoint(), getTestConnection())
 	checkLocalNSERequest(g, request1)
 	g.Expect(request1.Connection.Id).To(Equal("0"))
 
 	// Check request if ID is absent.
-	request2 := builder.Build("", createLocalTestEndpoint(), createTestFwdWithLocalMechanism(), getTestConnection())
+	request2 := builder.Build(ctx, "", createLocalTestEndpoint(), getTestConnection())
 	checkLocalNSERequest(g, request2)
 	g.Expect(request2.Connection.Id).To(Equal("1"))
 }
@@ -126,14 +120,21 @@ func TestLocalRequestBuilder_LocalNSERequest(t *testing.T) {
 func TestLocalRequestBuilder_RemoteNSMRequest(t *testing.T) {
 	g := NewWithT(t)
 
+	ctx := context.Background()
+	ctx = common.WithRemoteMechanisms(ctx, []*connection.Mechanism{
+		{
+			Type: vxlan.MECHANISM,
+		},
+	})
+
 	builder := common.NewLocalRequestBuilder(newTestModel())
 
-	request1 := builder.Build("0", createRemoteTestEndpoint(), getTestFwdWithRemoteMechanism(), getTestConnection())
+	request1 := builder.Build(ctx, "0", createRemoteTestEndpoint(), getTestConnection())
 	checkRemoteNSMRequest(g, request1)
 	g.Expect(request1.Connection.Id).To(Equal("0"))
 
 	// Check request if ID is absent.
-	request2 := builder.Build("", createRemoteTestEndpoint(), getTestFwdWithRemoteMechanism(), getTestConnection())
+	request2 := builder.Build(ctx, "", createRemoteTestEndpoint(), getTestConnection())
 	checkRemoteNSMRequest(g, request2)
 	g.Expect(request2.Connection.Id).To(Equal(""))
 }
@@ -141,14 +142,17 @@ func TestLocalRequestBuilder_RemoteNSMRequest(t *testing.T) {
 func TestRemoteRequestBuilder(t *testing.T) {
 	g := NewWithT(t)
 
+	ctx := context.Background()
+	ctx = common.WithForwarder(ctx, createTestFwdWithLocalMechanism())
+
 	builder := common.NewRemoteRequestBuilder(newTestModel())
 
-	request1 := builder.Build("0", createLocalTestEndpoint(), createTestFwdWithLocalMechanism(), getTestConnection())
+	request1 := builder.Build(ctx, "0", createLocalTestEndpoint(), getTestConnection())
 	checkLocalNSERequest(g, request1)
 	g.Expect(request1.Connection.Id).To(Equal("0"))
 
 	// Check request if ID is absent.
-	request2 := builder.Build("", createLocalTestEndpoint(), createTestFwdWithLocalMechanism(), getTestConnection())
+	request2 := builder.Build(ctx, "", createLocalTestEndpoint(), getTestConnection())
 	checkLocalNSERequest(g, request2)
 	g.Expect(request2.Connection.Id).To(Equal("1"))
 }
