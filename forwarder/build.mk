@@ -20,16 +20,14 @@ forwarder_images = vppagent-forwarder kernel-forwarder
 go-kernel-forwarder-build: go-%-build:
 	$(info ----------------------  Building forwarder::$* via Cross compile ----------------------)
 	@pushd ./forwarder && \
-	CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) go build \
-    	-ldflags "-extldflags '-static' -X  main.version=$(VERSION)" -o $(BIN_DIR)/$*/$* ./kernel-forwarder/cmd/ && \
+	${GO_BUILD} -o $(BIN_DIR)/$*/$* ./kernel-forwarder/cmd/ && \
 	popd
 
 .PHONY: go-vppagent-forwarder-build
 go-vppagent-forwarder-build: go-%-build:
 	$(info ----------------------  Building forwarder::$* via Cross compile ----------------------)
 	@pushd ./forwarder && \
-	CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) go build \
-    	-ldflags "-extldflags '-static' -X  main.version=$(VERSION)" -o $(BIN_DIR)/$*/$* ./vppagent/cmd/ && \
+	${GO_BUILD} -o $(BIN_DIR)/$*/$* ./vppagent/cmd/ && \
 	popd
 
 docker-vppagent-forwarder-prepare: docker-%-prepare: go-%-build
