@@ -23,6 +23,8 @@ VPP_AGENT=artembelov/vpp-agent:v2.5.1
 CGO_ENABLED=0
 GOOS=linux
 DOCKER=./build
+GO_BUILD_ENV = CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) 
+GO_BUILD = ${GO_BUILD_ENV} go build -ldflags "-extldflags '-static' -X  main.version=$(VERSION)"
 
 print:
 	echo $(modules)
@@ -38,8 +40,7 @@ define build_rule
 $(module)-%-build:
 	@echo "----------------------  Building ${module}::$$* via Cross compile ----------------------" && \
 	pushd ./$(module) && \
-	CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) go build \
-    	-ldflags "-extldflags '-static' -X  main.version=$(VERSION)" -o $(BIN_DIR)/$$*/$$* ./cmd/$$* && \
+	${GO_BUILD} -o $(BIN_DIR)/$$*/$$* ./cmd/$$* && \
 	popd
 endef
 

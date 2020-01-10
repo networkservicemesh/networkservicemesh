@@ -22,8 +22,7 @@ test_images = test-common vpp-test-common
 $(test_targets): go-%-build:
 	@echo "----------------------  Building test/applications::$* via Cross compile ----------------------" && \
 	pushd ./test && \
-	CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) go build \
-    	-ldflags "-extldflags '-static' -X  main.version=$(VERSION)" -o $(BIN_DIR)/$*/$* ./applications/cmd/$* && \
+	${GO_BUILD} -o $(BIN_DIR)/$*/$* ./applications/cmd/$* && \
 	popd
 
 #TODO: get rid of 'common' images
