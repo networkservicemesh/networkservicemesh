@@ -68,6 +68,7 @@ spec:
               mountPath: /var/lib/networkservicemesh/config
           livenessProbe:
             httpGet:
+              host: "127.0.0.1"
               path: /liveness
               port: 5555
             initialDelaySeconds: 10
@@ -75,6 +76,7 @@ spec:
             timeoutSeconds: 3
           readinessProbe:
             httpGet:
+              host: "127.0.0.1"
               path: /readiness
               port: 5555
             initialDelaySeconds: 10
