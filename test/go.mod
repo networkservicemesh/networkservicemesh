@@ -19,11 +19,9 @@ require (
 	github.com/networkservicemesh/networkservicemesh/side-cars v0.2.0
 	github.com/networkservicemesh/networkservicemesh/utils v0.2.0
 	github.com/onsi/gomega v1.7.0
-	github.com/packethost/packngo v0.2.0
 	github.com/pkg/errors v0.8.1
 	github.com/prometheus/client_golang v1.0.0
 	github.com/sirupsen/logrus v1.4.2
-	github.com/spf13/cobra v0.0.5
 	github.com/spf13/viper v1.5.0
 	github.com/spiffe/spire v0.0.0-20190515205011-c8123525fba8
 	google.golang.org/grpc v1.23.1

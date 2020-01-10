@@ -161,9 +161,9 @@ jobs:
             fi
             export STORE_JAEGER_TRACES=true
             pushd test
-            CGO_ENABLED=0 GOOS=linux go build -o ../cloudtest ./cloudtest/cmd/cloudtest
+            go get github.com/networkservicemesh/cloudtest
             popd
-            ./cloudtest || ERR=$?
+            cloudtest || ERR=$?
             [ "${CIRCLE_BRANCH}" == "master" ] && [ "$ERR" == "" ] && exit 0
             echo "Cleaning up CI images from DockerHub.."
             REPO=networkservicemeshci TAGS="$CONTAINER_TAG" IMAGES=$(make docker-list) .circleci/dockerhub-image-remove
