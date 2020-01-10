@@ -157,6 +157,7 @@ k8s-vpn-check:
 
 .PHONY: k8s-crossconnect-monitor-check
 k8s-crossconnect-monitor-check:
+	$(info Checking crossconnect-monitor...)
 	@NSM_NAMESPACE=${NSM_NAMESPACE} ./scripts/verify_crossconnect_monitor.sh
 
 .PHONY: k8s-logs-snapshot
