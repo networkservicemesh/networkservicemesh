@@ -18,6 +18,7 @@ package nsmd
 
 import (
 	"context"
+	"sync"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 
@@ -26,6 +27,7 @@ import (
 
 //RemotePeerDescriptor represents network service manager remote peer
 type RemotePeerDescriptor interface {
+	sync.Locker
 	AddConnection(connection *model.ClientConnection)
 	RemoveConnection(connection *model.ClientConnection)
 	Cancel()
@@ -37,6 +39,7 @@ type RemotePeerDescriptor interface {
 }
 
 type remotePeerDescriptor struct {
+	sync.Mutex
 	connections map[string]*model.ClientConnection
 	cancel      context.CancelFunc
 	canceled    bool
@@ -81,10 +84,12 @@ func (r *remotePeerDescriptor) RemoteNsm() *registry.NetworkServiceManager {
 }
 
 //NewRemotePeerDescriptor represents network service manager remote peer
-func NewRemotePeerDescriptor(remoteNsm *registry.NetworkServiceManager) RemotePeerDescriptor {
+func NewRemotePeerDescriptor(conn *model.ClientConnection) RemotePeerDescriptor {
 	result := &remotePeerDescriptor{
-		remoteNsm:   remoteNsm,
-		connections: make(map[string]*model.ClientConnection),
+		remoteNsm: conn.RemoteNsm,
+		connections: map[string]*model.ClientConnection{
+			conn.ConnectionID: conn,
+		},
 	}
 	result.Reset()
 	return result
