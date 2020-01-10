@@ -34,7 +34,6 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/services"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
@@ -66,17 +65,12 @@ type NsmMonitorCrossConnectClient struct {
 	xconManager    *services.ClientConnectionManager
 	endpoints      sync.Map
 	forwarders     sync.Map
-	remotePeers    map[string]*remotePeerDescriptor
+	remotePeers    map[string]RemotePeerDescriptor
 
 	endpointManager EndpointManager
 	model           model.Model
 
 	remotePeerLock sync.Mutex
-}
-
-type remotePeerDescriptor struct {
-	connections map[string]*model.ClientConnection
-	cancel      context.CancelFunc
 }
 
 // EndpointManager is an interface to delete endpoints with broken connection
@@ -91,9 +85,7 @@ func NewMonitorCrossConnectClient(model model.Model, monitorManager nsm.MonitorM
 		monitorManager:  monitorManager,
 		xconManager:     xconManager,
 		endpointManager: endpointManager,
-		endpoints:       sync.Map{},
-		forwarders:      sync.Map{},
-		remotePeers:     map[string]*remotePeerDescriptor{},
+		remotePeers:     make(map[string]RemotePeerDescriptor),
 		model:           model,
 	}
 	return rv
@@ -144,18 +136,20 @@ func (client *NsmMonitorCrossConnectClient) startPeerMonitor(clientConnection *m
 	if clientConnection.RemoteNsm == nil {
 		return
 	}
-	if remotePeer, exist := client.remotePeers[clientConnection.RemoteNsm.Name]; exist {
-		remotePeer.connections[clientConnection.ConnectionID] = clientConnection
+	remotePeer, exist := client.remotePeers[clientConnection.RemoteNsm.Name]
+	if exist {
+		remotePeer.Lock()
+		defer remotePeer.Unlock()
+		if remotePeer.IsCanceled() {
+			remotePeer.Reset()
+			go client.remotePeerConnectionMonitor(remotePeer.Context(), remotePeer)
+		}
+		remotePeer.AddConnection(clientConnection)
 		return
 	}
-	ctx, cancel := context.WithCancel(context.Background())
-	client.remotePeers[clientConnection.RemoteNsm.Name] = &remotePeerDescriptor{
-		cancel: cancel,
-		connections: map[string]*model.ClientConnection{
-			clientConnection.ConnectionID: clientConnection,
-		},
-	}
-	go client.remotePeerConnectionMonitor(ctx, clientConnection.RemoteNsm)
+	remotePeer = NewRemotePeerDescriptor(clientConnection)
+	client.remotePeers[clientConnection.RemoteNsm.Name] = remotePeer
+	go client.remotePeerConnectionMonitor(remotePeer.Context(), remotePeer)
 }
 
 // ClientConnectionAdded - handle connection added
@@ -208,16 +202,18 @@ func (client *NsmMonitorCrossConnectClient) ClientConnectionDeleted(ctx context.
 	}
 	remotePeer := client.remotePeers[clientConnection.RemoteNsm.Name]
 	if remotePeer != nil {
-		delete(remotePeer.connections, clientConnection.ConnectionID)
-		if len(remotePeer.connections) == 0 {
-			remotePeer.cancel()
+		remotePeer.Lock()
+		defer remotePeer.Unlock()
+		remotePeer.RemoveConnection(clientConnection)
+		if !remotePeer.HasConnection() {
+			remotePeer.Cancel()
 			delete(client.remotePeers, clientConnection.RemoteNsm.Name)
 			span.Logger().Infof("stopping remote monitor")
 		}
 		span.Logger().Infof("connection removed from monitor")
-	} else {
-		span.LogError(errors.Errorf("remote peer for NSM is already closed: %v", clientConnection))
+		return
 	}
+	span.LogError(errors.Errorf("remote peer for NSM is already closed: %v", clientConnection))
 }
 
 type grpcConnectionSupplier func() (*grpc.ClientConn, error)
@@ -428,32 +424,35 @@ func (client *NsmMonitorCrossConnectClient) handleXconEvent(event monitor.Event,
 	return nil
 }
 
-func (client *NsmMonitorCrossConnectClient) remotePeerConnectionMonitor(ctx context.Context, remotePeer *registry.NetworkServiceManager) {
-	span := spanhelper.FromContext(ctx, fmt.Sprintf("remotePeerMonitor-%v", remotePeer.Name))
+func (client *NsmMonitorCrossConnectClient) remotePeerConnectionMonitor(ctx context.Context, remotePeer RemotePeerDescriptor) {
+	remotePeer.Lock()
+	remoteNsm := remotePeer.RemoteNsm()
+	remotePeer.Unlock()
+	span := spanhelper.FromContext(ctx, fmt.Sprintf("remotePeerMonitor-%v", remoteNsm.Name))
 	defer span.Finish()
 	grpcConnectionSupplier := func() (*grpc.ClientConn, error) {
-		span.Logger().Infof(peerLogWithParamFormat, remotePeer.Name, "Connecting to", remotePeer.Url)
-		return tools.DialContextTCP(span.Context(), remotePeer.GetUrl())
+		span.Logger().Infof(peerLogWithParamFormat, remoteNsm.Name, "Connecting to", remoteNsm.Url)
+		return tools.DialContextTCP(span.Context(), remoteNsm.GetUrl())
 	}
 	monitorClientSupplier := func(conn *grpc.ClientConn) (monitor.Client, error) {
 		return connectionMonitor.NewMonitorClient(conn, &connection.MonitorScopeSelector{
 			NetworkServiceManagers: []string{
 				client.xconManager.GetNsmName(), // src
-				remotePeer.Name,                 // dst
+				remoteNsm.Name,                  // dst
 			},
 		})
 	}
 
 	err := client.monitor(
 		ctx,
-		peerLogFormat, peerLogWithParamFormat, remotePeer.Name,
+		peerLogFormat, peerLogWithParamFormat, remoteNsm.Name,
 		grpcConnectionSupplier, monitorClientSupplier,
-		client.handleRemoteConnection, nil, map[string]string{peerName: remotePeer.Name})
+		client.handleRemoteConnection, nil, map[string]string{peerName: remoteNsm.Name})
 
 	if err != nil {
 		span.LogError(err)
 		// Same as DST down case, we need to wait for same NSE and updated NSMD.
-		connections := client.xconManager.GetClientConnectionByRemote(remotePeer)
+		connections := client.xconManager.GetClientConnectionByRemote(remoteNsm)
 		for _, cc := range connections {
 			ccSpan := common.SpanHelperFromConnection(ctx, cc, "remotePeerConnectionMonitor.update")
 			defer ccSpan.Finish()
@@ -461,6 +460,9 @@ func (client *NsmMonitorCrossConnectClient) remotePeerConnectionMonitor(ctx cont
 			client.xconManager.DestinationDown(ccSpan.Context(), cc, true)
 		}
 	}
+	remotePeer.Lock()
+	remotePeer.Cancel()
+	remotePeer.Unlock()
 }
 
 func (client *NsmMonitorCrossConnectClient) handleRemoteConnection(entity monitor.Entity, eventType monitor.EventType, parameters map[string]string) error {
