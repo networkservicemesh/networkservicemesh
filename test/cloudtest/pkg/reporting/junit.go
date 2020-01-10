@@ -2,6 +2,11 @@ package reporting
 
 import "encoding/xml"
 
+const (
+	// TimeCommentFormat is a format for printing readable time suite comment
+	TimeCommentFormat = "Suite was running for %v"
+)
+
 // JUnitFile - JUnitFile
 type JUnitFile struct {
 	XMLName xml.Name `xml:"testsuites"`
@@ -10,15 +15,15 @@ type JUnitFile struct {
 
 // Suite - Suite
 type Suite struct {
-	XMLName    xml.Name    `xml:"testsuite"`
-	Tests      int         `xml:"tests,attr"`
-	Failures   int         `xml:"failures,attr"`
-	Time       string      `xml:"time,attr"`
-	Name       string      `xml:"name,attr"`
-	Properties []*Property `xml:"properties>property,omitempty"`
-	Details    SuiteDetails
-	TestCases  []*TestCase
-	Suites     []*Suite
+	XMLName     xml.Name    `xml:"testsuite"`
+	Tests       int         `xml:"tests,attr"`
+	Failures    int         `xml:"failures,attr"`
+	Time        string      `xml:"time,attr"`
+	Name        string      `xml:"name,attr"`
+	Properties  []*Property `xml:"properties>property,omitempty"`
+	TimeComment string      `xml:",comment"`
+	TestCases   []*TestCase
+	Suites      []*Suite
 }
 
 // SuiteDetails holds additional information about test suite.

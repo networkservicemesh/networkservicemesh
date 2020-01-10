@@ -1368,7 +1368,7 @@ func (ctx *executionContext) generateJUnitReportFile() (*reporting.JUnitFile, er
 			executionTime += clusterTime
 
 			clusterSuite.Time = fmt.Sprintf("%v", clusterTime.Seconds())
-			clusterSuite.Details.FormattedTime = fmt.Sprintf("%v", clusterTime.Round(time.Second))
+			clusterSuite.TimeComment = fmt.Sprintf(reporting.TimeCommentFormat, clusterTime.Round(time.Second))
 			clusterSuite.Failures = clusterFailures
 			clusterSuite.Tests = clusterTests
 			execSuite.Suites = append(execSuite.Suites, clusterSuite)
@@ -1381,7 +1381,7 @@ func (ctx *executionContext) generateJUnitReportFile() (*reporting.JUnitFile, er
 		execSuite.Tests = executionTests
 		execSuite.Failures = executionFailures
 		execSuite.Time = fmt.Sprintf("%v", executionTime.Seconds())
-		execSuite.Details.FormattedTime = fmt.Sprintf("%v", executionTime.Round(time.Second))
+		execSuite.TimeComment = fmt.Sprintf(reporting.TimeCommentFormat, executionTime.Round(time.Second))
 		summarySuite.Suites = append(summarySuite.Suites, execSuite)
 	}
 
@@ -1396,7 +1396,7 @@ func (ctx *executionContext) generateJUnitReportFile() (*reporting.JUnitFile, er
 	}
 
 	summarySuite.Time = fmt.Sprintf("%v", totalTime.Seconds())
-	summarySuite.Details.FormattedTime = fmt.Sprintf("%v", totalTime.Round(time.Second))
+	summarySuite.TimeComment = fmt.Sprintf(reporting.TimeCommentFormat, totalTime.Round(time.Second))
 	summarySuite.Failures = totalFailures
 	summarySuite.Tests = totalTests
 	ctx.report.Suites = append(ctx.report.Suites, summarySuite)
@@ -1444,7 +1444,7 @@ func (ctx *executionContext) generateClusterFailuresReportSuite() (time.Duration
 		}
 	}
 	clusterFailuresSuite.Time = fmt.Sprintf("%v", failuresTime.Seconds())
-	clusterFailuresSuite.Details.FormattedTime = fmt.Sprintf("%v", failuresTime.Round(time.Second))
+	clusterFailuresSuite.TimeComment = fmt.Sprintf(reporting.TimeCommentFormat, failuresTime.Round(time.Second))
 	return failuresTime, clusterFailures, clusterFailuresSuite
 }
 
