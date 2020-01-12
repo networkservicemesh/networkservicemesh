@@ -61,13 +61,13 @@ const (
 	TxErrorPackets = "tx_error_packets"
 
 	// SrcPodKey is vector label for source pod
-	SrcPodKey = "src_pod"
+	SrcPodKey = "src_pod_name"
 	// SrcNamespaceKey is vector label for source pod namespace
-	SrcNamespaceKey = "src_namespace"
+	SrcNamespaceKey = "src_pod_namespace"
 	// DstPodKey is vector label for dest pod
-	DstPodKey = "dst_pod"
+	DstPodKey = "dst_pod_name"
 	// DstNamespaceKey is vector label for dest pod namespace
-	DstNamespaceKey = "dst_namespace"
+	DstNamespaceKey = "dst_pod_namespace"
 )
 
 // PrometheusMetricsContext is metrics context,
@@ -138,12 +138,9 @@ func buildPrometheusMetric(metricType string) PrometheusMetric {
 	if err := prometheus.Register(metricGaugeVec); err != nil {
 		if are, ok := err.(prometheus.AlreadyRegisteredError); ok {
 			metricGaugeVec = are.ExistingCollector.(*prometheus.GaugeVec)
-			logrus.Infof("using already registered vector %v", metricGaugeVec)
 		} else {
 			logrus.Infof("failed to register vector %v, err: %v", metricGaugeVec, err)
 		}
-	} else {
-		logrus.Infof("successfully registered vector %v", metricGaugeVec)
 	}
 
 	res := PrometheusMetric{

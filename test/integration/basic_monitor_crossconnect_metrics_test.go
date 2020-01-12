@@ -220,21 +220,21 @@ func TestGetMetricsIdentifiers(t *testing.T) {
 		},
 	}
 
-	metricsIdentifiers, err := metricspkg.GetMetricsIdentifiers(cc)
+	ccID, metricsIdentifiers, err := metricspkg.GetMetricsIdentifiers(cc)
 	if err != nil {
 		t.Fatalf("failed to get metrics identifier from crossconnect: %v", err)
 	}
 	expectedMetricsIdentifiers := map[string]string{
-		"src_pod":       "icmp-responder-nsc-6475749466-qbcq5",
-		"src_namespace": "nsm-system",
-		"dst_pod":       "icmp-responder-nse-59c456b6d8-c7nc5",
-		"dst_namespace": "nsm-system",
+		"src_pod_name":      "icmp-responder-nsc-6475749466-qbcq5",
+		"src_pod_namespace": "nsm-system",
+		"dst_pod_name":      "icmp-responder-nse-59c456b6d8-c7nc5",
+		"dst_pod_namespace": "nsm-system",
 	}
 
-	if metricsIdentifiers["src_pod"] != expectedMetricsIdentifiers["src_pod"] ||
-		metricsIdentifiers["dst_pod"] != expectedMetricsIdentifiers["dst_pod"] ||
-		metricsIdentifiers["src_namespace"] != expectedMetricsIdentifiers["src_namespace"] ||
-		metricsIdentifiers["dst_namespace"] != expectedMetricsIdentifiers["dst_namespace"] {
+	if metricsIdentifiers["src_pod_name"] != expectedMetricsIdentifiers["src_pod_name"] ||
+		metricsIdentifiers["dst_pod_name"] != expectedMetricsIdentifiers["dst_pod_name"] ||
+		metricsIdentifiers["src_pod_namespace"] != expectedMetricsIdentifiers["src_pod_namespace"] ||
+		metricsIdentifiers["dst_pod_namespace"] != expectedMetricsIdentifiers["dst_pod_namespace"] || ccID != cc.Id {
 		t.Fatalf("failed to correct metrics identifier from crossconnect: want: %v, got: %v",
 			expectedMetricsIdentifiers, metricsIdentifiers)
 	}

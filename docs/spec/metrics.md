@@ -31,6 +31,15 @@ If you want to track the metrics in Prometheus, you need to apply analogically
 PROMETHEUS=true
 ```
 
+For custom implemented endpoints, you need to wrap the endpoint with pod name mutator in order to make the endpoint pod name visible for the cross-connect monitor, which is responsible for exposing the metrics to Prometheus:
+```
+podName := endpoint.CreatePodNameMutator()
+composite := endpoint.NewCompositeEndpoint(
+	...,
+	endpoint.NewCustomFuncEndpoint("podName", podName),
+)
+```
+
 Port-forward the prometheus-server pod to observe metrics for pod to pod connection:
 ```
 export POD_NAME=$(kubectl get pods --namespace nsm-system -l "app=prometheus-server" -o jsonpath="{.items[0].metadata.name}")
