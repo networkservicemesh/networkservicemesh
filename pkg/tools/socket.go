@@ -186,7 +186,8 @@ func (b *dialBuilder) DialContextFunc() dialContextFunc {
 			opts = append(opts, grpc.WithInsecure())
 		}
 
-		b.opts = append(b.opts, grpc.WithBlock())
+		//b.opts = append(b.opts, grpc.WithBlock())
+		b.opts = append(b.opts, grpc.WithDefaultCallOptions(grpc.WaitForReady(true)))
 
 		if b.t != 0 {
 			var cancel context.CancelFunc
