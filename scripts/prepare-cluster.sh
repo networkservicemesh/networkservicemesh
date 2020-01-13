@@ -8,7 +8,6 @@ function prepare() {
   make k8s-config
   make helm-init
   make spire-install
-  make spire-wait-registration
 }
 
 # workaround for https://github.com/helm/helm/issues/6361:
