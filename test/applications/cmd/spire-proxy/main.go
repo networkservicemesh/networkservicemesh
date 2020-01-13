@@ -2,15 +2,14 @@ package main
 
 import (
 	"context"
+	"github.com/networkservicemesh/networkservicemesh/pkg/security"
+	"google.golang.org/grpc/metadata"
 	"net"
 
 	"github.com/pkg/errors"
 
-	"github.com/networkservicemesh/networkservicemesh/pkg/security"
-
 	"github.com/sirupsen/logrus"
-	"github.com/spiffe/spire/api/workload"
-	proto "github.com/spiffe/spire/proto/spire/api/workload"
+	proto "github.com/spiffe/go-spiffe/proto/spiffe/workload"
 	"google.golang.org/grpc"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
@@ -18,26 +17,20 @@ import (
 )
 
 type spireProxy struct {
-	workloadAPIClient workload.X509Client
+	workloadAPIClient proto.SpiffeWorkloadAPIClient
 }
 
-func newSpireProxy() *spireProxy {
-	workloadAPIClient := workload.NewX509Client(
-		&workload.X509ClientConfig{
-			Addr: &net.UnixAddr{Net: "unix", Name: security.SpireAgentUnixSocket},
-			Log:  logrus.StandardLogger(),
-		})
+func newSpireProxy() (*spireProxy, error) {
+	cc, err := tools.DialUnixInsecure(security.SpireAgentUnixSocket)
+	if err != nil {
+		logrus.Error(err)
+		return nil, err
+	}
 
-	go func() {
-		if err := workloadAPIClient.Start(); err != nil {
-			logrus.Error(err)
-			return
-		}
-	}()
-
+	workloadAPIClient := proto.NewSpiffeWorkloadAPIClient(cc)
 	return &spireProxy{
 		workloadAPIClient: workloadAPIClient,
-	}
+	}, nil
 }
 
 func (sp *spireProxy) FetchJWTSVID(context.Context, *proto.JWTSVIDRequest) (*proto.JWTSVIDResponse, error) {
@@ -53,21 +46,52 @@ func (sp *spireProxy) ValidateJWTSVID(context.Context, *proto.ValidateJWTSVIDReq
 }
 
 func (sp *spireProxy) FetchX509SVID(request *proto.X509SVIDRequest, stream proto.SpiffeWorkloadAPI_FetchX509SVIDServer) error {
-	for r := range sp.workloadAPIClient.UpdateChan() {
-		err := stream.Send(r)
+	logrus.Info("FetchX509SVID called...")
+
+	header := metadata.Pairs("workload.spiffe.io", "true")
+	grpcCtx := metadata.NewOutgoingContext(stream.Context(), header)
+
+	c, err := sp.workloadAPIClient.FetchX509SVID(grpcCtx, request)
+	if err != nil {
+		logrus.Error(err)
+		return err
+	}
+
+	for {
+		if err := stream.Context().Err(); err != nil {
+			logrus.Error(err)
+			return err
+		}
+
+		msg, err := c.Recv()
 		if err != nil {
 			logrus.Error(err)
 			return err
 		}
+
+		logrus.Infof("recv msg: %v", msg)
+
+		if err := stream.Send(msg); err != nil {
+			logrus.Error(err)
+			return err
+		}
+
+		logrus.Infof("sent msg: %v", msg)
 	}
-	return nil
 }
 
 func main() {
+	logrus.Infof("Spire Proxy started...")
 	utils.PrintAllEnv(logrus.StandardLogger())
 	c := tools.NewOSSignalChannel()
 	srv := grpc.NewServer()
-	proto.RegisterSpiffeWorkloadAPIServer(srv, newSpireProxy())
+
+	proxy, err := newSpireProxy()
+	if err != nil {
+		logrus.Fatal(err)
+	}
+
+	proto.RegisterSpiffeWorkloadAPIServer(srv, proxy)
 
 	ln, err := net.Listen("tcp", "127.0.0.1:7001")
 	if err != nil {

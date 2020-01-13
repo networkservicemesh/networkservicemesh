@@ -22,7 +22,8 @@ require (
 	github.com/prometheus/client_golang v1.0.0
 	github.com/sirupsen/logrus v1.4.2
 	github.com/spf13/viper v1.5.0
-	github.com/spiffe/spire v0.0.0-20190515205011-c8123525fba8
+	github.com/spiffe/go-spiffe v0.0.0-20191104192205-d29ac0a1ba99
+	github.com/spiffe/spire v0.0.0-20200106211611-19b4f3d7443d
 	google.golang.org/grpc v1.26.0
 	gopkg.in/yaml.v2 v2.2.4
 	k8s.io/api v0.0.0
