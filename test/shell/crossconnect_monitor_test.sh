@@ -4,7 +4,8 @@
 make k8s-deconfig
 
 make helm-install-nsm || exit $?
-make helm-install-icmp-responder || exit $?
+make helm-install-endpoint || exit $?
+make helm-install-client || exit $?
 make helm-install-crossconnect-monitor || exit $?
 
 make k8s-crossconnect-monitor-check || exit $?

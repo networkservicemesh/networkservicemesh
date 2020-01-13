@@ -1,6 +1,0 @@
----
-apiVersion: v1
-appVersion: "0.2.0"
-description: Endpoints and Clients for ICMP Responder Example
-name: icmp-responder
-version: 0.2.0

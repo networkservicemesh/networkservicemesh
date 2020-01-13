@@ -19,6 +19,9 @@ WORKER_COUNT ?= 1
 # Set a default forwarding plane
 FORWARDING_PLANE ?= vpp
 
+# Set a default network service for Example clients
+NETWORK_SERVICE ?= icmp-responder
+
 # Default target, no other targets should be before default
 .PHONY: default
 default: all

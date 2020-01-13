@@ -9,7 +9,7 @@ We call this case the 'icmp-responder' example, because it allows the client to 
 Utilize the [Run](../guide-quickstart.md) instructions to install the NSM infrastructure, and then type:
 
 ```bash
-make helm-install-icmp-responder
+make helm-install-endpoint helm-install-client
 ```
 
 ## What it Does

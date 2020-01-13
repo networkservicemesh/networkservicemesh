@@ -34,7 +34,7 @@ After installation of NSM on cluster you can install examples to check correctne
 
 Install simple NSC and icmp-responder:
 ```bash
-$ make helm-install-icmp-responder
+$ make helm-install-endpoint helm-install-client
 ```
 
 Install vppagent-nsc and vppagent-icmp-responder:

@@ -53,7 +53,7 @@ make helm-install-nsm                                        # install the nsm i
 ## Run
 * [icmp-responder](examples/icmp-responder.md) - A simple example that connects an App Pod Client to a Network Service.  
 ```bash
-make helm-install-icmp-responder
+make helm-install-endpoint helm-install-client
 ```
 * [vpp-icmp-responder](examples/vpp-icmp-example.md) - A simple example that connects a vpp based Pod to a Network Service using memif.  
 ```bash
