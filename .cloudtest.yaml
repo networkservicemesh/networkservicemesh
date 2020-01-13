@@ -33,6 +33,7 @@ health-check:
       ./.circleci/check_repo_uptodated.sh
 executions:
   - name: "Single cluster tests"
+    only-run: disable-all
     env:
       - STORE_POD_LOGS_IN_FILES=true
       - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)
@@ -84,6 +85,7 @@ executions:
       make k8s-delete-nsm-namespaces
 
   - name: "Interdomain tests gke-packet"
+    only-run: disable-all
     env:
       - STORE_POD_LOGS_IN_FILES=true
       - USE_JAEGER_SERVICE=true
