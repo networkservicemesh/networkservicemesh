@@ -130,9 +130,14 @@ make helm-install-vpn
 
 Both of the examples can be verified by running a simple check:
 
-```bash
-make k8s-check
-```
+* _icmp-responder_
+    ```bash
+    make k8s-icmp-check
+    ```
+* _vpn_  
+    ```bash
+    make k8s-vpn-check
+    ```
 
 * For ICMP you should see ping succeeding as below:
 

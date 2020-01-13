@@ -47,6 +47,7 @@ executions:
       - KUBECONFIG
     on_fail: |
       make k8s-delete-nsm-namespaces
+
   - name: "Benchmark tests"
     env:
       - STORE_POD_LOGS_IN_FILES=true
@@ -81,6 +82,7 @@ executions:
       - KUBECONFIG_CLUSTER_2
     on_fail: |
       make k8s-delete-nsm-namespaces
+
   - name: "Interdomain tests gke-packet"
     env:
       - STORE_POD_LOGS_IN_FILES=true
@@ -99,6 +101,7 @@ executions:
       - KUBECONFIG_CLUSTER_2
     on_fail: |
       make k8s-delete-nsm-namespaces
+
   - name: "Interdomain tests azure-gke"
     env:
       - STORE_POD_LOGS_IN_FILES=true
@@ -117,6 +120,7 @@ executions:
       - KUBECONFIG_CLUSTER_2
     on_fail: |
       make k8s-delete-nsm-namespaces
+
   - name: "Interdomain tests aws-azure"
     env:
       - STORE_POD_LOGS_IN_FILES=true
@@ -162,7 +166,9 @@ executions:
     kubernetes-env:
       - KUBECONFIG
     run: |
-      scripts/helm-test-charts.sh nsm vpn
+      test/shell/vpn_test.sh
+    on_fail: |
+      test/shell/on_fail.sh
 
   - name: "Example-helm-icmp"
     kind: shell
@@ -176,7 +182,9 @@ executions:
     kubernetes-env:
       - KUBECONFIG
     run: |
-      scripts/helm-test-charts.sh nsm icmp-responder
+      test/shell/icmp_test.sh
+    on_fail: |
+      test/shell/on_fail.sh
 
   - name: "Example-helm-icmp kernel-forwarder"
     kind: shell
@@ -191,7 +199,9 @@ executions:
     kubernetes-env:
       - KUBECONFIG
     run: |
-      scripts/helm-test-charts.sh nsm icmp-responder
+      test/shell/icmp_test.sh
+    on_fail: |
+      test/shell/on_fail.sh
 
   - name: "Example-helm-crossconnect-monitor"
     kind: shell
@@ -202,8 +212,9 @@ executions:
       - STORE_POD_LOGS_IN_FILES=true
       - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/crossconnect-monitor-example
       - SPIRE_ENABLED=false  # because spire is already installed
-      - CHECK_CMD=scripts/verify_crossconnect_monitor.sh
     kubernetes-env:
       - KUBECONFIG
     run: |
-      scripts/helm-test-charts.sh nsm icmp-responder crossconnect-monitor
+      test/shell/crossconnect_monitor_test.sh
+    on_fail: |
+      test/shell/on_fail.sh
