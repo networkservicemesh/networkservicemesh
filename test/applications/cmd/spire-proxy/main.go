@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
-	"github.com/networkservicemesh/networkservicemesh/pkg/security"
-	"google.golang.org/grpc/metadata"
 	"net"
+
+	"google.golang.org/grpc/metadata"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/security"
 
 	"github.com/pkg/errors"
 
