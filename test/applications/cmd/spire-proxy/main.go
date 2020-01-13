@@ -18,6 +18,7 @@ import (
 
 type spireProxy struct {
 	workloadAPIClient proto.SpiffeWorkloadAPIClient
+	closeFunc         func() error
 }
 
 func newSpireProxy() (*spireProxy, error) {
@@ -30,7 +31,12 @@ func newSpireProxy() (*spireProxy, error) {
 	workloadAPIClient := proto.NewSpiffeWorkloadAPIClient(cc)
 	return &spireProxy{
 		workloadAPIClient: workloadAPIClient,
+		closeFunc:         func() error { return cc.Close() },
 	}, nil
+}
+
+func (sp *spireProxy) Close() error {
+	return sp.closeFunc()
 }
 
 func (sp *spireProxy) FetchJWTSVID(context.Context, *proto.JWTSVIDRequest) (*proto.JWTSVIDResponse, error) {
@@ -90,6 +96,7 @@ func main() {
 	if err != nil {
 		logrus.Fatal(err)
 	}
+	defer func() { _ = proxy.Close() }()
 
 	proto.RegisterSpiffeWorkloadAPIServer(srv, proxy)
 

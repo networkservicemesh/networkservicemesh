@@ -23,12 +23,14 @@ require (
 	github.com/sirupsen/logrus v1.4.2
 	github.com/spf13/viper v1.5.0
 	github.com/spiffe/go-spiffe v0.0.0-20191104192205-d29ac0a1ba99
-	github.com/spiffe/spire v0.0.0-20200106211611-19b4f3d7443d
+	github.com/stretchr/testify v1.4.0 // indirect
+	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550 // indirect
 	google.golang.org/grpc v1.26.0
 	gopkg.in/yaml.v2 v2.2.4
 	k8s.io/api v0.0.0
 	k8s.io/apimachinery v0.0.0
 	k8s.io/client-go v11.0.0+incompatible
+	k8s.io/klog v1.0.0 // indirect
 	k8s.io/kubernetes v1.16.3
 )
 
