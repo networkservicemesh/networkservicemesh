@@ -6,8 +6,9 @@ import (
 	"strings"
 
 	vppacl "github.com/ligato/vpp-agent/api/models/vpp/acl"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/pkg/errors"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
 const (

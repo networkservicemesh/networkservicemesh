@@ -3,6 +3,8 @@ package test
 import (
 	"testing"
 
+	"github.com/networkservicemesh/networkservicemesh/new/sdk/crossapi/chains/endpoint"
+	"github.com/networkservicemesh/networkservicemesh/new/sdk/networkservicemesh/common/authorize"
 	"github.com/networkservicemesh/networkservicemesh/new/sdk/networkservicemesh/common/heal"
 	"github.com/networkservicemesh/networkservicemesh/new/sdk/networkservicemesh/common/refresh"
 	"github.com/networkservicemesh/networkservicemesh/new/sdk/networkservicemesh/common/setid"

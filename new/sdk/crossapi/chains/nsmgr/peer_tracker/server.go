@@ -6,11 +6,12 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
+	"google.golang.org/grpc/peer"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/new/sdk/crossapi/chains/nsmgr"
 	"github.com/networkservicemesh/networkservicemesh/new/sdk/tools/serialize"
-	"google.golang.org/grpc/peer"
 )
 
 type peerTrackerServer struct {

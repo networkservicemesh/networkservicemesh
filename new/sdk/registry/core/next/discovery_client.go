@@ -3,8 +3,9 @@ package next
 import (
 	"context"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	"google.golang.org/grpc"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 )
 
 type DiscoveryClientWrapper func(client registry.NetworkServiceDiscoveryClient) registry.NetworkServiceDiscoveryClient

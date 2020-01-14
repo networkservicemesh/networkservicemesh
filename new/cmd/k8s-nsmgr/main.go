@@ -5,12 +5,13 @@ import (
 	"net/url"
 	"path"
 
-	"github.com/networkservicemesh/networkservicemesh/new/cmd/k8s-nsmgr/pkg/deviceplugin"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	pluginapi "k8s.io/kubernetes/pkg/kubelet/apis/deviceplugin/v1beta1"
+
+	"github.com/networkservicemesh/networkservicemesh/new/cmd/k8s-nsmgr/pkg/deviceplugin"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
 )
 
 var version string

@@ -6,13 +6,14 @@ import (
 	"sync"
 
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/pkg/errors"
+	"google.golang.org/grpc"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/new/sdk/networkservicemesh/common/client_url"
 	"github.com/networkservicemesh/networkservicemesh/new/sdk/networkservicemesh/core/next"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-	"github.com/pkg/errors"
-	"google.golang.org/grpc"
 )
 
 type connectServer struct {

@@ -1,6 +1,8 @@
 package nsmgr
 
 import (
+	"google.golang.org/grpc"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	"github.com/networkservicemesh/networkservicemesh/new/sdk/crossapi/chains/client"
 	"github.com/networkservicemesh/networkservicemesh/new/sdk/crossapi/chains/endpoint"
@@ -11,7 +13,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/new/sdk/networkservicemesh/core/adapters"
 	adapter_registry "github.com/networkservicemesh/networkservicemesh/new/sdk/registry/core/adapters"
 	chain_registry "github.com/networkservicemesh/networkservicemesh/new/sdk/registry/core/chain"
-	"google.golang.org/grpc"
 )
 
 type Nsmgr interface {

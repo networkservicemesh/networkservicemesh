@@ -5,9 +5,10 @@ import (
 	"net/url"
 
 	"github.com/golang/protobuf/ptypes/empty"
+	"google.golang.org/grpc/peer"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	"github.com/networkservicemesh/networkservicemesh/new/sdk/registry/core/next"
-	"google.golang.org/grpc/peer"
 )
 
 type localRegistry struct {

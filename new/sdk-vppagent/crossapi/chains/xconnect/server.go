@@ -3,6 +3,8 @@ package xconnect
 import (
 	"net/url"
 
+	"google.golang.org/grpc"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/new/sdk-vppagent/networkservicemesh/commit"
 	"github.com/networkservicemesh/networkservicemesh/new/sdk-vppagent/networkservicemesh/mechanisms/mechanism_kernel"
@@ -18,7 +20,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/new/sdk/networkservicemesh/common/connect"
 	"github.com/networkservicemesh/networkservicemesh/new/sdk/networkservicemesh/copy_client_connection_context"
 	"github.com/networkservicemesh/networkservicemesh/new/sdk/networkservicemesh/core/adapters"
-	"google.golang.org/grpc"
 )
 
 type xconnectServer struct {

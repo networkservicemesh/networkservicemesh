@@ -6,14 +6,15 @@ import (
 	"net/url"
 	"strconv"
 
+	"google.golang.org/grpc"
+	pluginapi "k8s.io/kubernetes/pkg/kubelet/apis/deviceplugin/v1beta1"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/new/sdk/crossapi/chains/nsmgr"
 	"github.com/networkservicemesh/networkservicemesh/new/sdk/crossapi/chains/nsmgr/peer_tracker"
 	"github.com/networkservicemesh/networkservicemesh/new/sdk/tools/serialize"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
-	"google.golang.org/grpc"
-	pluginapi "k8s.io/kubernetes/pkg/kubelet/apis/deviceplugin/v1beta1"
 )
 
 type NsmDevicePluginServer interface {

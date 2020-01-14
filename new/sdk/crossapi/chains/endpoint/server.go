@@ -1,6 +1,8 @@
 package endpoint
 
 import (
+	"google.golang.org/grpc"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/new/sdk/networkservicemesh/common/authorize"
@@ -9,7 +11,6 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/new/sdk/networkservicemesh/common/timeout"
 	"github.com/networkservicemesh/networkservicemesh/new/sdk/networkservicemesh/common/update_path"
 	"github.com/networkservicemesh/networkservicemesh/new/sdk/networkservicemesh/core/chain"
-	"google.golang.org/grpc"
 )
 
 type Endpoint interface {

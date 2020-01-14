@@ -6,12 +6,13 @@ import (
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/pkg/errors"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/new/sdk/networkservicemesh/core/next"
 	"github.com/networkservicemesh/networkservicemesh/new/sdk/tools/extended_context"
 	"github.com/networkservicemesh/networkservicemesh/new/sdk/tools/serialize"
-	"github.com/pkg/errors"
 )
 
 type timeoutServer struct {

@@ -6,11 +6,12 @@ import (
 	linux_interfaces "github.com/ligato/vpp-agent/api/models/linux/interfaces"
 	linux_namespace "github.com/ligato/vpp-agent/api/models/linux/namespace"
 	vpp_interfaces "github.com/ligato/vpp-agent/api/models/vpp/interfaces"
+	"github.com/sirupsen/logrus"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
 	"github.com/networkservicemesh/networkservicemesh/new/sdk-vppagent/networkservicemesh/vppagent"
-	"github.com/sirupsen/logrus"
 )
 
 const (

@@ -5,12 +5,13 @@ import (
 	"net/url"
 
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/pkg/errors"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/new/sdk/networkservicemesh/common/client_url"
 	"github.com/networkservicemesh/networkservicemesh/new/sdk/networkservicemesh/common/discover_candidates"
 	"github.com/networkservicemesh/networkservicemesh/new/sdk/networkservicemesh/core/next"
-	"github.com/pkg/errors"
 )
 
 type selectEndpointServer struct {
