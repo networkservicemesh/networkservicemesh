@@ -71,13 +71,14 @@ func (f *healClient) recvEvent() {
 			event = nil
 		}
 		f.updateExecutor.Exec(func() {
-			if event.GetType() == connection.ConnectionEventType_INITIAL_STATE_TRANSFER {
+			switch {
+			case event.GetType() == connection.ConnectionEventType_INITIAL_STATE_TRANSFER:
 				f.reported = event.GetConnections()
-			} else if event.Type == connection.ConnectionEventType_UPDATE {
+			case event.Type == connection.ConnectionEventType_UPDATE:
 				for _, conn := range event.GetConnections() {
 					f.reported[conn.GetId()] = conn
 				}
-			} else if event.GetType() == connection.ConnectionEventType_DELETE {
+			case event.GetType() == connection.ConnectionEventType_DELETE:
 				for _, conn := range event.GetConnections() {
 					delete(f.reported, conn.GetId())
 					if f.requestors[conn.GetId()] != nil {
