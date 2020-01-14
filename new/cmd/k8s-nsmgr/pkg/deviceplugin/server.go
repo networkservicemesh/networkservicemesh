@@ -56,18 +56,17 @@ func (n *nsmgrDevicePlugin) ListAndWatch(e *pluginapi.Empty, s pluginapi.DeviceP
 			listAndWatchListener.Send(listAndWatchResponse)
 		}
 	})
-	select {
-	case <-s.Context().Done():
-		n.executor.Exec(func() {
-			var listAndWatchListeners []pluginapi.DevicePlugin_ListAndWatchServer
-			for _, listAndWatchListener := range n.listAndWatchListeners {
-				if listAndWatchListener != s {
-					listAndWatchListeners = append(listAndWatchListeners, listAndWatchListener)
-				}
+
+	<-s.Context().Done()
+	n.executor.Exec(func() {
+		var listAndWatchListeners []pluginapi.DevicePlugin_ListAndWatchServer
+		for _, listAndWatchListener := range n.listAndWatchListeners {
+			if listAndWatchListener != s {
+				listAndWatchListeners = append(listAndWatchListeners, listAndWatchListener)
 			}
-		})
-		return nil
-	}
+		}
+	})
+	return nil
 }
 
 func (n *nsmgrDevicePlugin) Allocate(ctx context.Context, reqs *pluginapi.AllocateRequest) (*pluginapi.AllocateResponse, error) {
