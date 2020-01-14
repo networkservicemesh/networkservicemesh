@@ -139,7 +139,7 @@ func DialTCPInsecure(address string, opts ...grpc.DialOption) (*grpc.ClientConn,
 }
 
 func DialUrl(u *url.URL, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
-	if u.Scheme == "file" {
+	if u.Scheme == "unix" {
 		return DialUnix(u.Path, opts...)
 	}
 	return DialTCP(u.Host, opts...)
