@@ -30,7 +30,7 @@ func NewRemoteNetworkServiceServer(manager nsm.NetworkServiceManager, connection
 		NewForwarderService(manager.Model(), manager.ServiceRegistry()),
 		NewEndpointSelectorService(manager.NseManager(), manager.Model()),
 		common.NewExcludedPrefixesService(),
-		NewEndpointService(manager.NseManager(), manager.GetHealProperties(), manager.Model()),
+		common.NewEndpointService(manager.NseManager(), manager.GetHealProperties(), manager.Model(), common.NewRemoteRequestBuilder(manager.Model())),
 		common.NewCrossConnectService(),
 	)
 }
