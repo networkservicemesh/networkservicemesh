@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -37,7 +38,7 @@ const (
 )
 
 func parse(path string) (common.RegistrationEntries, error) {
-	f, err := os.Open(path)
+	f, err := os.Open(filepath.Clean(path))
 	if err != nil {
 		return common.RegistrationEntries{}, err
 	}
@@ -87,7 +88,8 @@ func main() {
 	}
 
 	client := registration.NewRegistrationClient(serverConn)
-	if err := cleanup(context.Background(), client); err != nil {
+	err = cleanup(context.Background(), client)
+	if err != nil {
 		logrus.Error(err)
 		return
 	}
