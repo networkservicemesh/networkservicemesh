@@ -429,11 +429,11 @@ func NewK8s(g *WithT, prepare bool) (*K8s, error) {
 		return client, err
 	}
 	err = waitFor(accountWaitTimeout, func() bool {
-		_, err := client.clientset.RbacV1().ClusterRoles().Get(pods.DefaultKubeletAdminClusterRole, metaV1.GetOptions{})
-		if err != nil {
-			logrus.Errorf("Get cluster role err: %v", err)
+		_, getErr := client.clientset.RbacV1().ClusterRoles().Get(pods.DefaultKubeletAdminClusterRole, metaV1.GetOptions{})
+		if getErr != nil {
+			logrus.Errorf("Get cluster role err: %v", getErr)
 		}
-		return err == nil
+		return getErr == nil
 	})
 	g.Expect(err).Should(BeNil())
 	var wg sync.WaitGroup
