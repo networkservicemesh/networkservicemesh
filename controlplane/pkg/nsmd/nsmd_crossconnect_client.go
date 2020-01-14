@@ -308,7 +308,7 @@ func (client *NsmMonitorCrossConnectClient) connectToEndpoint(endpoint *model.En
 	var err error
 
 	for st := time.Now(); time.Since(st) < endpointConnectionTimeout; <-time.After(100 * time.Millisecond) {
-		if conn, err = tools.DialUnix(endpoint.SocketLocation); err == nil {
+		if conn, err = tools.DialUnix(endpoint.SocketLocation, grpc.WithBlock()); err == nil {
 			break
 		}
 	}
@@ -355,7 +355,7 @@ func (client *NsmMonitorCrossConnectClient) forwarderCrossConnectMonitor(ctx con
 	span.Logger().Infof("Starting Forwarder crossconnect monitoring client...")
 	grpcConnectionSupplier := func() (*grpc.ClientConn, error) {
 		logrus.Infof(forwarderLogWithParamFormat, forwarder.RegisteredName, "Connecting to", forwarder.SocketLocation)
-		return tools.DialContextUnix(span.Context(), forwarder.SocketLocation)
+		return tools.DialContextUnix(span.Context(), forwarder.SocketLocation, grpc.WithBlock())
 	}
 
 	eventHandler := func(event monitor.Event, parameters map[string]string) error {
