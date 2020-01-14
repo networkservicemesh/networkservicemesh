@@ -46,7 +46,7 @@ func NewServer(name string, insecure bool, registryCC *grpc.ClientConn) NsmDevic
 }
 
 func (n *nsmgrDevicePlugin) ListAndWatch(e *pluginapi.Empty, s pluginapi.DevicePlugin_ListAndWatchServer) error {
-	n.executor.Exec(func() {
+	n.executor.AsyncExec(func() {
 		n.listAndWatchListeners = append(n.listAndWatchListeners, s)
 		listAndWatchResponse := &pluginapi.ListAndWatchResponse{}
 		for _, device := range n.devices {
@@ -58,7 +58,7 @@ func (n *nsmgrDevicePlugin) ListAndWatch(e *pluginapi.Empty, s pluginapi.DeviceP
 	})
 
 	<-s.Context().Done()
-	n.executor.Exec(func() {
+	n.executor.AsyncExec(func() {
 		var listAndWatchListeners []pluginapi.DevicePlugin_ListAndWatchServer
 		for _, listAndWatchListener := range n.listAndWatchListeners {
 			if listAndWatchListener != s {
@@ -105,7 +105,7 @@ func (n *nsmgrDevicePlugin) Allocate(ctx context.Context, reqs *pluginapi.Alloca
 				Mounts: mounts,
 			}
 			containerResponses = append(containerResponses, containerResponse)
-			n.executor.Exec(func() {
+			n.executor.AsyncExec(func() {
 				n.allocatedDevices[deviceid] = n.devices[deviceid]
 			})
 		}
@@ -123,7 +123,7 @@ func (n *nsmgrDevicePlugin) GetDevicePluginOptions(context.Context, *pluginapi.E
 }
 
 func (n *nsmgrDevicePlugin) resizeDevicePool() {
-	n.executor.Exec(func() {
+	n.executor.AsyncExec(func() {
 		for len(n.devices)-len(n.allocatedDevices) < DeviceBuffer {
 			device := &pluginapi.Device{
 				ID:     "nsm-" + string(len(n.devices)),

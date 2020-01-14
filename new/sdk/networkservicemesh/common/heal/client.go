@@ -40,7 +40,7 @@ func NewClient(client connection.MonitorConnectionClient, onHeal ...networkservi
 	}
 	rv.onHeal = append(rv.onHeal, rv)
 	runtime.SetFinalizer(rv, func(f *healClient) {
-		f.updateExecutor.Exec(func() {
+		f.updateExecutor.AsyncExec(func() {
 			if f.cancelFunc != nil {
 				f.cancelFunc()
 			}
@@ -70,7 +70,7 @@ func (f *healClient) recvEvent() {
 		if err != nil {
 			event = nil
 		}
-		f.updateExecutor.Exec(func() {
+		f.updateExecutor.AsyncExec(func() {
 			switch {
 			case event.GetType() == connection.ConnectionEventType_INITIAL_STATE_TRANSFER:
 				f.reported = event.GetConnections()
@@ -93,7 +93,7 @@ func (f *healClient) recvEvent() {
 			}
 		})
 	}
-	f.recvEventExecutor.Exec(f.recvEvent)
+	f.recvEventExecutor.AsyncExec(f.recvEvent)
 }
 
 func (f *healClient) Request(ctx context.Context, request *networkservice.NetworkServiceRequest, opts ...grpc.CallOption) (*connection.Connection, error) {
@@ -108,7 +108,7 @@ func (f *healClient) Request(ctx context.Context, request *networkservice.Networ
 
 	if f.recvEventExecutor == nil {
 		f.recvEventExecutor = serialize.NewExecutor()
-		f.recvEventExecutor.Exec(f.recvEvent)
+		f.recvEventExecutor.AsyncExec(f.recvEvent)
 	}
 	// TODO handle deadline err
 	deadline, _ := ctx.Deadline()
@@ -137,7 +137,7 @@ func (f *healClient) Close(ctx context.Context, conn *connection.Connection, opt
 	if err != nil {
 		return nil, errors.Wrap(err, "Error calling next")
 	}
-	f.updateExecutor.Exec(func() {
+	f.updateExecutor.AsyncExec(func() {
 		delete(f.requestors, conn.GetId())
 	})
 	return rv, nil

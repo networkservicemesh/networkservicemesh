@@ -43,7 +43,7 @@ func (p *peerTrackerServer) Request(ctx context.Context, request *networkservice
 				Scheme: mypeer.Addr.Network(),
 				Path:   mypeer.Addr.String(),
 			}
-			p.executor.Exec(func() {
+			p.executor.AsyncExec(func() {
 				_, ok := p.connections[u.String()]
 				if !ok {
 					p.connections[u.String()] = make(map[string]*connection.Connection)
@@ -67,7 +67,7 @@ func (p *peerTrackerServer) Close(ctx context.Context, conn *connection.Connecti
 				Scheme: mypeer.Addr.Network(),
 				Path:   mypeer.Addr.String(),
 			}
-			p.executor.Exec(func() {
+			p.executor.AsyncExec(func() {
 				delete(p.connections[u.String()], conn.GetId())
 			})
 		}
@@ -77,7 +77,7 @@ func (p *peerTrackerServer) Close(ctx context.Context, conn *connection.Connecti
 
 func (p *peerTrackerServer) CloseAllConnectionsForPeer(u *url.URL) {
 	finishedChan := make(chan struct{})
-	p.executor.Exec(func() {
+	p.executor.AsyncExec(func() {
 		if connMap, ok := p.connections[u.String()]; ok {
 			for _, conn := range connMap {
 				// TODO - we probably want to do something smarter here with context

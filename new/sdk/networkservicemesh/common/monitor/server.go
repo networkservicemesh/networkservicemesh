@@ -33,7 +33,7 @@ func NewServer(monitorServerPtr *connection.MonitorConnectionServer) networkserv
 }
 
 func (m *monitorServer) MonitorConnections(selector *connection.MonitorScopeSelector, srv connection.MonitorConnection_MonitorConnectionsServer) error {
-	m.executor.Exec(func() {
+	m.executor.AsyncExec(func() {
 		monitor := newMonitorFilter(selector, srv)
 		m.monitors = append(m.monitors, monitor)
 		_ = monitor.Send(&connection.ConnectionEvent{
@@ -51,7 +51,7 @@ func (m *monitorServer) MonitorConnections(selector *connection.MonitorScopeSele
 func (m *monitorServer) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
 	conn, err := next.Server(ctx).Request(ctx, request)
 	if err == nil {
-		m.executor.Exec(func() {
+		m.executor.AsyncExec(func() {
 			m.connections[conn.GetId()] = conn
 			event := &connection.ConnectionEvent{
 				Type:        connection.ConnectionEventType_UPDATE,
@@ -64,7 +64,7 @@ func (m *monitorServer) Request(ctx context.Context, request *networkservice.Net
 }
 
 func (m *monitorServer) Close(ctx context.Context, conn *connection.Connection) (*empty.Empty, error) {
-	m.executor.Exec(func() {
+	m.executor.AsyncExec(func() {
 		delete(m.connections, conn.GetId())
 		event := &connection.ConnectionEvent{
 			Type:        connection.ConnectionEventType_DELETE,

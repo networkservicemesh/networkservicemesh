@@ -3,7 +3,8 @@ package serialize
 import "runtime"
 
 type Executor interface {
-	Exec(func())
+	AsyncExec(func())
+	SyncExec(func())
 }
 
 type executor struct {
@@ -34,6 +35,15 @@ func (t *executor) eventLoop() {
 	}
 }
 
-func (t *executor) Exec(exec func()) {
+func (t *executor) AsyncExec(exec func()) {
 	t.execCh <- exec
+}
+
+func (t *executor) SyncExec(exec func()) {
+	done := make(chan struct{})
+	t.execCh <- func() {
+		exec()
+		close(done)
+	}
+	<-done
 }
