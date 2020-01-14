@@ -39,10 +39,10 @@ func (d *monitorConnectionFilter) Send(in *connection.ConnectionEvent) error {
 		Connections: make(map[string]*connection.Connection),
 	}
 	for key, value := range in.GetConnections() {
-		if len(d.selector.NetworkServiceManagers) > 0 && value.GetSourceNetworkServiceManagerName() == d.selector.NetworkServiceManagers[0] {
+		if len(d.selector.GetPathSegments()) > 0 && value.GetSourceNetworkServiceManagerName() == d.selector.GetPathSegments()[0].GetName() {
 			out.Connections[key] = value
 		}
-		if len(d.selector.NetworkServiceManagers) > 1 && value.GetDestinationNetworkServiceManagerName() == d.selector.NetworkServiceManagers[1] {
+		if len(d.selector.GetPathSegments()) > 1 && value.GetDestinationNetworkServiceManagerName() == d.selector.GetPathSegments()[1].GetName() {
 			out.Connections[key] = value
 		}
 	}

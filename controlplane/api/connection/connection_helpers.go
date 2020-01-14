@@ -125,7 +125,7 @@ func (c *Connection) MatchesMonitorScopeSelector(selector *MonitorScopeSelector)
 		return false
 	}
 	// Note: Empty selector always matches a non-nil Connection
-	if len(selector.NetworkServiceManagers) == 0 {
+	if len(selector.GetPathSegments()) == 0 {
 		return true
 	}
 	// Iterate through the Connection.NetworkServiceManagers array looking for a subarray that matches
@@ -134,20 +134,20 @@ func (c *Connection) MatchesMonitorScopeSelector(selector *MonitorScopeSelector)
 	for i := range c.GetPath().GetPathSegments() {
 		// If there aren't enough elements left in the Connection.NetworkServiceManagers array to match
 		// all of the elements in the select.NetworkServiceManager array...clearly we can't match
-		if i+len(selector.NetworkServiceManagers) > len(c.GetPath().GetPathSegments()) {
+		if i+len(selector.GetPathSegments()) > len(c.GetPath().GetPathSegments()) {
 			return false
 		}
 		// Iterate through the selector.NetworkServiceManagers array to see is the subarray starting at
 		// Connection.NetworkServiceManagers[i] matches selector.NetworkServiceManagers
-		for j := range selector.NetworkServiceManagers {
+		for j := range selector.GetPathSegments() {
 			// "" matches as a wildcard... failure to match either as wildcard or exact match means the subarray
 			// starting at Connection.NetworkServiceManagers[i] doesn't match selectors.NetworkServiceManagers
-			if selector.NetworkServiceManagers[j] != "" && c.GetPath().GetPathSegments()[i+j].GetName() != selector.NetworkServiceManagers[j] {
+			if selector.GetPathSegments()[j].GetName() != "" && c.GetPath().GetPathSegments()[i+j].GetName() != selector.GetPathSegments()[j].GetName() {
 				break
 			}
 			// If this is the last element in the selector.NetworkServiceManagers array and we still are matching...
 			// return true
-			if j == len(selector.NetworkServiceManagers)-1 {
+			if j == len(selector.GetPathSegments())-1 {
 				return true
 			}
 		}

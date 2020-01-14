@@ -378,10 +378,10 @@ func (m *ClientConnectionManager) GetClientConnectionBySource(networkServiceMana
 }
 
 // UpdateRemoteMonitorDone - update remote monitor connection lost
-func (m *ClientConnectionManager) UpdateRemoteMonitorDone(networkServiceManagers []string) {
+func (m *ClientConnectionManager) UpdateRemoteMonitorDone(networkServiceManagers []*connection.PathSegment) {
 	// We need to be sure there is no active connections from selected Remote NSM.
 	if len(networkServiceManagers) >= 1 {
-		for _, conn := range m.GetClientConnectionBySource(networkServiceManagers[0]) {
+		for _, conn := range m.GetClientConnectionBySource(networkServiceManagers[0].GetName()) {
 			// Since remote monitor is done, and if connection is not closed we need to close them.
 			m.manager.RemoteConnectionLost(context.Background(), conn)
 		}
