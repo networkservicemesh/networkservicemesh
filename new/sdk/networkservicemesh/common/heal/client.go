@@ -86,7 +86,7 @@ func (f *healClient) recvEvent() {
 				}
 			}
 			for id, request := range f.requestors {
-				if _, ok := f.reported[id]; !ok && f.reported[id] != nil {
+				if _, ok := f.reported[id]; !ok {
 					request()
 				}
 			}
