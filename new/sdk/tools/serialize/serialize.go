@@ -12,7 +12,10 @@ type executor struct {
 }
 
 func NewExecutor() Executor {
-	rv := &executor{execCh: make(chan func(), 100)}
+	rv := &executor{
+		execCh:      make(chan func(), 100),
+		finalizedCh: make(chan struct{}),
+	}
 	go rv.eventLoop()
 	runtime.SetFinalizer(rv, func(f *executor) {
 		close(f.finalizedCh)
