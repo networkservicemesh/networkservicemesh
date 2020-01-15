@@ -283,7 +283,11 @@ func (client *NsmMonitorCrossConnectClient) endpointConnectionMonitor(ctx contex
 
 	monFunc := func(cc *grpc.ClientConn) (monitor.Client, error) {
 		return connectionMonitor.NewMonitorClient(cc, &connection.MonitorScopeSelector{
-			NetworkServiceManagers: []string{client.model.GetNsm().GetName()},
+			PathSegments: []*connection.PathSegment{
+				{
+					Name: client.model.GetNsm().GetName(),
+				},
+			},
 		})
 	}
 
@@ -436,9 +440,13 @@ func (client *NsmMonitorCrossConnectClient) remotePeerConnectionMonitor(ctx cont
 	}
 	monitorClientSupplier := func(conn *grpc.ClientConn) (monitor.Client, error) {
 		return connectionMonitor.NewMonitorClient(conn, &connection.MonitorScopeSelector{
-			NetworkServiceManagers: []string{
-				client.xconManager.GetNsmName(), // src
-				remoteNsm.Name,                  // dst
+			PathSegments: []*connection.PathSegment{
+				{
+					Name: client.xconManager.GetNsmName(), // src
+				},
+				{
+					Name: remoteNsm.Name, // dst
+				},
 			},
 		})
 	}
