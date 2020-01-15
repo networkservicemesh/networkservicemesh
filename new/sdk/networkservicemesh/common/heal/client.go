@@ -36,35 +36,32 @@ func NewClient(client connection.MonitorConnectionClient, onHeal networkservice.
 		reported:          make(map[string]*connection.Connection),
 		client:            client,
 		updateExecutor:    serialize.NewExecutor(),
-		eventReceiver:     nil, // This is intentionally nil
-		recvEventExecutor: nil, // This is intentionally nil
+		eventReceiver:     nil,                     // This is intentionally nil
+		recvEventExecutor: serialize.NewExecutor(), // This is intentionally nil
 	}
 	if rv.onHeal == nil {
 		rv.onHeal = rv
 	}
-	runtime.SetFinalizer(rv, func(f *healClient) {
-		f.updateExecutor.AsyncExec(func() {
-			if f.cancelFunc != nil {
-				f.cancelFunc()
-			}
+	rv.updateExecutor.AsyncExec(func() {
+		runtime.SetFinalizer(rv, func(f *healClient) {
+			f.updateExecutor.AsyncExec(func() {
+				if f.cancelFunc != nil {
+					f.cancelFunc()
+				}
+			})
 		})
+		ctx, cancelFunc := context.WithCancel(context.Background())
+		rv.cancelFunc = cancelFunc
+		// TODO decide what to do about err here
+		recv, _ := rv.client.MonitorConnections(ctx, nil)
+		rv.eventReceiver = recv
+		rv.recvEventExecutor.AsyncExec(rv.recvEvent)
 	})
+
 	return rv
 }
 
 func (f *healClient) recvEvent() {
-	if f.eventReceiver == nil {
-		// TODO handle with proper selector and cancelFunc
-		ctx, cancelFunc := context.WithCancel(context.Background())
-		f.cancelFunc = cancelFunc
-		recv, err := f.client.MonitorConnections(ctx, nil)
-		if err != nil {
-			for _, closer := range f.closers {
-				closer()
-			}
-		}
-		f.eventReceiver = recv
-	}
 	select {
 	case <-f.eventReceiver.Context().Done():
 		f.eventReceiver = nil
@@ -109,24 +106,22 @@ func (f *healClient) Request(ctx context.Context, request *networkservice.Networ
 	// Set its connection to the returned connection we received
 	req.Connection = rv
 
-	if f.recvEventExecutor == nil {
-		f.recvEventExecutor = serialize.NewExecutor()
-		f.recvEventExecutor.AsyncExec(f.recvEvent)
-	}
 	// TODO handle deadline err
 	deadline, _ := ctx.Deadline()
 	duration := deadline.Sub(time.Now())
-	f.requestors[request.GetConnection().GetId()] = func() {
-		timeCtx, _ := context.WithTimeout(context.Background(), duration)
-		ctx = extended_context.New(timeCtx, ctx)
-		// TODO wrap another span around this
-		f.onHeal.Request(ctx, req, opts...)
-	}
-	f.closers[request.GetConnection().GetId()] = func() {
-		timeCtx, _ := context.WithTimeout(context.Background(), duration)
-		ctx = extended_context.New(timeCtx, ctx)
-		f.onHeal.Close(extended_context.New(timeCtx, ctx), req.GetConnection(), opts...)
-	}
+	f.updateExecutor.AsyncExec(func() {
+		f.requestors[req.GetConnection().GetId()] = func() {
+			timeCtx, _ := context.WithTimeout(context.Background(), duration)
+			ctx = extended_context.New(timeCtx, ctx)
+			// TODO wrap another span around this
+			f.onHeal.Request(ctx, req, opts...)
+		}
+		f.closers[req.GetConnection().GetId()] = func() {
+			timeCtx, _ := context.WithTimeout(context.Background(), duration)
+			ctx = extended_context.New(timeCtx, ctx)
+			f.onHeal.Close(extended_context.New(timeCtx, ctx), req.GetConnection(), opts...)
+		}
+	})
 	return rv, nil
 }
 

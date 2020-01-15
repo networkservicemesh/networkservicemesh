@@ -58,8 +58,8 @@ func (t *timeoutClient) Request(ctx context.Context, request *networkservice.Net
 		return nil, errors.Wrapf(err, "Error creating timer from Request.Connection.Path.PathSegment[%d].ExpireTime", request.GetConnection().GetPath().GetIndex())
 	}
 	t.executor.AsyncExec(func() {
-		if timer, ok := t.connectionTimers[request.GetConnection().GetId()]; !ok || timer.Stop() {
-			t.connectionTimers[request.GetConnection().GetId()] = ct
+		if timer, ok := t.connectionTimers[req.GetConnection().GetId()]; !ok || timer.Stop() {
+			t.connectionTimers[req.GetConnection().GetId()] = ct
 		}
 	})
 	return rv, nil
