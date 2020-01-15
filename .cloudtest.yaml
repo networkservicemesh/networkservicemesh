@@ -27,8 +27,3 @@ retest:  # Allow to do test re-run if some kind of failures are detected, line C
     - "Error response from daemon: Get https://.*docker.io/.*: dial tcp: lookup registry"
 reporting:
   junit-report: "results/junit.xml"
-#health-check:
-#  - message: "Branch is not up to date"
-#    interval: 60  # 1 minute
-#    run: |
-#      ./.circleci/check_repo_uptodated.sh
