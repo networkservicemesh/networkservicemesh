@@ -67,11 +67,11 @@ spec:
             periodSeconds: 10
             timeoutSeconds: 3
           {{- if (index .Values $fp).resources }}
-            resources:
-              limits:
-                cpu: {{ (index .Values $fp).resources.limitCPU }}
-              requests:
-                cpu: {{ (index .Values $fp).resources.requestsCPU }}
+          resources:
+            limits:
+              cpu: {{ (index .Values $fp).resources.limitCPU }}
+            requests:
+              cpu: {{ (index .Values $fp).resources.requestsCPU }}
           {{- end }}
       volumes:
         - hostPath:
