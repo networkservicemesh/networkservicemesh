@@ -33,11 +33,20 @@ const (
 	AgentHost utils.EnvVar = "JAEGER_AGENT_HOST"
 	//ReportSpans
 	ReportSpans utils.EnvVar = "REPORT_JAEGER_SPANS"
+	//UseJaegerService means use jaeger service. Useful for interdomain cases
+	UseJaegerService utils.EnvVar = "USE_JAEGER_SERVICE"
+	//NodeJaegerPort means jaeger node port
+	NodeJaegerPort utils.EnvVar = "NODE_JAEGER_PORT"
 )
 
 //GetRestAPIPort returns jaeger API port
 func GetRestAPIPort() int {
 	return RestAPIPort.GetIntOrDefault(16686)
+}
+
+//GetJaegerNodePort returns jaeger node port
+func GetJaegerNodePort() int32 {
+	return int32(NodeJaegerPort.GetIntOrDefault(30001))
 }
 
 //DefaultEnvValues returns default jaeger env values

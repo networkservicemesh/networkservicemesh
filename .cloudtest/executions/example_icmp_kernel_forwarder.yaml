@@ -13,6 +13,6 @@ executions:
     kubernetes-env:
       - KUBECONFIG
     run: |
-      scripts/helm-test-charts.sh nsm admission-webhook icmp-responder
+      test/shell/icmp_test.sh
     on-test-fail: |
-      make k8s-delete-nsm-namespaces
+      test/shell/on_fail.sh

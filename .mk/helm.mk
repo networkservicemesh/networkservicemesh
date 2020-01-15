@@ -47,3 +47,7 @@ $(INSTALL_CHARTS):
 $(DELETE_CHARTS): export CHART=$(subst helm-delete-,,$@)
 $(DELETE_CHARTS):
 	helm delete --purge ${CHART} || true
+
+.PHONY: helm-delete
+helm-delete:
+	helm list --namespace="${NSM_NAMESPACE}" --short | xargs -L1 helm delete --purge

@@ -21,6 +21,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/sid"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/vni"
 	forwarderapi "github.com/networkservicemesh/networkservicemesh/forwarder/api/forwarder"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
@@ -57,6 +58,7 @@ type nsmdServiceRegistry struct {
 	registryClientConnection *grpc.ClientConn
 	stopRedial               bool
 	vniAllocator             vni.VniAllocator
+	sidAllocator             sid.Allocator
 	registryAddress          string
 }
 
@@ -213,6 +215,7 @@ func NewServiceRegistryAt(nsmAddress string) serviceregistry.ServiceRegistry {
 	return &nsmdServiceRegistry{
 		stopRedial:      true,
 		vniAllocator:    vni.NewVniAllocator(),
+		sidAllocator:    sid.NewSIDAllocator(),
 		registryAddress: nsmAddress,
 	}
 }
@@ -241,6 +244,10 @@ func (impl *nsmdServiceRegistry) WaitForForwarderAvailable(ctx context.Context, 
 
 func (impl *nsmdServiceRegistry) VniAllocator() vni.VniAllocator {
 	return impl.vniAllocator
+}
+
+func (impl *nsmdServiceRegistry) SIDAllocator() sid.Allocator {
+	return impl.sidAllocator
 }
 
 type defaultWorkspaceProvider struct {

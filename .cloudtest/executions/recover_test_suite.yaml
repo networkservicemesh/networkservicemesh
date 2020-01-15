@@ -18,4 +18,3 @@ executions:
       make k8s-delete-nsm-namespaces
     on-test-fail: |
       make k8s-delete-nsm-namespaces
-      make helm-install-nsm

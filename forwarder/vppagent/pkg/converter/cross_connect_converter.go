@@ -3,14 +3,14 @@ package converter
 import (
 	"path"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
+	vpp_l2 "github.com/ligato/vpp-agent/api/models/vpp/l2"
 
 	"github.com/pkg/errors"
 
 	"github.com/ligato/vpp-agent/api/configurator"
 	"github.com/ligato/vpp-agent/api/models/vpp"
-	vpp_l2 "github.com/ligato/vpp-agent/api/models/vpp/l2"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 )
 
@@ -83,18 +83,22 @@ func (c *CrossConnectConverter) ToDataRequest(rv *configurator.Config, connect b
 		return rv, err
 	}
 
-	if len(rv.VppConfig.Interfaces) < 2 {
-		return nil, errors.Errorf("did not create enough interfaces to cross connect, expected at least 2, got %d", len(rv.VppConfig.Interfaces))
+	if len(rv.VppConfig.Interfaces) > 2 {
+		return nil, errors.Errorf("created too many interfaces to cross connect, expected 2, got %d", len(rv.VppConfig.Interfaces))
 	}
-	ifaces := rv.VppConfig.Interfaces[len(rv.VppConfig.Interfaces)-2:]
-	rv.VppConfig.XconnectPairs = append(rv.VppConfig.XconnectPairs, &vpp_l2.XConnectPair{
-		ReceiveInterface:  ifaces[0].Name,
-		TransmitInterface: ifaces[1].Name,
-	})
-	rv.VppConfig.XconnectPairs = append(rv.VppConfig.XconnectPairs, &vpp_l2.XConnectPair{
-		ReceiveInterface:  ifaces[1].Name,
-		TransmitInterface: ifaces[0].Name,
-	})
+
+	// For connections mechanisms with xconnect required (For example SRv6 does not require xconnect)
+	if len(rv.VppConfig.Interfaces) == 2 {
+		ifaces := rv.VppConfig.Interfaces[len(rv.VppConfig.Interfaces)-2:]
+		rv.VppConfig.XconnectPairs = append(rv.VppConfig.XconnectPairs, &vpp_l2.XConnectPair{
+			ReceiveInterface:  ifaces[0].Name,
+			TransmitInterface: ifaces[1].Name,
+		})
+		rv.VppConfig.XconnectPairs = append(rv.VppConfig.XconnectPairs, &vpp_l2.XConnectPair{
+			ReceiveInterface:  ifaces[1].Name,
+			TransmitInterface: ifaces[0].Name,
+		})
+	}
 
 	return rv, nil
 }
@@ -109,17 +113,18 @@ func (c *CrossConnectConverter) MechanismsToDataRequest(rv *configurator.Config,
 	}
 
 	srcName := srcPrefix + c.GetId()
+	dstName := dstPrefix + c.GetId()
 
 	var err error
 	if src := c.GetRemoteSource(); src != nil {
-		rv, err = NewRemoteConnectionConverter(src, srcName, SOURCE).ToDataRequest(rv, connect)
+		rv, err = NewRemoteConnectionConverter(src, srcName, dstName, SOURCE).ToDataRequest(rv, connect)
 		if err != nil {
 			return rv, errors.Wrapf(err, "error Converting CrossConnect %v", c)
 		}
 	}
 
 	if dst := c.GetRemoteDestination(); dst != nil {
-		rv, err = NewRemoteConnectionConverter(dst, "DST-"+c.GetId(), DESTINATION).ToDataRequest(rv, connect)
+		rv, err = NewRemoteConnectionConverter(dst, dstName, srcName, DESTINATION).ToDataRequest(rv, connect)
 		if err != nil {
 			return rv, errors.Wrapf(err, "error Converting CrossConnect %v", c)
 		}

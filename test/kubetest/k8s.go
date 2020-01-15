@@ -391,6 +391,8 @@ type K8s struct {
 	podLock            sync.Mutex
 	resourcesBehaviour ClearOption
 	pods               []*v1.Pod
+	servicesLock       sync.Mutex
+	services           []*v1.Service
 	config             *rest.Config
 	roles              []nsmrbac.Role
 	namespace          string
@@ -473,6 +475,14 @@ func NewK8s(g *WithT, prepare ClearOption) (*K8s, error) {
 		logrus.Errorf("Error Creating K8s %v", err)
 		return client, err
 	}
+	err = waitFor(accountWaitTimeout, func() bool {
+		_, getErr := client.clientset.RbacV1().ClusterRoles().Get(pods.DefaultKubeletAdminClusterRole, metaV1.GetOptions{})
+		if getErr != nil {
+			logrus.Errorf("Get cluster role err: %v", getErr)
+		}
+		return getErr == nil
+	})
+	g.Expect(err).Should(BeNil())
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
@@ -546,6 +556,7 @@ func NewK8sWithoutRolesForConfig(g *WithT, prepare ClearOption, kubeconfigPath s
 
 	if prepare != NoClear {
 		start := time.Now()
+
 		if prepare == ReuseNSMResources {
 			client.DeletePodsByName("nsc", "source", "dest", "xcon", "spire-proxy")
 			client.DeletePodsByName("nse", "icmp", "vpn")
@@ -554,7 +565,8 @@ func NewK8sWithoutRolesForConfig(g *WithT, prepare ClearOption, kubeconfigPath s
 		}
 		client.CleanupConfigMaps()
 
-		client.CleanupServices("nsm-admission-webhook-svc")
+		client.CleanupServices("nsm-admission-webhook-svc", "jaeger")
+
 		client.CleanupDeployments()
 		client.CleanupMutatingWebhookConfigurations()
 		client.CleanupSecrets("nsm-admission-webhook-certs")
@@ -645,6 +657,24 @@ func (k8s *K8s) describePod(pod *v1.Pod) []v1.Event {
 		}
 	}
 	return result
+}
+
+func (k8s *K8s) clearServices() {
+	k8s.servicesLock.Lock()
+	defer k8s.servicesLock.Unlock()
+	var wg = sync.WaitGroup{}
+	for i := range k8s.services {
+		s := k8s.services[i]
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			err := k8s.DeleteService(s)
+			if err != nil {
+				logrus.Errorf("An error during delete service: %v, err: %v", s.Name, err.Error())
+			}
+		}()
+	}
+	wg.Wait()
 }
 
 func (k8s *K8s) buildNSMConfigMap() *v1.ConfigMap {
@@ -1333,6 +1363,9 @@ func (k8s *K8s) CreateService(service *v1.Service, namespace string) (*v1.Servic
 		logrus.Errorf("Error creating service: %v %v", s, err)
 	}
 	logrus.Infof("Service is created: %v", s)
+	k8s.servicesLock.Lock()
+	defer k8s.servicesLock.Unlock()
+	k8s.services = append(k8s.services, s)
 	return s, err
 }
 

@@ -137,8 +137,6 @@ func (ac *AWSCluster) createEksCluster(eksClient *eks.EKS, clusterName, eksRoleA
 	for i := range subnetIdsTemp {
 		subnetIds = append(subnetIds, &subnetIdsTemp[i])
 	}
-	endpointPrivateAccess := false
-	endpointPublicAccess := true
 
 	_, err := eksClient.CreateCluster(&eks.CreateClusterInput{
 		Name:    clusterName,
@@ -148,8 +146,8 @@ func (ac *AWSCluster) createEksCluster(eksClient *eks.EKS, clusterName, eksRoleA
 			SecurityGroupIds: []*string{
 				clusterStackOutputs.SecurityGroups,
 			},
-			EndpointPrivateAccess: &endpointPrivateAccess,
-			EndpointPublicAccess:  &endpointPublicAccess,
+			EndpointPrivateAccess: aws.Bool(true),
+			EndpointPublicAccess:  aws.Bool(true),
 		},
 		Version: aws.String("1.14"),
 	})
@@ -227,7 +225,7 @@ func (ac *AWSCluster) createEksWorkerNodes(cfClient *cloudformation.CloudFormati
 	// with Kubernetes version 1.14.7
 	// for region us-east-2.
 	// Amazon EKS-Optimized AMI list: https://docs.aws.amazon.com/eks/latest/userguide/eks-optimized-ami.html
-	eksAmi := aws.String("ami-0b031080918049726")
+	eksAmi := aws.String("ami-053250833d1030033")
 
 	_, err = cfClient.CreateStack(&cloudformation.CreateStackInput{
 		StackName:       nodesStackName,
@@ -261,7 +259,7 @@ func (ac *AWSCluster) createEksWorkerNodes(cfClient *cloudformation.CloudFormati
 			},
 			{
 				ParameterKey:   aws.String("Subnets"),
-				ParameterValue: clusterStackOutputs.SubnetIds,
+				ParameterValue: &strings.Split(*clusterStackOutputs.SubnetIds, ",")[0],
 			},
 		},
 	})

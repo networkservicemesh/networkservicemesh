@@ -151,12 +151,24 @@ func SetupNodesConfig(k8s *K8s, nodeCount int, timeout time.Duration, conf []*po
 	//var jaegerPod *v1.Pod
 	k8s.g.Expect(len(nodes) >= nodeCount).To(Equal(true),
 		"At least one Kubernetes node is required for this test")
-	//if tools_jaeger.IsOpentracingEnabled() && jaeger.AgentHost.IsEmpty() &&
-	//	(k8s.artifactManager.Config().SaveBehavior()&(artifact.SaveAsDir|artifact.SaveAsArchive)) > 0 {
-	//	jaegerPod = k8s.CreatePod(pods.Jaeger())
-	//	k8s.WaitLogsContains(jaegerPod, jaegerPod.Spec.Containers[0].Name, "Starting HTTP server", timeout)
-	//	jaeger.AgentHost.Set(jaegerPod.Status.PodIP)
-	//}
+	//if jaeger.ShouldStoreJaegerTraces() {
+	//	if !jaeger.UseJaegerService.GetBooleanOrDefault(false) {
+	//		jaegerPod := k8s.CreatePod(pods.Jaeger())
+	//		jaeger.JaegerAgentHost.Set(jaegerPod.Status.PodIP)
+	//		k8s.WaitLogsContains(jaegerPod, jaegerPod.Spec.Containers[0].Name, "Starting HTTP server", timeout)
+	//	} else if jaeger.JaegerAgentHost.StringValue() == "" {
+	//		template := pods.Jaeger()
+	//		template.Spec.NodeSelector = map[string]string{
+	//			"kubernetes.io/hostname": nodes[0].Labels["kubernetes.io/hostname"],
+	//		}
+	//		jaegerPod := k8s.CreatePod(template)
+	//		_, err := k8s.CreateService(pods.JaegerService(jaegerPod), k8s.namespace)
+	//		k8s.g.Expect(err).Should(BeNil())
+	//		jaeger.JaegerAgentHost.Set(getExternalOrInternalAddress(&nodes[0]))
+	//		jaeger.JaegerAgentPort.Set(jaeger.GetJaegerNodePort())
+	//		k8s.WaitLogsContains(jaegerPod, jaegerPod.Spec.Containers[0].Name, "Starting HTTP server", timeout)
+	//	}
+
 	var wg sync.WaitGroup
 	if k8s.resourcesBehaviour == ReuseNSMResources {
 		for _, ns := range []string{namespace.GetNamespace(), k8s.namespace} {
@@ -225,6 +237,19 @@ func SetupNodesConfig(k8s *K8s, nodeCount int, timeout time.Duration, conf []*po
 	}
 	wg.Wait()
 	return confs, resultError
+}
+
+func getExternalOrInternalAddress(n *v1.Node) string {
+	internalAddr := ""
+	for i := range n.Status.Addresses {
+		addr := &n.Status.Addresses[i]
+		if addr.Type == v1.NodeExternalIP {
+			return addr.Address
+		} else if addr.Type == v1.NodeInternalIP && internalAddr == "" {
+			internalAddr = addr.Address
+		}
+	}
+	return internalAddr
 }
 
 func deployNSMgrAndForwarder(k8s *K8s, corePods []*v1.Pod, timeout time.Duration) (nsmd, forwarder *v1.Pod, err error) {

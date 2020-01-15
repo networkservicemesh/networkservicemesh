@@ -11,6 +11,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/remote"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/services"
+	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
+	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/connectionmonitor"
+
 	"github.com/pkg/errors"
 
 	"github.com/golang/protobuf/ptypes/empty"
@@ -30,11 +35,13 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/sid"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/vni"
 	"github.com/networkservicemesh/networkservicemesh/forwarder/api/forwarder"
 	"github.com/networkservicemesh/networkservicemesh/pkg/probes"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
+	monitor_crossconnect "github.com/networkservicemesh/networkservicemesh/sdk/monitor/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/sdk/prefix_pool"
 )
 
@@ -154,7 +161,12 @@ type nsmdTestServiceRegistry struct {
 	testForwarderConnection *testForwarderConnection
 	localTestNSE            networkservice.NetworkServiceClient
 	vniAllocator            vni.VniAllocator
+	sidAllocator            sid.Allocator
 	rootDir                 string
+}
+
+func (impl *nsmdTestServiceRegistry) SIDAllocator() sid.Allocator {
+	return impl.sidAllocator
 }
 
 func (impl *nsmdTestServiceRegistry) VniAllocator() vni.VniAllocator {
@@ -575,4 +587,113 @@ func CreateRequest() *networkservice.NetworkServiceRequest {
 	}
 
 	return request
+}
+
+type monitorManager struct {
+	crossConnectMonitor     monitor_crossconnect.MonitorServer
+	remoteConnectionMonitor remote.MonitorServer
+	localConnectionMonitors map[string]connectionmonitor.MonitorServer
+}
+
+func (m *monitorManager) CrossConnectMonitor() monitor_crossconnect.MonitorServer {
+	return m.crossConnectMonitor
+}
+
+func (m *monitorManager) RemoteConnectionMonitor() monitor.Server {
+	return m.remoteConnectionMonitor
+}
+
+func (m *monitorManager) LocalConnectionMonitor(workspace string) connectionmonitor.MonitorServer {
+	return m.localConnectionMonitors[workspace]
+}
+
+type endpointManager struct {
+	model model.Model
+}
+
+func (stub *endpointManager) DeleteEndpointWithBrokenConnection(ctx context.Context, endpoint *model.Endpoint) error {
+	stub.model.DeleteEndpoint(ctx, endpoint.EndpointName())
+	return nil
+}
+
+func startAPIServer(model model.Model, nsmdAPIAddress string) (*grpc.Server, monitor_crossconnect.MonitorServer, net.Listener, error) {
+	sock, err := net.Listen("tcp", nsmdAPIAddress)
+	if err != nil {
+		return nil, nil, sock, err
+	}
+	grpcServer := tools.NewServer(context.Background())
+	serviceRegistry := nsmd.NewServiceRegistry()
+
+	xconManager := services.NewClientConnectionManager(model, nil, serviceRegistry)
+
+	monitorManager := &monitorManager{
+		crossConnectMonitor:     monitor_crossconnect.NewMonitorServer(),
+		remoteConnectionMonitor: remote.NewMonitorServer(xconManager),
+		localConnectionMonitors: map[string]connectionmonitor.MonitorServer{},
+	}
+
+	crossconnect.RegisterMonitorCrossConnectServer(grpcServer, monitorManager.crossConnectMonitor)
+	connection.RegisterMonitorConnectionServer(grpcServer, monitorManager.remoteConnectionMonitor)
+
+	monitorClient := nsmd.NewMonitorCrossConnectClient(model, monitorManager, xconManager, &endpointManager{model: model})
+	model.AddListener(monitorClient)
+	// Add more public API services here.
+
+	go func() {
+		if err := grpcServer.Serve(sock); err != nil {
+			logrus.Errorf("failed to start gRPC NSMD API server %+v", err)
+		}
+	}()
+	logrus.Infof("NSM gRPC API Server: %s is operational", nsmdAPIAddress)
+
+	return grpcServer, monitorManager.crossConnectMonitor, sock, nil
+}
+
+func readNMSDCrossConnectEvents(address string, count int) []*crossconnect.CrossConnectEvent {
+	var err error
+	conn, err := tools.DialTCP(address)
+	if err != nil {
+		logrus.Errorf("Failure to communicate with the socket %s with error: %+v", address, err)
+		return nil
+	}
+	defer func() {
+		err = conn.Close()
+		if err != nil {
+			logrus.Errorf("An error during close conn: %v", err)
+		}
+	}()
+	forwarderClient := crossconnect.NewMonitorCrossConnectClient(conn)
+
+	// Looping indefinitely or until grpc returns an error indicating the other end closed connection.
+	stream, err := forwarderClient.MonitorCrossConnects(context.Background(), &empty.Empty{})
+	if err != nil {
+		logrus.Warningf("Error: %+v.", err)
+		return nil
+	}
+	pos := 0
+	result := []*crossconnect.CrossConnectEvent{}
+	for {
+		event, err := stream.Recv()
+		logrus.Infof("(test) receive event: %s %v", event.Type, event.CrossConnects)
+		if err != nil {
+			logrus.Errorf("Error2: %+v.", err)
+			return result
+		}
+		result = append(result, event)
+		pos++
+		if pos == count {
+			return result
+		}
+	}
+}
+
+type eventCollector struct {
+	messages []interface{}
+	events   chan interface{}
+}
+
+func (e *eventCollector) SendMsg(msg interface{}) error {
+	e.messages = append(e.messages, msg)
+	e.events <- msg
+	return nil
 }

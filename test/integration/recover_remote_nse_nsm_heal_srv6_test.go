@@ -1,5 +1,6 @@
-// Copyright 2018 Red Hat, Inc.
-// Copyright (c) 2018 Cisco and/or its affiliates.
+// Copyright (c) 2020 Cisco and/or its affiliates.
+//
+// SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,9 +14,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package core manages the lifecycle of all plugins (start, graceful
-// shutdown) and defines the core lifecycle SPI. The core lifecycle SPI
-// must be implemented by each plugin.
+// +build srv6
 
-// Package idempotent is the root NSM package
-package idempotent
+package nsmd_integration_tests
+
+import (
+	"testing"
+)
+
+func TestNSMHealRemoteDieNSMD_NSE_SRv6(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+
+	testNSMHealRemoteDieNSMD_NSE(t, "SRV6")
+}
+
+func TestNSMHealRemoteDieNSMDSRv6(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+
+	testNSMHealRemoteDieNSMD(t, "SRV6")
+}

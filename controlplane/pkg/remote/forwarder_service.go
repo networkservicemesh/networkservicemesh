@@ -20,22 +20,20 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
-
+	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/pkg/errors"
-
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
-
 	"github.com/sirupsen/logrus"
 
-	"github.com/golang/protobuf/ptypes/empty"
-
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/srv6"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
+	"github.com/networkservicemesh/networkservicemesh/utils"
 )
 
 const (
@@ -47,6 +45,8 @@ const (
 	ForwarderTimeout = 15 * time.Second
 	// ErrorCloseTimeout - timeout to close all stuff in case of error
 	ErrorCloseTimeout = 15 * time.Second
+	// PreferredRemoteMechanism - mechanism name will be chosen by default if supported
+	PreferredRemoteMechanism = utils.EnvVar("PREFERRED_REMOTE_MECHANISM")
 )
 
 // forwarderService -
@@ -76,48 +76,84 @@ func (cce *forwarderService) findMechanism(mechanismPreferences []*connection.Me
 }
 
 func (cce *forwarderService) selectRemoteMechanism(request *networkservice.NetworkServiceRequest, dp *model.Forwarder) (*connection.Mechanism, error) {
-	for _, mechanism := range request.GetRequestMechanismPreferences() {
-		dpMechanism := cce.findMechanism(dp.RemoteMechanisms, vxlan.MECHANISM)
-		if dpMechanism == nil {
-			continue
+	var mechanism *connection.Mechanism
+	var dpMechanism *connection.Mechanism
+
+	if preferredMechanismName := PreferredRemoteMechanism.StringValue(); len(preferredMechanismName) > 0 {
+		for _, m := range request.GetRequestMechanismPreferences() {
+			if m.GetType() == preferredMechanismName {
+				if dpm := cce.findMechanism(dp.RemoteMechanisms, m.GetType()); dpm != nil {
+					mechanism = m
+					dpMechanism = dpm
+					break
+				}
+			}
 		}
-
-		// TODO: Add other mechanisms support
-
-		if mechanism.GetType() == vxlan.MECHANISM {
-			parameters := mechanism.GetParameters()
-			dpParameters := dpMechanism.GetParameters()
-
-			parameters[vxlan.DstIP] = dpParameters[vxlan.SrcIP]
-			var vni uint32
-
-			extSrcIP := parameters[vxlan.SrcIP]
-			extDstIP := dpParameters[vxlan.SrcIP]
-			srcIP := parameters[vxlan.SrcIP]
-			dstIP := dpParameters[vxlan.SrcIP]
-
-			if ip, ok := parameters[vxlan.SrcOriginalIP]; ok {
-				srcIP = ip
-			}
-
-			if ip, ok := parameters[vxlan.DstExternalIP]; ok {
-				extDstIP = ip
-			}
-
-			if extDstIP != extSrcIP {
-				vni = cce.serviceRegistry.VniAllocator().Vni(extDstIP, extSrcIP)
-			} else {
-				vni = cce.serviceRegistry.VniAllocator().Vni(dstIP, srcIP)
-			}
-
-			parameters[vxlan.VNI] = strconv.FormatUint(uint64(vni), 10)
-		}
-
-		logrus.Infof("NSM:(5.1) Remote mechanism selected %v", mechanism)
-		return mechanism, nil
 	}
 
-	return nil, errors.New("failed to select mechanism, no matched mechanisms found")
+	if mechanism == nil {
+		for _, m := range request.GetRequestMechanismPreferences() {
+			dpm := cce.findMechanism(dp.RemoteMechanisms, m.GetType())
+			if dpm != nil {
+				mechanism = m
+				dpMechanism = dpm
+				break
+			}
+		}
+	}
+
+	if mechanism == nil || dpMechanism == nil {
+		return nil, errors.Errorf("failed to select mechanism, no matched mechanisms found")
+	}
+
+	switch mechanism.GetType() {
+	case vxlan.MECHANISM:
+		cce.configureVXLANParameters(mechanism.GetParameters(), dpMechanism.GetParameters())
+
+	case srv6.MECHANISM:
+		connectionID := request.GetConnection().GetId()
+		parameters := mechanism.GetParameters()
+		dpParameters := dpMechanism.GetParameters()
+
+		cce.configureSRv6Parameters(connectionID, parameters, dpParameters)
+	}
+
+	logrus.Infof("NSM:(5.1) Remote mechanism selected %v", mechanism)
+	return mechanism, nil
+}
+
+func (cce *forwarderService) configureVXLANParameters(parameters, dpParameters map[string]string) {
+	parameters[vxlan.DstIP] = dpParameters[vxlan.SrcIP]
+
+	extSrcIP := parameters[vxlan.SrcIP]
+	extDstIP := dpParameters[vxlan.SrcIP]
+	srcIP := parameters[vxlan.SrcIP]
+	dstIP := dpParameters[vxlan.SrcIP]
+
+	if ip, ok := parameters[vxlan.SrcOriginalIP]; ok {
+		srcIP = ip
+	}
+
+	if ip, ok := parameters[vxlan.DstExternalIP]; ok {
+		extDstIP = ip
+	}
+
+	var vni uint32
+	if extDstIP != extSrcIP {
+		vni = cce.serviceRegistry.VniAllocator().Vni(extDstIP, extSrcIP)
+	} else {
+		vni = cce.serviceRegistry.VniAllocator().Vni(dstIP, srcIP)
+	}
+
+	parameters[vxlan.VNI] = strconv.FormatUint(uint64(vni), 10)
+}
+
+func (cce *forwarderService) configureSRv6Parameters(connectionID string, parameters, dpParameters map[string]string) {
+	parameters[srv6.DstHardwareAddress] = dpParameters[srv6.SrcHardwareAddress]
+	parameters[srv6.DstHostIP] = dpParameters[srv6.SrcHostIP]
+	parameters[srv6.DstHostLocalSID] = dpParameters[srv6.SrcHostLocalSID]
+	parameters[srv6.DstBSID] = cce.serviceRegistry.SIDAllocator().SID(connectionID)
+	parameters[srv6.DstLocalSID] = cce.serviceRegistry.SIDAllocator().SID(connectionID)
 }
 
 func (cce *forwarderService) updateMechanism(request *networkservice.NetworkServiceRequest, dp *model.Forwarder) error {
@@ -160,7 +196,7 @@ func (cce *forwarderService) Request(ctx context.Context, request *networkservic
 	// 5. Select a local forwarder and put it into conn object
 	err = cce.updateMechanism(request, dp)
 	if err != nil {
-		// 5.1 Close Datplane connection, if had existing one and NSE is closed.
+		// 5.1 Close forwarder connection, if had existing one and NSE is closed.
 		cce.doFailureClose(ctx)
 		return nil, errors.Errorf("NSM:(5.1) %v", err)
 	}

@@ -6,10 +6,10 @@ We call this case the 'icmp-responder' example, because it allows the client to 
 
 ## Deploy
 
-Utilize the [Run](/docs/setup/run/) instructions to install the NSM infrastructure, and then type:
+Utilize the [Run](../guide-quickstart.md) instructions to install the NSM infrastructure, and then type:
 
 ```bash
-helm install nsm/icmp-responder
+make helm-install-icmp-responder
 ```
 
 ## What it Does

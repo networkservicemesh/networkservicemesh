@@ -1,0 +1,21 @@
+---
+executions:
+  - name: "SRv6 AWS tests"
+    env:
+      - ARCHIVE_ARTIFACTS=true
+      - ARTIFACTS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/$(test-name)
+      - NSM_NAMESPACE=nsm-system
+      - FIXED_NAMESPACE=true
+    tags:
+      - srv6
+    root: ./test/integration
+    timeout: 300
+    cluster-count: 1
+    cluster-selector:
+      - aws
+    kubernetes-env:
+      - KUBECONFIG
+    after-all: |
+      make k8s-delete-nsm-namespaces
+    on-test-fail: |
+      make k8s-delete-nsm-namespaces

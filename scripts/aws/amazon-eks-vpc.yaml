@@ -68,6 +68,12 @@ Resources:
       - Key: Name
         Value: !Sub '${AWS::StackName}-VPC'
 
+  Ipv6VPCCidrBlock:
+    Type: AWS::EC2::VPCCidrBlock
+    Properties:
+        AmazonProvidedIpv6CidrBlock: true
+        VpcId: !Ref VPC
+
   InternetGateway:
     Type: "AWS::EC2::InternetGateway"
 
@@ -105,13 +111,16 @@ Resources:
         - '0'
         - Fn::GetAZs:
             Ref: AWS::Region
+      AssignIpv6AddressOnCreation: true
       CidrBlock:
         Ref: Subnet01Block
+      Ipv6CidrBlock: !Select [0, !Cidr [!Select [0, !GetAtt VPC.Ipv6CidrBlocks], 256, 64]]
       VpcId:
         Ref: VPC
       Tags:
       - Key: Name
         Value: !Sub "${AWS::StackName}-Subnet01"
+    DependsOn: Ipv6VPCCidrBlock
 
   Subnet02:
     Type: AWS::EC2::Subnet
@@ -125,11 +134,13 @@ Resources:
             Ref: AWS::Region
       CidrBlock:
         Ref: Subnet02Block
+      Ipv6CidrBlock: !Select [1, !Cidr [!Select [0, !GetAtt VPC.Ipv6CidrBlocks], 256, 64]]
       VpcId:
         Ref: VPC
       Tags:
       - Key: Name
         Value: !Sub "${AWS::StackName}-Subnet02"
+    DependsOn: Ipv6VPCCidrBlock
 
   Subnet03:
     Condition: HasMoreThan2Azs
@@ -144,11 +155,13 @@ Resources:
             Ref: AWS::Region
       CidrBlock:
         Ref: Subnet03Block
+      Ipv6CidrBlock: !Select [2, !Cidr [!Select [0, !GetAtt VPC.Ipv6CidrBlocks], 256, 64]]
       VpcId:
         Ref: VPC
       Tags:
       - Key: Name
         Value: !Sub "${AWS::StackName}-Subnet03"
+    DependsOn: Ipv6VPCCidrBlock
 
   Subnet01RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
