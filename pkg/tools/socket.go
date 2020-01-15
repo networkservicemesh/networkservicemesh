@@ -3,6 +3,7 @@ package tools
 import (
 	"context"
 	"net"
+	"net/url"
 	"sync"
 	"time"
 
@@ -135,6 +136,13 @@ func DialTCP(address string, opts ...grpc.DialOption) (*grpc.ClientConn, error) 
 func DialTCPInsecure(address string, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
 	dialCtx := new(dialBuilder).TCP().Insecure().Timeout(dialTimeoutDefault).DialContextFunc()
 	return dialCtx(context.Background(), address, opts...)
+}
+
+func DialUrl(u *url.URL, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
+	if u.Scheme == "unix" {
+		return DialUnix(u.Path, opts...)
+	}
+	return DialTCP(u.Host, opts...)
 }
 
 type dialContextFunc func(ctx context.Context, target string, opts ...grpc.DialOption) (conn *grpc.ClientConn, err error)

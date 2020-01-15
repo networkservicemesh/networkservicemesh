@@ -6,7 +6,6 @@ require (
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/ghodss/yaml v1.0.0
 	github.com/golang/protobuf v1.3.2
-	github.com/google/uuid v1.1.1
 	github.com/ligato/vpp-agent v2.5.1+incompatible
 	github.com/networkservicemesh/networkservicemesh/controlplane v0.2.0
 	github.com/networkservicemesh/networkservicemesh/controlplane/api v0.2.0
@@ -25,7 +24,6 @@ require (
 	github.com/spf13/viper v1.5.0
 	github.com/spiffe/spire v0.0.0-20190515205011-c8123525fba8
 	google.golang.org/grpc v1.23.1
-	gopkg.in/yaml.v2 v2.2.4
 	k8s.io/api v0.0.0
 	k8s.io/apimachinery v0.0.0
 	k8s.io/client-go v11.0.0+incompatible

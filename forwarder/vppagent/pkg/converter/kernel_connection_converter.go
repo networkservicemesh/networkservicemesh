@@ -55,7 +55,7 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 	}
 
 	m := kernel.ToMechanism(c.GetMechanism())
-	filepath, err := m.NetNsFileName()
+	filepath, err := netNsFileName(c.GetMechanism())
 	if err != nil && connect {
 		return nil, err
 	}

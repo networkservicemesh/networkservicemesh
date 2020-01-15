@@ -31,7 +31,7 @@ func NewMonitorServer(manager *services.ClientConnectionManager) MonitorServer {
 func (s *monitorServer) MonitorConnections(selector *connection.MonitorScopeSelector, recipient connection.MonitorConnection_MonitorConnectionsServer) error {
 	err := s.MonitorServer.MonitorConnections(selector, recipient)
 	if s.manager != nil {
-		s.manager.UpdateRemoteMonitorDone(selector.GetNetworkServiceManagers())
+		s.manager.UpdateRemoteMonitorDone(selector)
 	}
 	return err
 }
