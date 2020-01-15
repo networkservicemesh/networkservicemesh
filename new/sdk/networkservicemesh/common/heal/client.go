@@ -20,7 +20,7 @@ type healClient struct {
 	requestors        map[string]func()
 	closers           map[string]func()
 	reported          map[string]*connection.Connection
-	onHeal            []networkservice.NetworkServiceClient
+	onHeal            networkservice.NetworkServiceClient
 	client            connection.MonitorConnectionClient
 	eventReceiver     connection.MonitorConnection_MonitorConnectionsClient
 	updateExecutor    serialize.Executor
@@ -28,7 +28,7 @@ type healClient struct {
 	cancelFunc        context.CancelFunc
 }
 
-func NewClient(client connection.MonitorConnectionClient, onHeal ...networkservice.NetworkServiceClient) networkservice.NetworkServiceClient {
+func NewClient(client connection.MonitorConnectionClient, onHeal networkservice.NetworkServiceClient) networkservice.NetworkServiceClient {
 	rv := &healClient{
 		onHeal:            onHeal,
 		requestors:        make(map[string]func()),
@@ -39,7 +39,9 @@ func NewClient(client connection.MonitorConnectionClient, onHeal ...networkservi
 		eventReceiver:     nil, // This is intentionally nil
 		recvEventExecutor: nil, // This is intentionally nil
 	}
-	rv.onHeal = append(rv.onHeal, rv)
+	if rv.onHeal == nil {
+		rv.onHeal = rv
+	}
 	runtime.SetFinalizer(rv, func(f *healClient) {
 		f.updateExecutor.AsyncExec(func() {
 			if f.cancelFunc != nil {
@@ -118,17 +120,12 @@ func (f *healClient) Request(ctx context.Context, request *networkservice.Networ
 		timeCtx, _ := context.WithTimeout(context.Background(), duration)
 		ctx = extended_context.New(timeCtx, ctx)
 		// TODO wrap another span around this
-		for _, healer := range f.onHeal {
-			_, _ = healer.Request(ctx, req, opts...)
-		}
+		f.onHeal.Request(ctx, req, opts...)
 	}
 	f.closers[request.GetConnection().GetId()] = func() {
 		timeCtx, _ := context.WithTimeout(context.Background(), duration)
 		ctx = extended_context.New(timeCtx, ctx)
-		for _, closer := range f.onHeal {
-			// TODO wrap another span around this
-			closer.Close(extended_context.New(timeCtx, ctx), req.GetConnection(), opts...)
-		}
+		f.onHeal.Close(extended_context.New(timeCtx, ctx), req.GetConnection(), opts...)
 	}
 	return rv, nil
 }
