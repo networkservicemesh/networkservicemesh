@@ -18,18 +18,33 @@ spec:
         app: spire-server
     spec:
       serviceAccountName: spire-server
+      shareProcessNamespace: true
       containers:
-        - name: spire-server
-          image: {{ .Values.registry }}/{{ .Values.org }}/spire-registration:{{ .Values.tag }}
-          imagePullPolicy: {{ .Values.pullPolicy }}
-          ports:
-            - containerPort: 8081
+        - name: nsm-spire
+          securityContext:
+            privileged: true
+          image: {{ .Values.registry }}/{{ .Values.org }}/nsm-spire:{{ .Values.tag }}
           volumeMounts:
-            - name: spire-config
-              mountPath: /run/spire/config
+            - name: spire-server-socket
+              mountPath: /run/spire/sockets
               readOnly: true
             - name: spire-entries
               mountPath: /run/spire/entries
+              readOnly: true
+
+        - name: spire-server
+          image: gcr.io/spiffe-io/spire-server:0.9.0
+          args:
+            - -config
+            - /run/spire/config/server.conf
+          ports:
+            - containerPort: 8081
+          volumeMounts:
+            - name: spire-server-socket
+              mountPath: /run/spire/sockets
+              readOnly: false
+            - name: spire-config
+              mountPath: /run/spire/config
               readOnly: true
             - name: spire-data
               mountPath: /run/spire/data
@@ -44,6 +59,10 @@ spec:
             periodSeconds: 60
             timeoutSeconds: 3
       volumes:
+        - name: spire-server-socket
+          hostPath:
+            path: /run/spire/server-sockets
+            type: DirectoryOrCreate
         - name: spire-config
           configMap:
             name: spire-server
