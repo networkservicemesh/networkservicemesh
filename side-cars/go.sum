@@ -45,6 +45,7 @@ github.com/golang/protobuf v1.3.1/go.mod h1:6lQm79b+lXiMfvg/cZm0SGofjICqVBUtrP5y
 github.com/golang/protobuf v1.3.2 h1:6nsPYzhq5kReh6QImI3k5qWzO4PEbvbIW2cwSfR/6xs=
 github.com/golang/protobuf v1.3.2/go.mod h1:6lQm79b+lXiMfvg/cZm0SGofjICqVBUtrP5yJMmIC1U=
 github.com/google/btree v1.0.0/go.mod h1:lNA+9X1NB3Zf8V7Ke586lFgjr2dZNuvo3lPJSGZ5JPQ=
+github.com/google/go-cmp v0.2.0 h1:+dTQ8DZQJz0Mb/HjFlkptS1FeQ4cWSnN941F8aEG4SQ=
 github.com/google/go-cmp v0.2.0/go.mod h1:oXzfMopK8JAjlY9xF4vHSVASa0yLyX7SntLO5aqRK0M=
 github.com/gorilla/websocket v1.4.0/go.mod h1:E7qHFY5m1UJ88s3WnNqhKjPHQ0heANvMoAMk2YaljkQ=
 github.com/grpc-ecosystem/go-grpc-middleware v1.0.0/go.mod h1:FiyG127CGDf3tlThmgyCl78X/SZQqEOJBCDaAfeWzPs=
@@ -126,7 +127,6 @@ github.com/spf13/viper v1.5.0 h1:GpsTwfsQ27oS/Aha/6d1oD7tpKIqWnOA6tgOX9HHkt4=
 github.com/spf13/viper v1.5.0/go.mod h1:AkYRkVJF8TkSG/xet6PzXX+l39KhhXa2pdqVSxnTcn4=
 github.com/spiffe/go-spiffe v0.0.0-20191104192205-d29ac0a1ba99 h1:wFJS4JjfgJvzSCSIl24wzPgiX+hk2bj0gozEV6Za6RY=
 github.com/spiffe/go-spiffe v0.0.0-20191104192205-d29ac0a1ba99/go.mod h1:HyNeJnVYkDyQgB2qcSPxVYkAA2F3lQu51bDxNpFcKxY=
-github.com/spiffe/spire v0.0.0-20200103215556-34b7e3785007 h1:ONdOIxMm22xcon8/geY6U4mBaw2h1vGYyqZ9eLSO3Og=
 github.com/spiffe/spire/proto/spire v0.0.0-20200103215556-34b7e3785007 h1:cbzL36+QZ5EQaNPUOMkW8XYwhNAtk18f0DUjNBOU71c=
 github.com/spiffe/spire/proto/spire v0.0.0-20200103215556-34b7e3785007/go.mod h1:QmfLOnjxfc4o9KAe1f8bwYX3WcMLWSiKljTEHdGNFYU=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
