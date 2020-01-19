@@ -29,14 +29,7 @@ spec:
               value: "secure-intranet-connectivity"
             - name: CLIENT_LABELS
               value: "app=passthrough-1"
-{{- if .Values.global.JaegerTracing }}
-            - name: TRACER_ENABLED
-              value: "true"
-            - name: JAEGER_AGENT_HOST
-              value: jaeger.nsm-system
-            - name: JAEGER_AGENT_PORT
-              value: "6831"
-{{- end }}
+            {{ include "jaeger.env" . | indent 12 }}
           resources:
             limits:
               networkservicemesh.io/socket: 1
@@ -74,8 +67,7 @@ spec:
               value: "secure-intranet-connectivity"
             - name: CLIENT_LABELS
               value: "app=passthrough-2"
-            - name: TRACER_ENABLED
-              value: "true"
+            {{ include "jaeger.env" . | indent 12 }}
           resources:
             limits:
               networkservicemesh.io/socket: 1
@@ -113,8 +105,7 @@ spec:
               value: "secure-intranet-connectivity"
             - name: CLIENT_LABELS
               value: "app=passthrough-3"
-            - name: TRACER_ENABLED
-              value: "true"
+            {{ include "jaeger.env" . | indent 12 }}
           resources:
             limits:
               networkservicemesh.io/socket: 1

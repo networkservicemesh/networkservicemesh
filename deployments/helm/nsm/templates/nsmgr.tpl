@@ -18,20 +18,8 @@ spec:
           image: {{ .Values.registry }}/{{ .Values.org }}/nsmdp:{{ .Values.tag }}
           imagePullPolicy: {{ .Values.pullPolicy }}
           env:
-            - name: INSECURE
-{{- if .Values.insecure }}
-              value: "true"
-{{- else }}
-              value: "false"
-{{- end }}
-{{- if .Values.global.JaegerTracing }}
-            - name: TRACER_ENABLED
-              value: "true"
-            - name: JAEGER_AGENT_HOST
-              value: jaeger.nsm-system
-            - name: JAEGER_AGENT_PORT
-              value: "6831"
-{{- end }}
+            {{ include "insecure.env" . | indent 12 }}
+            {{ include "jaeger.env" . | indent 12 }}
           volumeMounts:
             - name: kubelet-socket
               mountPath: /var/lib/kubelet/device-plugins
@@ -44,20 +32,8 @@ spec:
           image: {{ .Values.registry }}/{{ .Values.org }}/nsmd:{{ .Values.tag }}
           imagePullPolicy: {{ .Values.pullPolicy }}
           env:
-            - name: INSECURE
-{{- if .Values.insecure }}
-              value: "true"
-{{- else }}
-              value: "false"
-{{- end }}
-{{- if .Values.global.JaegerTracing }}
-            - name: TRACER_ENABLED
-              value: "true"
-            - name: JAEGER_AGENT_HOST
-              value: jaeger.nsm-system
-            - name: JAEGER_AGENT_PORT
-              value: "6831"
-{{- end }}
+            {{ include "insecure.env" . | indent 12 }}
+            {{ include "jaeger.env" . | indent 12 }}
           volumeMounts:
             - name: nsm-socket
               mountPath: /var/lib/networkservicemesh
@@ -90,12 +66,8 @@ spec:
               mountPath: /run/spire/sockets
               readOnly: true
           env:
-            - name: INSECURE
-{{- if .Values.insecure }}
-              value: "true"
-{{- else }}
-              value: "false"
-{{- end }}
+            {{ include "insecure.env" . | indent 12 }}
+            {{ include "jaeger.env" . | indent 12 }}
             - name: POD_NAME
               valueFrom:
                 fieldRef:
@@ -108,14 +80,6 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
-{{- if .Values.global.JaegerTracing }}
-            - name: TRACER_ENABLED
-              value: "true"
-            - name: JAEGER_AGENT_HOST
-              value: jaeger.nsm-system
-            - name: JAEGER_AGENT_PORT
-              value: "6831"
-{{- end }}
       volumes:
         - hostPath:
             path: /var/lib/kubelet/device-plugins

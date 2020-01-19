@@ -17,23 +17,11 @@ spec:
           imagePullPolicy: {{ .Values.pullPolicy }}
           env:
             - name: INSECURE
-{{- if .Values.insecure }}
-              value: "true"
-{{- else }}
-              value: "false"
-{{- end }}
+              value: {{ .Values.insecure | default false | quote }}
             - name: METRICS_COLLECTOR_ENABLED
-{{- if .Values.metricsCollectorEnabled }}
-              value: "true"
-{{- else }}
-              value: "false"
-{{- end }}
+              value: {{ .Values.metricsCollectorEnabled | default false | quote }}
             - name: PROMETHEUS
-{{- if .Values.prometheus }}
-              value: "true"
-{{- else }}
-              value: "false"
-{{- end }}
+              value: {{ .Values.prometheus | default false | quote }}
           volumeMounts:
             - name: spire-agent-socket
               mountPath: /run/spire/sockets

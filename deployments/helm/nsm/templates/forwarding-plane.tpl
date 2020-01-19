@@ -21,26 +21,10 @@ spec:
           image: {{ .Values.registry }}/{{ .Values.org }}/{{ (index .Values $fp).image }}:{{ .Values.tag }}
           imagePullPolicy: {{ .Values.pullPolicy }}
           env:
-            - name: INSECURE
-{{- if .Values.insecure }}
-              value: "true"
-{{- else }}
-              value: "false"
-{{- end }}
+            {{ include "insecure.env" . | indent 12 }}
+            {{ include "jaeger.env" . | indent 12 }}
             - name: METRICS_COLLECTOR_ENABLED
-{{- if .Values.metricsCollectorEnabled }}
-              value: "true"
-{{- else }}
-              value: "false"
-{{- end }}
-{{- if .Values.global.JaegerTracing }}
-            - name: TRACER_ENABLED
-              value: "true"
-            - name: JAEGER_AGENT_HOST
-              value: jaeger.nsm-system
-            - name: JAEGER_AGENT_PORT
-              value: "6831"
-{{- end }}
+              value: {{ .Values.metricsCollectorEnabled | default false | quote }}
             - name: NSM_FORWARDER_SRC_IP
               valueFrom:
                 fieldRef:
