@@ -159,9 +159,11 @@ jobs:
             if [ "${CIRCLE_BRANCH}" == "master" ]; then
               export STORE_LOGS_IN_ANY_CASES=true
             fi
-            export STORE_JAEGER_TRACES=true
-            pushd test
-            go get github.com/networkservicemesh/cloudtest@v0.1-alpha
+            git clone https://github.com/networkservicemesh/cloudtest.git
+            pushd cloudtest
+            git fetch origin master
+            git checkout master
+            go install ./...
             popd
             cloudtest || ERR=$?
             [ "${CIRCLE_BRANCH}" == "master" ] && [ "$ERR" == "" ] && exit 0
