@@ -92,8 +92,11 @@ func main() {
 		logrus.Fatalf("Unable to create the backend %v", err)
 	}
 
+	ctx, cancelProc = context.WithTimeout(context.Background(), client.ConnectionRetry*(client.RequestDelay+client.ConnectTimeout))
+	defer cancelProc()
+
 	var outgoingConnection *connection.Connection
-	outgoingConnection, err = nsmClient.Connect(ctx, "if1", memif.MECHANISM, "Primary interface")
+	outgoingConnection, err = nsmClient.ConnectRetry(ctx, "if1", memif.MECHANISM, "Primary interface", client.ConnectionRetry, client.RequestDelay)
 	if err != nil {
 		logrus.Fatalf("Unable to connect %v", err)
 	}

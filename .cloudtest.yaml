@@ -218,3 +218,19 @@ executions:
       test/shell/crossconnect_monitor_test.sh
     on_fail: |
       test/shell/on_fail.sh
+
+  - name: "Example-helm-vpp-icmp"
+    kind: shell
+    timeout: 300
+    env:
+      - NSM_NAMESPACE=nsm-system
+      - CLUSTER_RULES_PREFIX=null
+      - STORE_POD_LOGS_IN_FILES=true
+      - STORE_POD_LOGS_DIR=/home/circleci/project/.tests/cloud_test/$(cluster-name)/vpp-icmp-example
+      - SPIRE_ENABLED=false  # because spire is already installed
+    kubernetes-env:
+      - KUBECONFIG
+    run: |
+      test/shell/vpp_icmp_test.sh
+    on_fail: |
+      test/shell/on_fail.sh
