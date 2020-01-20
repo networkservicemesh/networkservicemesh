@@ -1,4 +1,4 @@
-// +build recover
+// +build recover_suite
 
 package integration
 
@@ -65,8 +65,8 @@ func testForwarderHeal(t *testing.T, killForwarderIndex, nodesCount int, fixture
 
 	g.Expect(nodesCount > 0).Should(BeTrue())
 	g.Expect(killForwarderIndex >= 0 && killForwarderIndex < nodesCount).Should(BeTrue())
-	k8s, err := kubetest.NewK8s(g, true)
-	defer k8s.Cleanup()
+	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResources)
+	defer k8s.Cleanup(t)
 	g.Expect(err).To(BeNil())
 
 	// Deploy open tracing to see what happening.

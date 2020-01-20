@@ -22,12 +22,12 @@ func TestNSMDDeploy(t *testing.T) {
 
 	logrus.Print("Running NSMgr Deploy test")
 
-	k8s, err := kubetest.NewK8s(g, true)
+	k8s, err := kubetest.NewK8s(g, kubetest.DefaultClear)
 	g.Expect(err).To(BeNil())
 
 	// Warmup
-	k8s, err = kubetest.NewK8s(g, true)
-	defer k8s.Cleanup()
+	k8s, err = kubetest.NewK8s(g, kubetest.DefaultClear)
+	defer k8s.Cleanup(t)
 	defer k8s.SaveTestArtifacts(t)
 	var node *kubetest.NodeConf
 	deploy := measureTime(func() {
@@ -42,7 +42,7 @@ func TestNSMDDeploy(t *testing.T) {
 	logrus.Infof("NSMD pulling image time: %v", nsmdPullingImageTime)
 	logrus.Infof("VPPAgent Forwarder pulling image time: %v", forwarderPullingImageTime)
 	deploy -= nsmdPullingImageTime + forwarderPullingImageTime
-	destroy := measureTime(k8s.Cleanup)
+	destroy := measureTime(func() { k8s.Cleanup(t) })
 
 	logrus.Infof("Pods deploy time: %v", deploy)
 	g.Expect(deploy < time.Second*60).To(Equal(true))

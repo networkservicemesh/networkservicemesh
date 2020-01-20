@@ -137,7 +137,7 @@ func (fixture *standaloneForwarderFixture) cleanup() {
 	fixture.forwarding.Stop()
 	// Let's delete source/destPod without gracetimeout
 	fixture.k8s.DeletePodsForce(fixture.sourcePod, fixture.destPod)
-	fixture.k8s.Cleanup()
+	fixture.k8s.Cleanup(fixture.test)
 }
 
 func createFixture(test *testing.T, timeout time.Duration) *standaloneForwarderFixture {
@@ -146,7 +146,7 @@ func createFixture(test *testing.T, timeout time.Duration) *standaloneForwarderF
 		test:    test,
 	}
 
-	k8s, err := kubetest.NewK8s(wt, true)
+	k8s, err := kubetest.NewK8s(wt, kubetest.DefaultClear)
 	wt.Expect(err).To(BeNil())
 
 	// prepare node

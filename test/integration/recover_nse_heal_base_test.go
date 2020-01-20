@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build recover srv6
+// +build recover srv6 recover_suite
 
 package integration
 
@@ -30,41 +30,50 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 )
 
+type testNSEHealParameters struct {
+	t               *testing.T
+	nodesCount      int
+	affinity        map[string]int
+	fixture         kubetest.TestingPodFixture
+	remoteMechanism string
+	clearOption     kubetest.ClearOption
+}
+
 /**
 If passed 1 both will be on same node, if not on different.
 */
-func testNSEHeal(t *testing.T, nodesCount int, affinity map[string]int, fixture kubetest.TestingPodFixture, remoteMechanism string) {
-	g := NewWithT(t)
+func testNSEHeal(params *testNSEHealParameters) {
+	g := NewWithT(params.t)
 
-	k8s, err := kubetest.NewK8s(g, true)
-	defer k8s.Cleanup()
+	k8s, err := kubetest.NewK8s(g, params.clearOption)
+	defer k8s.Cleanup(params.t)
 	g.Expect(err).To(BeNil())
 
 	// Deploy open tracing to see what happening.
-	config := []*pods.NSMgrPodConfig{}
-	for i := 0; i < nodesCount; i++ {
+	var config []*pods.NSMgrPodConfig
+	for i := 0; i < params.nodesCount; i++ {
 		cfg := &pods.NSMgrPodConfig{
 			Namespace:          k8s.GetK8sNamespace(),
 			Variables:          pods.DefaultNSMD(),
 			ForwarderVariables: kubetest.DefaultForwarderVariables(k8s.GetForwardingPlane()),
 		}
-		cfg.Variables[remote.PreferredRemoteMechanism.Name()] = remoteMechanism
+		cfg.Variables[remote.PreferredRemoteMechanism.Name()] = params.remoteMechanism
 		config = append(config, cfg)
 	}
-	nodesSetup, err := kubetest.SetupNodesConfig(k8s, nodesCount, defaultTimeout, config, k8s.GetK8sNamespace())
+	nodesSetup, err := kubetest.SetupNodesConfig(k8s, params.nodesCount, defaultTimeout, config, k8s.GetK8sNamespace())
 	g.Expect(err).To(BeNil())
-	defer k8s.SaveTestArtifacts(t)
+	defer k8s.SaveTestArtifacts(params.t)
 
 	// Run ICMP
-	node := affinity["icmp-responder-nse-1"]
-	nse1 := fixture.DeployNse(k8s, nodesSetup[node].Node, "icmp-responder-nse-1", defaultTimeout)
+	node := params.affinity["icmp-responder-nse-1"]
+	nse1 := params.fixture.DeployNse(k8s, nodesSetup[node].Node, "icmp-responder-nse-1", defaultTimeout)
 
-	nscPodNode := fixture.DeployNsc(k8s, nodesSetup[0].Node, "nsc-1", defaultTimeout)
-	fixture.CheckNsc(k8s, nscPodNode)
+	nscPodNode := params.fixture.DeployNsc(k8s, nodesSetup[0].Node, "nsc-1", defaultTimeout)
+	params.fixture.CheckNsc(k8s, nscPodNode)
 
 	// Since all is fine now, we need to add new ICMP responder and delete previous one.
-	node = affinity["icmp-responder-nse-2"]
-	fixture.DeployNse(k8s, nodesSetup[node].Node, "icmp-responder-nse-2", defaultTimeout)
+	node = params.affinity["icmp-responder-nse-2"]
+	params.fixture.DeployNse(k8s, nodesSetup[node].Node, "icmp-responder-nse-2", defaultTimeout)
 
 	logrus.Infof("Delete first NSE")
 	k8s.DeletePods(nse1)
@@ -81,5 +90,5 @@ func testNSEHeal(t *testing.T, nodesCount int, affinity map[string]int, fixture 
 		}
 	}
 
-	fixture.CheckNsc(k8s, nscPodNode)
+	params.fixture.CheckNsc(k8s, nscPodNode)
 }

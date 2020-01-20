@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Cisco and/or its affiliates.
+// Copyright (c) 2020 Cisco and/or its affiliates.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -14,41 +14,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build basic
+// +build recover
 
-package integration
+package nsmd_integration_tests
 
 import (
 	"testing"
-
-	. "github.com/onsi/gomega"
-
-	"github.com/sirupsen/logrus"
-
-	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 )
 
-func TestDeleteNSMCr(t *testing.T) {
-	g := NewWithT(t)
-
+func TestNSMHealRemoteDieNSMD_NSE(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
 	}
 
-	logrus.Print("Running delete NSM Custom Resource test")
+	testNSMHealRemoteDieNSMD_NSE(t, "VXLAN")
+}
 
-	k8s, err := kubetest.NewK8s(g, kubetest.DefaultClear)
-	g.Expect(err).To(BeNil())
-	defer k8s.Cleanup(t)
+func TestNSMHealRemoteDieNSMD(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
 
-	nodes_setup, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
-	g.Expect(err).To(BeNil())
-
-	kubetest.ExpectNSMsCountToBe(k8s, 0, 1)
-
-	logrus.Infof("Deleting NSMD")
-	k8s.DeletePods(nodes_setup[0].Nsmd)
-
-	kubetest.ExpectNSMsCountToBe(k8s, 1, 0)
+	testNSMHealRemoteDieNSMD(t, "VXLAN")
 }

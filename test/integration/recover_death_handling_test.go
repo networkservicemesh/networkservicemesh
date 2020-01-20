@@ -1,4 +1,4 @@
-// +build recover
+// +build recover_suite
 
 package integration
 
@@ -52,9 +52,9 @@ func testDie(t *testing.T, killSrc bool, nodesCount int) {
 
 	g.Expect(nodesCount > 0).Should(BeTrue())
 
-	k8s, err := kubetest.NewK8s(g, true)
+	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResources)
 
-	defer k8s.Cleanup()
+	defer k8s.Cleanup(t)
 	g.Expect(err).To(BeNil())
 
 	nodes, err := kubetest.SetupNodesConfig(k8s, nodesCount, defaultTimeout, kubetest.NoHealNSMgrPodConfig(k8s), k8s.GetK8sNamespace())

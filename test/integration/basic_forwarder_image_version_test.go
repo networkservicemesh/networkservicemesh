@@ -1,4 +1,4 @@
-// +build basic
+// +build basic_suite
 
 package integration
 
@@ -17,8 +17,8 @@ func TestForwarderVersion(t *testing.T) {
 		t.Skip("Skip, please run without -short")
 		return
 	}
-	k8s, err := kubetest.NewK8s(g, true)
-	defer k8s.Cleanup()
+	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResources)
+	defer k8s.Cleanup(t)
 
 	g.Expect(err).To(BeNil())
 

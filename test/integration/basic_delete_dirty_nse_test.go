@@ -1,4 +1,4 @@
-// +build basic
+// +build basic_suite
 
 package integration
 
@@ -22,9 +22,9 @@ func TestDeleteDirtyNSE(t *testing.T) {
 
 	logrus.Print("Running delete dirty NSE test")
 
-	k8s, err := kubetest.NewK8s(g, true)
+	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResources)
 	g.Expect(err).To(BeNil())
-	defer k8s.Cleanup()
+	defer k8s.Cleanup(t)
 
 	nodesConf, err := kubetest.SetupNodesConfig(k8s, 1, defaultTimeout, []*pods.NSMgrPodConfig{}, k8s.GetK8sNamespace())
 	g.Expect(err).To(BeNil())
@@ -49,9 +49,9 @@ func TestDeleteDirtyNSEWithClient(t *testing.T) {
 
 	logrus.Print("Running delete dirty NSE with client test")
 
-	k8s, err := kubetest.NewK8s(g, true)
+	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResources)
 	g.Expect(err).To(BeNil())
-	defer k8s.Cleanup()
+	defer k8s.Cleanup(t)
 
 	nodesConf, err := kubetest.SetupNodesConfig(k8s, 1, defaultTimeout, []*pods.NSMgrPodConfig{}, k8s.GetK8sNamespace())
 	g.Expect(err).To(BeNil())

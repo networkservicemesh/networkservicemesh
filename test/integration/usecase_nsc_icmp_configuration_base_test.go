@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build usecase srv6
+// +build usecase srv6 usecase_suite
 
 package integration
 
@@ -29,43 +29,52 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 )
 
+type testNSCAndNSEParams struct {
+	t               *testing.T
+	nodeCount       int
+	useWebhook      bool
+	disableVHost    bool
+	remoteMechanism string
+	clearOption     kubetest.ClearOption
+}
+
 /**
 If passed 1 both will be on same node, if not on different.
 */
-func testNSCAndICMP(t *testing.T, nodesCount int, useWebhook, disableVHost bool, remoteMechanism string) {
-	g := NewWithT(t)
+func testNSCAndICMP(pararms *testNSCAndNSEParams) {
+	g := NewWithT(pararms.t)
 
-	k8s, err := kubetest.NewK8s(g, true)
-	defer k8s.Cleanup()
-	defer k8s.SaveTestArtifacts(t)
+	k8s, err := kubetest.NewK8s(g, pararms.clearOption)
+	defer k8s.Cleanup(pararms.t)
+	defer k8s.SaveTestArtifacts(pararms.t)
 	g.Expect(err).To(BeNil())
 
-	if useWebhook {
+	if pararms.useWebhook {
 		awc, awDeployment, awService := kubetest.DeployAdmissionWebhook(k8s, "nsm-admission-webhook", "networkservicemesh/admission-webhook", k8s.GetK8sNamespace(), defaultTimeout)
 		defer kubetest.DeleteAdmissionWebhook(k8s, "nsm-admission-webhook-certs", awc, awDeployment, awService, k8s.GetK8sNamespace())
 	}
 
-	config := []*pods.NSMgrPodConfig{}
-	for i := 0; i < nodesCount; i++ {
+	var config []*pods.NSMgrPodConfig
+	for i := 0; i < pararms.nodeCount; i++ {
 		cfg := &pods.NSMgrPodConfig{
 			Variables: pods.DefaultNSMD(),
 		}
-		cfg.Variables[remote.PreferredRemoteMechanism.Name()] = remoteMechanism
+		cfg.Variables[remote.PreferredRemoteMechanism.Name()] = pararms.remoteMechanism
 		cfg.Namespace = k8s.GetK8sNamespace()
 		cfg.ForwarderVariables = kubetest.DefaultForwarderVariables(k8s.GetForwardingPlane())
-		if disableVHost {
+		if pararms.disableVHost {
 			cfg.ForwarderVariables["FORWARDER_ALLOW_VHOST"] = "false"
 		}
 		config = append(config, cfg)
 	}
-	nodes_setup, err := kubetest.SetupNodesConfig(k8s, nodesCount, defaultTimeout, config, k8s.GetK8sNamespace())
+	nodes_setup, err := kubetest.SetupNodesConfig(k8s, pararms.nodeCount, defaultTimeout, config, k8s.GetK8sNamespace())
 	g.Expect(err).To(BeNil())
 
 	// Run ICMP on latest node
-	_ = kubetest.DeployICMP(k8s, nodes_setup[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
+	_ = kubetest.DeployICMP(k8s, nodes_setup[pararms.nodeCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
 
 	var nscPodNode *v1.Pod
-	if useWebhook {
+	if pararms.useWebhook {
 		nscPodNode = kubetest.DeployNSCWebhook(k8s, nodes_setup[0].Node, "nsc-1", defaultTimeout)
 	} else {
 		nscPodNode = kubetest.DeployNSC(k8s, nodes_setup[0].Node, "nsc-1", defaultTimeout)

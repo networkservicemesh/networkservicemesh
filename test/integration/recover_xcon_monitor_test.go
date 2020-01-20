@@ -17,8 +17,8 @@ import (
 func TestXconMonitorSingleNodeHealFailed(t *testing.T) {
 	g := NewWithT(t)
 
-	k8s, err := kubetest.NewK8s(g, true)
-	defer k8s.Cleanup()
+	k8s, err := kubetest.NewK8s(g, kubetest.DefaultClear)
+	defer k8s.Cleanup(t)
 	g.Expect(err).To(BeNil())
 
 	nodesConf, err := kubetest.SetupNodesConfig(k8s, 1, defaultTimeout, []*pods.NSMgrPodConfig{
@@ -71,8 +71,8 @@ func TestXconMonitorSingleNodeHealFailed(t *testing.T) {
 func TestXconMonitorSingleNodeHealSuccess(t *testing.T) {
 	g := NewWithT(t)
 
-	k8s, err := kubetest.NewK8s(g, true)
-	defer k8s.Cleanup()
+	k8s, err := kubetest.NewK8s(g, kubetest.DefaultClear)
+	defer k8s.Cleanup(t)
 	g.Expect(err).To(BeNil())
 
 	nodesConf, err := kubetest.SetupNodesConfig(k8s, 1, defaultTimeout, []*pods.NSMgrPodConfig{
@@ -129,8 +129,8 @@ func TestXconMonitorSingleNodeHealSuccess(t *testing.T) {
 func TestXconMonitorMultiNodeHealFail(t *testing.T) {
 	g := NewWithT(t)
 
-	k8s, err := kubetest.NewK8s(g, true)
-	defer k8s.Cleanup()
+	k8s, err := kubetest.NewK8s(g, kubetest.DefaultClear)
+	defer k8s.Cleanup(t)
 	g.Expect(err).To(BeNil())
 	defer k8s.SaveTestArtifacts(t)
 
@@ -214,8 +214,8 @@ func TestXconMonitorMultiNodeHealFail(t *testing.T) {
 func TestXconMonitorMultiNodeHealSuccess(t *testing.T) {
 	g := NewWithT(t)
 
-	k8s, err := kubetest.NewK8s(g, true)
-	defer k8s.Cleanup()
+	k8s, err := kubetest.NewK8s(g, kubetest.DefaultClear)
+	defer k8s.Cleanup(t)
 	g.Expect(err).To(BeNil())
 
 	nodesConf, err := kubetest.SetupNodesConfig(k8s, 2, defaultTimeout, []*pods.NSMgrPodConfig{
@@ -302,8 +302,8 @@ func TestXconMonitorMultiNodeHealSuccess(t *testing.T) {
 func TestXconMonitorNsmgrRestart(t *testing.T) {
 	g := NewWithT(t)
 
-	k8s, err := kubetest.NewK8s(g, true)
-	defer k8s.Cleanup()
+	k8s, err := kubetest.NewK8s(g, kubetest.DefaultClear)
+	defer k8s.Cleanup(t)
 	g.Expect(err).To(BeNil())
 
 	nodesConf, err := kubetest.SetupNodesConfig(k8s, 1, defaultTimeout, []*pods.NSMgrPodConfig{

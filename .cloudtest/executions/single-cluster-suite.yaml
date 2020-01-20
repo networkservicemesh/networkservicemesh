@@ -1,0 +1,20 @@
+---
+executions:
+  - name: "Single cluster suite"
+    env:
+      - SAVE_ARTIFACTS_AS_FILES=true
+      - ARCHIVE_ARTIFACTS=true
+    source:
+      tags:
+        - basic_suite
+        - recover_suite
+        - usecase_suite
+    root: ./test/integration
+    timeout: 300
+    cluster-count: 1
+    kubernetes-env:
+      - KUBECONFIG
+    on_fail: |
+      make k8s-delete-nsm-namespaces
+    after: |
+      make k8s-delete-nsm-namespaces

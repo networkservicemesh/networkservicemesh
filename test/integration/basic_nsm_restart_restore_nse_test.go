@@ -24,9 +24,9 @@ func TestNSMgrRestartRestoreNSE(t *testing.T) {
 		return
 	}
 
-	k8s, err := kubetest.NewK8s(g, true)
+	k8s, err := kubetest.NewK8s(g, kubetest.DefaultClear)
 	g.Expect(err).To(BeNil())
-	defer k8s.Cleanup()
+	defer k8s.Cleanup(t)
 	defer k8s.SaveTestArtifacts(t)
 
 	nodesConf, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)

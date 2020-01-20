@@ -1,4 +1,4 @@
-// +build usecase
+// +build usecase_suite
 
 package integration
 
@@ -140,8 +140,8 @@ func testDeploymentOrder(t *testing.T, order []Deployment) {
 		return
 	}
 
-	k8s, err := kubetest.NewK8s(g, true)
-	defer k8s.Cleanup()
+	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResources)
+	defer k8s.Cleanup(t)
 	defer k8s.SaveTestArtifacts(t)
 
 	g.Expect(err).To(BeNil())

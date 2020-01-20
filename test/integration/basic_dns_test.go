@@ -1,4 +1,4 @@
-// +build basic
+// +build basic_suite
 
 package integration
 
@@ -20,9 +20,9 @@ func TestBasicDns(t *testing.T) {
 	}
 	assert := gomega.NewWithT(t)
 	gomega.RegisterTestingT(t)
-	k8s, err := kubetest.NewK8s(assert, true)
+	k8s, err := kubetest.NewK8s(assert, kubetest.ReuseNSMResources)
 	assert.Expect(err).To(gomega.BeNil())
-	defer k8s.Cleanup()
+	defer k8s.Cleanup(t)
 
 	configs, err := kubetest.SetupNodesConfig(k8s, 1, defaultTimeout, []*pods.NSMgrPodConfig{}, k8s.GetK8sNamespace())
 	assert.Expect(err).To(gomega.BeNil())
@@ -48,9 +48,9 @@ func TestDNSMonitoringNsc(t *testing.T) {
 	}
 	assert := gomega.NewWithT(t)
 
-	k8s, err := kubetest.NewK8s(assert, true)
+	k8s, err := kubetest.NewK8s(assert, kubetest.ReuseNSMResources)
 	assert.Expect(err).Should(gomega.BeNil())
-	defer k8s.Cleanup()
+	defer k8s.Cleanup(t)
 
 	nseCorefileContent := `. {
     hosts {
@@ -76,8 +76,8 @@ func TestDNSExternalClient(t *testing.T) {
 		return
 	}
 	assert := gomega.NewWithT(t)
-	k8s, err := kubetest.NewK8s(assert, true)
-	defer k8s.Cleanup()
+	k8s, err := kubetest.NewK8s(assert, kubetest.ReuseNSMResources)
+	defer k8s.Cleanup(t)
 	defer k8s.SaveTestArtifacts(t)
 	assert.Expect(err).To(gomega.BeNil())
 
@@ -110,9 +110,9 @@ func TestNsmCorednsNotBreakDefaultK8sDNS(t *testing.T) {
 		return
 	}
 	assert := gomega.NewWithT(t)
-	k8s, err := kubetest.NewK8s(assert, true)
+	k8s, err := kubetest.NewK8s(assert, kubetest.ReuseNSMResources)
 	assert.Expect(err).Should(gomega.BeNil())
-	defer k8s.Cleanup()
+	defer k8s.Cleanup(t)
 	configs, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
 	assert.Expect(err).To(gomega.BeNil())
 	defer k8s.SaveTestArtifacts(t)

@@ -14,9 +14,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build srv6
+// +build usecase
 
-package integration
+package nsmd_integration_tests
 
 import (
 	"testing"
@@ -24,7 +24,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 )
 
-func TestNSCAndICMPRemoteSRv6(t *testing.T) {
+func TestNSCAndICMPRemote(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
@@ -34,27 +34,12 @@ func TestNSCAndICMPRemoteSRv6(t *testing.T) {
 		nodeCount:       2,
 		useWebhook:      false,
 		disableVHost:    false,
-		remoteMechanism: "SRV6",
+		remoteMechanism: "VXLAN",
 		clearOption:     kubetest.DefaultClear,
 	})
 }
 
-func TestNSCAndICMPWebhookRemoteSRv6(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skip, please run without -short")
-		return
-	}
-	testNSCAndICMP(&testNSCAndNSEParams{
-		t:               t,
-		nodeCount:       2,
-		useWebhook:      true,
-		disableVHost:    false,
-		remoteMechanism: "SRV6",
-		clearOption:     kubetest.DefaultClear,
-	})
-}
-
-func TestNSCAndICMPRemoteVethSRv6(t *testing.T) {
+func TestNSCAndICMPRemoteVeth(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
@@ -64,7 +49,7 @@ func TestNSCAndICMPRemoteVethSRv6(t *testing.T) {
 		nodeCount:       2,
 		useWebhook:      false,
 		disableVHost:    true,
-		remoteMechanism: "SRV6",
+		remoteMechanism: "VXLAN",
 		clearOption:     kubetest.DefaultClear,
 	})
 }

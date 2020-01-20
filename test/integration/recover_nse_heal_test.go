@@ -1,4 +1,4 @@
-// +build recover
+// +build recover_suite
 
 package integration
 
@@ -19,10 +19,17 @@ func TestNSEHealLocal(t *testing.T) {
 
 	g := NewWithT(t)
 
-	testNSEHeal(t, 1, map[string]int{
-		"icmp-responder-nse-1": 0,
-		"icmp-responder-nse-2": 0,
-	}, kubetest.DefaultTestingPodFixture(g), "")
+	testNSEHeal(
+		&testNSEHealParameters{t: t,
+			nodesCount: 1,
+			affinity: map[string]int{
+				"icmp-responder-nse-1": 0,
+				"icmp-responder-nse-2": 0,
+			},
+			fixture:     kubetest.DefaultTestingPodFixture(g),
+			clearOption: kubetest.ReuseNSMResources,
+		},
+	)
 }
 
 func TestNSEHealLocalToRemote(t *testing.T) {
@@ -33,24 +40,17 @@ func TestNSEHealLocalToRemote(t *testing.T) {
 
 	g := NewWithT(t)
 
-	testNSEHeal(t, 2, map[string]int{
-		"icmp-responder-nse-1": 0,
-		"icmp-responder-nse-2": 1,
-	}, kubetest.DefaultTestingPodFixture(g), "")
-}
-
-func TestNSEHealRemoteToLocal(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skip, please run without -short")
-		return
-	}
-
-	g := NewWithT(t)
-
-	testNSEHeal(t, 2, map[string]int{
-		"icmp-responder-nse-1": 1,
-		"icmp-responder-nse-2": 0,
-	}, kubetest.DefaultTestingPodFixture(g), "VXLAN")
+	testNSEHeal(
+		&testNSEHealParameters{t: t,
+			nodesCount: 2,
+			affinity: map[string]int{
+				"icmp-responder-nse-1": 0,
+				"icmp-responder-nse-2": 1,
+			},
+			fixture:     kubetest.DefaultTestingPodFixture(g),
+			clearOption: kubetest.ReuseNSMResources,
+		},
+	)
 }
 
 func TestNSEHealRemote(t *testing.T) {
@@ -61,10 +61,17 @@ func TestNSEHealRemote(t *testing.T) {
 
 	g := NewWithT(t)
 
-	testNSEHeal(t, 2, map[string]int{
-		"icmp-responder-nse-1": 1,
-		"icmp-responder-nse-2": 1,
-	}, kubetest.DefaultTestingPodFixture(g), "")
+	testNSEHeal(
+		&testNSEHealParameters{t: t,
+			nodesCount: 2,
+			affinity: map[string]int{
+				"icmp-responder-nse-1": 1,
+				"icmp-responder-nse-2": 1,
+			},
+			fixture:     kubetest.DefaultTestingPodFixture(g),
+			clearOption: kubetest.ReuseNSMResources,
+		},
+	)
 }
 
 func TestNSEHealLocalVpp(t *testing.T) {
@@ -75,10 +82,17 @@ func TestNSEHealLocalVpp(t *testing.T) {
 		return
 	}
 
-	testNSEHeal(t, 1, map[string]int{
-		"vpp-agent-nse-1": 0,
-		"vpp-agent-nse-2": 0,
-	}, kubetest.VppAgentTestingPodFixture(g), "")
+	testNSEHeal(
+		&testNSEHealParameters{t: t,
+			nodesCount: 1,
+			affinity: map[string]int{
+				"icmp-responder-nse-1": 0,
+				"icmp-responder-nse-2": 0,
+			},
+			fixture:     kubetest.DefaultTestingPodFixture(g),
+			clearOption: kubetest.ReuseNSMResources,
+		},
+	)
 }
 
 func TestNSEHealToLocalVpp(t *testing.T) {
@@ -89,10 +103,17 @@ func TestNSEHealToLocalVpp(t *testing.T) {
 		return
 	}
 
-	testNSEHeal(t, 2, map[string]int{
-		"vpp-agent-nse-1": 1,
-		"vpp-agent-nse-2": 0,
-	}, kubetest.VppAgentTestingPodFixture(g), "")
+	testNSEHeal(
+		&testNSEHealParameters{t: t,
+			nodesCount: 2,
+			affinity: map[string]int{
+				"icmp-responder-nse-1": 1,
+				"icmp-responder-nse-2": 0,
+			},
+			fixture:     kubetest.VppAgentTestingPodFixture(g),
+			clearOption: kubetest.ReuseNSMResources,
+		},
+	)
 }
 
 func TestNSEHealToRemoteVpp(t *testing.T) {
@@ -103,10 +124,17 @@ func TestNSEHealToRemoteVpp(t *testing.T) {
 		return
 	}
 
-	testNSEHeal(t, 2, map[string]int{
-		"vpp-agent-nse-1": 0,
-		"vpp-agent-nse-2": 1,
-	}, kubetest.VppAgentTestingPodFixture(g), "")
+	testNSEHeal(
+		&testNSEHealParameters{t: t,
+			nodesCount: 2,
+			affinity: map[string]int{
+				"icmp-responder-nse-1": 0,
+				"icmp-responder-nse-2": 1,
+			},
+			fixture:     kubetest.VppAgentTestingPodFixture(g),
+			clearOption: kubetest.ReuseNSMResources,
+		},
+	)
 }
 
 func TestNSEHealRemoteVpp(t *testing.T) {
@@ -116,11 +144,17 @@ func TestNSEHealRemoteVpp(t *testing.T) {
 		t.Skip("Skip, please run without -short")
 		return
 	}
-
-	testNSEHeal(t, 2, map[string]int{
-		"vpp-agent-nse-1": 1,
-		"vpp-agent-nse-2": 1,
-	}, kubetest.VppAgentTestingPodFixture(g), "")
+	testNSEHeal(
+		&testNSEHealParameters{t: t,
+			nodesCount: 2,
+			affinity: map[string]int{
+				"icmp-responder-nse-1": 1,
+				"icmp-responder-nse-2": 1,
+			},
+			fixture:     kubetest.VppAgentTestingPodFixture(g),
+			clearOption: kubetest.ReuseNSMResources,
+		},
+	)
 }
 
 func TestClosingNSEHealRemoteToLocal(t *testing.T) {
@@ -137,9 +171,9 @@ func TestClosingNSEHealRemoteToLocal(t *testing.T) {
 	}
 	fixture := kubetest.DefaultTestingPodFixture(g)
 
-	k8s, err := kubetest.NewK8s(g, true)
+	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResources)
 	g.Expect(err).To(BeNil())
-	defer k8s.Cleanup()
+	defer k8s.Cleanup(t)
 
 	// Deploy open tracing to see what happening.
 	nodesSetup, err := kubetest.SetupNodes(k8s, 2, defaultTimeout)

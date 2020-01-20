@@ -19,8 +19,8 @@ func TestKubernetesAreOk(t *testing.T) {
 		return
 	}
 
-	k8s, err := kubetest.NewK8sWithoutRoles(g, false)
-	defer k8s.Cleanup()
+	k8s, err := kubetest.NewK8sWithoutRoles(g, kubetest.NoClear)
+	defer k8s.Cleanup(t)
 	g.Expect(err).To(BeNil())
 	defer k8s.SaveTestArtifacts(t)
 	v := k8s.GetVersion()
