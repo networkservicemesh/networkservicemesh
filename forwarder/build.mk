@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-forwarder_images = vppagent-forwarder kernel-forwarder
+forwarder_images = vppagent-forwarder kernel-forwarder sriov-forwarder
 
 # TODO: files in forwarder doesn't follow the regular structure: ./module/cmd/app,
 # after fixing 'kernel-forwarder' and 'vppagent-forwarder' targets could be eliminated
@@ -28,6 +28,14 @@ go-vppagent-forwarder-build: go-%-build:
 	$(info ----------------------  Building forwarder::$* via Cross compile ----------------------)
 	@pushd ./forwarder && \
 	${GO_BUILD} -o $(BIN_DIR)/$*/$* ./vppagent/cmd/ && \
+	popd
+
+.PHONY: go-sriov-forwarder-build
+go-sriov-forwarder-build: go-%-build:
+	$(info ----------------------  Building forwarder::$* via Cross compile ----------------------)
+	@pushd ./forwarder && \
+	CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) go build \
+	-ldflags "-extldflags '-static' -X  main.version=$(VERSION)" -o $(BIN_DIR)/$*/$* ./sriov-forwarder/cmd/ && \
 	popd
 
 docker-vppagent-forwarder-prepare: docker-%-prepare: go-%-build

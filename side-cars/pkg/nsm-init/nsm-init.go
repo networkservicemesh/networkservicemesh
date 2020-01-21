@@ -17,7 +17,7 @@ package nsminit
 import (
 	"context"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/sriovkernel"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
@@ -61,7 +61,8 @@ func (c *nsmClientApp) Run() {
 		logrus.Fatalf("nsm client: Unable to create the NSM client %v", err)
 		return
 	}
-	err = clientList.ConnectRetry(span.Context(), "nsm", kernel.MECHANISM, "Primary interface", client.ConnectionRetry, client.RequestDelay)
+	// TODO: fix hardcoded mechanism request change here
+	err = clientList.ConnectRetry(span.Context(), "nsm", sriovkernel.MECHANISM, "Primary interface", client.ConnectionRetry, client.RequestDelay)
 	if err != nil {
 		span.Finish()
 		_ = closer.Close()

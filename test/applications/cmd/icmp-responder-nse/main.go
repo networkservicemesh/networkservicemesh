@@ -47,6 +47,7 @@ func main() {
 	flags := flags.ParseFlags()
 
 	configuration := common.FromEnv()
+	configuration.MechanismType = "SRIOV_KERNEL_INTERFACE"
 
 	endpoints := []networkservice.NetworkServiceServer{
 		endpoint.NewMonitorEndpoint(configuration),

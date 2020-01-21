@@ -29,6 +29,9 @@ func main() {
 	logrus.Info("Starting nsm-init...")
 	logrus.Infof("Version: %v", version)
 	utils.PrintAllEnv(logrus.StandardLogger())
-	clientApp := nsm_init.NewNSMClientApp(common.FromEnv())
+
+	config := common.FromEnv()
+	config.MechanismType = "SRIOV_KERNEL_INTERFACE"
+	clientApp := nsm_init.NewNSMClientApp(config)
 	clientApp.Run()
 }

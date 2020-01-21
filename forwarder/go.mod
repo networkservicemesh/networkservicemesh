@@ -3,6 +3,7 @@ module github.com/networkservicemesh/networkservicemesh/forwarder
 go 1.13
 
 require (
+	github.com/containernetworking/plugins v0.8.2
 	github.com/gogo/protobuf v1.2.2-0.20190723190241-65acae22fc9d
 	github.com/golang/protobuf v1.3.2
 	github.com/ligato/vpp-agent v2.5.1+incompatible

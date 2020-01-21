@@ -19,6 +19,8 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -62,6 +64,15 @@ func (nsmc *NsmClient) Connect(ctx context.Context, name, mechanism, description
 	return nsmc.ConnectRetry(ctx, name, mechanism, description, 1, 0)
 }
 
+// ParseVariable - parses var=value variable format.
+func ParseVariable(variable string) (string, string, error) {
+	pos := strings.Index(variable, "=")
+	if pos == -1 {
+		return "", "", errors.Errorf("variable passed are invalid")
+	}
+	return variable[:pos], variable[pos+1:], nil
+}
+
 // Connect implements the business logic
 func (nsmc *NsmClient) ConnectRetry(ctx context.Context, name, mechanism, description string, retryCount int, retryDelay time.Duration) (*connection.Connection, error) {
 	span := spanhelper.FromContext(ctx, "nsmClient.Connect")
@@ -76,7 +87,25 @@ func (nsmc *NsmClient) ConnectRetry(ctx context.Context, name, mechanism, descri
 		name = nsmc.NscInterfaceName
 	}
 
-	outgoingMechanism, err := common.NewMechanism(cls.LOCAL, mechanism, name, description)
+	// TODO: refactor, don't hardcode, move somewhere
+	environment := map[string]string{}
+	for _, k := range os.Environ() {
+		key, value, err := ParseVariable(k)
+		if err != nil {
+			return nil, err
+		}
+		environment[key] = value
+	}
+	resourceEnvName, ok := environment["NSM_SRIOV_RESOURCE_NAME"]
+	if !ok {
+		return nil, errors.New("NSM_SRIOV_RESOURCE_NAME env variable missing")
+	}
+	pciAddress, ok := environment[resourceEnvName]
+	if !ok {
+		return nil, errors.Errorf("%s env variable missing", resourceEnvName)
+	}
+
+	outgoingMechanism, err := common.NewSRIOVMechanism(cls.LOCAL, mechanism, name, description, pciAddress)
 
 	span.LogObject("Selected mechanism", outgoingMechanism)
 
@@ -120,6 +149,8 @@ func (nsmc *NsmClient) ConnectRetry(ctx context.Context, name, mechanism, descri
 
 		attemptLogger := attemptSpan.Logger()
 		attemptLogger.Infof("Requesting %v", outgoingRequest)
+
+		// TODO: outgoing connection returned here is missing TYPE field in MECHANISM type
 		outgoingConnection, err = nsmc.NsClient.Request(attempCtx, outgoingRequest)
 
 		if err != nil {
