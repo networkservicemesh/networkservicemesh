@@ -17,6 +17,7 @@ package kernelforwarder
 
 import (
 	"context"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/wireguard"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/sirupsen/logrus"
@@ -98,7 +99,7 @@ func (k *KernelForwarder) connectOrDisconnect(crossConnect *crossconnect.CrossCo
 		devices, err = handleLocalConnection(crossConnect, connect)
 	} else {
 		/* 2. Handle remote connection */
-		devices, err = handleRemoteConnection(k.common.EgressInterface, crossConnect, connect)
+		devices, err = handleRemoteConnection(crossConnect, connect)
 	}
 	if devices != nil && err == nil {
 		if connect {
@@ -126,6 +127,12 @@ func (k *KernelForwarder) configureKernelForwarder() {
 		RemoteMechanisms: []*connection.Mechanism{
 			{
 				Type: vxlan.MECHANISM,
+				Parameters: map[string]string{
+					vxlan.SrcIP: k.common.EgressInterface.SrcIPNet().IP.String(),
+				},
+			},
+			{
+				Type: wireguard.MECHANISM,
 				Parameters: map[string]string{
 					vxlan.SrcIP: k.common.EgressInterface.SrcIPNet().IP.String(),
 				},

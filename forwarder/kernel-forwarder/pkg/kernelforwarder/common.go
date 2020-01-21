@@ -16,16 +16,10 @@
 package kernelforwarder
 
 import (
-	"github.com/pkg/errors"
-
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
-
-	"net"
-	"strconv"
-
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
+	"net"
 
 	"github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
@@ -35,8 +29,6 @@ import (
 // Kernel forwarding plane related constants
 const (
 	cLOCAL    = iota
-	cINCOMING = iota
-	cOUTGOING = iota
 )
 
 const (
@@ -157,50 +149,18 @@ func setupLinkInNs(containerNs netns.NsHandle, ifaceName, ifaceIP string, routes
 
 //nolint
 func newConnectionConfig(crossConnect *crossconnect.CrossConnect, connType uint8) (*connectionConfig, error) {
-	switch connType {
-	case cLOCAL:
-		return &connectionConfig{
-			id:            crossConnect.GetId(),
-			srcNetNsInode: crossConnect.GetSource().GetMechanism().GetParameters()[common.NetNsInodeKey],
-			dstNetNsInode: crossConnect.GetDestination().GetMechanism().GetParameters()[common.NetNsInodeKey],
-			srcName:       crossConnect.GetSource().GetMechanism().GetParameters()[common.InterfaceNameKey],
-			dstName:       crossConnect.GetDestination().GetMechanism().GetParameters()[common.InterfaceNameKey],
-			srcIP:         crossConnect.GetSource().GetContext().GetIpContext().GetSrcIpAddr(),
-			dstIP:         crossConnect.GetSource().GetContext().GetIpContext().GetDstIpAddr(),
-			srcRoutes:     crossConnect.GetSource().GetContext().GetIpContext().GetDstRoutes(),
-			dstRoutes:     crossConnect.GetDestination().GetContext().GetIpContext().GetSrcRoutes(),
-			neighbors:     crossConnect.GetSource().GetContext().GetIpContext().GetIpNeighbors(),
-		}, nil
-	case cINCOMING:
-		vni, _ := strconv.Atoi(crossConnect.GetSource().GetMechanism().GetParameters()[vxlan.VNI])
-		return &connectionConfig{
-			id:            crossConnect.GetId(),
-			dstNetNsInode: crossConnect.GetDestination().GetMechanism().GetParameters()[common.NetNsInodeKey],
-			dstName:       crossConnect.GetDestination().GetMechanism().GetParameters()[common.InterfaceNameKey],
-			dstIP:         crossConnect.GetDestination().GetContext().GetIpContext().GetDstIpAddr(),
-			dstRoutes:     crossConnect.GetDestination().GetContext().GetIpContext().GetSrcRoutes(),
-			neighbors:     nil,
-			srcIPVXLAN:    net.ParseIP(crossConnect.GetSource().GetMechanism().GetParameters()[vxlan.SrcIP]),
-			dstIPVXLAN:    net.ParseIP(crossConnect.GetSource().GetMechanism().GetParameters()[vxlan.DstIP]),
-			vni:           vni,
-		}, nil
-	case cOUTGOING:
-		vni, _ := strconv.Atoi(crossConnect.GetDestination().GetMechanism().GetParameters()[vxlan.VNI])
-		return &connectionConfig{
-			id:            crossConnect.GetId(),
-			srcNetNsInode: crossConnect.GetSource().GetMechanism().GetParameters()[common.NetNsInodeKey],
-			srcName:       crossConnect.GetSource().GetMechanism().GetParameters()[common.InterfaceNameKey],
-			srcIP:         crossConnect.GetSource().GetContext().GetIpContext().GetSrcIpAddr(),
-			srcRoutes:     crossConnect.GetSource().GetContext().GetIpContext().GetDstRoutes(),
-			neighbors:     crossConnect.GetSource().GetContext().GetIpContext().GetIpNeighbors(),
-			srcIPVXLAN:    net.ParseIP(crossConnect.GetDestination().GetMechanism().GetParameters()[vxlan.SrcIP]),
-			dstIPVXLAN:    net.ParseIP(crossConnect.GetDestination().GetMechanism().GetParameters()[vxlan.DstIP]),
-			vni:           vni,
-		}, nil
-	default:
-		logrus.Error("common: connection configuration: invalid connection type")
-		return nil, errors.New("common: invalid connection type")
-	}
+	return &connectionConfig{
+		id:            crossConnect.GetId(),
+		srcNetNsInode: crossConnect.GetSource().GetMechanism().GetParameters()[common.NetNsInodeKey],
+		dstNetNsInode: crossConnect.GetDestination().GetMechanism().GetParameters()[common.NetNsInodeKey],
+		srcName:       crossConnect.GetSource().GetMechanism().GetParameters()[common.InterfaceNameKey],
+		dstName:       crossConnect.GetDestination().GetMechanism().GetParameters()[common.InterfaceNameKey],
+		srcIP:         crossConnect.GetSource().GetContext().GetIpContext().GetSrcIpAddr(),
+		dstIP:         crossConnect.GetSource().GetContext().GetIpContext().GetDstIpAddr(),
+		srcRoutes:     crossConnect.GetSource().GetContext().GetIpContext().GetDstRoutes(),
+		dstRoutes:     crossConnect.GetDestination().GetContext().GetIpContext().GetSrcRoutes(),
+		neighbors:     crossConnect.GetSource().GetContext().GetIpContext().GetIpNeighbors(),
+	}, nil
 }
 
 // addRoutes adds routes
