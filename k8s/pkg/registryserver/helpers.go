@@ -4,20 +4,22 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/proto"
-	"k8s.io/apimachinery/pkg/types"
-
-	"github.com/networkservicemesh/networkservicemesh/utils"
-
 	"github.com/golang/protobuf/ptypes"
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	v1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1alpha1"
+	"github.com/networkservicemesh/networkservicemesh/utils"
 )
 
-const PodNameEnv = utils.EnvVar("POD_NAME")
-const PodUidEnv = utils.EnvVar("POD_UID")
+const (
+	// PodNameEnv - Current Pod Name Environment variable
+	PodNameEnv = utils.EnvVar("POD_NAME")
+	// PodUIDEnv - Current Pod UID Environment variable
+	PodUIDEnv = utils.EnvVar("POD_UID")
+)
 
 func mapNsmToCustomResource(nsm *registry.NetworkServiceManager) *v1.NetworkServiceManager {
 	nsmCr := &v1.NetworkServiceManager{
@@ -33,19 +35,10 @@ func mapNsmToCustomResource(nsm *registry.NetworkServiceManager) *v1.NetworkServ
 		},
 	}
 
-	podUid := types.UID(PodUidEnv.StringValue())
+	podUID := PodUIDEnv.StringValue()
 	podName := PodNameEnv.StringValue()
-	if podName != "" && podUid != "" {
-		nsmCr.OwnerReferences = []metav1.OwnerReference{
-			{
-				APIVersion:         "v1",
-				Kind:               "Pod",
-				Name:               podName,
-				UID:                podUid,
-				Controller:         proto.Bool(true),
-				BlockOwnerDeletion: proto.Bool(false),
-			},
-		}
+	if len(podUID) > 0 && len(podName) > 0 {
+		nsmCr.OwnerReferences = append(nsmCr.OwnerReferences, generateOwnerReference(podUID, podName))
 	}
 
 	return nsmCr
@@ -65,6 +58,29 @@ func mapNsmFromCustomResource(cr *v1.NetworkServiceManager) *registry.NetworkSer
 	}
 }
 
+func mapNseToCustomResource(nse *registry.NetworkServiceEndpoint, ns *registry.NetworkService, nsmName string) *v1.NetworkServiceEndpoint {
+	labels := nse.GetLabels()
+	if labels == nil {
+		labels = make(map[string]string)
+	}
+	labels["networkservicename"] = ns.GetName()
+
+	return &v1.NetworkServiceEndpoint{
+		ObjectMeta: metav1.ObjectMeta{
+			Labels: labels,
+			Name:   nse.GetName(),
+		},
+		Spec: v1.NetworkServiceEndpointSpec{
+			NetworkServiceName: ns.GetName(),
+			Payload:            ns.GetPayload(),
+			NsmName:            nsmName,
+		},
+		Status: v1.NetworkServiceEndpointStatus{
+			State: v1.RUNNING,
+		},
+	}
+}
+
 func mapNseFromCustomResource(cr *v1.NetworkServiceEndpoint) *registry.NetworkServiceEndpoint {
 	return &registry.NetworkServiceEndpoint{
 		Name:                      cr.Name,
@@ -73,5 +89,17 @@ func mapNseFromCustomResource(cr *v1.NetworkServiceEndpoint) *registry.NetworkSe
 		Payload:                   cr.Spec.Payload,
 		Labels:                    cr.ObjectMeta.Labels,
 		State:                     string(cr.Status.State),
+	}
+}
+
+func generateOwnerReference(podUID, podName string) metav1.OwnerReference {
+	uid := types.UID(podUID)
+	return metav1.OwnerReference{
+		APIVersion:         "v1",
+		Kind:               "Pod",
+		Name:               podName,
+		UID:                uid,
+		Controller:         proto.Bool(true),
+		BlockOwnerDeletion: proto.Bool(false),
 	}
 }

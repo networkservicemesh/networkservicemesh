@@ -26,6 +26,14 @@ spec:
               value: "app=icmp"
             - name: CLIENT_NETWORK_SERVICE
               value: "icmp-responder"
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_UID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.uid
           resources:
             limits:
               networkservicemesh.io/socket: 1

@@ -21,12 +21,8 @@ import (
 	"io"
 	"net"
 
-	"github.com/pkg/errors"
-
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
-
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 
@@ -35,7 +31,21 @@ import (
 	unified "github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
+	"github.com/networkservicemesh/networkservicemesh/utils"
+)
+
+const (
+	// PodNameEnv - NSE Pod name ENV
+	PodNameEnv = utils.EnvVar("POD_NAME")
+	// PodUIDEnv - NSE Pod uid ENV
+	PodUIDEnv = utils.EnvVar("POD_UID")
+	// NSEPodUIDMetadataKey - NSE Pod UID in context metadata key
+	NSEPodUIDMetadataKey = "NSEPodUID"
+	// NSEPodNameMetadataKey - NSE Pod Name in context metadata key
+	NSEPodNameMetadataKey = "NSEPodName"
 )
 
 // NsmEndpoint  provides the grpc mechanics for an NsmEndpoint
@@ -121,10 +131,14 @@ func (nsme *nsmEndpoint) Start() error {
 	span.LogObject("nse-request", registration)
 
 	nsme.registryClient = registry.NewNetworkServiceRegistryClient(nsme.GrpcClient)
-	registeredNSE, err := nsme.registryClient.RegisterNSE(span.Context(), registration)
+
+	ctx := tools.MetadataWithPair(span.Context(), NSEPodUIDMetadataKey, PodUIDEnv.StringValue())
+	ctx = tools.MetadataWithPair(ctx, NSEPodNameMetadataKey, PodNameEnv.StringValue())
+	registeredNSE, err := nsme.registryClient.RegisterNSE(ctx, registration)
 	if err != nil {
 		span.Logger().Fatalln("unable to register endpoint", err)
 	}
+
 	nsme.endpointName = registeredNSE.GetNetworkServiceEndpoint().GetName()
 	span.LogObject("endpoint-name", nsme.endpointName)
 	span.Logger().Infof("NSE registered: %v", registeredNSE)

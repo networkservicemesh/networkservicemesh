@@ -6,11 +6,12 @@ import (
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	v1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1alpha1"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
 )
 
 const (
@@ -33,13 +34,6 @@ func newNseRegistryService(nsmName string, cache RegistryCache) *nseRegistryServ
 func (rs *nseRegistryService) RegisterNSE(ctx context.Context, request *registry.NSERegistration) (*registry.NSERegistration, error) {
 	st := time.Now()
 
-	logrus.Infof("Received RegisterNSE(%v)", request)
-
-	labels := request.GetNetworkServiceEndpoint().GetLabels()
-	if labels == nil {
-		labels = make(map[string]string)
-	}
-	labels["networkservicename"] = request.GetNetworkService().GetName()
 	if request.GetNetworkServiceEndpoint() != nil && request.GetNetworkService() != nil {
 		_, err := rs.cache.AddNetworkService(&v1.NetworkService{
 			ObjectMeta: metav1.ObjectMeta{
@@ -55,32 +49,24 @@ func (rs *nseRegistryService) RegisterNSE(ctx context.Context, request *registry
 			return nil, err
 		}
 
-		var objectMeta metav1.ObjectMeta
-		if request.GetNetworkServiceEndpoint().GetName() == "" {
-			objectMeta = metav1.ObjectMeta{
-				GenerateName: request.GetNetworkService().GetName(),
-				Labels:       labels,
-			}
-		} else {
-			objectMeta = metav1.ObjectMeta{
-				Name:   request.GetNetworkServiceEndpoint().GetName(),
-				Labels: labels,
-			}
+		nseCr := mapNseToCustomResource(request.GetNetworkServiceEndpoint(), request.GetNetworkService(), rs.nsmName)
+		if nseCr.GetName() == "" {
+			nseCr.SetGenerateName(request.GetNetworkService().GetName())
 		}
 
-		nseResponse, err := rs.cache.AddNetworkServiceEndpoint(&v1.NetworkServiceEndpoint{
-			ObjectMeta: objectMeta,
-			Spec: v1.NetworkServiceEndpointSpec{
-				NetworkServiceName: request.GetNetworkService().GetName(),
-				Payload:            request.GetNetworkService().GetPayload(),
-				NsmName:            rs.nsmName,
-			},
-			Status: v1.NetworkServiceEndpointStatus{
-				State: v1.RUNNING,
-			},
-		})
+		nsePodName := tools.MetadataFromIncomingContext(ctx, endpoint.NSEPodNameMetadataKey)
+		nsePodUID := tools.MetadataFromIncomingContext(ctx, endpoint.NSEPodUIDMetadataKey)
+		if len(nsePodName) > 0 && len(nsePodUID) > 0 {
+			nseCr.OwnerReferences = append(nseCr.OwnerReferences, generateOwnerReference(nsePodUID[0], nsePodName[0]))
+		}
+
+		nseResponse, err := rs.cache.AddNetworkServiceEndpoint(nseCr)
 		if err != nil {
-			return nil, err
+			nseCr.OwnerReferences = nil
+			nseResponse, err = rs.cache.AddNetworkServiceEndpoint(nseCr)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		request.NetworkServiceEndpoint = mapNseFromCustomResource(nseResponse)

@@ -8,7 +8,20 @@ import (
 
 // TestCommonPod creates a new alpine-based testing pod
 func TestCommonPod(name string, command []string, node *v1.Node, env map[string]string, sa string) *v1.Pod {
-	envVars := []v1.EnvVar{}
+	envVars := []v1.EnvVar{
+		{
+			Name: "POD_UID",
+			ValueFrom: &v1.EnvVarSource{
+				FieldRef: &v1.ObjectFieldSelector{
+					FieldPath: "metadata.uid",
+				},
+			},
+		},
+		{
+			Name:  "POD_NAME",
+			Value: name,
+		},
+	}
 	for k, v := range env {
 		envVars = append(envVars,
 			v1.EnvVar{

@@ -51,6 +51,14 @@ spec:
               value: jaeger.nsm-system
             - name: JAEGER_AGENT_PORT
               value: "6831"
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_UID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.uid
 {{- end }}
           resources:
             limits:

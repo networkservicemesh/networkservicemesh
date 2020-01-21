@@ -17,15 +17,13 @@ package nsmd
 import (
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/pkg/errors"
-
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
-
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
-
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 )
 
 type NSERegistryServer interface {
@@ -58,7 +56,8 @@ func (es *registryServer) RegisterNSE(ctx context.Context, request *registry.NSE
 		return nil, err
 	}
 
-	reg, err := es.RegisterNSEWithClient(span.Context(), request, client)
+	regCtx := tools.MetadataWithIncomingContext(span.Context(), span.Context())
+	reg, err := es.RegisterNSEWithClient(regCtx, request, client)
 	if err != nil {
 		span.LogError(err)
 		return reg, err

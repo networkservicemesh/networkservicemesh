@@ -31,6 +31,14 @@ spec:
               value: "app=passthrough-1"
             - name: TRACER_ENABLED
               value: "true"
+            - name: POD_UID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.uid
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
           resources:
             limits:
               networkservicemesh.io/socket: 1
