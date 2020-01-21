@@ -18,18 +18,19 @@ package endpoint
 import (
 	"context"
 	"math/rand"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/pkg/errors"
 	"github.com/teris-io/shortid"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
-
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/cls"
-
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/cls"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 )
 
@@ -38,6 +39,15 @@ type ConnectionEndpoint struct {
 	mechanismType string
 	// TODO - id doesn't seem to be used, and should be
 	id *shortid.Shortid
+}
+
+// ParseVariable - parses var=value variable format.
+func ParseVariable(variable string) (string, string, error) {
+	pos := strings.Index(variable, "=")
+	if pos == -1 {
+		return "", "", errors.Errorf("variable passed are invalid")
+	}
+	return variable[:pos], variable[pos+1:], nil
 }
 
 // Request implements the request handler
@@ -50,11 +60,47 @@ func (cce *ConnectionEndpoint) Request(ctx context.Context, request *networkserv
 		return nil, err
 	}
 
+	// FIXME: hardcoded
 	mechanism, err := common.NewMechanism(cls.LOCAL, cce.mechanismType, cce.generateIfName(), "NSM Endpoint")
 	if err != nil {
 		Log(ctx).Errorf("Mechanism not created: %v", err)
 		return nil, err
 	}
+
+	//mechanism.Type = "SRIOV_KERNEL_INTERFACE"
+
+	inodeNum, err := tools.GetCurrentNS()
+	if err != nil {
+		return nil, err
+	}
+
+	environment := map[string]string{}
+	for _, k := range os.Environ() {
+		key, value, err := ParseVariable(k)
+		if err != nil {
+			return nil, err
+		}
+		environment[key] = value
+	}
+
+	params := map[string]string{
+		"netnsInode": inodeNum,
+	}
+
+	if mechanism.Type == "SRIOV_KERNEL_INTERFACE" || mechanism.Type == "SRIOV_USERSPACE" {
+		resourceEnvName, ok := environment["NSM_SRIOV_RESOURCE_NAME"]
+		if !ok {
+			return nil, errors.New("NSM_SRIOV_RESOURCE_NAME env variable missing")
+		}
+		pciAddress, ok := environment[resourceEnvName]
+		if !ok {
+			return nil, errors.Errorf("%s env variable missing", resourceEnvName)
+		}
+
+		params["PCIAddress"] = pciAddress
+	}
+
+	mechanism.Parameters = params
 
 	request.GetConnection().Mechanism = mechanism
 
@@ -90,10 +136,10 @@ func (cce *ConnectionEndpoint) generateIfName() string {
 // NewConnectionEndpoint creates a ConnectionEndpoint
 func NewConnectionEndpoint(configuration *common.NSConfiguration) *ConnectionEndpoint {
 	// ensure the env variables are processed
+
 	if configuration == nil {
 		configuration = &common.NSConfiguration{}
 	}
-
 	rand.Seed(time.Now().UTC().UnixNano())
 
 	self := &ConnectionEndpoint{

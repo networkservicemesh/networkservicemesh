@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -92,7 +93,7 @@ func createDNSPatch(tuple *podSpecAndMeta, annotationValue string) (patch []patc
 	return patch
 }
 
-func createNsmInitContainerPatch(annotationValue string) []patchOperation {
+func createNsmInitContainerPatch(annotationValue, resourcePrefix, resourceName string) []patchOperation {
 	var patch []patchOperation
 
 	namespace := getNamespace()
@@ -123,14 +124,27 @@ func createNsmInitContainerPatch(annotationValue string) []patchOperation {
 			})
 	}
 
+	// TODO: fix this temporary solution
+	resourceEnvName := "PCIDEVICE" + "_" + resourcePrefix + "_" + resourceName
+	resourceEnvName = strings.ReplaceAll(resourceEnvName, ".", "_")
+	resourceEnvName = strings.ToUpper(resourceEnvName)
+
 	jaegerPort := getJaegerPort()
 	if jaegerPort != "" {
 		envVals = append(envVals,
 			corev1.EnvVar{
 				Name:  jaegerPortEnv,
 				Value: jaegerPort,
-			})
+			},
+			// TODO: how to get this value from the sriov net dp inserted by sriov net dp
+			corev1.EnvVar{
+				Name:  "NSM_SRIOV_RESOURCE_NAME",
+				Value: resourceEnvName,
+			},
+		)
 	}
+
+	resourceNameEnvKey := corev1.ResourceName(resourcePrefix + "/" + resourceName)
 
 	value := []corev1.Container{{
 		Name:            initContainerName,
@@ -140,6 +154,7 @@ func createNsmInitContainerPatch(annotationValue string) []patchOperation {
 		Resources: corev1.ResourceRequirements{
 			Limits: corev1.ResourceList{
 				"networkservicemesh.io/socket": resource.MustParse("1"),
+				resourceNameEnvKey:             resource.MustParse("1"), // TODO:  get resource name from the network service fqdn name or annotation
 			},
 		},
 	}}

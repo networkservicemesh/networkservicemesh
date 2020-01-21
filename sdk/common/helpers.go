@@ -26,6 +26,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/sriovkernel"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/memif"
@@ -62,6 +64,28 @@ func IsIPv6(address string) bool {
 	return strings.Count(address, ":") >= 2
 }
 
+func NewSRIOVMechanism(cls, t, name, description, pciAddress string) (*connection.Mechanism, error) {
+	inodeNum, err := tools.GetCurrentNS()
+	if err != nil {
+		return nil, err
+	}
+	rv := &connection.Mechanism{
+		Cls:  cls,
+		Type: t, // TODO: what happens to this variable? why is all of this hardcoded to kernel?
+		Parameters: map[string]string{
+			common.InterfaceNameKey:        name,
+			common.InterfaceDescriptionKey: description,
+			common.NetNsInodeKey:           inodeNum,
+			sriovkernel.PCIAddress:         pciAddress,
+		},
+	}
+	err = rv.IsValid()
+	if err != nil {
+		return nil, err
+	}
+	return rv, nil
+}
+
 // NewMechanism creates a new mechanism with passed type and description.
 func NewMechanism(cls string, t string, name, description string) (*connection.Mechanism, error) {
 	inodeNum, err := tools.GetCurrentNS()
@@ -70,7 +94,7 @@ func NewMechanism(cls string, t string, name, description string) (*connection.M
 	}
 	rv := &connection.Mechanism{
 		Cls:  cls,
-		Type: t,
+		Type: t, // TODO: what happens to this variable? why is all of this hardcoded to kernel?
 		Parameters: map[string]string{
 			common.InterfaceNameKey:        name,
 			common.InterfaceDescriptionKey: description,
