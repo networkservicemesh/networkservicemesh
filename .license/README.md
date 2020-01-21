@@ -3,6 +3,8 @@ This folder contains the copyright templates for source files of NSM project.
 
 Below is an example of valid copyright header for `.go` files:
 ```
+// Copyright (c) 2020 Doc.ai and/or its affiliates.
+//
 // Copyright (c) 2020 Cisco and/or its affiliates.
 //
 // SPDX-License-Identifier: Apache-2.0
@@ -22,6 +24,8 @@ Below is an example of valid copyright header for `.go` files:
 Note you can use your company name instead of `Cisco and/or its affiliates`.
 Also, source code files can have multi copyright holders, for example:
 ```
+// Copyright (c) 2020 Doc.ai and/or its affiliates.
+//
 // Copyright (c) 2020 Cisco and/or its affiliates.
 //
 // Copyright (c) 2020 Red Hat Inc. and/or its affiliates.
