@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
@@ -24,14 +25,12 @@ func newConnection() *model.ClientConnection {
 		ConnectionState: model.ClientConnectionHealing,
 		Xcon: crossconnect.NewCrossConnect("1", "ip",
 			&connection.Connection{
-				Id: "1",
-				NetworkServiceManagers: []string{
-					"local_nsm",
-				},
+				Id:   "1",
+				Path: common.Strings2Path("local_nsm"),
 			},
 			&connection.Connection{
-				Id:                     "-",
-				NetworkServiceManagers: []string{"local_nsm", "remote_nsm"},
+				Id:   "-",
+				Path: common.Strings2Path("local_nsm", "remote_nsm"),
 			}),
 	}
 }
@@ -171,15 +170,11 @@ func TestGetClientConnectionByXCon(t *testing.T) {
 			&connection.Connection{
 				Id:             "2",
 				NetworkService: "s2",
-				NetworkServiceManagers: []string{
-					"local_nsm",
-				},
+				Path:           common.Strings2Path("local_nsm"),
 			},
 			&connection.Connection{
-				Id: "3",
-				NetworkServiceManagers: []string{
-					"local_nsm", "remote_nsm",
-				},
+				Id:   "3",
+				Path: common.Strings2Path("local_nsm", "remote_nsm"),
 			}),
 	}
 	clientConnectionManager.MarkConnectionAdded(cc)
@@ -208,15 +203,11 @@ func createConnections(mdl model.Model) {
 			&connection.Connection{
 				Id:             "2",
 				NetworkService: "s2",
-				NetworkServiceManagers: []string{
-					"local_nsm",
-				},
+				Path:           common.Strings2Path("local_nsm"),
 			},
 			&connection.Connection{
-				Id: "3",
-				NetworkServiceManagers: []string{
-					"local_nsm", "remote_nsm",
-				},
+				Id:   "3",
+				Path: common.Strings2Path("local_nsm", "remote_nsm"),
 			}),
 	})
 	mdl.AddClientConnection(context.Background(), &model.ClientConnection{
@@ -230,15 +221,11 @@ func createConnections(mdl model.Model) {
 			&connection.Connection{
 				Id:             "3",
 				NetworkService: "s2",
-				NetworkServiceManagers: []string{
-					"nsm1", "remote_nsm",
-				},
+				Path:           common.Strings2Path("nsm1", "remote_nsm"),
 			},
 			&connection.Connection{
-				Id: "4",
-				NetworkServiceManagers: []string{
-					"local_nsm",
-				},
+				Id:   "4",
+				Path: common.Strings2Path("local_nsm"),
 			}),
 	})
 	mdl.AddClientConnection(context.Background(), &model.ClientConnection{

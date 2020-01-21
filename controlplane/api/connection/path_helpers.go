@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Cisco Systems, Inc and/or its affiliates.
+// Copyright (c) 2020 Cisco Systems, Inc.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -14,19 +14,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package utils - Utils for cloud testing tool
-package utils
+// Package connection contains the API and helpers for the Network Service Mesh Connection
+package connection
 
 import (
-	"testing"
-
-	"github.com/onsi/gomega"
+	proto "github.com/golang/protobuf/proto"
+	"github.com/pkg/errors"
 )
 
-func TestMatchPattern(t *testing.T) {
-	g := gomega.NewWithT(t)
+// Clone clones connection
+func (m *Path) Clone() *Path {
+	return proto.Clone(m).(*Path)
+}
 
-	g.Expect(MatchRetestPattern([]string{
-		"unable to establish connection to VPP (VPP API socket file /run/vpp/api.sock does not exist)",
-	}, "time=\"2019-11-22 09:28:45.55766\" level=fatal msg=\"unable to establish connection to VPP (VPP API socket file /run/vpp/api.sock does not exist)\" loc=\"vpp-agent/main.go(65)\" logger=defaultLogger")).To(gomega.Equal(true))
+// IsValid returns true if Path p is Valid
+func (m *Path) IsValid() error {
+	if m == nil {
+		return nil
+	}
+	if int(m.GetIndex()) >= len(m.GetPathSegments()) {
+		return errors.New("Path.Index >= len(Path.PathSegments)")
+	}
+	return nil
 }

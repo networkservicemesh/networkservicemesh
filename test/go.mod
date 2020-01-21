@@ -6,32 +6,32 @@ require (
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/ghodss/yaml v1.0.0
 	github.com/golang/protobuf v1.3.2
-	github.com/google/uuid v1.1.1
 	github.com/ligato/vpp-agent v2.5.1+incompatible
-	github.com/networkservicemesh/networkservicemesh/applications/nsmrs v0.2.0
-	github.com/networkservicemesh/networkservicemesh/controlplane v0.2.0
-	github.com/networkservicemesh/networkservicemesh/controlplane/api v0.2.0
+	github.com/networkservicemesh/networkservicemesh/applications/nsmrs v0.3.0
+	github.com/networkservicemesh/networkservicemesh/controlplane v0.3.0
+	github.com/networkservicemesh/networkservicemesh/controlplane/api v0.3.0
 	github.com/networkservicemesh/networkservicemesh/forwarder v0.2.0
 	github.com/networkservicemesh/networkservicemesh/forwarder/api v0.2.0
 	github.com/networkservicemesh/networkservicemesh/k8s v0.2.0
 	github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis v0.2.0
-	github.com/networkservicemesh/networkservicemesh/pkg v0.2.0
-	github.com/networkservicemesh/networkservicemesh/sdk v0.2.0
+	github.com/networkservicemesh/networkservicemesh/pkg v0.3.0
+	github.com/networkservicemesh/networkservicemesh/sdk v0.3.0
 	github.com/networkservicemesh/networkservicemesh/side-cars v0.2.0
-	github.com/networkservicemesh/networkservicemesh/utils v0.2.0
+	github.com/networkservicemesh/networkservicemesh/utils v0.3.0
 	github.com/onsi/gomega v1.7.0
-	github.com/packethost/packngo v0.2.0
 	github.com/pkg/errors v0.8.1
 	github.com/prometheus/client_golang v1.0.0
 	github.com/sirupsen/logrus v1.4.2
-	github.com/spf13/cobra v0.0.5
 	github.com/spf13/viper v1.5.0
-	github.com/spiffe/spire v0.0.0-20190515205011-c8123525fba8
-	google.golang.org/grpc v1.23.1
+	github.com/spiffe/go-spiffe v0.0.0-20191104192205-d29ac0a1ba99
+	github.com/stretchr/testify v1.4.0 // indirect
+	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550 // indirect
+	google.golang.org/grpc v1.26.0
 	gopkg.in/yaml.v2 v2.2.4
 	k8s.io/api v0.0.0
 	k8s.io/apimachinery v0.0.0
 	k8s.io/client-go v11.0.0+incompatible
+	k8s.io/klog v1.0.0 // indirect
 	k8s.io/kubernetes v1.16.3
 )
 

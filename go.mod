@@ -53,3 +53,10 @@ replace (
 	github.com/networkservicemesh/networkservicemesh/test => ./test
 	github.com/networkservicemesh/networkservicemesh/utils => ./utils
 )
+
+require (
+	github.com/networkservicemesh/networkservicemesh/controllers/sriov-controller v0.0.0-00010101000000-000000000000 // indirect
+	github.com/networkservicemesh/networkservicemesh/scripts/aws v0.0.0-00010101000000-000000000000 // indirect
+	github.com/networkservicemesh/networkservicemesh/test v0.0.0-00010101000000-000000000000 // indirect
+	github.com/onsi/gomega v1.8.1 // indirect
+)

@@ -7,7 +7,7 @@ first a firewall, and then two other passthrough security appliances before fina
 Utilize the [Run](../guide-quickstart.md) instructions to install the NSM infrastructure, and then type:
 
 ```bash
-helm install nsm/vpn
+make helm-install-vpn
 ```
 
 ## What it does

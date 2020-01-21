@@ -65,13 +65,15 @@ make helm-install-vpn
 ```
 
 ## Verify
-You can check to see things are working properly by typing:
-
-```bash
-make k8s-check
-```
-
-which will try pinging from NSCs to NSEs.
+There are set of checkers that allow to verify examples.
+* _icmp-responder_ and _vpp-icmp-responder_
+    ```bash
+    make k8s-icmp-check
+    ```
+* _vpn_  
+    ```bash
+    make k8s-vpn-check
+    ```
 
 ## Uninstall
 

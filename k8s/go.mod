@@ -9,12 +9,12 @@ require (
 	github.com/golang/protobuf v1.3.2
 	github.com/miekg/dns v1.1.15
 	github.com/networkservicemesh/networkservicemesh/controlplane v0.2.0
-	github.com/networkservicemesh/networkservicemesh/controlplane/api v0.2.0
+	github.com/networkservicemesh/networkservicemesh/controlplane/api v0.3.0
 	github.com/networkservicemesh/networkservicemesh/k8s/api v0.2.0
 	github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis v0.2.0
-	github.com/networkservicemesh/networkservicemesh/pkg v0.2.0
+	github.com/networkservicemesh/networkservicemesh/pkg v0.3.0
 	github.com/networkservicemesh/networkservicemesh/sdk v0.2.0
-	github.com/networkservicemesh/networkservicemesh/utils v0.2.0
+	github.com/networkservicemesh/networkservicemesh/utils v0.3.0
 	github.com/onsi/gomega v1.7.0
 	github.com/pkg/errors v0.8.1
 	github.com/sirupsen/logrus v1.4.2

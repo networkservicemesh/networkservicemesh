@@ -8,10 +8,10 @@ memory interfaces to achieve performance unavailable via kernel interfaces.
 ![vpp-icmp-responder-example](../images/vpp-icmp-responder-example.svg)
 
 ## Deploy
-Utilize the [Run](/docs/setup/run/) instructions to install the NSM infrastructure, and then type:
+Utilize the [Run](../guide-quickstart.md) instructions to install the NSM infrastructure, and then type:
 
 ```bash
-helm install nsm/vpp-icmp-responder
+make helm-install-vpp-icmp-responder
 ```
 
 ## What it does
@@ -43,5 +43,5 @@ kubectl get pods | grep vpp-icmp-responder
 To see the vpp-icmp-responder example in action, you can run:
 
 ```bash
-curl -s https://raw.githubusercontent.com/networkservicemesh/networkservicemesh/master/scripts/nsc_ping_all.sh | bash
+make k8s-icmp-check
 ```

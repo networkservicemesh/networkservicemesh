@@ -17,33 +17,31 @@ CHARTS=$(shell ls deployments/helm)
 INSTALL_CHARTS=$(addprefix helm-install-,$(CHARTS))
 DELETE_CHARTS=$(addprefix helm-delete-,$(CHARTS))
 HELM_TIMEOUT?=300
+INSECURE?=false
+PROMETHEUS?=true
+METRICS_COLLECTOR_ENABLED?=true
 
 .PHONY: helm-init
 helm-init:
-	helm init --wait && ./scripts/helm-patch-tiller.sh
+	./scripts/helm-init-wrapper.sh
 
 .PHONY: $(INSTALL_CHARTS)
 $(INSTALL_CHARTS): export CHART=$(subst helm-install-,,$@)
 $(INSTALL_CHARTS):
-	# We specifically set admission-webhook variables here as it is a subchart
-	# there might be a way to set these as global and refer to them with .Values.global.org
-	# but that seems more intrusive than this hack. Consider changing to global if the charts
-	# get even more complicated
-	helm install --name=${CHART} \
-	--atomic --timeout ${HELM_TIMEOUT} \
-	--set org="${CONTAINER_REPO}",tag="${CONTAINER_TAG}" \
-	--set forwardingPlane="${FORWARDING_PLANE}" \
-	--set insecure="${INSECURE}" \
-	--set prometheus="${PROMETHEUS}" \
-	--set metricsCollectorEnabled="${METRICS_COLLECTOR_ENABLED}" \
-	--set global.JaegerTracing="true" \
-	--set spire.enabled="${SPIRE_ENABLED}",spire.org="${CONTAINER_REPO}",spire.tag="${CONTAINER_TAG}" \
-	--set admission-webhook.org="${CONTAINER_REPO}",admission-webhook.tag="${CONTAINER_TAG}" \
-	--set prefix-service.org="${CONTAINER_REPO}",prefix-service.tag="${CONTAINER_TAG}" \
-	--namespace="${NSM_NAMESPACE}" \
-	deployments/helm/${CHART}
+	./scripts/helm-nsm-install.sh --chart ${CHART} \
+	--container_repo ${CONTAINER_REPO} \
+	--container_tag ${CONTAINER_TAG} \
+	--forwarding_plane ${FORWARDING_PLANE} \
+	--insecure ${INSECURE} \
+	--enable_prometheus ${PROMETHEUS} \
+	--enable_metric_collection ${METRICS_COLLECTOR_ENABLED} \
+	--nsm_namespace ${NSM_NAMESPACE}
 
 .PHONY: $(DELETE_CHARTS)
 $(DELETE_CHARTS): export CHART=$(subst helm-delete-,,$@)
 $(DELETE_CHARTS):
-	helm delete --purge ${CHART} || true
+	./scripts/helm-nsm-uninstall.sh --nsm_namespace ${NSM_NAMESPACE} --chart ${CHART} || true
+
+.PHONY: helm-delete
+helm-delete:
+	./scripts/helm-nsm-uninstall.sh --nsm_namespace ${NSM_NAMESPACE} --all

@@ -40,9 +40,9 @@ func NewProxyMonitorServer() ProxyMonitorServer {
 func (s *proxyMonitorServer) MonitorConnections(selector *connection.MonitorScopeSelector, recipient connection.MonitorConnection_MonitorConnectionsServer) error {
 	filtered := connectionmonitor.NewMonitorConnectionFilter(selector, recipient)
 
-	logrus.Printf("Monitor Connections request: %s -> %s", selector.NetworkServiceManagers[0], selector.NetworkServiceManagers[1])
+	logrus.Printf("Monitor Connections request: %s -> %s", selector.GetPathSegments()[0].GetName(), selector.GetPathSegments()[1].GetName())
 
-	remotePeerName, remotePeerURL, err := interdomain.ParseNsmURL(selector.NetworkServiceManagers[1])
+	remotePeerName, remotePeerURL, err := interdomain.ParseNsmURL(selector.GetPathSegments()[1].GetName())
 	if err != nil {
 		return errors.Wrap(err, "ProxyNSM-Monitor")
 	}
@@ -54,7 +54,7 @@ func (s *proxyMonitorServer) MonitorConnections(selector *connection.MonitorScop
 
 	go s.monitorConnection(
 		ctx,
-		selector.NetworkServiceManagers[0], remotePeerName, remotePeerURL,
+		selector.GetPathSegments()[0].GetName(), remotePeerName, remotePeerURL,
 		s.handleRemoteConnection, filtered, quit)
 
 	select {
@@ -67,7 +67,7 @@ func (s *proxyMonitorServer) MonitorConnections(selector *connection.MonitorScop
 		}
 	}
 
-	logrus.Printf("Monitor Connections done: %s -> %s", selector.NetworkServiceManagers[0], selector.NetworkServiceManagers[1])
+	logrus.Printf("Monitor Connections done: %s -> %s", selector.GetPathSegments()[0].GetName(), selector.GetPathSegments()[1].GetName())
 
 	return nil
 }
@@ -89,7 +89,14 @@ func (s *proxyMonitorServer) monitorConnection(
 	defer func() { _ = conn.Close() }()
 
 	monitorClient, err := connectionmonitor.NewMonitorClient(conn, &connection.MonitorScopeSelector{
-		NetworkServiceManagers: []string{name, remotePeerName},
+		PathSegments: []*connection.PathSegment{
+			{
+				Name: name,
+			},
+			{
+				Name: remotePeerName,
+			},
+		},
 	})
 	if err != nil {
 		logrus.Errorf(proxyLogWithParamFormat, name, "Failed to start monitor", err)

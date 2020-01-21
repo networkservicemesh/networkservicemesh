@@ -1,87 +1,36 @@
+// Copyright (c) 2018-2020 Cisco Systems, Inc and/or its affiliates.
+//
+// SPDX-License-Identifier: Apache-2.0
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package tests
 
 import (
 	"context"
-	"net"
+	"os"
 	"testing"
-
-	"github.com/golang/protobuf/ptypes/empty"
-	. "github.com/onsi/gomega"
-	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
-
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"time"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+
+	. "github.com/onsi/gomega"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/monitor/remote"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/services"
-	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
-	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/connectionmonitor"
-	monitor_crossconnect "github.com/networkservicemesh/networkservicemesh/sdk/monitor/crossconnect"
+	connectionMonitor "github.com/networkservicemesh/networkservicemesh/sdk/monitor/connectionmonitor"
 )
-
-type monitorManager struct {
-	crossConnectMonitor     monitor_crossconnect.MonitorServer
-	remoteConnectionMonitor remote.MonitorServer
-	localConnectionMonitors map[string]connectionmonitor.MonitorServer
-}
-
-func (m *monitorManager) CrossConnectMonitor() monitor_crossconnect.MonitorServer {
-	return m.crossConnectMonitor
-}
-
-func (m *monitorManager) RemoteConnectionMonitor() monitor.Server {
-	return m.remoteConnectionMonitor
-}
-
-func (m *monitorManager) LocalConnectionMonitor(workspace string) connectionmonitor.MonitorServer {
-	return m.localConnectionMonitors[workspace]
-}
-
-type endpointManager struct {
-	model model.Model
-}
-
-func (stub *endpointManager) DeleteEndpointWithBrokenConnection(ctx context.Context, endpoint *model.Endpoint) error {
-	stub.model.DeleteEndpoint(ctx, endpoint.EndpointName())
-	return nil
-}
-
-func startAPIServer(model model.Model, nsmdApiAddress string) (*grpc.Server, monitor_crossconnect.MonitorServer, net.Listener, error) {
-	sock, err := net.Listen("tcp", nsmdApiAddress)
-	if err != nil {
-		return nil, nil, sock, err
-	}
-	grpcServer := tools.NewServer(context.Background())
-	serviceRegistry := nsmd.NewServiceRegistry()
-
-	xconManager := services.NewClientConnectionManager(model, nil, serviceRegistry)
-
-	monitorManager := &monitorManager{
-		crossConnectMonitor:     monitor_crossconnect.NewMonitorServer(),
-		remoteConnectionMonitor: remote.NewMonitorServer(xconManager),
-		localConnectionMonitors: map[string]connectionmonitor.MonitorServer{},
-	}
-
-	crossconnect.RegisterMonitorCrossConnectServer(grpcServer, monitorManager.crossConnectMonitor)
-	connection.RegisterMonitorConnectionServer(grpcServer, monitorManager.remoteConnectionMonitor)
-
-	monitorClient := nsmd.NewMonitorCrossConnectClient(model, monitorManager, xconManager, &endpointManager{model: model})
-	model.AddListener(monitorClient)
-	// TODO: Add more public API services here.
-
-	go func() {
-		if err := grpcServer.Serve(sock); err != nil {
-			logrus.Errorf("failed to start gRPC NSMD API server %+v", err)
-		}
-	}()
-	logrus.Infof("NSM gRPC API Server: %s is operational", nsmdApiAddress)
-
-	return grpcServer, monitorManager.crossConnectMonitor, sock, nil
-}
 
 func TestCCServerEmpty(t *testing.T) {
 	g := NewWithT(t)
@@ -107,36 +56,127 @@ func TestCCServerEmpty(t *testing.T) {
 
 	g.Expect(events[0].CrossConnects["cc1"].Payload).To(Equal("json_data"))
 }
+func TestNSMDCrossConnectClientRemote(t *testing.T) {
+	_ = os.Setenv(tools.InsecureEnv, "true")
+	g := NewWithT(t)
 
-func readNMSDCrossConnectEvents(address string, count int) []*crossconnect.CrossConnectEvent {
-	var err error
-	conn, err := tools.DialTCP(address)
-	if err != nil {
-		logrus.Errorf("failure to communicate with the socket %s with error: %+v", address, err)
-		return nil
-	}
-	defer conn.Close()
-	forwarderClient := crossconnect.NewMonitorCrossConnectClient(conn)
+	storage := NewSharedStorage()
+	srv := NewNSMDFullServer(Master, storage)
+	defer srv.Stop()
 
-	// Looping indefinitely or until grpc returns an error indicating the other end closed connection.
-	stream, err := forwarderClient.MonitorCrossConnects(context.Background(), &empty.Empty{})
-	if err != nil {
-		logrus.Warningf("Error: %+v.", err)
-		return nil
+	mon := connectionMonitor.NewMonitorServer("LocalConnection")
+
+	msgs := &eventCollector{
+		messages: []interface{}{},
+		events:   make(chan interface{}),
 	}
-	pos := 0
-	result := []*crossconnect.CrossConnectEvent{}
-	for {
-		event, err := stream.Recv()
-		logrus.Infof("(test) receive event: %s %v", event.Type, event.CrossConnects)
-		if err != nil {
-			logrus.Errorf("Error2: %+v.", err)
-			return result
-		}
-		result = append(result, event)
-		pos++
-		if pos == count {
-			return result
-		}
+	mon.AddRecipient(msgs)
+
+	<-msgs.events // Read initial
+
+	srv.monitorCrossConnectClient.ClientConnectionUpdated(context.Background(),
+		&model.ClientConnection{
+			ConnectionID: "1",
+			Xcon:         nil,
+		},
+		&model.ClientConnection{
+			ConnectionID: "1",
+			Xcon: &crossconnect.CrossConnect{
+				Source: &connection.Connection{
+					Id: "1",
+					Path: &connection.Path{
+						PathSegments: []*connection.PathSegment{
+							{
+								Name: "nsm1",
+							},
+							{
+								Name: "nsm2",
+							},
+						},
+					},
+				},
+				Destination: &connection.Connection{
+					Id: "2",
+				},
+			},
+			Monitor: mon,
+		},
+	)
+
+	var msg interface{}
+	select {
+	case msg = <-msgs.events:
+		break
+	case <-time.After(200 * time.Millisecond):
+		g.Expect(true).To(BeNil(), "Timeout")
 	}
+	g.Expect(len(msgs.messages)).To(Equal(2))
+	evt := msg.(*connection.ConnectionEvent)
+	ents := evt.Connections
+	g.Expect(len(ents)).To(Equal(1))
+	conn, ok := ents["1"]
+	g.Expect(ok).To(Equal(true))
+	g.Expect(conn.Id).To(Equal("1"))
+	g.Expect(len(conn.GetPath().GetPathSegments())).To(Equal(2))
+	g.Expect(conn.GetPath().GetPathSegments()[1].GetName()).To(Equal("nsm2"))
+}
+
+func TestNSMDCrossConnectClientLocal(t *testing.T) {
+	_ = os.Setenv(tools.InsecureEnv, "true")
+	g := NewWithT(t)
+
+	storage := NewSharedStorage()
+	srv := NewNSMDFullServer(Master, storage)
+	defer srv.Stop()
+
+	mon := connectionMonitor.NewMonitorServer("LocalConnection")
+
+	msgs := &eventCollector{
+		messages: []interface{}{},
+		events:   make(chan interface{}),
+	}
+	mon.AddRecipient(msgs)
+
+	<-msgs.events // Read initial
+
+	srv.monitorCrossConnectClient.ClientConnectionUpdated(context.Background(),
+		&model.ClientConnection{
+			ConnectionID: "1",
+			Xcon:         nil,
+		},
+		&model.ClientConnection{
+			ConnectionID: "1",
+			Xcon: &crossconnect.CrossConnect{
+				Source: &connection.Connection{
+					Id: "1",
+					Path: &connection.Path{
+						PathSegments: []*connection.PathSegment{
+							{
+								Name: "nsm1",
+							},
+						},
+					},
+				},
+				Destination: &connection.Connection{
+					Id: "2",
+				},
+			},
+			Monitor: mon,
+		},
+	)
+
+	var msg interface{}
+	select {
+	case msg = <-msgs.events:
+		break
+	case <-time.After(200 * time.Millisecond):
+		g.Expect(true).To(BeNil(), "Timeout")
+	}
+	g.Expect(len(msgs.messages)).To(Equal(2))
+	evt := msg.(*connection.ConnectionEvent)
+	ents := evt.Connections
+	g.Expect(len(ents)).To(Equal(1))
+	conn, ok := ents["1"]
+	g.Expect(ok).To(Equal(true))
+	g.Expect(conn.Id).To(Equal("1"))
 }

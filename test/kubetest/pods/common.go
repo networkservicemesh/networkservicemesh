@@ -6,6 +6,8 @@ import (
 )
 
 const (
+	//DefaultKubeletAdminClusterRole default kubelet api admin cluster role name
+	DefaultKubeletAdminClusterRole = "system:kubelet-api-admin"
 	//DefaultAccount creates on namespace creating
 	DefaultAccount = "default"
 	// EnvForwardingPlane is the environment variable for configuring the forwarding plane

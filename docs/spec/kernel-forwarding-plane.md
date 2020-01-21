@@ -57,7 +57,7 @@ FORWARDING_PLANE=kernel make helm-install-icmp-responder
 And finally verify that it works as expected:
 
 ```bash
-FORWARDING_PLANE=kernel make k8s-check
+FORWARDING_PLANE=kernel make k8s-icmp-check
 ```
 
 References

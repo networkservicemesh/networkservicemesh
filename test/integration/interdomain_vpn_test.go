@@ -278,7 +278,7 @@ func testInterdomainVPN(t *testing.T, ptnum, clustersCount int, nodesCount int, 
 
 	g.Expect(err).To(BeNil())
 
-	g.Expect(pingResponse).Should(ContainSubstring("10 packets received"))
+	g.Expect(pingResponse).ShouldNot(ContainSubstring("100% packet loss"))
 	logrus.Printf("VPN NSC Ping succeeded:%s", pingResponse)
 
 	_, wgetResponse, err = k8s.Exec(nsc, nscContainerName, "wget", "-O", "/dev/null", "--timeout", "3", "http://"+dstIP+":80")
