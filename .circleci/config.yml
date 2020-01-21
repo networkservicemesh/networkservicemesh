@@ -94,7 +94,7 @@ jobs:
       - run:
           name: license lint
           command: |
-            go get github.com/denis-tingajkin/go-header@v0.2.0
+            go get github.com/denis-tingajkin/go-header@v0.2.1
             go-header
     environment:
       GO111MODULE: "on"
