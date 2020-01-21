@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-apps = $(shell ls -d ./applications/*/ | xargs -n 1 basename)
-apps_targets = $(addsuffix -build, $(addprefix go-, $(apps)))
+app_images = $(shell ls -d ./applications/*/ | xargs -n 1 basename)
+apps_targets = $(addsuffix -build, $(addprefix go-, $(app_images)))
 
 .PHONY: $(apps_targets)
 $(apps_targets): go-%-build:
@@ -23,11 +23,14 @@ $(apps_targets): go-%-build:
 	popd
 
 .PHONY: docker-applications-build
-docker-applications-build: $(addsuffix -build, $(addprefix docker-, $(apps)))
+docker-applications-build: $(addsuffix -build, $(addprefix docker-, $(app_images)))
 
 .PHONY: docker-applications-save
-docker-applications-save: $(addsuffix -save, $(addprefix docker-, $(apps)))
+docker-applications-save: $(addsuffix -save, $(addprefix docker-, $(app_images)))
 
 .PHONY: docker-applications-push
-docker-applications-push: $(addsuffix -push, $(addprefix docker-, $(apps)))
+docker-applications-push: $(addsuffix -push, $(addprefix docker-, $(app_images)))
 
+.PHONY: docker-applications-list
+docker-applications-list:
+	@echo $(app_images)
