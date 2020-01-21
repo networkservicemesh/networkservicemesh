@@ -30,17 +30,17 @@ function check_flags () {
 
 with_helm2() {
   if [ -z ${NSM_PURGE+x} ]; then
-    helm list | xargs -L1 helm delete --purge
+    helm delete --purge "${CHART}"
   else
-     helm delete --purge "${CHART}"
+    helm list --namespace="${NSM_NAMESPACE}" --short | xargs -L1 helm delete --purge
   fi
 }
 
 with_helm3() {
   if [ -z ${NSM_PURGE+x} ]; then
-    helm list -n "${NSM_NAMESPACE}" --short | xargs -L1 helm uninstall -n "${NSM_NAMESPACE}"
+    helm uninstall -n "$NSM_NAMESPACE" "${CHART}"
   else
-     helm uninstall -n "$NSM_NAMESPACE" "${CHART}"
+    helm list -n "${NSM_NAMESPACE}" --short | xargs -L1 helm uninstall -n "${NSM_NAMESPACE}"
   fi
 }
 
