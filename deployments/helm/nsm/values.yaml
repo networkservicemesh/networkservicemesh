@@ -20,6 +20,12 @@ kernel:
     limitCPU: 1
     requestsCPU: 1m
 
+sriov:
+  image: sriov-forwarder
+  resources:
+    limitCPU: 1
+    requestsCPU: 1m
+
 spire:
   enabled: true
 
