@@ -3,6 +3,7 @@ package memifproxy
 import (
 	"net"
 	"os"
+	"sync"
 	"syscall"
 
 	"github.com/pkg/errors"
@@ -17,6 +18,8 @@ const (
 )
 
 type Proxy struct {
+	sync.Mutex
+	alive          bool
 	network        string
 	stopCh         chan struct{}
 	errCh          chan error
@@ -33,6 +36,13 @@ type connectionResult struct {
 //NewProxy means create a new proxy for memif connection
 func NewProxy(sourceSocket, targetSocket string) (*Proxy, error) {
 	return newCustomProxy(sourceSocket, targetSocket, defaultNetwork)
+}
+
+func (p *Proxy) Alive() bool {
+	p.Lock()
+	defer p.Unlock()
+	return p.alive
+
 }
 
 func newCustomProxy(sourceSocket, targetSocket, network string) (*Proxy, error) {
@@ -64,6 +74,9 @@ func (p *Proxy) Start() error {
 	if p.sourceListener != nil {
 		return errors.New("proxy is already started")
 	}
+	p.Lock()
+	p.alive = true
+	p.Unlock()
 	var err error
 	p.sourceListener, err = net.ListenUnix(p.network, p.source)
 	if err != nil {
@@ -77,6 +90,9 @@ func (p *Proxy) Start() error {
 
 	go func() {
 		p.errCh <- p.proxy()
+		p.Lock()
+		p.alive = false
+		p.Unlock()
 	}()
 	return nil
 }
@@ -93,6 +109,9 @@ func (p *Proxy) Stop() error {
 		logrus.Error(err)
 	}
 	err = p.sourceListener.Close()
+	if err != nil {
+		logrus.Error(err)
+	}
 	p.sourceListener = nil
 	return err
 }
@@ -139,9 +158,17 @@ func (p *Proxy) proxy() error {
 	go transfer(sourceFd, targetFd, sourceStopCh)
 	go transfer(targetFd, sourceFd, targetStopCh)
 
-	<-p.stopCh
-	close(sourceStopCh)
-	close(targetStopCh)
+	select {
+	case <-p.stopCh:
+		break
+	case <-sourceStopCh:
+		break
+	case <-targetStopCh:
+		break
+	}
+	p.Lock()
+	p.alive = false
+	p.Unlock()
 	logrus.Info("Proxy has stopped")
 	return nil
 }
@@ -192,9 +219,10 @@ func acceptConnectionAsync(listener *net.UnixListener, stopCh <-chan struct{}) (
 	}
 }
 
-func transfer(fromFd, toFd int, stopCh <-chan struct{}) {
+func transfer(fromFd, toFd int, stopCh chan struct{}) {
 	dataBuffer := make([]byte, bufferSize)
 	cmsgBuffer := make([]byte, cmsgSize)
+	defer close(stopCh)
 	for {
 		select {
 		case <-stopCh:

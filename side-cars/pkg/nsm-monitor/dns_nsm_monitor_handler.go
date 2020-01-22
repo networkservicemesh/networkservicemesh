@@ -24,6 +24,13 @@ type nsmDNSMonitorHandler struct {
 	dnsConfigUpdateClient update.DNSConfigServiceClient
 }
 
+func (h *nsmDNSMonitorHandler) Updated(old, new *connection.Connection) {
+	logrus.Infof("Deleting config with id %v", old.Id)
+	_, _ = h.dnsConfigUpdateClient.RemoveDNSContext(context.Background(), &update.RemoveDNSContextMessage{ConnectionID: old.Id})
+	logrus.Infof("Adding config with id %v", new.Id)
+	_, _ = h.dnsConfigUpdateClient.AddDNSContext(context.Background(), &update.AddDNSContextMessage{ConnectionID: new.Id, Context: new.Context.DnsContext})
+}
+
 //NewNsmDNSMonitorHandler creates new DNS monitor handler
 func NewNsmDNSMonitorHandler() Handler {
 	clientSock := UpdateAPIClientSock.StringValue()

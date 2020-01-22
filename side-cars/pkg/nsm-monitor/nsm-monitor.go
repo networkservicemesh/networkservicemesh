@@ -48,6 +48,8 @@ type Handler interface {
 	Closed(conn *connection.Connection)
 	//ProcessHealing occurs when the restore failed, the error pass as the second parameter
 	ProcessHealing(newConn *connection.Connection, e error)
+	//Updated triggers when existing connection updated
+	Updated(old, new *connection.Connection)
 }
 
 // App - application to perform monitoring.
@@ -195,6 +197,7 @@ func (c *nsmMonitorApp) readEvents(monitorClient connection.MonitorConnection_Mo
 func (c *nsmMonitorApp) updateConnection(conn *connection.Connection) {
 	if existingConn, exists := c.connections[conn.GetId()]; exists {
 		logrus.Infof(nsmMonitorLogWithParamFormat, "Connection updated", fmt.Sprintf("%v %v", existingConn, conn))
+		c.helper.Updated(existingConn, conn)
 	} else {
 		logrus.Infof(nsmMonitorLogWithParamFormat, "Initial connection accepted", conn)
 	}

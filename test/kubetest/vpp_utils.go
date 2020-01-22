@@ -35,23 +35,32 @@ func DeployVppAgentNSC(k8s *K8s, node *v1.Node, name string, timeout time.Durati
 // CheckVppAgentNSC - Perform check of VPP based agent operations.
 func CheckVppAgentNSC(k8s *K8s, nscPodNode *v1.Pod) *NSCCheckInfo {
 	if !k8s.UseIPv6() {
-		return checkVppAgentNSCConfig(k8s, nscPodNode, "172.16.1.1")
+		return checkVppAgentNSCConfig(k8s, nscPodNode, "172.16.1.")
 	}
 	return checkVppAgentNSCConfig(k8s, nscPodNode, "100::1")
 }
 
 func checkVppAgentNSCConfig(k8s *K8s, nscPodNode *v1.Pod, checkIP string) *NSCCheckInfo {
 	info := &NSCCheckInfo{}
-	response, errOut, _ := k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "vppctl", "show int addr")
-	if strings.Contains(response, checkIP) {
+	result := false
+	for i := 0; i < 15; i++ {
+		response, errOut, _ := k8s.Exec(nscPodNode, nscPodNode.Spec.Containers[0].Name, "vppctl", "show int addr")
+		if !strings.Contains(response, checkIP) {
+			<-time.After(time.Second)
+			continue
+		}
 		info.ipResponse = response
 		info.errOut = errOut
+		result = IsVppAgentNsePinged(k8s, nscPodNode)
+		if result {
+			break
+		}
+		<-time.After(time.Second)
 	}
 	k8s.g.Expect(info.ipResponse).ShouldNot(Equal(""))
 	k8s.g.Expect(info.errOut).Should(Equal(""))
-	logrus.Printf("NSC IP status Ok")
-	result := IsVppAgentNsePinged(k8s, nscPodNode)
 	k8s.g.Expect(true).Should(Equal(result))
+	logrus.Printf("NSC IP status Ok")
 
 	return info
 }

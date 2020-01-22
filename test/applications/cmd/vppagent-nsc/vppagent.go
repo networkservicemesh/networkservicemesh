@@ -35,7 +35,7 @@ func CreateVppInterface(nscConnection *connection.Connection, baseDir string, vp
 		return err
 	}
 	logrus.Infof("Sending DataChange to vppagent: %v", dataChange)
-	if _, err := client.Update(context.Background(), &configurator.UpdateRequest{Update: dataChange}); err != nil {
+	if _, err := client.Update(context.Background(), &configurator.UpdateRequest{Update: dataChange, FullResync: true}); err != nil {
 		logrus.Error(err)
 		client.Delete(context.Background(), &configurator.DeleteRequest{Delete: dataChange})
 		return err

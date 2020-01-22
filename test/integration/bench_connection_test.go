@@ -138,7 +138,7 @@ func createNodes(g *WithT, k8s *kubetest.K8s, count int) []*kubetest.NodeConf {
 	nodes, err := kubetest.SetupNodesConfig(k8s, count, defaultTimeout, kubetest.NoHealNSMgrPodConfig(k8s), k8s.GetK8sNamespace())
 	g.Expect(err).To(BeNil())
 
-	g.Expect(len(nodes), count)
+	g.Expect(len(nodes)).Should(Equal(count))
 	return nodes
 }
 
