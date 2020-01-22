@@ -50,7 +50,8 @@ func checkVppAgentNSCConfig(k8s *K8s, nscPodNode *v1.Pod, checkIP string) *NSCCh
 	k8s.g.Expect(info.ipResponse).ShouldNot(Equal(""))
 	k8s.g.Expect(info.errOut).Should(Equal(""))
 	logrus.Printf("NSC IP status Ok")
-	k8s.g.Expect(true, IsVppAgentNsePinged(k8s, nscPodNode))
+	result := IsVppAgentNsePinged(k8s, nscPodNode)
+	k8s.g.Expect(true).Should(Equal(result))
 
 	return info
 }
