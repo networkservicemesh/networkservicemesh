@@ -18,7 +18,7 @@ for pod in $MONITORS; do
     echo "===== >>>>> PROCESSING ${pod}  <<<<< ==========="
     marker='src_ip_addr: "172.16.1.1/30"'
     echo -n "Checking that pod's log contains marker string '$marker' ... "
-    if ${kubectl} logs "$pod" | grep -q "$marker"; then
+    if timeout 2m kubectl -n "${NSM_NAMESPACE:-default}" logs -f "$pod" | grep -q "$marker"; then
       echo "OK"
     else
       echo "FAIL"
