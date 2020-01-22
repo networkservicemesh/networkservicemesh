@@ -49,7 +49,7 @@ func (d *DirectMemifConnector) Connect(crossConnect *crossconnect.CrossConnect) 
 			logrus.Warnf("Proxy for cross connect with id=%s already exists", crossConnect.Id)
 			return crossConnect, nil
 		}
-		d.proxyMap.Store(crossConnect.Id, old)
+		d.proxyMap.Store(crossConnect.Id, proxy)
 	}
 
 	if err := os.MkdirAll(path.Dir(fullyQualifiedSrcSocketFilename), 0777); err != nil {
