@@ -36,14 +36,12 @@ spec:
               value: "app=vpn-gateway"
             - name: IP_ADDRESS
               value: "172.16.1.0/24"
-{{- if .Values.global.JaegerTracing }}
             - name: TRACER_ENABLED
-              value: "true"
+              value: {{ .Values.global.JaegerTracing | default false | quote }}
             - name: JAEGER_AGENT_HOST
               value: jaeger.nsm-system
             - name: JAEGER_AGENT_PORT
               value: "6831"
-{{- end }}
           resources:
             limits:
               networkservicemesh.io/socket: 1

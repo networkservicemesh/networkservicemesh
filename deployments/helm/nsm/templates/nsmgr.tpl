@@ -19,19 +19,13 @@ spec:
           imagePullPolicy: {{ .Values.pullPolicy }}
           env:
             - name: INSECURE
-{{- if .Values.insecure }}
-              value: "true"
-{{- else }}
-              value: "false"
-{{- end }}
-{{- if .Values.global.JaegerTracing }}
+              value: {{ .Values.insecure | default false | quote }}
             - name: TRACER_ENABLED
-              value: "true"
+              value: {{ .Values.global.JaegerTracing | default false | quote }}
             - name: JAEGER_AGENT_HOST
               value: jaeger.nsm-system
             - name: JAEGER_AGENT_PORT
               value: "6831"
-{{- end }}
           ports:
             - containerPort: 5001
               hostPort: 5001
@@ -48,19 +42,13 @@ spec:
           imagePullPolicy: {{ .Values.pullPolicy }}
           env:
             - name: INSECURE
-{{- if .Values.insecure }}
-              value: "true"
-{{- else }}
-              value: "false"
-{{- end }}
-{{- if .Values.global.JaegerTracing }}
+              value: {{ .Values.insecure | default false | quote }}
             - name: TRACER_ENABLED
-              value: "true"
+              value: {{ .Values.global.JaegerTracing | default false | quote }}
             - name: JAEGER_AGENT_HOST
               value: jaeger.nsm-system
             - name: JAEGER_AGENT_PORT
               value: "6831"
-{{- end }}
           volumeMounts:
             - name: nsm-socket
               mountPath: /var/lib/networkservicemesh
@@ -94,11 +82,7 @@ spec:
               readOnly: true
           env:
             - name: INSECURE
-{{- if .Values.insecure }}
-              value: "true"
-{{- else }}
-              value: "false"
-{{- end }}
+              value: {{ .Values.insecure | default false | quote }}
             - name: POD_NAME
               valueFrom:
                 fieldRef:
@@ -111,14 +95,12 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
-{{- if .Values.global.JaegerTracing }}
             - name: TRACER_ENABLED
-              value: "true"
+              value: {{ .Values.global.JaegerTracing | default false | quote }}
             - name: JAEGER_AGENT_HOST
               value: jaeger.nsm-system
             - name: JAEGER_AGENT_PORT
               value: "6831"
-{{- end }}
       volumes:
         - hostPath:
             path: /var/lib/kubelet/device-plugins

@@ -23,11 +23,7 @@ spec:
               hostPort: 5006
           env:
             - name: INSECURE
-{{- if .Values.insecure }}
-              value: "true"
-{{- else }}
-              value: "false"
-{{- end }}
+              value: {{ .Values.insecure | default false | quote }}
           volumeMounts:
             - name: spire-agent-socket
               mountPath: /run/spire/sockets
@@ -44,14 +40,9 @@ spec:
                 fieldRef:
                   fieldPath: spec.nodeName
             - name: INSECURE
-{{- if .Values.insecure }}
-              value: "true"
-{{- else }}
-              value: "false"
-{{- end }}
-{{- if .Values.global.JaegerTracing }}
+              value: {{ .Values.insecure | default false | quote }}
             - name: TRACER_ENABLED
-              value: "true"
+              value: {{ .Values.global.JaegerTracing | default false | quote }}
             - name: JAEGER_AGENT_HOST
               value: jaeger.nsm-system
             - name: JAEGER_AGENT_PORT
@@ -60,7 +51,6 @@ spec:
             - name: spire-agent-socket
               mountPath: /run/spire/sockets
               readOnly: true
-{{- end }}
       volumes:
         - hostPath:
             path: /run/spire/sockets
