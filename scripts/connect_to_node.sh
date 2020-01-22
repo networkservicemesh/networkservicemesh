@@ -1,12 +1,12 @@
 #!/bin/sh
 set -x
 
-node=${1}
-nodeName=$(kubectl get node ${node} -o template --template='{{index .metadata.labels "kubernetes.io/hostname"}}')
+node="${1}"
+nodeName=$(kubectl get node "${node}" -o template --template='{{index .metadata.labels "kubernetes.io/hostname"}}')
 nodeSelector='"nodeSelector": { "kubernetes.io/hostname": "'${nodeName:?}'" },'
-podName=${USER}-nsenter-${node}
+podName="${USER}"-nsenter-"${node}"
 
-kubectl run ${podName:?} --restart=Never -it --rm --image overriden --overrides '
+kubectl run "${podName:?}" --restart=Never -it --rm --image overriden --overrides '
 {
   "spec": {
     "hostPID": true,
