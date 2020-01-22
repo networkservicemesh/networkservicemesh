@@ -2,6 +2,7 @@
 *
 
 # ... except these
+!applications
 !controllers
 !controlplane
 !forwarder

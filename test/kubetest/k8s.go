@@ -482,6 +482,7 @@ func NewK8sWithoutRolesForConfig(g *WithT, prepare bool, kubeconfigPath string) 
 			pods.NSCServiceAccount,
 			pods.NSEServiceAccount,
 			pods.NSMgrServiceAccount,
+			pods.NSMRSServiceAccount,
 			pods.ForwardPlaneServiceAccount,
 		},
 		g: g,

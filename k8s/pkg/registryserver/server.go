@@ -5,7 +5,6 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
-	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1alpha1"
@@ -39,10 +38,9 @@ func New(ctx context.Context, clientset *nsmClientset.Clientset, nsmName string)
 	registry.RegisterNetworkServiceDiscoveryServer(server, discovery)
 	registry.RegisterNsmRegistryServer(server, nsmRegistry)
 
-	if err := cache.Start(); err != nil {
-		logrus.Error(err)
-	}
-	logrus.Info("RegistryCache started")
+	err := cache.Start()
+	span.LogError(err)
+	span.Logger().Info("RegistryCache started")
 
 	return server
 }

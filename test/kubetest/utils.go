@@ -245,10 +245,20 @@ func WaitNSMgrDeployed(k8s *K8s, nsmd *v1.Pod, timeout time.Duration) {
 
 // DeployProxyNSMgr - Setup Proxy NSMgr on Cluster
 func DeployProxyNSMgr(k8s *K8s, node *v1.Node, name string, timeout time.Duration) (pnsmd *v1.Pod, err error) {
-	startTime := time.Now()
 	template := pods.ProxyNSMgrPod(name, node, k8s.GetK8sNamespace())
+	return deployProxyNSMgr(k8s, template, node, timeout)
+}
 
-	logrus.Infof("Starting Proxy NSMgr %s on node: %s", name, node.Name)
+// DeployProxyNSMgrWithConfig - Setup Proxy NSMgr on Cluster with custom config
+func DeployProxyNSMgrWithConfig(k8s *K8s, node *v1.Node, name string, timeout time.Duration, config *pods.NSMgrPodConfig) (pnsmd *v1.Pod, err error) {
+	template := pods.ProxyNSMgrPodWithConfig(name, node, config)
+	return deployProxyNSMgr(k8s, template, node, timeout)
+}
+
+func deployProxyNSMgr(k8s *K8s, template *v1.Pod, node *v1.Node, timeout time.Duration) (pnsmd *v1.Pod, err error) {
+	startTime := time.Now()
+
+	logrus.Infof("Starting Proxy NSMgr %s on node: %s", template.Name, node.Name)
 	tempPods, err := k8s.CreatePodsRaw(PodStartTimeout, true, template)
 
 	if err != nil {
@@ -273,6 +283,33 @@ func RunProxyNSMgrService(k8s *K8s) func() {
 	return func() {
 		_ = k8s.DeleteService(svc, k8s.GetK8sNamespace())
 	}
+}
+
+// DeployNSMRS - Setup NSMRS on Cluster with default config
+func DeployNSMRS(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
+	return deployNSMRS(k8s, nodeName(node), name, timeout,
+		pods.NSMRSPod(name, node),
+	)
+}
+
+// DeployNSMRSWithConfig - Setup NSMRS on Cluster
+func DeployNSMRSWithConfig(k8s *K8s, node *v1.Node, name string, timeout time.Duration, config *pods.NSMgrPodConfig) *v1.Pod {
+	return deployNSMRS(k8s, nodeName(node), name, timeout,
+		pods.NSMRSPodWithConfig(name, node, config),
+	)
+}
+
+func deployNSMRS(k8s *K8s, nodeName, name string, timeout time.Duration, template *v1.Pod) *v1.Pod {
+	startTime := time.Now()
+
+	logrus.Infof("Starting NSM Service Registry Server on node: %s", nodeName)
+	nsmrs := k8s.CreatePod(template)
+	k8s.g.Expect(nsmrs.Name).To(Equal(name))
+
+	_ = k8s.WaitLogsContainsRegex(nsmrs, "nsmrs", "Service Registry gRPC API Server: .* is operational", timeout)
+
+	logrus.Printf("NSM Service Registry Server %v started done: %v", name, time.Since(startTime))
+	return nsmrs
 }
 
 // DeployICMP deploys 'icmp-responder-nse' pod with '-routes' flag set

@@ -1,10 +1,19 @@
 package registryserver
 
 import (
+	"os"
+	"strings"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
+
+	"github.com/pkg/errors"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
+
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
@@ -16,6 +25,8 @@ import (
 const (
 	// ForwardingTimeout - Timeout waiting for Proxy NseRegistryClient
 	ForwardingTimeout = 15 * time.Second
+	// ProxyRegistryReconnectInterval - reconnect interval to Proxy NSMD-K8S if connection refused
+	ProxyRegistryReconnectInterval = 15 * time.Second
 )
 
 type nseRegistryService struct {
@@ -33,7 +44,11 @@ func newNseRegistryService(nsmName string, cache RegistryCache) *nseRegistryServ
 func (rs *nseRegistryService) RegisterNSE(ctx context.Context, request *registry.NSERegistration) (*registry.NSERegistration, error) {
 	st := time.Now()
 
-	logrus.Infof("Received RegisterNSE(%v)", request)
+	span := spanhelper.FromContext(ctx, "ProxyNsmgr.RegisterNSE")
+	defer span.Finish()
+	logger := span.Logger()
+
+	logger.Infof("Received RegisterNSE(%v)", request)
 
 	labels := request.GetNetworkServiceEndpoint().GetLabels()
 	if labels == nil {
@@ -51,7 +66,7 @@ func (rs *nseRegistryService) RegisterNSE(ctx context.Context, request *registry
 			Status: v1.NetworkServiceStatus{},
 		})
 		if err != nil {
-			logrus.Errorf("Failed to register nsm: %s", err)
+			logger.Errorf("Failed to register nsm: %s", err)
 			return nil, err
 		}
 
@@ -89,19 +104,220 @@ func (rs *nseRegistryService) RegisterNSE(ctx context.Context, request *registry
 			return nil, err
 		}
 		request.NetworkServiceManager = mapNsmFromCustomResource(nsm)
+
+		go func() {
+			if forwardErr := rs.forwardRegisterNSE(context.Background(), request); forwardErr != nil {
+				logger.Errorf("Cannot forward NSE Registration: %v", forwardErr)
+			}
+		}()
 	}
-	logrus.Infof("Returned from RegisterNSE: time: %v request: %v", time.Since(st), request)
+	logger.Infof("Returned from RegisterNSE: time: %v request: %v", time.Since(st), request)
 	return request, nil
+}
+
+func (rs *nseRegistryService) BulkRegisterNSE(srv registry.NetworkServiceRegistry_BulkRegisterNSEServer) error {
+	span := spanhelper.FromContext(srv.Context(), "ProxyNsmgr.BulkRegisterNSE")
+	defer span.Finish()
+	logger := span.Logger()
+
+	logger.Infof("Forwarding Bulk Register NSE stream...")
+
+	nsrURL := os.Getenv(ProxyNsmdK8sAddressEnv)
+	if strings.TrimSpace(nsrURL) == "" {
+		nsrURL = ProxyNsmdK8sAddressDefaults
+	}
+
+	ctx, cancel := context.WithCancel(span.Context())
+	defer cancel()
+
+	remoteRegistry := nsmd.NewServiceRegistryAt(nsrURL)
+	defer remoteRegistry.Stop()
+
+	for {
+		stream, err := requestBulkRegisterNSEStream(ctx, remoteRegistry, nsrURL)
+		if err != nil {
+			logger.Warnf("Cannot connect to Proxy NSMGR %s : %v", nsrURL, err)
+			<-time.After(ProxyRegistryReconnectInterval)
+			continue
+		}
+
+		for {
+			request, err := srv.Recv()
+			if err != nil {
+				err = errors.Wrapf(err, "error receiving BulkRegisterNSE request : %v", err)
+				return err
+			}
+
+			logger.Infof("Forward BulkRegisterNSE request: %v", request)
+			err = stream.Send(request)
+			if err != nil {
+				logger.Warnf("Error forwarding BulkRegisterNSE request to %s : %v", nsrURL, err)
+				break
+			}
+		}
+
+		<-time.After(ProxyRegistryReconnectInterval)
+	}
+}
+
+func requestBulkRegisterNSEStream(ctx context.Context, remoteRegistry serviceregistry.ServiceRegistry, nsrURL string) (registry.NetworkServiceRegistry_BulkRegisterNSEClient, error) {
+	nseRegistryClient, err := remoteRegistry.NseRegistryClient(ctx)
+	if err != nil {
+		err = errors.Wrapf(err, "error forwarding BulkRegisterNSE request to %s : %v", nsrURL, err)
+		return nil, err
+	}
+
+	stream, err := nseRegistryClient.BulkRegisterNSE(ctx)
+	if err != nil {
+		err = errors.Wrapf(err, "error forwarding BulkRegisterNSE request to %s : %v", nsrURL, err)
+		return nil, err
+	}
+
+	return stream, nil
 }
 
 func (rs *nseRegistryService) RemoveNSE(ctx context.Context, request *registry.RemoveNSERequest) (*empty.Empty, error) {
 	st := time.Now()
 
-	logrus.Infof("Received RemoveNSE(%v)", request)
+	span := spanhelper.FromContext(ctx, "ProxyNsmgr.BulkRegisterNSE")
+	defer span.Finish()
+	logger := span.Logger()
+
+	logger.Infof("Received RemoveNSE(%v)", request)
 
 	if err := rs.cache.DeleteNetworkServiceEndpoint(request.GetNetworkServiceEndpointName()); err != nil {
 		return nil, err
 	}
-	logrus.Infof("RemoveNSE done: time %v", time.Since(st))
+
+	go func() {
+		if forwardErr := rs.forwardRemoveNSE(context.Background(), request); forwardErr != nil {
+			logger.Errorf("Cannot forward Remove NSE: %v", forwardErr)
+		}
+	}()
+
+	logger.Infof("RemoveNSE done: time %v", time.Since(st))
 	return &empty.Empty{}, nil
+}
+
+func (rs *nseRegistryService) forwardRegisterNSE(ctx context.Context, request *registry.NSERegistration) error {
+	span := spanhelper.FromContext(ctx, "ProxyNsmgr.forwardRegisterNSE")
+	defer span.Finish()
+	logger := span.Logger()
+
+	logger.Infof("Forwarding Register NSE request (%v)", request)
+
+	nsrURL := os.Getenv(ProxyNsmdK8sAddressEnv)
+	if strings.TrimSpace(nsrURL) == "" {
+		nsrURL = ProxyNsmdK8sAddressDefaults
+	}
+
+	spanCtx, cancel := context.WithTimeout(span.Context(), ForwardingTimeout)
+	defer cancel()
+
+	done := make(chan registry.NetworkServiceRegistryClient)
+	quit := make(chan error)
+
+	remoteRegistry := nsmd.NewServiceRegistryAt(nsrURL)
+	defer remoteRegistry.Stop()
+
+	go func() {
+		nseRegistryClient, err := remoteRegistry.NseRegistryClient(spanCtx)
+		if err != nil {
+			quit <- err
+			return
+		}
+
+		done <- nseRegistryClient
+	}()
+
+	var nseRegistryClient registry.NetworkServiceRegistryClient
+	select {
+	case nseRegistryClient = <-done:
+		break
+	case err := <-quit:
+		return err
+	case <-time.After(ForwardingTimeout):
+		return errors.Errorf("timeout requesting NseRegistryClient")
+	}
+
+	service, err := rs.cache.GetNetworkService(request.NetworkService.Name)
+	if err != nil {
+		return err
+	}
+
+	request.NetworkService.Payload = service.Spec.Payload
+
+	for _, m := range service.Spec.Matches {
+		var routes []*registry.Destination
+
+		for _, r := range m.Routes {
+			destination := &registry.Destination{
+				DestinationSelector: r.DestinationSelector,
+				Weight:              r.Weight,
+			}
+			routes = append(routes, destination)
+		}
+
+		match := &registry.Match{
+			SourceSelector: m.SourceSelector,
+			Routes:         routes,
+		}
+		request.NetworkService.Matches = append(request.NetworkService.Matches, match)
+	}
+
+	_, err = nseRegistryClient.RegisterNSE(spanCtx, request)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (rs *nseRegistryService) forwardRemoveNSE(ctx context.Context, request *registry.RemoveNSERequest) error {
+	span := spanhelper.FromContext(ctx, "ProxyNsmgr.forwardRemoveNSE")
+	defer span.Finish()
+	logger := span.Logger()
+
+	logger.Infof("Forwarding Remove NSE request (%v)", request)
+
+	nsrURL := os.Getenv(ProxyNsmdK8sAddressEnv)
+	if strings.TrimSpace(nsrURL) == "" {
+		nsrURL = ProxyNsmdK8sAddressDefaults
+	}
+
+	spanCtx, cancel := context.WithTimeout(span.Context(), ForwardingTimeout)
+	defer cancel()
+
+	done := make(chan registry.NetworkServiceRegistryClient)
+	quit := make(chan error)
+
+	remoteRegistry := nsmd.NewServiceRegistryAt(nsrURL)
+	defer remoteRegistry.Stop()
+
+	go func() {
+		nseRegistryClient, err := remoteRegistry.NseRegistryClient(spanCtx)
+		if err != nil {
+			quit <- err
+			return
+		}
+
+		done <- nseRegistryClient
+	}()
+
+	var nseRegistryClient registry.NetworkServiceRegistryClient
+	select {
+	case nseRegistryClient = <-done:
+		break
+	case err := <-quit:
+		return err
+	case <-time.After(ForwardingTimeout):
+		return errors.Errorf("timeout requesting NseRegistryClient")
+	}
+
+	_, err := nseRegistryClient.RemoveNSE(spanCtx, request)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
