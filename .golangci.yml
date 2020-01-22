@@ -138,6 +138,9 @@ issues:
     - path: kubetest/log_utils.go
       linters:
         - gosec
+    - path: pkg/common/forwarder_service.go
+      linters:
+        - funlen  # TODO: reduce programForwarder() method length
   exclude:
     - should not use dot imports
     - \`version\` is a global variable

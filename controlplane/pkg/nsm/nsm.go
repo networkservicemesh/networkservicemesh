@@ -72,7 +72,7 @@ func (srv *networkServiceManager) LocalManager(clientConnection nsm.ClientConnec
 		common.NewRequestValidator(),
 		common.NewMonitorService(clientConnection.(*model.ClientConnection).Monitor),
 		local.NewConnectionService(srv.model),
-		local.NewForwarderService(srv.model, srv.serviceRegistry),
+		common.NewForwarderService(srv.model, srv.serviceRegistry, common.NewLocalMechanismSelector()),
 		local.NewEndpointSelectorService(srv.nseManager),
 		local.NewEndpointService(srv.nseManager, srv.props, srv.model),
 		common.NewCrossConnectService(),

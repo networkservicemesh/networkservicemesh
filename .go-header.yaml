@@ -9,7 +9,7 @@ rules:
     paths:
       - ".*[.]go$"
     exclude-paths:
-      - ".*[.]pb"
+      - "(.*[.]mg)|(.*[.]pb)"
 custom-patterns:
   - name: NSM COPYRIGHT HOLDERS
     pattern: "Copyright (c) {YEAR} {COPYRIGHT HOLDER}"
