@@ -31,7 +31,8 @@ const (
 	// ServerSock defines the path of NSM client socket
 	ServerSock = "/var/lib/networkservicemesh/nsm.io.sock"
 	// NsmDevicePluginEnv is the name of the env variable to configure enabled device plugin name
-	NsmDevicePluginEnv = "NSM_DEVICE_PLUGIN"
+	NsmDevicePluginEnv     = "NSM_DEVICE_PLUGIN"
+	registryConnectTimeout = time.Second * 30
 )
 
 type apiRegistry struct {
@@ -122,7 +123,8 @@ func (impl *nsmdServiceRegistry) NseRegistryClient(ctx context.Context) (registr
 	defer impl.RWMutex.Unlock()
 
 	logrus.Info("Requesting NseRegistryClient...")
-
+	ctx, cancel := context.WithTimeout(ctx, registryConnectTimeout)
+	defer cancel()
 	impl.initRegistryClient(ctx)
 	if impl.registryClientConnection != nil {
 		return registry.NewNetworkServiceRegistryClient(impl.registryClientConnection), nil
@@ -135,6 +137,8 @@ func (impl *nsmdServiceRegistry) NsmRegistryClient(ctx context.Context) (registr
 	defer impl.RWMutex.Unlock()
 	span := spanhelper.GetSpanHelper(ctx)
 	span.Logger().Info("Requesting NsmRegistryClient...")
+	ctx, cancel := context.WithTimeout(ctx, registryConnectTimeout)
+	defer cancel()
 	impl.initRegistryClient(ctx)
 	if impl.registryClientConnection != nil {
 		return registry.NewNsmRegistryClient(impl.registryClientConnection), nil
@@ -151,7 +155,8 @@ func (impl *nsmdServiceRegistry) DiscoveryClient(ctx context.Context) (registry.
 	defer impl.RWMutex.Unlock()
 
 	logrus.Info("Requesting NetworkServiceDiscoveryClient...")
-
+	ctx, cancel := context.WithTimeout(ctx, registryConnectTimeout)
+	defer cancel()
 	impl.initRegistryClient(ctx)
 	if impl.registryClientConnection != nil {
 		return registry.NewNetworkServiceDiscoveryClient(impl.registryClientConnection), nil
@@ -169,6 +174,9 @@ func (impl *nsmdServiceRegistry) initRegistryClient(ctx context.Context) {
 
 	// TODO doing registry Address here is ugly
 	for impl.stopRedial {
+		if ctx.Err() != nil {
+			return
+		}
 		err := tools.WaitForPortAvailable(span.Context(), "tcp", impl.registryAddress, 100*time.Millisecond)
 		if err != nil {
 			err = errors.Wrapf(err, "failed to dial Network Service Registry at %s", impl.registryAddress)
