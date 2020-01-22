@@ -21,8 +21,9 @@ endif
 .PHONY: spire-install
 spire-install:
 	$(info Self Signed CA = $(selfSignedCA))
-	@if ! helm install --name=spire \
-	--wait --timeout 600 \
+	@kubectl get ns spire > /dev/null 2>&1 || kubectl create ns spire
+	if ! helm install spire --namespace spire \
+	--atomic \
 	--set org="${CONTAINER_REPO}",tag="${CONTAINER_TAG}" \
 	--set selfSignedCA="${selfSignedCA}",caDir="${CA_DIR}" \
 	deployments/helm/nsm/charts/spire ; then \
@@ -43,4 +44,4 @@ spire-install-azure:
 
 .PHONY: spire-delete
 spire-delete:
-	helm delete --purge spire
+	helm uninstall spire --namespace spire

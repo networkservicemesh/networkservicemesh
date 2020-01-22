@@ -8,7 +8,7 @@ This document will show you how to use `Helm` for `NSM` installation.
 ## Useful Helm commands
 * `$ helm install CHART` - install specified chart on cluster
 * `$ helm ls` - list of deployed releases and their states
-* `$ helm delete RELEASE_NAME` - delete release
+* `$ helm uninstall RELEASE_NAME` - delete release
 
 ## 
 
@@ -17,14 +17,7 @@ This document will show you how to use `Helm` for `NSM` installation.
 Installing NSM with helm in the `nsm-system` namespace is as easy as:
 
 ```bash
-$ helm install deployments/helm/nsm
-```
-
-*Note: in case of `Error: no available release name found` do (according to [issue](https://github.com/helm/helm/issues/4412)):*
-```bash
-kubectl create serviceaccount --namespace kube-system tiller
-kubectl create clusterrolebinding tiller-cluster-rule --clusterrole=cluster-admin --serviceaccount=kube-system:tiller
-kubectl patch deploy --namespace kube-system tiller-deploy -p '{"spec":{"template":{"spec":{"serviceAccount":"tiller"}}}}'
+$ helm install nsm deployments/helm/nsm
 ```
 
 ## Using Helm to install examples
@@ -32,33 +25,33 @@ After installation of NSM on cluster you can install examples to check correctne
 
 Install simple NSC and icmp-responder:
 ```bash
-$ helm install deployments/helm/endpoint
-$ helm install deployments/helm/client
+$ helm install endpoint deployments/helm/endpoint
+$ helm install client deployments/helm/client
 ```
 
 Install vppagent-nsc and vppagent-icmp-responder:
 ```bash
-$ helm install deployments/helm/vpp-icmp-responder
+$ helm install vpp-icmp-responder deployments/helm/vpp-icmp-responder
 ```
 
 Install vpn-gateway-nsc, vpp-gateway-nse and vppagent-firewall-nse:
 ```bash
-$ helm install deployments/helm/vpn
+$ helm install vpn deployments/helm/vpn
 ```
 
 Install crossconnect-monitor:
 ```bash
-$ helm install deployments/helm/crossconnect-monitor
+$ helm install crossconnect-monitor deployments/helm/crossconnect-monitor
 ```
 
 Install skydive:
 ```bash
-$ helm install deployments/helm/skydive
+$ helm install skydive deployments/helm/skydive
 ```
 
 Install jaeger:
 ```bash
-$ helm install deployments/helm/jaeger
+$ helm install jaeger deployments/helm/jaeger
 ```
 
 ## Values specification
