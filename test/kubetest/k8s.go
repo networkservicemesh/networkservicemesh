@@ -400,6 +400,7 @@ func NewK8s(g *WithT, clearOption ClearOption) (*K8s, error) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
+		client.cleanupFunc = InitSpireSecurity(client)
 	}()
 	wg.Add(1)
 	go func() {
@@ -478,12 +479,17 @@ func (k8s *K8s) prepare(option ClearOption) {
 		k8s.DeletePodsByName("nsmgr", "nsmd", "vppagent", "vpn", "icmp", "nsc", "source", "dest", "xcon", "spire-proxy", "nse", "prefix-service")
 		k8s.pods = nil
 		_ = k8s.DeleteServiceAccounts()
+		k8s.CreateServiceAccounts()
 	case ReuseNSMResources:
 		k8s.DeletePodsByName("nsc", "source", "dest", "xcon", "spire-proxy", "prefix-service")
 		k8s.DeletePodsByName("nse", "icmp", "vpn")
 		pods, err := k8s.listRefPods()
 		k8s.g.Expect(err).Should(BeNil())
 		k8s.pods = pods
+		if len(k8s.getServiceAccounts(k8s.sa...)) != len(k8s.sa) {
+			_ = k8s.DeleteServiceAccounts()
+			k8s.CreateServiceAccounts()
+		}
 	}
 	_ = nsmrbac.DeleteAllRoles(k8s.clientset)
 	k8s.CleanupCRDs()
@@ -492,7 +498,7 @@ func (k8s *K8s) prepare(option ClearOption) {
 	k8s.CleanupMutatingWebhookConfigurations()
 	k8s.CleanupSecrets("nsm-admission-webhook-certs")
 	k8s.CleanupConfigMaps()
-	k8s.CreateServiceAccounts()
+
 }
 
 // SaveArtifacts saves artifacts
@@ -1376,9 +1382,6 @@ func (k8s *K8s) CreateTestNamespace(namespace string) (string, error) {
 
 // CreateServiceAccounts create service accounts with passed names
 func (k8s *K8s) CreateServiceAccounts() {
-	if k8s.clearOption == ReuseNSMResources && len(k8s.getServiceAccounts(k8s.sa...)) == len(k8s.sa) {
-		return
-	}
 	accountCount := len(k8s.sa) + 1 //1 means default acc
 	errs := make(chan error, accountCount)
 	for i := range k8s.sa {
