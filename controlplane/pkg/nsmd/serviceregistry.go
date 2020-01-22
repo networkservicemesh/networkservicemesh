@@ -137,7 +137,7 @@ func (impl *nsmdServiceRegistry) NsmRegistryClient(ctx context.Context) (registr
 	defer impl.RWMutex.Unlock()
 	span := spanhelper.GetSpanHelper(ctx)
 	span.Logger().Info("Requesting NsmRegistryClient...")
-	ctx, cancel := context.WithTimeout(ctx, registryConnectTimeout)
+	ctx, cancel := context.WithTimeout(span.Context(), registryConnectTimeout)
 	defer cancel()
 	impl.initRegistryClient(ctx)
 	if impl.registryClientConnection != nil {
