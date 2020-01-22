@@ -38,11 +38,11 @@ func NewProxy(sourceSocket, targetSocket string) (*Proxy, error) {
 	return newCustomProxy(sourceSocket, targetSocket, defaultNetwork)
 }
 
+//Alive returns true if proxy goroutine is working
 func (p *Proxy) Alive() bool {
 	p.Lock()
 	defer p.Unlock()
 	return p.alive
-
 }
 
 func newCustomProxy(sourceSocket, targetSocket, network string) (*Proxy, error) {
