@@ -29,11 +29,11 @@ ssh ${SSH_OPTS} root@${worker_ip} ./download-worker-images.sh &
 pids+=" $!"
 
 for pid in $pids; do
-  echo "waiting for PID " "$pid"
+  echo "waiting for PID $pid"
   wait "$pid"
   exitcode=$?
   if [ "$exitcode" != 0 ]; then
-    echo "node setup failed" && exit 9
+    echo "node setup failed: process exited with code $exitcode, aborting.." && exit 9
   fi
 done
 
