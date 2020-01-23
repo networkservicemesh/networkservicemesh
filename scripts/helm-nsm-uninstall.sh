@@ -30,17 +30,17 @@ function check_flags () {
 
 with_helm2() {
   if [ -z ${NSM_PURGE+x} ]; then
-    helm delete --purge "${CHART}"
+    $HELM delete --purge "${CHART}"
   else
-    helm list --namespace="${NSM_NAMESPACE}" --short | xargs -L1 helm delete --purge
+    $HELM list --namespace="${NSM_NAMESPACE}" --short | xargs -L1 helm delete --purge
   fi
 }
 
 with_helm3() {
   if [ -z ${NSM_PURGE+x} ]; then
-    helm uninstall -n "$NSM_NAMESPACE" "${CHART}"
+    $HELM uninstall -n "$NSM_NAMESPACE" "${CHART}"
   else
-    helm list -n "${NSM_NAMESPACE}" --short | xargs -L1 helm uninstall -n "${NSM_NAMESPACE}"
+    $HELM list -n "${NSM_NAMESPACE}" --short | xargs -L1 helm uninstall -n "${NSM_NAMESPACE}"
   fi
 }
 
@@ -72,8 +72,22 @@ case $key in
 esac
 done
 
+[ -n "$HELM" ] || HELM=helm
+
+if ! command -v $HELM > /dev/null; then
+  echo "Unable to locate Helm client '$HELM'"
+  exit 1
+fi
+
+echo
+if [ -z "$HELM_VERSION" ]; then
+  HELM_VERSION=$($HELM version 2> /dev/null | head -1 | awk -v FS="(Ver\"|\")" '{print$ 2}')
+  echo "Helm version detected: $HELM_VERSION"
+else
+  echo "Using Helm '$HELM_VERSION'"
+fi
+
 check_flags
-HELM_VERSION=$(helm version 2> /dev/null | awk -v FS="(Ver\"|\")" '{print$ 2}')
 
 echo "Cleaning up NSM"
 
