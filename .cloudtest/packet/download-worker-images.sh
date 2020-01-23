@@ -1,2 +1,2 @@
 #!/bin/sh
-kubeadm config images pull
+kubeadm config images pull || exit 1
