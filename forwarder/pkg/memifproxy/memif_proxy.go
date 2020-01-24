@@ -3,7 +3,6 @@ package memifproxy
 import (
 	"net"
 	"os"
-	"sync"
 	"syscall"
 
 	"github.com/pkg/errors"
@@ -17,9 +16,29 @@ const (
 	defaultNetwork = "unixpacket"
 )
 
-type Proxy struct {
-	sync.Mutex
-	alive          bool
+// StopListenerAdapter adapts func() to Listener interface
+type StopListenerAdapter func()
+
+// OnStopped occurs when proxy stopped
+func (f StopListenerAdapter) OnStopped() {
+	if f != nil {
+		f()
+	}
+}
+
+// Listener is a custom event handler
+type Listener interface {
+	OnStopped()
+}
+
+// Proxy is a proxy for direct MEMIF connections
+type Proxy interface {
+	Stop() error
+	Start() error
+}
+
+type proxyImpl struct {
+	listener       Listener
 	network        string
 	stopCh         chan struct{}
 	errCh          chan error
@@ -33,19 +52,17 @@ type connectionResult struct {
 	conn *net.UnixConn
 }
 
-//NewProxy means create a new proxy for memif connection
-func NewProxy(sourceSocket, targetSocket string) (*Proxy, error) {
-	return newCustomProxy(sourceSocket, targetSocket, defaultNetwork)
+//NewWithListener creates a new proxy for memif connection with specific proxy event listener
+func NewWithListener(sourceSocket, targetSocket string, listener Listener) (Proxy, error) {
+	return newCustomProxy(sourceSocket, targetSocket, defaultNetwork, listener)
 }
 
-//Alive returns true if proxy goroutine is working
-func (p *Proxy) Alive() bool {
-	p.Lock()
-	defer p.Unlock()
-	return p.alive
+//New creates a new proxy for memif connection
+func New(sourceSocket, targetSocket string) (Proxy, error) {
+	return NewWithListener(sourceSocket, targetSocket, nil)
 }
 
-func newCustomProxy(sourceSocket, targetSocket, network string) (*Proxy, error) {
+func newCustomProxy(sourceSocket, targetSocket, network string, listener Listener) (Proxy, error) {
 	source, err := net.ResolveUnixAddr(network, sourceSocket)
 	if err != nil {
 		return nil, err
@@ -62,21 +79,19 @@ func newCustomProxy(sourceSocket, targetSocket, network string) (*Proxy, error) 
 		logrus.Errorf("An error during source socket file deleting %v", err.Error())
 		return nil, err
 	}
-	return &Proxy{
-		source:  source,
-		target:  target,
-		network: network,
+	return &proxyImpl{
+		source:   source,
+		target:   target,
+		network:  network,
+		listener: listener,
 	}, nil
 }
 
 //Start means  start listen to source socket and wait for new connections in a separate goroutine
-func (p *Proxy) Start() error {
+func (p *proxyImpl) Start() error {
 	if p.sourceListener != nil {
 		return errors.New("proxy is already started")
 	}
-	p.Lock()
-	p.alive = true
-	p.Unlock()
 	var err error
 	p.sourceListener, err = net.ListenUnix(p.network, p.source)
 	if err != nil {
@@ -90,15 +105,15 @@ func (p *Proxy) Start() error {
 
 	go func() {
 		p.errCh <- p.proxy()
-		p.Lock()
-		p.alive = false
-		p.Unlock()
+		if p.listener != nil {
+			p.listener.OnStopped()
+		}
 	}()
 	return nil
 }
 
 //Stop means stop listen to source socket and close  connections
-func (p *Proxy) Stop() error {
+func (p *proxyImpl) Stop() error {
 	if p.sourceListener == nil {
 		return errors.New("proxy is not started")
 	}
@@ -116,7 +131,7 @@ func (p *Proxy) Stop() error {
 	return err
 }
 
-func (p *Proxy) proxy() error {
+func (p *proxyImpl) proxy() error {
 	sourceConn, err := acceptConnectionAsync(p.sourceListener, p.stopCh)
 	if err != nil {
 		return err
@@ -166,10 +181,7 @@ func (p *Proxy) proxy() error {
 	case <-targetStopCh:
 		break
 	}
-	p.Lock()
-	p.alive = false
-	p.Unlock()
-	logrus.Info("Proxy has stopped")
+	logrus.Info("Proxy has been stopped")
 	return nil
 }
 

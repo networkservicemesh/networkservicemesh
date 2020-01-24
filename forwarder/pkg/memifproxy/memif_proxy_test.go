@@ -4,6 +4,7 @@ import (
 	"net"
 	"os"
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
@@ -11,12 +12,12 @@ import (
 
 func TestClosingOpeningMemifProxy(t *testing.T) {
 	g := NewWithT(t)
-	proxy, err := newCustomProxy("source.sock", "target.sock", "unix")
+	proxy, err := newCustomProxy("source.sock", "target.sock", "unix", nil)
 	g.Expect(err).Should(BeNil())
 	for i := 0; i < 10; i++ {
-		err = startProxy(proxy)
+		err = proxy.Start()
 		g.Expect(err).To(BeNil())
-		err = stopProxy(proxy)
+		err = proxy.Stop()
 		g.Expect(err).To(BeNil())
 	}
 }
@@ -24,34 +25,74 @@ func TestClosingOpeningMemifProxy(t *testing.T) {
 func TestTransferBetweenMemifProxies(t *testing.T) {
 	g := NewWithT(t)
 	for i := 0; i < 10; i++ {
-		proxy1, err := newCustomProxy("source.sock", "target.sock", "unix")
+		proxy1, err := newCustomProxy("source.sock", "target.sock", "unix", nil)
 		g.Expect(err).Should(BeNil())
-		proxy2, err := newCustomProxy("target.sock", "source.sock", "unix")
+		proxy2, err := newCustomProxy("target.sock", "source.sock", "unix", nil)
 		g.Expect(err).Should(BeNil())
-		err = startProxy(proxy1)
+		err = proxy1.Start()
 		g.Expect(err).To(BeNil())
-		err = startProxy(proxy2)
+		err = proxy2.Start()
 		g.Expect(err).To(BeNil())
 		err = connectAndSendMsg("source.sock")
 		g.Expect(err).To(BeNil())
 		err = connectAndSendMsg("target.sock")
 		g.Expect(err).To(BeNil())
-		err = stopProxy(proxy1)
+		err = proxy1.Stop()
 		g.Expect(err).To(BeNil())
-		err = stopProxy(proxy2)
+		err = proxy2.Stop()
 		g.Expect(err).To(BeNil())
 	}
+}
+
+func TestProxyListenerCalled(t *testing.T) {
+	proxyStopped := false
+	g := NewWithT(t)
+	proxy, err := newCustomProxy("source.sock", "target.sock", "unix", StopListenerAdapter(func() {
+		proxyStopped = true
+	}))
+	g.Expect(err).Should(BeNil())
+	err = proxy.Start()
+	g.Expect(err).To(BeNil())
+	err = proxy.Stop()
+	g.Expect(err).To(BeNil())
+	for t := time.Now(); time.Since(t) < time.Second; {
+		if proxyStopped {
+			break
+		}
+	}
+	g.Expect(proxyStopped).Should(BeTrue())
+}
+
+func TestProxyListenerCalledOnDestroySocketFile(t *testing.T) {
+	proxyStopped := false
+	g := NewWithT(t)
+	proxy, err := newCustomProxy("source.sock", "target.sock", "unix", StopListenerAdapter(func() {
+		proxyStopped = true
+	}))
+	g.Expect(err).Should(BeNil())
+	err = proxy.Start()
+	g.Expect(err).To(BeNil())
+	err = connectAndSendMsg("source.sock")
+	g.Expect(err).To(BeNil())
+	err = os.Remove("source.sock")
+	g.Expect(err).To(BeNil())
+	for t := time.Now(); time.Since(t) < time.Second; {
+		if proxyStopped {
+			break
+		}
+	}
+	g.Expect(proxyStopped).Should(BeTrue())
 }
 
 func TestStartProxyIfSocketFileIsExist(t *testing.T) {
 	g := NewWithT(t)
 	_, err := os.Create("source.sock")
 	g.Expect(err).Should(BeNil())
-	proxy, err := newCustomProxy("source.sock", "target.sock", "unix")
+	proxy, err := newCustomProxy("source.sock", "target.sock", "unix", nil)
 	g.Expect(err).Should(BeNil())
-	err = startProxy(proxy)
+	err = proxy.Start()
 	g.Expect(err).To(BeNil())
-	err = stopProxy(proxy)
+	err = proxy.Stop()
 	g.Expect(err).To(BeNil())
 }
 
@@ -78,12 +119,4 @@ func connectAndSendMsg(sock string) error {
 		return err
 	}
 	return nil
-}
-
-func startProxy(proxy *Proxy) error {
-	return proxy.Start()
-}
-
-func stopProxy(proxy *Proxy) error {
-	return proxy.Stop()
 }
