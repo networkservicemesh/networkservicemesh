@@ -92,7 +92,7 @@ func testFloatingInterdomain(t *testing.T, clustersCount int) {
 	}
 
 	_ = kubetest.DeployICMP(k8ss[clustersCount-1].K8s, k8ss[clustersCount-1].NodesSetup[0].Node, "icmp-responder-nse-1", defaultTimeout)
-	k8ss[clustersCount-1].K8s.WaitLogsContains(nsmrsPod, "nsmrs", "Returned from RegisterNSE", defaultTimeout)
+	k8ss[clustersCount-1].K8s.WaitLogsContains(nsmrsPod, "nsmrs", "Registered NSE entry", defaultTimeout)
 
 	nscPodNode := kubetest.DeployNSCWithEnv(k8ss[0].K8s, k8ss[0].NodesSetup[0].Node, "nsc-1", defaultTimeout, map[string]string{
 		"CLIENT_LABELS":          "app=icmp",
