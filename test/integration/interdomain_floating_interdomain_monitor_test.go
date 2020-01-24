@@ -92,15 +92,15 @@ func testFloatingInterdomainMonitor(t *testing.T, killPod string) {
 	}, k8s.GetK8sNamespace())
 	g.Expect(err).To(BeNil())
 
+	serviceCleanup := kubetest.RunProxyNSMgrService(k8s)
+	defer serviceCleanup()
+
 	k8ss[0].NodesSetup = nodesSetup
 	pnsmdName := fmt.Sprintf("pnsmgr-%s", nodesSetup[0].Node.Name)
 	proxyNSMGRPod := startProxyNSMGRPod(g, pnsmdName, k8s, nodesSetup, nsmrsExternalIP)
 
-	serviceCleanup := kubetest.RunProxyNSMgrService(k8s)
-	defer serviceCleanup()
-
 	kubetest.DeployICMP(k8ss[0].K8s, k8ss[0].NodesSetup[0].Node, "icmp-responder-nse-1", defaultTimeout)
-	k8ss[1].K8s.WaitLogsContains(nsmrsPod, "nsmrs", "Returned from RegisterNSE", defaultTimeout)
+	k8ss[1].K8s.WaitLogsContains(nsmrsPod, "nsmrs", "Registered NSE entry", defaultTimeout)
 
 	switch killPod {
 	case "nsmrs":
