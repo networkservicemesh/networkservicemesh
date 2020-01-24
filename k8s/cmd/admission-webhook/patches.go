@@ -92,7 +92,7 @@ func createDNSPatch(tuple *podSpecAndMeta, annotationValue string) (patch []patc
 	return patch
 }
 
-func createNsmInitContainerPatch(annotationValue string) []patchOperation {
+func createNsmInitContainerPatch(target []corev1.Container, annotationValue string) []patchOperation {
 	var patch []patchOperation
 
 	namespace := getNamespace()
@@ -131,8 +131,8 @@ func createNsmInitContainerPatch(annotationValue string) []patchOperation {
 				Value: jaegerPort,
 			})
 	}
-
-	value := []corev1.Container{{
+	var value interface{}
+	nsmInitContainer := corev1.Container{
 		Name:            initContainerName,
 		Image:           fmt.Sprintf("%s/%s:%s", getRepo(), getInitContainer(), getTag()),
 		ImagePullPolicy: corev1.PullIfNotPresent,
@@ -142,7 +142,9 @@ func createNsmInitContainerPatch(annotationValue string) []patchOperation {
 				"networkservicemesh.io/socket": resource.MustParse("1"),
 			},
 		},
-	}}
+	}
+
+	value = append([]corev1.Container{nsmInitContainer}, target...)
 
 	patch = append(patch, patchOperation{
 		Op:    "add",
