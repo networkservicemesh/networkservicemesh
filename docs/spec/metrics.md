@@ -23,7 +23,7 @@ METRICS_COLLECTOR_ENABLED=true
 Apply it to `helm-install`, f.e.
 
 ```
-METRICS_COLLECTOR_ENABLED=true make helm-install-nsm helm-install-crossconnect-monitor helm-install-icmp-responder
+METRICS_COLLECTOR_ENABLED=true make helm-install-nsm helm-install-crossconnect-monitor helm-install-endpoint helm-install-client
 ```
 
 If you want to track the metrics in Prometheus, you need to apply analogically

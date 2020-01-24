@@ -29,14 +29,12 @@ spec:
               value: "secure-intranet-connectivity"
             - name: CLIENT_LABELS
               value: "app=firewall"
-{{- if .Values.global.JaegerTracing }}
             - name: TRACER_ENABLED
-              value: "true"
+              value: {{ .Values.global.JaegerTracing | default false | quote }}
             - name: JAEGER_AGENT_HOST
               value: jaeger.nsm-system
             - name: JAEGER_AGENT_PORT
               value: "6831"
-{{- end }}
           resources:
             limits:
               networkservicemesh.io/socket: 1

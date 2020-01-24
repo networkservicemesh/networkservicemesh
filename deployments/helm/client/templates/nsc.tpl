@@ -20,4 +20,4 @@ metadata:
   name: icmp-responder-nsc
   namespace: {{ .Release.Namespace }}
   annotations:
-    ns.networkservicemesh.io: icmp-responder?app=icmp
+    ns.networkservicemesh.io: {{ .Values.networkservice }}?app=icmp

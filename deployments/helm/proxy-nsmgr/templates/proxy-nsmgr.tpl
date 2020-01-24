@@ -13,6 +13,7 @@ spec:
       labels:
         app: proxy-nsmgr-daemonset
     spec:
+      serviceAccount: nsmgr-acc
       containers:
         - name: proxy-nsmd
           image: {{ .Values.registry }}/{{ .Values.org }}/proxy-nsmd:{{ .Values.tag }}
@@ -20,25 +21,41 @@ spec:
           ports:
             - containerPort: 5006
               hostPort: 5006
+          env:
+            - name: INSECURE
+              value: {{ .Values.insecure | default false | quote }}
+          volumeMounts:
+            - name: spire-agent-socket
+              mountPath: /run/spire/sockets
+              readOnly: true
         - name: proxy-nsmd-k8s
           image: {{ .Values.registry }}/{{ .Values.org }}/proxy-nsmd-k8s:{{ .Values.tag }}
           imagePullPolicy: {{ .Values.pullPolicy }}
           ports:
-            - containerPort: 80
-              hostPort: 5005
+            - containerPort: 5005
+              hostPort: 80
           env:
             - name: NODE_NAME
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
-{{- if .Values.global.JaegerTracing }}
+            - name: INSECURE
+              value: {{ .Values.insecure | default false | quote }}
             - name: TRACER_ENABLED
-              value: "true"
+              value: {{ .Values.global.JaegerTracing | default false | quote }}
             - name: JAEGER_AGENT_HOST
               value: jaeger.nsm-system
             - name: JAEGER_AGENT_PORT
               value: "6831"
-{{- end }}
+          volumeMounts:
+            - name: spire-agent-socket
+              mountPath: /run/spire/sockets
+              readOnly: true
+      volumes:
+        - hostPath:
+            path: /run/spire/sockets
+            type: DirectoryOrCreate
+          name: spire-agent-socket
 ---
 apiVersion: v1
 kind: Service

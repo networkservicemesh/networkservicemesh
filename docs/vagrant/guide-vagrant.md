@@ -117,7 +117,7 @@ Now that we have the NSM infrastructure deployed, we can proceed with deploying 
 * The basic ICMP example is deployed like this:
 
 ```bash
-make helm-install-icmp-responder
+make helm-install-endpoint helm-install-client
 ```
 
 * The VPN service composition example is deployed with:

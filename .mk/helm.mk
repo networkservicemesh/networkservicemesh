@@ -33,6 +33,7 @@ $(INSTALL_CHARTS):
 	--container_tag ${CONTAINER_TAG} \
 	--forwarding_plane ${FORWARDING_PLANE} \
 	--insecure ${INSECURE} \
+	--networkservice "${NETWORK_SERVICE}" \
 	--enable_prometheus ${PROMETHEUS} \
 	--enable_metric_collection ${METRICS_COLLECTOR_ENABLED} \
 	--nsm_namespace ${NSM_NAMESPACE}

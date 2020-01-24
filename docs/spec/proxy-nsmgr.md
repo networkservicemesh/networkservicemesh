@@ -53,8 +53,8 @@ spec:
           image: networkservicemesh/proxy-nsmd-k8s
           imagePullPolicy: IfNotPresent
           ports:
-            - containerPort: 80
-              hostPort: 5005
+            - containerPort: 5005
+              hostPort: 80
           env:
             - name: NODE_NAME
               valueFrom:
