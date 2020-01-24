@@ -15,6 +15,7 @@ function with_helm_2 () {
   --set org="$CONTAINER_REPO",tag="$CONTAINER_TAG" \
   --set forwardingPlane="$FORWARDING_PLANE" \
   --set insecure="$INSECURE" \
+  --set networkservice="${NETWORK_SERVICE}" \
   --set prometheus="${PROMETHEUS}" \
   --set metricsCollectorEnabled="${METRICS_COLLECTOR_ENABLED}" \
   --set global.JaegerTracing="true" \
@@ -56,6 +57,7 @@ function with_helm_3 () {
   --set org="$CONTAINER_REPO",tag="$CONTAINER_TAG" \
   --set forwardingPlane="$FORWARDING_PLANE" \
   --set insecure="$INSECURE" \
+  --set networkservice="${NETWORK_SERVICE}" \
   --set prometheus="${PROMETHEUS}" \
   --set metricsCollectorEnabled="${METRICS_COLLECTOR_ENABLED}" \
   --set global.JaegerTracing="true" \
@@ -82,6 +84,7 @@ function usage () {
 --container_tag [tag],Container tag. Defaults to value of CONTAINER_TAG
 --forwarding_plane [forwarding plane],NSM forwarding plane to use. Defaults to value of FORWARDING_PLANE
 --insecure [true|false],Defaults to value of INSECURE
+--networkservice [endpoint network service],Name of Network Service connect to.
 --nsm_namespace [namespace],Name of the NSM namespace. Defaults to value of NSM_NAMESPACE
 --spire_enabled [true|false],Defaults to value of SPIRE_ENABLED
 -h | --help,Display usage"
@@ -105,6 +108,10 @@ function check_flags () {
   fi
   if [ -z ${INSECURE+x} ]; then
     echo "INSECURE is not set, use --insecure or set a value for it."
+    SHOW_USAGE=1
+  fi
+  if [ -z ${NETWORK_SERVICE+x} ]; then
+    echo "NETWORK_SERVICE is not set, use --networkservice or set a value for it."
     SHOW_USAGE=1
   fi
   if [ -z ${FORWARDING_PLANE+x} ]; then
@@ -151,6 +158,11 @@ case $key in
     ;;
     --insecure)
     INSECURE="$2"
+    shift
+    shift
+    ;;
+    --networkservice)
+    NETWORK_SERVICE="$2"
     shift
     shift
     ;;
