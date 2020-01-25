@@ -16,7 +16,7 @@
 
 // +build srv6
 
-package nsmd_integration_tests
+package integration
 
 import (
 	"testing"

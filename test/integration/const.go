@@ -1,4 +1,5 @@
-package nsmd_integration_tests
+// Package integration contains kubernetes specific NSM tests
+package integration
 
 import "time"
 

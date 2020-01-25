@@ -1,6 +1,6 @@
 // +build basic
 
-package nsmd_integration_tests
+package integration
 
 import (
 	"fmt"
