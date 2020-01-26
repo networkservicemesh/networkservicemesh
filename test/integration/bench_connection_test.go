@@ -1,6 +1,6 @@
 // +build bench
 
-package nsmd_integration_tests
+package integration
 
 import (
 	"strconv"
