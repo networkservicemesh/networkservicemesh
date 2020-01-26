@@ -25,6 +25,9 @@ type nsmHelper struct {
 	healing   chan bool
 }
 
+func (h *nsmHelper) Updated(old, new *connection.Connection) {
+}
+
 func (h *nsmHelper) Connected(map[string]*connection.Connection) {
 	h.connected <- true
 }
