@@ -98,6 +98,8 @@ docker-push: $(addsuffix -push,$(addprefix docker-,$(images)));
 docker-login:
 	@if [ -n "${DOCKER_PASSWORD}" ]; then \
 		echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin ;\
+	else \
+		echo "docker-login:  Bypassing login--no password given." ;\
 	fi
 
 clean:
