@@ -5,3 +5,6 @@ dependencies:
     condition: spire.enabled
   - name: prefix-service
     version: 0.1.0
+  - name: config
+    repository: file://../config
+    version: 0.1.0

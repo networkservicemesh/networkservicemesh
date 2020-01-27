@@ -5,8 +5,8 @@ set -x
 function prepare() {
   echo "Preparing cluster..."
 
-  make k8s-config
   make helm-init
+  make helm-install-config
   make spire-install
 }
 

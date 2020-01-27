@@ -3,79 +3,6 @@
 # A script for wrapping NSM installation via Helm. Both Helm 2 and Helm 3 are
 # supported.
 
-
-function with_helm_2 () {
-  # We specifically set admission-webhook variables here as it is a subchart
-  # there might be a way to set these as global and refer to them with .Values.global.org
-  # but that seems more intrusive than this hack. Consider changing to global if the charts
-  # get even more complicated
-  echo -n "Performing chart installation..."
-  helm install --name="$CHART" \
-  --atomic --timeout 300 \
-  --set org="$CONTAINER_REPO",tag="$CONTAINER_TAG" \
-  --set forwardingPlane="$FORWARDING_PLANE" \
-  --set insecure="$INSECURE" \
-  --set networkservice="${NETWORK_SERVICE}" \
-  --set prometheus="${PROMETHEUS}" \
-  --set metricsCollectorEnabled="${METRICS_COLLECTOR_ENABLED}" \
-  --set global.JaegerTracing="true" \
-  --set spire.enabled="$SPIRE_ENABLED",spire.org="$CONTAINER_REPO",spire.tag="$CONTAINER_TAG" \
-  --set admission-webhook.org="$CONTAINER_REPO",admission-webhook.tag="$CONTAINER_TAG" \
-  --set prefix-service.org="$CONTAINER_REPO",prefix-service.tag="$CONTAINER_TAG" \
-  --namespace="$NSM_NAMESPACE" \
-  deployments/helm/"$CHART" &
-  PID=$!
-  sleep 2
-  while ps -p ${PID} > /dev/null;
-  do
-    printf "."
-    sleep 2
-  done
-  echo "Done"
-}
-
-function with_helm_3 () {
-  # Ensure we have the nsm namespace available
-  echo -n "Ensure namespace $NSM_NAMESPACE exists..."
-  kubectl apply -f k8s/conf/namespace-nsm.yaml &
-  PID=$!
-  sleep 2
-  while ps -p ${PID} > /dev/null;
-  do
-    printf "."
-    sleep 2
-  done
-  echo "Done"
-
-  # We specifically set admission-webhook variables here as it is a subchart
-  # there might be a way to set these as global and refer to them with .Values.global.org
-  # but that seems more intrusive than this hack. Consider changing to global if the charts
-  # get even more complicated
-  echo -n "Performing chart installation..."
-  helm install "$CHART" \
-  --atomic --timeout 5m \
-  --set org="$CONTAINER_REPO",tag="$CONTAINER_TAG" \
-  --set forwardingPlane="$FORWARDING_PLANE" \
-  --set insecure="$INSECURE" \
-  --set networkservice="${NETWORK_SERVICE}" \
-  --set prometheus="${PROMETHEUS}" \
-  --set metricsCollectorEnabled="${METRICS_COLLECTOR_ENABLED}" \
-  --set global.JaegerTracing="true" \
-  --set spire.enabled="$SPIRE_ENABLED",spire.org="$CONTAINER_REPO",spire.tag="$CONTAINER_TAG" \
-  --set admission-webhook.org="$CONTAINER_REPO",admission-webhook.tag="$CONTAINER_TAG" \
-  --set prefix-service.org="$CONTAINER_REPO",prefix-service.tag="$CONTAINER_TAG" \
-  --namespace "$NSM_NAMESPACE" \
-  deployments/helm/"$CHART" &
-  PID=$!
-  sleep 2
-  while ps -p ${PID} > /dev/null;
-  do
-    printf "."
-    sleep 2
-  done
-  echo "Done"
-}
-
 function usage () {
   echo "Usage: $0 [flags]"
   echo "Available flags:"
@@ -196,21 +123,57 @@ case $key in
 esac
 done
 
+[ -n "$HELM" ] || HELM=helm
 
-if ! command -v helm > /dev/null; then
-  echo "Unable to locate helm client"
+if ! command -v $HELM > /dev/null; then
+  echo "Unable to locate Helm client '$HELM'"
   exit 1
 fi
 
-HELM_VERSION=$(helm version 2> /dev/null | awk -v FS="(Ver\"|\")" '{print$ 2}')
+echo
+if [ -z "$HELM_VERSION" ]; then
+  HELM_VERSION=$($HELM version 2> /dev/null | head -1 | awk -v FS="(Ver\"|\")" '{print$ 2}')
+  echo "Helm version detected: $HELM_VERSION"
+else
+  echo "Using Helm '$HELM_VERSION'"
+fi
+
 check_flags
 
-if [[ $HELM_VERSION = v2* ]]
-then
-  with_helm_2
-elif [[ $HELM_VERSION = v3* ]]
-then
-  with_helm_3
+echo -n "Performing chart installation ..."
+if [[ $HELM_VERSION = v2* ]]; then
+  VERSION_SPECIFIC_OPTS="--name $CHART --timeout 300 --dep-up"
+elif [[ $HELM_VERSION = v3* ]]; then
+  VERSION_SPECIFIC_OPTS="$CHART --timeout 5m --dependency-update"
 else
-  echo "Unsupported helm version: $HELM_VERSION"
+  echo "Unsupported Helm version: $HELM_VERSION"
+  exit 1
 fi
+
+set -o xtrace
+# shellcheck disable=SC2086
+$HELM install $VERSION_SPECIFIC_OPTS \
+  --atomic ${HELM_TRACE:+--dry-run --debug} \
+  --set org="$CONTAINER_REPO",tag="$CONTAINER_TAG" \
+  --set forwardingPlane="$FORWARDING_PLANE" \
+  --set insecure="$INSECURE" \
+  --set networkservice="${NETWORK_SERVICE}" \
+  --set prometheus="${PROMETHEUS}" \
+  --set metricsCollectorEnabled="${METRICS_COLLECTOR_ENABLED}" \
+  --set global.JaegerTracing="true" \
+  --set spire.enabled="$SPIRE_ENABLED",spire.org="$CONTAINER_REPO",spire.tag="$CONTAINER_TAG" \
+  --set admission-webhook.org="$CONTAINER_REPO",admission-webhook.tag="$CONTAINER_TAG" \
+  --set prefix-service.org="$CONTAINER_REPO",prefix-service.tag="$CONTAINER_TAG" \
+  --namespace "$NSM_NAMESPACE" \
+  ./deployments/helm/"$CHART" &
+PID=$!
+set +o xtrace
+
+while ps -p ${PID} > /dev/null;
+do
+  sleep 1
+  printf "."
+done
+echo "Done"
+
+wait ${PID} # return Helm exit code

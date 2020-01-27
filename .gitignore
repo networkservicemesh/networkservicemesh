@@ -48,6 +48,11 @@ vendor
 examples/
 !docs/examples/
 
+# Helm
+# ignore downloaded dependencies
+deployments/helm/*/charts/*.tgz
+deployments/helm/*/requirements.lock
+
 # Miscellaneous build artifacts
 build/dist
 build/images/*
