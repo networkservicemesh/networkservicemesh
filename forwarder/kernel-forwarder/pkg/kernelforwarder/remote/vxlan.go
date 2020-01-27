@@ -32,6 +32,21 @@ func createVXLANInterface(ifaceName string, remoteConnection *connection.Connect
 	return nil
 }
 
+func deleteVXLANInterface(ifaceName string) error {
+	/* Get a link object for interface */
+	ifaceLink, err := netlink.LinkByName(ifaceName)
+	if err != nil {
+		return errors.Errorf("failed to get link for %q - %v", ifaceName, err)
+	}
+
+	/* Delete the VXLAN interface - host namespace */
+	if err = netlink.LinkDel(ifaceLink); err != nil {
+		err = errors.Errorf("failed to delete VXLAN interface - %v", err)
+	}
+
+	return nil
+}
+
 // newVXLAN returns a VXLAN interface instance
 func newVXLAN(ifaceName string, egressIP, remoteIP net.IP, vni int) *netlink.Vxlan {
 	/* Populate the VXLAN interface configuration */
