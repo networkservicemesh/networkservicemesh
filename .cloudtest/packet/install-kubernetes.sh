@@ -1,6 +1,6 @@
 #!/bin/sh
 
-KUBERNETES_VERSION=1.16.3-00
+KUBERNETES_VERSION=1.17.1-00
 
 curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
 cat <<EOF >/etc/apt/sources.list.d/kubernetes.list

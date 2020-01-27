@@ -2,7 +2,7 @@
 
 set -e
 
-KUBERNETES_INIT_VERSION=1.16.3
+KUBERNETES_INIT_VERSION=1.17.1
 kubeadm init --kubernetes-version "${KUBERNETES_INIT_VERSION}" --pod-network-cidr=192.168.0.0/16 --skip-token-print
 
 mkdir -p "$HOME"/.kube
