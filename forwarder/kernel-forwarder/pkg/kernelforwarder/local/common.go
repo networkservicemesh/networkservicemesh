@@ -13,12 +13,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package kernelforwarder
+package local
 
 import (
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	"net"
 
 	"github.com/sirupsen/logrus"
@@ -26,33 +24,10 @@ import (
 	"github.com/vishvananda/netns"
 )
 
-// Kernel forwarding plane related constants
-const (
-	cLOCAL    = iota
-)
-
 const (
 	/* VETH pairs are used only for local connections(same node), so we can use a larger MTU size as there's no multi-node connection */
 	cVETHMTU    = 16000
-	cCONNECT    = true
-	cDISCONNECT = false
 )
-
-type connectionConfig struct {
-	id            string
-	srcNetNsInode string
-	dstNetNsInode string
-	srcName       string
-	dstName       string
-	srcIP         string
-	dstIP         string
-	srcIPVXLAN    net.IP
-	dstIPVXLAN    net.IP
-	srcRoutes     []*connectioncontext.Route
-	dstRoutes     []*connectioncontext.Route
-	neighbors     []*connectioncontext.IpNeighbor
-	vni           int
-}
 
 // setupLinkInNs is responsible for configuring an interface inside a given namespace - assigns IP address, routes, etc.
 func setupLinkInNs(containerNs netns.NsHandle, ifaceName, ifaceIP string, routes []*connectioncontext.Route, neighbors []*connectioncontext.IpNeighbor, inject bool) error {
@@ -147,22 +122,6 @@ func setupLinkInNs(containerNs netns.NsHandle, ifaceName, ifaceIP string, routes
 	return nil
 }
 
-//nolint
-func newConnectionConfig(crossConnect *crossconnect.CrossConnect, connType uint8) (*connectionConfig, error) {
-	return &connectionConfig{
-		id:            crossConnect.GetId(),
-		srcNetNsInode: crossConnect.GetSource().GetMechanism().GetParameters()[common.NetNsInodeKey],
-		dstNetNsInode: crossConnect.GetDestination().GetMechanism().GetParameters()[common.NetNsInodeKey],
-		srcName:       crossConnect.GetSource().GetMechanism().GetParameters()[common.InterfaceNameKey],
-		dstName:       crossConnect.GetDestination().GetMechanism().GetParameters()[common.InterfaceNameKey],
-		srcIP:         crossConnect.GetSource().GetContext().GetIpContext().GetSrcIpAddr(),
-		dstIP:         crossConnect.GetSource().GetContext().GetIpContext().GetDstIpAddr(),
-		srcRoutes:     crossConnect.GetSource().GetContext().GetIpContext().GetDstRoutes(),
-		dstRoutes:     crossConnect.GetDestination().GetContext().GetIpContext().GetSrcRoutes(),
-		neighbors:     crossConnect.GetSource().GetContext().GetIpContext().GetIpNeighbors(),
-	}, nil
-}
-
 // addRoutes adds routes
 func addRoutes(link netlink.Link, addr *netlink.Addr, routes []*connectioncontext.Route) error {
 	for _, route := range routes {
@@ -207,4 +166,16 @@ func addNeighbors(link netlink.Link, neighbors []*connectioncontext.IpNeighbor) 
 		}
 	}
 	return nil
+}
+
+// NewVETH returns a VETH interface instance
+func NewVETH(srcName, dstName string) *netlink.Veth {
+	/* Populate the VETH interface configuration */
+	return &netlink.Veth{
+		LinkAttrs: netlink.LinkAttrs{
+			Name: srcName,
+			MTU:  cVETHMTU,
+		},
+		PeerName: dstName,
+	}
 }

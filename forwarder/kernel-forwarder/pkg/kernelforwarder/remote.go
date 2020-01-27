@@ -18,17 +18,14 @@ package kernelforwarder
 import (
 	"runtime"
 
-	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
-	"github.com/vishvananda/netlink"
-
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	common2 "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
+	. "github.com/networkservicemesh/networkservicemesh/forwarder/kernel-forwarder/pkg/kernelforwarder/local"
 	. "github.com/networkservicemesh/networkservicemesh/forwarder/kernel-forwarder/pkg/kernelforwarder/remote"
 	"github.com/networkservicemesh/networkservicemesh/forwarder/kernel-forwarder/pkg/monitoring"
-	"github.com/networkservicemesh/networkservicemesh/utils/fs"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // handleRemoteConnection handles remote connect/disconnect requests for either incoming or outgoing connections
@@ -74,50 +71,29 @@ func createRemoteConnection(connId string, localConnection *connection.Connectio
 	logrus.Info("remote: creating connection...")
 
 	var xconName string
-	var ifaceIP string
-	var routes []*connectioncontext.Route
 	if direction == INCOMING {
 		xconName = "DST-" + connId
-		ifaceIP = localConnection.GetContext().GetIpContext().GetDstIpAddr()
-		routes = localConnection.GetContext().GetIpContext().GetSrcRoutes()
 	} else {
 		xconName = "SRC-" + connId
-		ifaceIP = localConnection.GetContext().GetIpContext().GetSrcIpAddr()
-		routes = localConnection.GetContext().GetIpContext().GetDstRoutes()
 	}
 	ifaceName := localConnection.GetMechanism().GetParameters()[common2.InterfaceNameKey]
-	neighbors := localConnection.GetContext().GetIpContext().GetIpNeighbors()
-	nsInode := localConnection.GetMechanism().GetParameters()[common2.NetNsInodeKey]
+	var nsInode string
+	var err error
 
 	/* Lock the OS thread so we don't accidentally switch namespaces */
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	/* Get namespace handler - destination */
-	dstHandle, err := fs.GetNsHandleFromInode(nsInode)
-	if err != nil {
-		logrus.Errorf("remote: failed to get destination namespace handle - %v", err)
-		return nil, err
-	}
-	/* If successful, don't forget to close the handler upon exit */
-	defer func() {
-		if err = dstHandle.Close(); err != nil {
-			logrus.Error("remote: error when closing destination handle: ", err)
-		}
-		logrus.Debug("remote: closed destination handle: ", dstHandle, nsInode)
-	}()
-	logrus.Debug("remote: opened destination handle: ", dstHandle, nsInode)
-
-	if err = CreateRemoteInterface(ifaceName, remoteConnection, direction); err != nil {
+	if err = CreateRemoteInterface(xconName, remoteConnection, direction); err != nil {
 		logrus.Errorf("remote: %v", err)
 		return nil, err
 	}
 
-	/* Setup interface - inject from host to destination namespace */
-	if err = setupLinkInNs(dstHandle, ifaceName, ifaceIP, routes, neighbors, true); err != nil {
-		logrus.Errorf("remote: failed to setup interface - destination - %q: %v", ifaceName, err)
+	if nsInode, err = CreateLocalInterface(ifaceName, localConnection); err != nil {
+		logrus.Errorf("remote: %v", err)
 		return nil, err
 	}
+
 	logrus.Infof("remote: creation completed for device - %s", ifaceName)
 	return map[string]monitoring.Device{nsInode: {Name: ifaceName, XconName: xconName}}, nil
 }
@@ -139,46 +115,11 @@ func deleteRemoteConnection(connId string, localConnection *connection.Connectio
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	/* Get namespace handler - destination */
-	dstHandle, err := fs.GetNsHandleFromInode(nsInode)
-	if err != nil {
-		logrus.Errorf("remote: failed to get destination namespace handle - %v", err)
-		return nil, err
-	}
-	/* If successful, don't forget to close the handler upon exit */
-	defer func() {
-		if err = dstHandle.Close(); err != nil {
-			logrus.Error("remote: error when closing destination handle: ", err)
-		}
-		logrus.Debug("remote: closed destination handle: ", dstHandle, nsInode)
-	}()
-	logrus.Debug("remote: opened destination handle: ", dstHandle, nsInode)
+	nsInode, localErr := DeleteLocalInterface(ifaceName, localConnection)
+	remoteErr := DeleteRemoteInterface(xconName)
 
-	/* Setup interface - extract from destination to host namespace */
-	if err = setupLinkInNs(dstHandle, ifaceName, "", nil, nil, false); err != nil {
-		logrus.Errorf("remote: failed to setup interface - destination -  %q: %v", ifaceName, err)
-		return nil, err
-	}
-
-	err = nil
-	/* Get a link object for interface */
-	ifaceLink, localErr := netlink.LinkByName(ifaceName)
-	if localErr != nil {
-		err = errors.Errorf("failed to get link for %q - %v", ifaceName, err)
-	}
-
-	/* Delete the VXLAN interface - host namespace */
-	if remoteErr := netlink.LinkDel(ifaceLink); remoteErr != nil {
-		if err != nil {
-			err = errors.Wrapf(err,"failed to delete VXLAN interface - %v", remoteErr)
-		} else {
-			err = errors.Errorf("failed to delete VXLAN interface - %v", remoteErr)
-		}
-	}
-
-	if err != nil {
-		logrus.Errorf("remote: %v", err)
-		return nil, err
+	if localErr != nil || remoteErr != nil {
+		logrus.Errorf("remote: %v - %v", localErr, remoteErr)
 	}
 
 	logrus.Infof("remote: deletion completed for device - %s", ifaceName)
