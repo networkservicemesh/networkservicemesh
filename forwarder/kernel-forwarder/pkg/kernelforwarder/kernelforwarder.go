@@ -17,9 +17,8 @@ package kernelforwarder
 
 import (
 	"context"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/wireguard"
-
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/wireguard"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/status"
 
@@ -60,7 +59,7 @@ func (k *KernelForwarder) CreateForwarderServer(config *common.ForwarderConfig) 
 // Request handler for connections
 func (k *KernelForwarder) Request(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error) {
 	logrus.Infof("Request() called with %v", crossConnect)
-	err := k.connectOrDisconnect(crossConnect, cCONNECT)
+	err := k.connectOrDisconnect(crossConnect, true)
 	if err != nil {
 		logrus.Warn("error while handling Request() connection:", err)
 		return nil, err
@@ -72,7 +71,7 @@ func (k *KernelForwarder) Request(ctx context.Context, crossConnect *crossconnec
 // Close handler for connections
 func (k *KernelForwarder) Close(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*empty.Empty, error) {
 	logrus.Infof("Close() called with %#v", crossConnect)
-	err := k.connectOrDisconnect(crossConnect, cDISCONNECT)
+	err := k.connectOrDisconnect(crossConnect, false)
 	if err != nil {
 		logrus.Warn("error while handling Close() connection:", err)
 	}
