@@ -84,12 +84,12 @@ func createRemoteConnection(connId string, localConnection *connection.Connectio
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	if err = CreateRemoteInterface(xconName, remoteConnection, direction); err != nil {
+	if err = SetupRemoteInterface(ifaceName, remoteConnection, direction); err != nil {
 		logrus.Errorf("remote: %v", err)
 		return nil, err
 	}
 
-	if nsInode, err = CreateLocalInterface(ifaceName, localConnection); err != nil {
+	if nsInode, err = SetupLocalInterface(ifaceName, localConnection, direction == INCOMING); err != nil {
 		logrus.Errorf("remote: %v", err)
 		return nil, err
 	}
@@ -116,7 +116,7 @@ func deleteRemoteConnection(connId string, localConnection *connection.Connectio
 	defer runtime.UnlockOSThread()
 
 	nsInode, localErr := DeleteLocalInterface(ifaceName, localConnection)
-	remoteErr := DeleteRemoteInterface(xconName)
+	remoteErr := DeleteRemoteInterface(ifaceName, remoteConnection)
 
 	if localErr != nil || remoteErr != nil {
 		logrus.Errorf("remote: %v - %v", localErr, remoteErr)

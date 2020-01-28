@@ -64,17 +64,18 @@ func createLocalConnection(crossConnect *crossconnect.CrossConnect) (map[string]
 	var dstNetNsInode string
 	var err error
 
-	if srcNetNsInode, err = CreateLocalInterface(srcName, crossConnect.GetSource()); err != nil {
-		return nil, err
-	}
-
-	if dstNetNsInode, err = CreateLocalInterface(dstName, crossConnect.GetDestination()); err != nil {
-		return nil, err
-	}
-
 	/* Create the VETH pair - host namespace */
 	if err = netlink.LinkAdd(NewVETH(srcName, dstName)); err != nil {
 		logrus.Errorf("local: failed to create VETH pair - %v", err)
+		return nil, err
+	}
+
+	if srcNetNsInode, err = SetupLocalInterface(srcName, crossConnect.GetSource(), false); err != nil {
+		return nil, err
+	}
+
+	crossConnect.GetDestination().GetContext().IpContext = crossConnect.GetSource().GetContext().GetIpContext()
+	if dstNetNsInode, err = SetupLocalInterface(dstName, crossConnect.GetDestination(), true); err != nil {
 		return nil, err
 	}
 
