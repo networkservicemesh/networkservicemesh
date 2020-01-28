@@ -31,6 +31,7 @@ See our full documentation at the [docs](/docs/README.md) folder.
 ## Get involved
 
 * Weekly meetings
+  * [PR Review - Weekly Zoom meeting](https://zoom.us/my/networkservicemeshwg) - every Tuesday at 7:30 - 8:00 AM PT
   * [General - Weekly Zoom meeting](https://zoom.us/my/networkservicemeshwg) - every Tuesday at 8:00 - 9:00 AM PT
   * [General - Biweekly Zoom meeting](https://zoom.us/my/networkservicemeshwg) - every other Tuesday at 10:00 - 11:00 AM CET
   * [General - Meeting minutes](https://docs.google.com/document/d/1C9NKjo0PWNWypROEO9-Y6haw5h9Xmurvl14SXpciz2Y/edit#heading=h.rc9df0a6n3ng)
