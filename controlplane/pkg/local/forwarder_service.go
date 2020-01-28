@@ -164,9 +164,6 @@ func (cce *forwarderService) prepareWireguardMechanism(m *connection.Mechanism, 
 	if parameters == nil {
 		parameters = map[string]string{}
 	}
-	parameters[srv6.SrcBSID] = cce.serviceRegistry.SIDAllocator().SID(request.Connection.GetId())
-	parameters[srv6.SrcLocalSID] = cce.serviceRegistry.SIDAllocator().SID(request.Connection.GetId())
-	m.Parameters = parameters
 
 	key, err := wgtypes.GeneratePrivateKey()
 	if err != nil {

@@ -24,6 +24,6 @@ const (
 	// SrcPublicKey - Destination public key
 	DstPublicKey = "dst_public_key"
 	// DstPrivateKey - Source private key
-	DstPrivateKey = "src_private_key"
+	DstPrivateKey = "dst_private_key"
 
 )
