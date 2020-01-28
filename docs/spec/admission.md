@@ -36,7 +36,7 @@ secure-intranet-connectivity/eth2?app=firewall&version=2
 
 Would imply a network service named `secure-intranet-connectivity` connected on `eth2`, with labels: `app=firewall` and `version=2`.
 
-Merging this example to the full `yaml` above, we ccan let the client connect with two netowrk services simlutaneously:
+Merging this example to the full `yaml` above, we can let the client connect with two network services simultaneously:
 
 ```yaml
 apiVersion: v1
@@ -54,23 +54,24 @@ NOTE: The interface part cannot exceed 15 chars, and if it does a *really* clear
 If and only if the Pod has the `ns.networkservicemesh.io` annotation exists, and is of the right form, then we should add to the Pod spec a patch with the following content:
 
 ```yaml
-initContainers:
-       - name: nsc
-         image: ${REPO}/${INITCONTAINER}:${TAG}
-         imagePullPolicy: IfNotPresent
-         env:
-           - name: NS_NETWORKSERVICEMESH_IO
-             value: ${value of annotation}
-         resources:
-           limits:
-             networkservicemesh.io/socket: 1
+      initContainers:
+      - name: nsm-init-container
+        image: ${REPO}/${INITCONTAINER}:${TAG}
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: NS_NETWORKSERVICEMESH_IO
+          value: ${value of annotation}
+        resources:
+          limits:
+            networkservicemesh.io/socket: 1
 ```
 
 The ${INITCONTAINER} is based on the SDK's `NSMClientList` which parses `${NS_NETWORKSERVICEMESH_IO}` and spawns the needed number of clients.
 
 ${REPO}, ${INITCONTAINER}, and ${TAG} are specifiable for the mutating admission webhook container, defaulting to REPO=networkservicemesh, INITCONTAINER=nsc, TAG=latest.
 
-
+The nsm-init container will be added to the beginning of the `initContainers` list of the POD. It means that other init containers on the list can do some work with a created connection/network setup prepared by `nsm-init-container`.
+NOTE: Depending on the value of annotation `ns.networkservicemesh.io` NSM init container can prepare multiple connections (see the merge example above).
 ## Possible Augmentations
 
 Because the Mutating Admission Controller allows us to add complexity to the initcontainer without taxing the user, it is desirable to have the initcontainer add additional information, for example, the Pod id, or Node name via the downward API as env variables that can be then added as labels to the Network Service Request.  This will likely be handy for #708.
