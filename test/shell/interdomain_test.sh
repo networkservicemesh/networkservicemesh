@@ -37,17 +37,11 @@ export KUBECONFIG=$KUBECONFIG_CLUSTER_1
 make k8s-logs-snapshot-only-master
 
 # cleanup
-make helm-delete k8s-terminating-cleanup
-
-# restore CRDs and RBAC
-make k8s-deconfig k8s-config
+make k8s-reset
 
 export KUBECONFIG=$KUBECONFIG_CLUSTER_2
 # collect logs for correct test execution
 make k8s-logs-snapshot-only-master
 
 # cleanup
-make helm-delete k8s-terminating-cleanup
-
-# restore CRDs and RBAC
-make k8s-deconfig k8s-config
+make k8s-reset

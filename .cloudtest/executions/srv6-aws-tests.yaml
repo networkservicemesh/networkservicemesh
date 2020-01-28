@@ -14,4 +14,4 @@ executions:
     cluster-env:
       - KUBECONFIG
     on-fail: |
-      make k8s-delete-nsm-namespaces
+      make k8s-reset

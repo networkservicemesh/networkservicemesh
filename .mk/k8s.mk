@@ -76,6 +76,11 @@ k8s-save: docker-save
 k8s-delete-nsm-namespaces:
 	@NSM_NAMESPACE=${NSM_NAMESPACE} ./scripts/delete-nsm-namespaces.sh
 
+.PHONY: k8s-reset
+k8s-reset:
+	make -i k8s-deconfig helm-delete k8s-terminating-cleanup k8s-delete-nsm-namespaces
+	make k8s-config && echo "Cluster reset successfull"
+
 .PHONY: k8s-%logs
 k8s-%-logs:
 	@echo "K8s logs for $*"
@@ -154,7 +159,7 @@ k8s-save-artifacts-only-master:
 
 .PHONY: k8s-terminating-cleanup
 k8s-terminating-cleanup:
-	@$(kubectl) get pods -o wide |grep Terminating | cut -d \  -f 1 | xargs $(kubectl) delete pods --force --grace-period 0 {}
+	@$(kubectl) get pods -o wide |grep Terminating | cut -d \  -f 1 | xargs --no-run-if-empty $(kubectl) delete pods --force --grace-period 0 {}
 
 .PHONE: k8s-pods
 k8s-pods:

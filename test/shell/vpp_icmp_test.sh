@@ -13,7 +13,4 @@ make k8s-icmp-check || exit $?
 make k8s-logs-snapshot-only-master
 
 # cleanup
-make helm-delete k8s-terminating-cleanup
-
-# restore cluster configuration
-make k8s-deconfig k8s-config
+make k8s-reset

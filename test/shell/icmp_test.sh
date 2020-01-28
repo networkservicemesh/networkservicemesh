@@ -14,7 +14,4 @@ make k8s-icmp-check || exit $?
 make k8s-save-artifacts-only-master
 
 # cleanup
-make helm-delete k8s-terminating-cleanup
-
-# restore CRDs and RBAC
-make k8s-deconfig k8s-config
+make k8s-reset
