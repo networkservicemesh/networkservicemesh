@@ -19,22 +19,20 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/srv6"
-
-	"github.com/pkg/errors"
-
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
-
-	"github.com/sirupsen/logrus"
-
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/srv6"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/wireguard"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 )
 
 const (
@@ -65,6 +63,7 @@ func (cce *forwarderService) selectForwarder(request *networkservice.NetworkServ
 	})
 	return dp, err
 }
+
 func (cce *forwarderService) findMechanism(mechanismPreferences []*connection.Mechanism, mechanismType string) *connection.Mechanism {
 	for _, m := range mechanismPreferences {
 		if m.GetType() == mechanismType {
@@ -139,18 +138,45 @@ func (cce *forwarderService) prepareRemoteMechanisms(request *networkservice.Net
 		m := mechanism.Clone()
 		switch m.GetType() {
 		case srv6.MECHANISM:
-			parameters := m.GetParameters()
-			if parameters == nil {
-				parameters = map[string]string{}
-			}
-			parameters[srv6.SrcBSID] = cce.serviceRegistry.SIDAllocator().SID(request.Connection.GetId())
-			parameters[srv6.SrcLocalSID] = cce.serviceRegistry.SIDAllocator().SID(request.Connection.GetId())
-			m.Parameters = parameters
+			cce.prepareSRv6Mechanism(m, request)
+		case wireguard.MECHANISM:
+			cce.prepareWireguardMechanism(m, request)
 		}
 		mechanisms = append(mechanisms, m)
 	}
 
 	return mechanisms
+}
+
+func (cce *forwarderService) prepareSRv6Mechanism(m *connection.Mechanism, request *networkservice.NetworkServiceRequest) *connection.Mechanism {
+	parameters := m.GetParameters()
+	if parameters == nil {
+		parameters = map[string]string{}
+	}
+	parameters[srv6.SrcBSID] = cce.serviceRegistry.SIDAllocator().SID(request.Connection.GetId())
+	parameters[srv6.SrcLocalSID] = cce.serviceRegistry.SIDAllocator().SID(request.Connection.GetId())
+	m.Parameters = parameters
+	return m
+}
+
+func (cce *forwarderService) prepareWireguardMechanism(m *connection.Mechanism, request *networkservice.NetworkServiceRequest) *connection.Mechanism {
+	parameters := m.GetParameters()
+	if parameters == nil {
+		parameters = map[string]string{}
+	}
+	parameters[srv6.SrcBSID] = cce.serviceRegistry.SIDAllocator().SID(request.Connection.GetId())
+	parameters[srv6.SrcLocalSID] = cce.serviceRegistry.SIDAllocator().SID(request.Connection.GetId())
+	m.Parameters = parameters
+
+	key, err := wgtypes.GeneratePrivateKey()
+	if err != nil {
+		return m
+	}
+
+	parameters[wireguard.SrcPrivateKey] = key.String()
+	parameters[wireguard.SrcPublicKey] = key.PublicKey().String()
+
+	return m
 }
 
 func (cce *forwarderService) doFailureClose(ctx context.Context) {

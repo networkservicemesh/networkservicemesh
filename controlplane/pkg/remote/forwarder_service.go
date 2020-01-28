@@ -27,6 +27,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/srv6"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/wireguard"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
@@ -116,6 +117,9 @@ func (cce *forwarderService) selectRemoteMechanism(request *networkservice.Netwo
 		dpParameters := dpMechanism.GetParameters()
 
 		cce.configureSRv6Parameters(connectionID, parameters, dpParameters)
+
+	case wireguard.MECHANISM:
+		cce.configureWireguardParameters(mechanism.GetParameters(), dpMechanism.GetParameters())
 	}
 
 	logrus.Infof("NSM:(5.1) Remote mechanism selected %v", mechanism)
@@ -154,6 +158,32 @@ func (cce *forwarderService) configureSRv6Parameters(connectionID string, parame
 	parameters[srv6.DstHostLocalSID] = dpParameters[srv6.SrcHostLocalSID]
 	parameters[srv6.DstBSID] = cce.serviceRegistry.SIDAllocator().SID(connectionID)
 	parameters[srv6.DstLocalSID] = cce.serviceRegistry.SIDAllocator().SID(connectionID)
+}
+
+func (cce *forwarderService) configureWireguardParameters(parameters, dpParameters map[string]string) {
+	parameters[vxlan.DstIP] = dpParameters[vxlan.SrcIP]
+
+	extSrcIP := parameters[vxlan.SrcIP]
+	extDstIP := dpParameters[vxlan.SrcIP]
+	srcIP := parameters[vxlan.SrcIP]
+	dstIP := dpParameters[vxlan.SrcIP]
+
+	if ip, ok := parameters[vxlan.SrcOriginalIP]; ok {
+		srcIP = ip
+	}
+
+	if ip, ok := parameters[vxlan.DstExternalIP]; ok {
+		extDstIP = ip
+	}
+
+	var vni uint32
+	if extDstIP != extSrcIP {
+		vni = cce.serviceRegistry.VniAllocator().Vni(extDstIP, extSrcIP)
+	} else {
+		vni = cce.serviceRegistry.VniAllocator().Vni(dstIP, srcIP)
+	}
+
+	parameters[vxlan.VNI] = strconv.FormatUint(uint64(vni), 10)
 }
 
 func (cce *forwarderService) updateMechanism(request *networkservice.NetworkServiceRequest, dp *model.Forwarder) error {
