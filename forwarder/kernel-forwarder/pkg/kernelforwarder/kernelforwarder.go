@@ -133,7 +133,7 @@ func (k *KernelForwarder) configureKernelForwarder() {
 			{
 				Type: wireguard.MECHANISM,
 				Parameters: map[string]string{
-					vxlan.SrcIP: k.common.EgressInterface.SrcIPNet().IP.String(),
+					wireguard.SrcIP: k.common.EgressInterface.SrcIPNet().IP.String(),
 				},
 			},
 		},

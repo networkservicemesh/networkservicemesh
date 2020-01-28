@@ -14,7 +14,7 @@ func createVXLANInterface(ifaceName string, remoteConnection *connection.Connect
 	/* Create interface - host namespace */
 	srcIP := net.ParseIP(remoteConnection.GetMechanism().GetParameters()[vxlan.SrcIP])
 	dstIP := net.ParseIP(remoteConnection.GetMechanism().GetParameters()[vxlan.DstIP])
-	vni, _ := strconv.Atoi(remoteConnection.GetMechanism().GetParameters()[vxlan.DstIP])
+	vni, _ := strconv.Atoi(remoteConnection.GetMechanism().GetParameters()[vxlan.VNI])
 
 	var localIP net.IP
 	var remoteIP net.IP

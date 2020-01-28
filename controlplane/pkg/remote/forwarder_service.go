@@ -17,6 +17,7 @@ package remote
 import (
 	"context"
 	"fmt"
+	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 	"strconv"
 	"time"
 
@@ -161,29 +162,15 @@ func (cce *forwarderService) configureSRv6Parameters(connectionID string, parame
 }
 
 func (cce *forwarderService) configureWireguardParameters(parameters, dpParameters map[string]string) {
-	parameters[vxlan.DstIP] = dpParameters[vxlan.SrcIP]
+	parameters[wireguard.DstIP] = dpParameters[wireguard.SrcIP]
 
-	extSrcIP := parameters[vxlan.SrcIP]
-	extDstIP := dpParameters[vxlan.SrcIP]
-	srcIP := parameters[vxlan.SrcIP]
-	dstIP := dpParameters[vxlan.SrcIP]
-
-	if ip, ok := parameters[vxlan.SrcOriginalIP]; ok {
-		srcIP = ip
+	key, err := wgtypes.GeneratePrivateKey()
+	if err != nil {
+		return
 	}
 
-	if ip, ok := parameters[vxlan.DstExternalIP]; ok {
-		extDstIP = ip
-	}
-
-	var vni uint32
-	if extDstIP != extSrcIP {
-		vni = cce.serviceRegistry.VniAllocator().Vni(extDstIP, extSrcIP)
-	} else {
-		vni = cce.serviceRegistry.VniAllocator().Vni(dstIP, srcIP)
-	}
-
-	parameters[vxlan.VNI] = strconv.FormatUint(uint64(vni), 10)
+	parameters[wireguard.DstPrivateKey] = key.String()
+	parameters[wireguard.DstPublicKey] = key.PublicKey().String()
 }
 
 func (cce *forwarderService) updateMechanism(request *networkservice.NetworkServiceRequest, dp *model.Forwarder) error {
