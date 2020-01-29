@@ -1,77 +1,55 @@
 package local
 
 import (
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
-	"github.com/networkservicemesh/networkservicemesh/utils/fs"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
+	"github.com/vishvananda/netlink"
 )
 
-// CreateRemoteInterface - creates interface to remote connection
-func SetupLocalInterface(ifaceName string, conn *connection.Connection, isDst bool) (string, error) {
-	netNsInode := conn.GetMechanism().GetParameters()[common.NetNsInodeKey]
-	neighbors := conn.GetContext().GetIpContext().GetIpNeighbors()
-	var ifaceIP string
-	var routes []*connectioncontext.Route
-	if isDst {
-		ifaceIP = conn.GetContext().GetIpContext().GetDstIpAddr()
-		routes = conn.GetContext().GetIpContext().GetSrcRoutes()
-	} else {
-		ifaceIP = conn.GetContext().GetIpContext().GetSrcIpAddr()
-		routes = conn.GetContext().GetIpContext().GetDstRoutes()
-	}
+const (
+	/* VETH pairs are used only for local connections(same node), so we can use a larger MTU size as there's no multi-node connection */
+	cVETHMTU = 16000
+)
 
-	/* Get namespace handler - source */
-	nsHandle, err := fs.GetNsHandleFromInode(netNsInode)
-	if err != nil {
-		logrus.Errorf("local: failed to get source namespace handle - %v", err)
-		return netNsInode, err
-	}
-	/* If successful, don't forget to close the handler upon exit */
-	defer func() {
-		if err = nsHandle.Close(); err != nil {
-			logrus.Error("local: error when closing source handle: ", err)
-		}
-		logrus.Debug("local: closed source handle: ", nsHandle, netNsInode)
-	}()
-	logrus.Debug("local: opened source handle: ", nsHandle, netNsInode)
+// Connect -
+type Connect struct{}
 
-
-	/* Setup interface - source namespace */
-	if err = setupLinkInNs(nsHandle, ifaceName, ifaceIP, routes, neighbors, true); err != nil {
-		logrus.Errorf("local: failed to setup interface - source - %q: %v", ifaceName, err)
-		return netNsInode, err
-	}
-
-	return netNsInode, nil
+// NewConnect -
+func NewConnect() *Connect {
+	return &Connect{}
 }
 
-// CreateRemoteInterface - deletes interface to remote connection
-func DeleteLocalInterface(ifaceName string, conn *connection.Connection) (string, error) {
-	netNsInode := conn.GetMechanism().GetParameters()[common.NetNsInodeKey]
-	ifaceIP := conn.GetContext().GetIpContext().GetSrcIpAddr()
+// CreateInterfaces - creates local interfaces pair
+func (c *Connect) CreateInterfaces(srcName, dstName string) error {
+	/* Create the VETH pair - host namespace */
+	if err := netlink.LinkAdd(newVETH(srcName, dstName)); err != nil {
+		return errors.Errorf("failed to create VETH pair - %v", err)
+	}
+	return nil
+}
 
-	/* Get namespace handler - source */
-	nsHandle, err := fs.GetNsHandleFromInode(netNsInode)
+// CreateInterface - deletes interface to remote connection
+func (c *Connect) DeleteInterfaces(ifaceName string) error {
+	/* Get a link object for the interface */
+	ifaceLink, err := netlink.LinkByName(ifaceName)
 	if err != nil {
-		return "", errors.Errorf("failed to get source namespace handle - %v", err)
-	}
-	/* If successful, don't forget to close the handler upon exit */
-	defer func() {
-		if err = nsHandle.Close(); err != nil {
-			logrus.Error("local: error when closing source handle: ", err)
-		}
-		logrus.Debug("local: closed source handle: ", nsHandle, netNsInode)
-	}()
-	logrus.Debug("local: opened source handle: ", nsHandle, netNsInode)
-
-	/* Extract interface - source namespace */
-	if err = setupLinkInNs(nsHandle, ifaceName, ifaceIP, nil, nil, false); err != nil {
-		return "", errors.Errorf("failed to extract interface - source - %q: %v", ifaceName, err)
-
+		return errors.Errorf("failed to get link for %q - %v", ifaceName, err)
 	}
 
-	return netNsInode, nil
+	/* Delete the VETH pair - host namespace */
+	if err := netlink.LinkDel(ifaceLink); err != nil {
+		return errors.Errorf("local: failed to delete the VETH pair - %v", err)
+	}
+
+	return nil
+}
+
+func newVETH(srcName, dstName string) *netlink.Veth {
+	/* Populate the VETH interface configuration */
+	return &netlink.Veth{
+		LinkAttrs: netlink.LinkAttrs{
+			Name: srcName,
+			MTU:  cVETHMTU,
+		},
+		PeerName: dstName,
+	}
 }

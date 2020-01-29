@@ -18,26 +18,26 @@ package kernelforwarder
 import (
 	"runtime"
 
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	common2 "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
-	. "github.com/networkservicemesh/networkservicemesh/forwarder/kernel-forwarder/pkg/kernelforwarder/local"
 	. "github.com/networkservicemesh/networkservicemesh/forwarder/kernel-forwarder/pkg/kernelforwarder/remote"
 	"github.com/networkservicemesh/networkservicemesh/forwarder/kernel-forwarder/pkg/monitoring"
-	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 )
 
 // handleRemoteConnection handles remote connect/disconnect requests for either incoming or outgoing connections
-func handleRemoteConnection(crossConnect *crossconnect.CrossConnect, connect bool) (map[string]monitoring.Device, error) {
+func (k *KernelForwarder) handleRemoteConnection(crossConnect *crossconnect.CrossConnect, connect bool) (map[string]monitoring.Device, error) {
 	if crossConnect.GetSource().IsRemote() && !crossConnect.GetDestination().IsRemote() {
 		/* 1. Incoming remote connection */
 		logrus.Info("remote: connection type - remote source/local destination - incoming")
-		return handleConnection(crossConnect.GetId(), crossConnect.GetDestination(), crossConnect.GetSource(), connect, INCOMING)
-	} else if !crossConnect.GetSource().IsRemote() && crossConnect.GetDestination().IsRemote(){
+		return k.handleConnection(crossConnect.GetId(), crossConnect.GetDestination(), crossConnect.GetSource(), connect, INCOMING)
+	} else if !crossConnect.GetSource().IsRemote() && crossConnect.GetDestination().IsRemote() {
 		/* 2. Outgoing remote connection */
 		logrus.Info("remote: connection type - local source/remote destination - outgoing")
-		return handleConnection(crossConnect.GetId(), crossConnect.GetSource(), crossConnect.GetDestination(), connect, OUTGOING)
+		return k.handleConnection(crossConnect.GetId(), crossConnect.GetSource(), crossConnect.GetDestination(), connect, OUTGOING)
 	}
 	err := errors.Errorf("remote: invalid connection type")
 	logrus.Errorf("%+v", err)
@@ -45,19 +45,19 @@ func handleRemoteConnection(crossConnect *crossconnect.CrossConnect, connect boo
 }
 
 // handleConnection process the request to either creating or deleting a connection
-func handleConnection(connId string, localConnection *connection.Connection, remoteConnection *connection.Connection, connect bool, direction uint8) (map[string]monitoring.Device, error) {
+func (k *KernelForwarder) handleConnection(connId string, localConnection *connection.Connection, remoteConnection *connection.Connection, connect bool, direction uint8) (map[string]monitoring.Device, error) {
 	var devices map[string]monitoring.Device
 	var err error
 	if connect {
 		/* 2. Create a connection */
-		devices, err = createRemoteConnection(connId, localConnection, remoteConnection, direction)
+		devices, err = k.createRemoteConnection(connId, localConnection, remoteConnection, direction)
 		if err != nil {
 			logrus.Errorf("remote: failed to create connection - %v", err)
 			devices = nil
 		}
 	} else {
 		/* 3. Delete a connection */
-		devices, err = deleteRemoteConnection(connId, localConnection, remoteConnection, direction)
+		devices, err = k.deleteRemoteConnection(connId, localConnection, remoteConnection, direction)
 		if err != nil {
 			logrus.Errorf("remote: failed to delete connection - %v", err)
 			devices = nil
@@ -67,7 +67,7 @@ func handleConnection(connId string, localConnection *connection.Connection, rem
 }
 
 // createRemoteConnection handler for creating a remote connection
-func createRemoteConnection(connId string, localConnection *connection.Connection, remoteConnection *connection.Connection, direction uint8) (map[string]monitoring.Device, error) {
+func (k *KernelForwarder) createRemoteConnection(connId string, localConnection *connection.Connection, remoteConnection *connection.Connection, direction uint8) (map[string]monitoring.Device, error) {
 	logrus.Info("remote: creating connection...")
 
 	var xconName string
@@ -84,12 +84,12 @@ func createRemoteConnection(connId string, localConnection *connection.Connectio
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	if err = SetupRemoteInterface(ifaceName, remoteConnection, direction); err != nil {
+	if err = k.remoteConnect.CreateInterface(ifaceName, remoteConnection, direction); err != nil {
 		logrus.Errorf("remote: %v", err)
 		return nil, err
 	}
 
-	if nsInode, err = SetupLocalInterface(ifaceName, localConnection, direction == INCOMING); err != nil {
+	if nsInode, err = SetupInterface(ifaceName, localConnection, direction == INCOMING); err != nil {
 		logrus.Errorf("remote: %v", err)
 		return nil, err
 	}
@@ -99,7 +99,7 @@ func createRemoteConnection(connId string, localConnection *connection.Connectio
 }
 
 // deleteRemoteConnection handler for deleting a remote connection
-func deleteRemoteConnection(connId string, localConnection *connection.Connection, remoteConnection *connection.Connection, direction uint8) (map[string]monitoring.Device, error) {
+func (k *KernelForwarder) deleteRemoteConnection(connId string, localConnection *connection.Connection, remoteConnection *connection.Connection, direction uint8) (map[string]monitoring.Device, error) {
 	logrus.Info("remote: deleting connection...")
 
 	nsInode := localConnection.GetMechanism().GetParameters()[common2.NetNsInodeKey]
@@ -115,8 +115,8 @@ func deleteRemoteConnection(connId string, localConnection *connection.Connectio
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	nsInode, localErr := DeleteLocalInterface(ifaceName, localConnection)
-	remoteErr := DeleteRemoteInterface(ifaceName, remoteConnection)
+	nsInode, localErr := ClearInterfaceSetup(ifaceName, localConnection)
+	remoteErr := k.remoteConnect.DeleteInterface(ifaceName, remoteConnection)
 
 	if localErr != nil || remoteErr != nil {
 		logrus.Errorf("remote: %v - %v", localErr, remoteErr)
