@@ -259,11 +259,11 @@ var fileDescriptor_97acf85fcaabb3f6 = []byte{
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ context.Context
-var _ grpc.ClientConn
+var _ grpc.ClientConnInterface
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the grpc package it is being compiled against.
-const _ = grpc.SupportPackageIsVersion4
+const _ = grpc.SupportPackageIsVersion6
 
 // MonitorCrossConnectClient is the client API for MonitorCrossConnect service.
 //
@@ -273,10 +273,10 @@ type MonitorCrossConnectClient interface {
 }
 
 type monitorCrossConnectClient struct {
-	cc *grpc.ClientConn
+	cc grpc.ClientConnInterface
 }
 
-func NewMonitorCrossConnectClient(cc *grpc.ClientConn) MonitorCrossConnectClient {
+func NewMonitorCrossConnectClient(cc grpc.ClientConnInterface) MonitorCrossConnectClient {
 	return &monitorCrossConnectClient{cc}
 }
 

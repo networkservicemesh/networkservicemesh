@@ -10,7 +10,7 @@ require (
 	github.com/onsi/gomega v1.7.0
 	github.com/pkg/errors v0.8.1
 	github.com/sirupsen/logrus v1.4.2
-	google.golang.org/grpc v1.23.1
+	google.golang.org/grpc v1.27.0
 )
 
 replace (

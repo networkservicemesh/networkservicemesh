@@ -628,11 +628,11 @@ var fileDescriptor_41af05d40a615591 = []byte{
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ context.Context
-var _ grpc.ClientConn
+var _ grpc.ClientConnInterface
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the grpc package it is being compiled against.
-const _ = grpc.SupportPackageIsVersion4
+const _ = grpc.SupportPackageIsVersion6
 
 // NetworkServiceRegistryClient is the client API for NetworkServiceRegistry service.
 //
@@ -644,10 +644,10 @@ type NetworkServiceRegistryClient interface {
 }
 
 type networkServiceRegistryClient struct {
-	cc *grpc.ClientConn
+	cc grpc.ClientConnInterface
 }
 
-func NewNetworkServiceRegistryClient(cc *grpc.ClientConn) NetworkServiceRegistryClient {
+func NewNetworkServiceRegistryClient(cc grpc.ClientConnInterface) NetworkServiceRegistryClient {
 	return &networkServiceRegistryClient{cc}
 }
 
@@ -819,10 +819,10 @@ type NetworkServiceDiscoveryClient interface {
 }
 
 type networkServiceDiscoveryClient struct {
-	cc *grpc.ClientConn
+	cc grpc.ClientConnInterface
 }
 
-func NewNetworkServiceDiscoveryClient(cc *grpc.ClientConn) NetworkServiceDiscoveryClient {
+func NewNetworkServiceDiscoveryClient(cc grpc.ClientConnInterface) NetworkServiceDiscoveryClient {
 	return &networkServiceDiscoveryClient{cc}
 }
 
@@ -892,10 +892,10 @@ type NsmRegistryClient interface {
 }
 
 type nsmRegistryClient struct {
-	cc *grpc.ClientConn
+	cc grpc.ClientConnInterface
 }
 
-func NewNsmRegistryClient(cc *grpc.ClientConn) NsmRegistryClient {
+func NewNsmRegistryClient(cc grpc.ClientConnInterface) NsmRegistryClient {
 	return &nsmRegistryClient{cc}
 }
 
