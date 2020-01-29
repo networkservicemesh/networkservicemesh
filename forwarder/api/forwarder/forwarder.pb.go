@@ -107,11 +107,11 @@ var fileDescriptor_19bff53f4d11db23 = []byte{
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ context.Context
-var _ grpc.ClientConn
+var _ grpc.ClientConnInterface
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the grpc package it is being compiled against.
-const _ = grpc.SupportPackageIsVersion4
+const _ = grpc.SupportPackageIsVersion6
 
 // ForwarderClient is the client API for Forwarder service.
 //
@@ -122,10 +122,10 @@ type ForwarderClient interface {
 }
 
 type forwarderClient struct {
-	cc *grpc.ClientConn
+	cc grpc.ClientConnInterface
 }
 
-func NewForwarderClient(cc *grpc.ClientConn) ForwarderClient {
+func NewForwarderClient(cc grpc.ClientConnInterface) ForwarderClient {
 	return &forwarderClient{cc}
 }
 
@@ -229,10 +229,10 @@ type MechanismsMonitorClient interface {
 }
 
 type mechanismsMonitorClient struct {
-	cc *grpc.ClientConn
+	cc grpc.ClientConnInterface
 }
 
-func NewMechanismsMonitorClient(cc *grpc.ClientConn) MechanismsMonitorClient {
+func NewMechanismsMonitorClient(cc grpc.ClientConnInterface) MechanismsMonitorClient {
 	return &mechanismsMonitorClient{cc}
 }
 

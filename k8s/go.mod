@@ -18,8 +18,8 @@ require (
 	github.com/onsi/gomega v1.7.0
 	github.com/pkg/errors v0.8.1
 	github.com/sirupsen/logrus v1.4.2
-	golang.org/x/net v0.0.0-20191004110552-13f9640d40b9
-	google.golang.org/grpc v1.23.1
+	golang.org/x/net v0.0.0-20200114155413-6afb5195e5aa
+	google.golang.org/grpc v1.27.0
 	k8s.io/api v0.17.1
 	k8s.io/apimachinery v0.17.1
 	k8s.io/client-go v11.0.0+incompatible

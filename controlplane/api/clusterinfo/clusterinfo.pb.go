@@ -101,11 +101,11 @@ var fileDescriptor_98328030b80f5485 = []byte{
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ context.Context
-var _ grpc.ClientConn
+var _ grpc.ClientConnInterface
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the grpc package it is being compiled against.
-const _ = grpc.SupportPackageIsVersion4
+const _ = grpc.SupportPackageIsVersion6
 
 // ClusterInfoClient is the client API for ClusterInfo service.
 //
@@ -115,10 +115,10 @@ type ClusterInfoClient interface {
 }
 
 type clusterInfoClient struct {
-	cc *grpc.ClientConn
+	cc grpc.ClientConnInterface
 }
 
-func NewClusterInfoClient(cc *grpc.ClientConn) ClusterInfoClient {
+func NewClusterInfoClient(cc grpc.ClientConnInterface) ClusterInfoClient {
 	return &clusterInfoClient{cc}
 }
 
