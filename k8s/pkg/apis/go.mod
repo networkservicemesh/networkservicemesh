@@ -2,7 +2,10 @@ module github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis
 
 go 1.13
 
-require k8s.io/apimachinery v0.17.1
+require (
+	golang.org/x/net v0.0.0-20200114155413-6afb5195e5aa // indirect
+	k8s.io/apimachinery v0.17.1
+)
 
 replace (
 	k8s.io/api => k8s.io/api v0.17.1
