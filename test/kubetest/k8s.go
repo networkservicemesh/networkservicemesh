@@ -1507,9 +1507,10 @@ func (k8s *K8s) UseIPv6() bool {
 	return k8s.useIPv6
 }
 
+// SetForwardingPlane sets which forwarding plane to be used in testing
 func (k8s *K8s) SetForwardingPlane(plane string) error {
 	if DefaultForwarderVariables(plane) == nil {
-		return errors.Errorf("forwarding plane %v is not supported")
+		return errors.Errorf("forwarding plane %v is not supported", plane)
 	}
 	k8s.forwardingPlane = plane
 	return nil

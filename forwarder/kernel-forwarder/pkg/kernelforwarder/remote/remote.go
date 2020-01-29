@@ -1,3 +1,4 @@
+// Package remote - controlling remote mechanisms interfaces
 package remote
 
 import (
@@ -9,17 +10,18 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/wireguard"
 )
 
+// INCOMING, OUTGOING - packet direction constants
 const (
 	INCOMING = iota
 	OUTGOING = iota
 )
 
-// Connect -
+// Connect - struct with remote mechanism interfaces creation and deletion methods
 type Connect struct {
 	wireguardDevices map[string]wg.Device
 }
 
-// NewConnect -
+// NewConnect - creates instance of remote Connect
 func NewConnect() *Connect {
 	return &Connect{}
 }
@@ -35,7 +37,7 @@ func (c *Connect) CreateInterface(ifaceName string, remoteConnection *connection
 	return errors.Errorf("unknown remote mechanism - %v", remoteConnection.GetMechanism().GetType())
 }
 
-// CreateInterface - deletes interface to remote connection
+// DeleteInterface - deletes interface to remote connection
 func (c *Connect) DeleteInterface(ifaceName string, remoteConnection *connection.Connection) error {
 	switch remoteConnection.GetMechanism().GetType() {
 	case vxlan.MECHANISM:

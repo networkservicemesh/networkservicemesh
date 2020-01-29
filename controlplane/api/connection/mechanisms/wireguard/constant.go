@@ -1,3 +1,4 @@
+// Package wireguard - constants and helper methods for Wireguard remote mechanism
 package wireguard
 
 import (
@@ -5,10 +6,11 @@ import (
 )
 
 const (
-	// Mechanism string
+	// MECHANISM type string
 	MECHANISM = "WIREGUARD"
 
 	// Mechanism parameters
+
 	// SrcIP - source IP
 	SrcIP = common.SrcIP
 	// DstIP - destitiona IP
@@ -21,7 +23,7 @@ const (
 	SrcPublicKey = "src_public_key"
 	// SrcPrivateKey - Source private key
 	SrcPrivateKey = "src_private_key"
-	// SrcPublicKey - Destination public key
+	// DstPublicKey - Destination public key
 	DstPublicKey = "dst_public_key"
 	// DstPrivateKey - Source private key
 	DstPrivateKey = "dst_private_key"
