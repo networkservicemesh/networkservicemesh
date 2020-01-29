@@ -45,19 +45,19 @@ func (k *KernelForwarder) handleRemoteConnection(crossConnect *crossconnect.Cros
 }
 
 // handleConnection process the request to either creating or deleting a connection
-func (k *KernelForwarder) handleConnection(connId string, localConnection *connection.Connection, remoteConnection *connection.Connection, connect bool, direction uint8) (map[string]monitoring.Device, error) {
+func (k *KernelForwarder) handleConnection(connID string, localConnection, remoteConnection *connection.Connection, connect bool, direction uint8) (map[string]monitoring.Device, error) {
 	var devices map[string]monitoring.Device
 	var err error
 	if connect {
 		/* 2. Create a connection */
-		devices, err = k.createRemoteConnection(connId, localConnection, remoteConnection, direction)
+		devices, err = k.createRemoteConnection(connID, localConnection, remoteConnection, direction)
 		if err != nil {
 			logrus.Errorf("remote: failed to create connection - %v", err)
 			devices = nil
 		}
 	} else {
 		/* 3. Delete a connection */
-		devices, err = k.deleteRemoteConnection(connId, localConnection, remoteConnection, direction)
+		devices, err = k.deleteRemoteConnection(connID, localConnection, remoteConnection, direction)
 		if err != nil {
 			logrus.Errorf("remote: failed to delete connection - %v", err)
 			devices = nil
@@ -67,14 +67,14 @@ func (k *KernelForwarder) handleConnection(connId string, localConnection *conne
 }
 
 // createRemoteConnection handler for creating a remote connection
-func (k *KernelForwarder) createRemoteConnection(connId string, localConnection *connection.Connection, remoteConnection *connection.Connection, direction uint8) (map[string]monitoring.Device, error) {
+func (k *KernelForwarder) createRemoteConnection(connID string, localConnection, remoteConnection *connection.Connection, direction uint8) (map[string]monitoring.Device, error) {
 	logrus.Info("remote: creating connection...")
 
 	var xconName string
 	if direction == INCOMING {
-		xconName = "DST-" + connId
+		xconName = "DST-" + connID
 	} else {
-		xconName = "SRC-" + connId
+		xconName = "SRC-" + connID
 	}
 	ifaceName := localConnection.GetMechanism().GetParameters()[common2.InterfaceNameKey]
 	var nsInode string
@@ -99,16 +99,15 @@ func (k *KernelForwarder) createRemoteConnection(connId string, localConnection 
 }
 
 // deleteRemoteConnection handler for deleting a remote connection
-func (k *KernelForwarder) deleteRemoteConnection(connId string, localConnection *connection.Connection, remoteConnection *connection.Connection, direction uint8) (map[string]monitoring.Device, error) {
+func (k *KernelForwarder) deleteRemoteConnection(connID string, localConnection, remoteConnection *connection.Connection, direction uint8) (map[string]monitoring.Device, error) {
 	logrus.Info("remote: deleting connection...")
 
-	nsInode := localConnection.GetMechanism().GetParameters()[common2.NetNsInodeKey]
 	ifaceName := localConnection.GetMechanism().GetParameters()[common2.InterfaceNameKey]
 	var xconName string
 	if direction == INCOMING {
-		xconName = "DST-" + connId
+		xconName = "DST-" + connID
 	} else {
-		xconName = "SRC-" + connId
+		xconName = "SRC-" + connID
 	}
 
 	/* Lock the OS thread so we don't accidentally switch namespaces */
@@ -119,7 +118,7 @@ func (k *KernelForwarder) deleteRemoteConnection(connId string, localConnection 
 	remoteErr := k.remoteConnect.DeleteInterface(ifaceName, remoteConnection)
 
 	if localErr != nil || remoteErr != nil {
-		logrus.Errorf("remote: %v - %v", localErr, remoteErr)
+		return nil, errors.Errorf("remote: %v - %v", localErr, remoteErr)
 	}
 
 	logrus.Infof("remote: deletion completed for device - %s", ifaceName)

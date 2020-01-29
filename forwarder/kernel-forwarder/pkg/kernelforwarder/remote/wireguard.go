@@ -5,6 +5,7 @@ import (
 	"net"
 
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"golang.zx2c4.com/wireguard/device"
 	"golang.zx2c4.com/wireguard/ipc"
 	"golang.zx2c4.com/wireguard/tun"
@@ -55,7 +56,11 @@ func (c *Connect) createWireguardInterface(ifaceName string, remoteConnection *c
 		wgDevice.Close()
 		return errors.Errorf("Wireguard error: %v", err)
 	}
-	defer uapi.Close()
+	defer func() {
+		if uapiErr := uapi.Close(); uapiErr != nil {
+			logrus.Errorf("Wireguard error: failed to close API client %v", uapiErr)
+		}
+	}()
 
 	err = configureWireguardDevice(ifaceName, localPrivateKey, remotePublicKey, dstIP)
 	if err != nil {
@@ -109,12 +114,16 @@ func startWireguardAPI(ifaceName string, wgDevice *device.Device) (net.Listener,
 	return uapi, nil
 }
 
-func configureWireguardDevice(ifaceName string, localPrivateKey wgtypes.Key, remotePublicKey wgtypes.Key, dstIP net.IP) error {
+func configureWireguardDevice(ifaceName string, localPrivateKey, remotePublicKey wgtypes.Key, dstIP net.IP) error {
 	client, err := wgctrl.New()
 	if err != nil {
-		return errors.Errorf("failed to create configuration client:", err)
+		return errors.Errorf("failed to create configuration client: %v", err)
 	}
-	defer client.Close()
+	defer func() {
+		if clientErr := client.Close(); clientErr != nil {
+			logrus.Errorf("Wireguard error (%v): failed to close configuration client: %v", ifaceName, clientErr)
+		}
+	}()
 
 	_, ipnet, err := net.ParseCIDR("0.0.0.0/0")
 	if err != nil {

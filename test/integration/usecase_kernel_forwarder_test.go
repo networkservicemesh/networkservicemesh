@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	v1 "k8s.io/api/core/v1"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/remote"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
@@ -47,7 +46,8 @@ func testKernelNSCAndICMP(t *testing.T, nodesCount int, remoteMechanism string) 
 	defer k8s.Cleanup()
 	defer kubetest.MakeLogsSnapshot(k8s, t)
 
-	k8s.SetForwardingPlane(pods.EnvForwardingPlaneKernel)
+	err = k8s.SetForwardingPlane(pods.EnvForwardingPlaneKernel)
+	g.Expect(err).To(BeNil())
 
 	config := []*pods.NSMgrPodConfig{}
 	for i := 0; i < nodesCount; i++ {
@@ -59,14 +59,13 @@ func testKernelNSCAndICMP(t *testing.T, nodesCount int, remoteMechanism string) 
 		cfg.ForwarderVariables = kubetest.DefaultForwarderVariables(pods.EnvForwardingPlaneKernel)
 		config = append(config, cfg)
 	}
-	nodes_setup, err := kubetest.SetupNodesConfig(k8s, nodesCount, defaultTimeout, config, k8s.GetK8sNamespace())
+	nodesSetup, err := kubetest.SetupNodesConfig(k8s, nodesCount, defaultTimeout, config, k8s.GetK8sNamespace())
 	g.Expect(err).To(BeNil())
 
 	// Run ICMP on latest node
-	_ = kubetest.DeployICMP(k8s, nodes_setup[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
+	_ = kubetest.DeployICMP(k8s, nodesSetup[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
 
-	var nscPodNode *v1.Pod
-	nscPodNode = kubetest.DeployNSC(k8s, nodes_setup[0].Node, "nsc-1", defaultTimeout)
+	nscPodNode := kubetest.DeployNSC(k8s, nodesSetup[0].Node, "nsc-1", defaultTimeout)
 
 	kubetest.CheckNSC(k8s, nscPodNode)
 }
