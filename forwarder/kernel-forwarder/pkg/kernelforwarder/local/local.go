@@ -1,3 +1,4 @@
+// Package local - controlling local mechanisms interfaces
 package local
 
 import (
@@ -10,10 +11,10 @@ const (
 	cVETHMTU = 16000
 )
 
-// Connect -
+// Connect - struct with local mechanism interfaces creation and deletion methods
 type Connect struct{}
 
-// NewConnect -
+// NewConnect - creates instance of local Connect
 func NewConnect() *Connect {
 	return &Connect{}
 }
@@ -27,7 +28,7 @@ func (c *Connect) CreateInterfaces(srcName, dstName string) error {
 	return nil
 }
 
-// CreateInterface - deletes interface to remote connection
+// DeleteInterfaces - deletes interfaces pair
 func (c *Connect) DeleteInterfaces(ifaceName string) error {
 	/* Get a link object for the interface */
 	ifaceLink, err := netlink.LinkByName(ifaceName)

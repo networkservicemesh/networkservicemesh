@@ -29,7 +29,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/utils/fs"
 )
 
-// CreateInterface - creates interface to remote connection
+// SetupInterface - setup interface to namespace
 func SetupInterface(ifaceName string, conn *connection.Connection, isDst bool) (string, error) {
 	netNsInode := conn.GetMechanism().GetParameters()[common.NetNsInodeKey]
 	neighbors := conn.GetContext().GetIpContext().GetIpNeighbors()
@@ -67,7 +67,7 @@ func SetupInterface(ifaceName string, conn *connection.Connection, isDst bool) (
 	return netNsInode, nil
 }
 
-// CreateInterface - deletes interface to remote connection
+// ClearInterfaceSetup - deletes interface setup
 func ClearInterfaceSetup(ifaceName string, conn *connection.Connection) (string, error) {
 	netNsInode := conn.GetMechanism().GetParameters()[common.NetNsInodeKey]
 	ifaceIP := conn.GetContext().GetIpContext().GetSrcIpAddr()

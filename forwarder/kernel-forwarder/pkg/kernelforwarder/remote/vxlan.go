@@ -43,7 +43,7 @@ func (c *Connect) deleteVXLANInterface(ifaceName string) error {
 
 	/* Delete the VXLAN interface - host namespace */
 	if err = netlink.LinkDel(ifaceLink); err != nil {
-		err = errors.Errorf("failed to delete VXLAN interface - %v", err)
+		return errors.Errorf("failed to delete VXLAN interface - %v", err)
 	}
 
 	return nil
