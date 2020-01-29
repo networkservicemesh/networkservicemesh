@@ -1,10 +1,12 @@
 package remote
 
 import (
+	"github.com/pkg/errors"
+	wg "golang.zx2c4.com/wireguard/device"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/wireguard"
-	"github.com/pkg/errors"
 )
 
 const (
@@ -12,24 +14,34 @@ const (
 	OUTGOING = iota
 )
 
-// SetupRemoteInterface - creates interface to remote connection
-func SetupRemoteInterface(ifaceName string, remoteConnection *connection.Connection, direction uint8) error {
+// Connect -
+type Connect struct {
+	wireguardDevices map[string]wg.Device
+}
+
+// NewConnect -
+func NewConnect() *Connect {
+	return &Connect{}
+}
+
+// CreateInterface - creates interface to remote connection
+func (c *Connect) CreateInterface(ifaceName string, remoteConnection *connection.Connection, direction uint8) error {
 	switch remoteConnection.GetMechanism().GetType() {
 	case vxlan.MECHANISM:
-		return createVXLANInterface(ifaceName, remoteConnection, direction)
+		return c.createVXLANInterface(ifaceName, remoteConnection, direction)
 	case wireguard.MECHANISM:
-		return createWireguardInterface(ifaceName, remoteConnection, direction)
+		return c.createWireguardInterface(ifaceName, remoteConnection, direction)
 	}
 	return errors.Errorf("unknown remote mechanism - %v", remoteConnection.GetMechanism().GetType())
 }
 
-// SetupRemoteInterface - deletes interface to remote connection
-func DeleteRemoteInterface(ifaceName string, remoteConnection *connection.Connection) error {
+// CreateInterface - deletes interface to remote connection
+func (c *Connect) DeleteInterface(ifaceName string, remoteConnection *connection.Connection) error {
 	switch remoteConnection.GetMechanism().GetType() {
 	case vxlan.MECHANISM:
-		return deleteVXLANInterface(ifaceName)
+		return c.deleteVXLANInterface(ifaceName)
 	case wireguard.MECHANISM:
-		return deleteWireguardInterface(ifaceName)
+		return c.deleteWireguardInterface(ifaceName)
 	}
 	return errors.Errorf("unknown remote mechanism - %v", remoteConnection.GetMechanism().GetType())
 }

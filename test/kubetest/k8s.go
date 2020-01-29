@@ -487,7 +487,7 @@ func NewK8sWithoutRolesForConfig(g *WithT, prepare bool, kubeconfigPath string) 
 		},
 		g: g,
 	}
-	client.setForwardingPlane()
+	client.setForwardingPlaneFromEnv()
 	client.config = config
 	client.clientset, err = kubernetes.NewForConfig(config)
 	if err != nil {
@@ -1507,8 +1507,16 @@ func (k8s *K8s) UseIPv6() bool {
 	return k8s.useIPv6
 }
 
-// setForwardingPlane sets which forwarding plane to be used in testing
-func (k8s *K8s) setForwardingPlane() {
+func (k8s *K8s) SetForwardingPlane(plane string) error {
+	if DefaultForwarderVariables(plane) == nil {
+		return errors.Errorf("forwarding plane %v is not supported")
+	}
+	k8s.forwardingPlane = plane
+	return nil
+}
+
+// setForwardingPlaneFromEnv sets which forwarding plane to be used in testing
+func (k8s *K8s) setForwardingPlaneFromEnv() {
 	plane, ok := os.LookupEnv(pods.EnvForwardingPlane)
 	if !ok {
 		logrus.Infof("%s not set, using default forwarder - %s", pods.EnvForwardingPlane, pods.EnvForwardingPlaneDefault)

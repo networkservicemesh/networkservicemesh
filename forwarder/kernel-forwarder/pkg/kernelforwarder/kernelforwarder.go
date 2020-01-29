@@ -17,30 +17,37 @@ package kernelforwarder
 
 import (
 	"context"
+
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/wireguard"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/status"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
-
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/wireguard"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/forwarder/api/forwarder"
+	"github.com/networkservicemesh/networkservicemesh/forwarder/kernel-forwarder/pkg/kernelforwarder/local"
+	"github.com/networkservicemesh/networkservicemesh/forwarder/kernel-forwarder/pkg/kernelforwarder/remote"
 	"github.com/networkservicemesh/networkservicemesh/forwarder/kernel-forwarder/pkg/monitoring"
 	"github.com/networkservicemesh/networkservicemesh/forwarder/pkg/common"
 )
 
 // KernelForwarder instance
 type KernelForwarder struct {
-	common     *common.ForwarderConfig
-	monitoring *monitoring.Metrics
+	common        *common.ForwarderConfig
+	monitoring    *monitoring.Metrics
+	localConnect  *local.Connect
+	remoteConnect *remote.Connect
 }
 
 // CreateKernelForwarder creates an instance of the KernelForwarder
 func CreateKernelForwarder() *KernelForwarder {
-	return &KernelForwarder{}
+	return &KernelForwarder{
+		localConnect:  local.NewConnect(),
+		remoteConnect: remote.NewConnect(),
+	}
 }
 
 // Init initializes the Kernel forwarding plane
@@ -59,6 +66,12 @@ func (k *KernelForwarder) CreateForwarderServer(config *common.ForwarderConfig) 
 // Request handler for connections
 func (k *KernelForwarder) Request(ctx context.Context, crossConnect *crossconnect.CrossConnect) (*crossconnect.CrossConnect, error) {
 	logrus.Infof("Request() called with %v", crossConnect)
+
+	if err := crossConnect.IsValid(); err != nil {
+		logrus.Errorf("Close: %v is not valid, reason: %v", crossConnect, err)
+		return crossConnect, err
+	}
+
 	err := k.connectOrDisconnect(crossConnect, true)
 	if err != nil {
 		logrus.Warn("error while handling Request() connection:", err)
@@ -95,10 +108,10 @@ func (k *KernelForwarder) connectOrDisconnect(crossConnect *crossconnect.CrossCo
 
 	/* 1. Handle local connection */
 	if crossConnect.GetSource().GetMechanism().GetType() == kernel.MECHANISM && crossConnect.GetDestination().GetMechanism().GetType() == kernel.MECHANISM {
-		devices, err = handleLocalConnection(crossConnect, connect)
+		devices, err = k.handleLocalConnection(crossConnect, connect)
 	} else {
 		/* 2. Handle remote connection */
-		devices, err = handleRemoteConnection(crossConnect, connect)
+		devices, err = k.handleRemoteConnection(crossConnect, connect)
 	}
 	if devices != nil && err == nil {
 		if connect {

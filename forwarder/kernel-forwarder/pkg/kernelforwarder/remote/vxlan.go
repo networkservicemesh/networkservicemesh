@@ -1,16 +1,18 @@
 package remote
 
 import (
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
-	"github.com/pkg/errors"
-	"github.com/vishvananda/netlink"
 	"net"
 	"strconv"
+
+	"github.com/pkg/errors"
+	"github.com/vishvananda/netlink"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
 )
 
 // CreateVXLANInterface creates a VXLAN interface
-func createVXLANInterface(ifaceName string, remoteConnection *connection.Connection, direction uint8) error {
+func (c *Connect) createVXLANInterface(ifaceName string, remoteConnection *connection.Connection, direction uint8) error {
 	/* Create interface - host namespace */
 	srcIP := net.ParseIP(remoteConnection.GetMechanism().GetParameters()[vxlan.SrcIP])
 	dstIP := net.ParseIP(remoteConnection.GetMechanism().GetParameters()[vxlan.DstIP])
@@ -32,7 +34,7 @@ func createVXLANInterface(ifaceName string, remoteConnection *connection.Connect
 	return nil
 }
 
-func deleteVXLANInterface(ifaceName string) error {
+func (c *Connect) deleteVXLANInterface(ifaceName string) error {
 	/* Get a link object for interface */
 	ifaceLink, err := netlink.LinkByName(ifaceName)
 	if err != nil {

@@ -2,14 +2,13 @@ package remote
 
 import (
 	"fmt"
+	"net"
+
+	"github.com/pkg/errors"
 	"golang.zx2c4.com/wireguard/device"
 	"golang.zx2c4.com/wireguard/ipc"
 	"golang.zx2c4.com/wireguard/tun"
 	"golang.zx2c4.com/wireguard/wgctrl"
-	"net"
-
-	"github.com/pkg/errors"
-	"github.com/vishvananda/netlink"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
@@ -21,7 +20,7 @@ const (
 )
 
 // CreateVXLANInterface creates a VXLAN interface
-func createWireguardInterface(ifaceName string, remoteConnection *connection.Connection, direction uint8) error {
+func (c *Connect) createWireguardInterface(ifaceName string, remoteConnection *connection.Connection, direction uint8) error {
 	/* Create interface - host namespace */
 	var localPrivateKey wgtypes.Key
 	var remotePublicKey wgtypes.Key
@@ -45,44 +44,45 @@ func createWireguardInterface(ifaceName string, remoteConnection *connection.Con
 		dstIP = net.ParseIP(remoteConnection.GetMechanism().GetParameters()[wireguard.DstIP])
 	}
 
-	wgDevice, tunIface, err := createWireguardDevice(ifaceName)
+	wgDevice, err := createWireguardDevice(ifaceName)
 	if err != nil {
 		return errors.Errorf("Wireguard error: %v", err)
 	}
-	defer tunIface.Close()
-	defer wgDevice.Close()
+	//defer wgDevice.Close()
 
 	uapi, err := startWireguardAPI(ifaceName, wgDevice)
+	if err != nil {
+		wgDevice.Close()
+		return errors.Errorf("Wireguard error: %v", err)
+	}
 	defer uapi.Close()
 
-	configureWireguardDevice(ifaceName, localPrivateKey, remotePublicKey, dstIP)
-
-	return nil
-}
-
-func deleteWireguardInterface(ifaceName string) error {
-	/* Get a link object for interface */
-	ifaceLink, err := netlink.LinkByName(ifaceName)
+	err = configureWireguardDevice(ifaceName, localPrivateKey, remotePublicKey, dstIP)
 	if err != nil {
-		return errors.Errorf("failed to get link for %q - %v", ifaceName, err)
-	}
-
-	/* Delete the VXLAN interface - host namespace */
-	if err = netlink.LinkDel(ifaceLink); err != nil {
-		err = errors.Errorf("failed to delete VXLAN interface - %v", err)
+		wgDevice.Close()
+		return errors.Errorf("Wireguard error: %v", err)
 	}
 
 	return nil
 }
 
-func createWireguardDevice(ifaceName string) (*device.Device, tun.Device, error) {
+func (c *Connect) deleteWireguardInterface(ifaceName string) error {
+	if wgDevice, ok := c.wireguardDevices[ifaceName]; ok {
+		wgDevice.Close()
+		delete(c.wireguardDevices, ifaceName)
+	}
+
+	return nil
+}
+
+func createWireguardDevice(ifaceName string) (*device.Device, error) {
 	tunIface, err := tun.CreateTUN(ifaceName, device.DefaultMTU)
 	if err != nil {
-		return nil, nil, errors.Errorf("failed to create tun: %v", err)
+		return nil, errors.Errorf("failed to create tun: %v", err)
 	}
 
-	logger := device.NewLogger(device.LogLevelError, fmt.Sprintf("Wireguard Error (%s): ", ifaceName))
-	return device.NewDevice(tunIface, logger), tunIface, nil
+	logger := device.NewLogger(device.LogLevelDebug, fmt.Sprintf("Wireguard Error (%s): ", ifaceName))
+	return device.NewDevice(tunIface, logger), nil
 }
 
 func startWireguardAPI(ifaceName string, wgDevice *device.Device) (net.Listener, error) {

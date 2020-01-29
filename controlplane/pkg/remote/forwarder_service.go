@@ -17,13 +17,13 @@ package remote
 import (
 	"context"
 	"fmt"
-	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 	"strconv"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/srv6"

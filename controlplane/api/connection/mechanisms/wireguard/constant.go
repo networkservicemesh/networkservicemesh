@@ -1,7 +1,7 @@
 package wireguard
 
 import (
-"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
 )
 
 const (
@@ -25,5 +25,4 @@ const (
 	DstPublicKey = "dst_public_key"
 	// DstPrivateKey - Source private key
 	DstPrivateKey = "dst_private_key"
-
 )
