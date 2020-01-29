@@ -366,6 +366,23 @@ func (ac *AWSCluster) authorizeSecurityGroupIngress(ec2client *ec2.EC2, groupID 
 					},
 				},
 			},
+			{
+				IpProtocol: aws.String("udp"),
+				ToPort:     aws.Int64(51820),
+				FromPort:   aws.Int64(51820),
+				IpRanges: []*ec2.IpRange{
+					{
+						CidrIp:      aws.String("0.0.0.0/0"),
+						Description: aws.String("Wireguard ip4 access"),
+					},
+				},
+				Ipv6Ranges: []*ec2.Ipv6Range{
+					{
+						CidrIpv6:    aws.String("::/0"),
+						Description: aws.String("Wireguard ip6 access"),
+					},
+				},
+			},
 		},
 	})
 	ac.checkError(err)
