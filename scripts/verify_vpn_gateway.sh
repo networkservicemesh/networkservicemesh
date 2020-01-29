@@ -78,7 +78,7 @@ for nsc in $NSCs; do
         echo "+++++++==ERROR==ERROR=============================================================================+++++"
     fi
     
-    echo "All check OK. NSC ${nsc} behaving as expected."
+    (( EXIT_VAL == 0 )) && echo "All check OK. NSC ${nsc} behaving as expected."
 
     unset PingSuccess
     unset Wget80Success
