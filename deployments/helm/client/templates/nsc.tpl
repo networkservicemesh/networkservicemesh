@@ -5,13 +5,23 @@ spec:
   selector:
     matchLabels:
       networkservicemesh.io/app: "icmp-responder-nsc"
-  replicas: 4
+  replicas: 2
   template:
     metadata:
       labels:
         networkservicemesh.io/app: "icmp-responder-nsc"
     spec:
       serviceAccount: nsc-acc
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: networkservicemesh.io/app
+                    operator: In
+                    values:
+                      - icmp-responder-nsc
+              topologyKey: "kubernetes.io/hostname"
       containers:
         - name: alpine-img
           image: alpine:latest

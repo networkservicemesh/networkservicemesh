@@ -6,7 +6,7 @@ spec:
     matchLabels:
       networkservicemesh.io/app: "icmp-responder"
       networkservicemesh.io/impl: "vppagent-icmp-responder"
-  replicas: 2
+  replicas: 1
   template:
     metadata:
       labels:
@@ -14,20 +14,6 @@ spec:
         networkservicemesh.io/impl: "vppagent-icmp-responder"
     spec:
       serviceAccount: nse-acc
-      affinity:
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            - labelSelector:
-                matchExpressions:
-                  - key: networkservicemesh.io/app
-                    operator: In
-                    values:
-                      - icmp-responder
-                  - key: networkservicemesh.io/impl
-                    operator: In
-                    values:
-                      - vppagent-icmp-responder
-              topologyKey: "kubernetes.io/hostname"
       containers:
         - name: icmp-responder-nse
           image: {{ .Values.registry }}/{{ .Values.org }}/vpp-test-common:{{ .Values.tag }}
