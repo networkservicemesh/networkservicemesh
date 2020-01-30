@@ -1,0 +1,17 @@
+---
+executions:
+  - name: "Benchmark tests"
+    env:
+      - STORE_POD_LOGS_IN_FILES=true
+    source:
+      tags:
+        - bench
+    root: ./test/integration
+    timeout: 600
+    cluster-count: 1
+    cluster-selector:
+      - packet
+    cluster-env:
+      - KUBECONFIG
+    on-fail: |
+      make k8s-delete-nsm-namespaces

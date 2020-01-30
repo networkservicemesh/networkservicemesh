@@ -21,7 +21,7 @@ resource "packet_device" "master1" {
   facilities       = ["sjc1", "ewr1", "ams1"]
   plan             = "t1.small.x86"
   operating_system = "ubuntu_16_04"
-  billing_cycle    = "hourly"
+  billing-cycle    = "hourly"
   project_id       = "${var.project_id}"
   depends_on       = ["packet_ssh_key.key"]
 }
@@ -31,7 +31,7 @@ resource "packet_device" "worker1_1" {
   facilities       = ["sjc1", "ewr1", "ams1"]
   plan             = "t1.small.x86"
   operating_system = "ubuntu_16_04"
-  billing_cycle    = "hourly"
+  billing-cycle    = "hourly"
   project_id       = "${var.project_id}"
   depends_on       = ["packet_ssh_key.key"]
 }
@@ -49,7 +49,7 @@ resource "packet_device" "master2" {
   facilities       = ["sjc1", "ewr1", "ams1"]
   plan             = "t1.small.x86"
   operating_system = "ubuntu_16_04"
-  billing_cycle    = "hourly"
+  billing-cycle    = "hourly"
   project_id       = "${var.project_id}"
   depends_on       = ["packet_ssh_key.key"]
 }
@@ -59,7 +59,7 @@ resource "packet_device" "worker2_1" {
   facilities       = ["sjc1", "ewr1", "ams1"]
   plan             = "t1.small.x86"
   operating_system = "ubuntu_16_04"
-  billing_cycle    = "hourly"
+  billing-cycle    = "hourly"
   project_id       = "${var.project_id}"
   depends_on       = ["packet_ssh_key.key"]
 }
