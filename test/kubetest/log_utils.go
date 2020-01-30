@@ -12,6 +12,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/networkservicemesh/networkservicemesh/utils"
+
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 
@@ -172,7 +174,8 @@ func savePodContainerLog(k8s *K8s, pod *v1.Pod, c *v1.Container, t *testing.T) {
 }
 
 func logsDir() string {
-	return StorePodLogsDir.GetStringOrDefault(DefaultLogDir)
+	defaultArtifactsDir := utils.EnvVar("ARTIFACTS_DIR")
+	return StorePodLogsDir.GetStringOrDefault(defaultArtifactsDir.GetStringOrDefault(DefaultLogDir))
 }
 
 func shouldStoreLogsInFiles() bool {

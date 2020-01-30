@@ -1,0 +1,17 @@
+---
+executions:
+  - name: "Single cluster tests"
+    env:
+      - STORE_POD_LOGS_IN_FILES=true
+    source:
+      tags:
+        - basic
+        - recover
+        - usecase
+    root: ./test/integration
+    timeout: 300
+    cluster-count: 1
+    cluster-env:
+      - KUBECONFIG
+    on-fail: |
+      make k8s-delete-nsm-namespaces

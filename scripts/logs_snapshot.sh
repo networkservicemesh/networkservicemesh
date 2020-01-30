@@ -11,7 +11,7 @@ pathToSave="logs"
 
 if [[ ${STORE_POD_LOGS_IN_FILES} == true ]]; then
   if [[ ${STORE_POD_LOGS_DIR} ]]; then
-    pathToSave=${STORE_POD_LOGS_DIR}
+    pathToSave=${ARTIFACTS_DIR}
   fi
   mkdir -p "${tmp}"/pod
   echo "Created folder ${tmp}/pod"
