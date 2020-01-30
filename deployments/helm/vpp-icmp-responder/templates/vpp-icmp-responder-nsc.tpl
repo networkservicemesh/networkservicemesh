@@ -15,6 +15,16 @@ spec:
     spec:
       hostPID: true
       serviceAccount: nsc-acc
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: networkservicemesh.io/app
+                    operator: In
+                    values:
+                      - vppagent-nsc
+              topologyKey: "kubernetes.io/hostname"
       containers:
         - name: vppagent-nsc
           image: {{ .Values.registry }}/{{ .Values.org }}/vpp-test-common:{{ .Values.tag }}
