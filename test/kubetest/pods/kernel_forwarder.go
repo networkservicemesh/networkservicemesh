@@ -36,7 +36,8 @@ func createKernelForwarderPod(name string, node *v1.Node, liveness, readiness *v
 			Kind: "Deployment",
 		},
 		Spec: v1.PodSpec{
-			HostPID: true,
+			ServiceAccountName: ForwardPlaneServiceAccount,
+			HostPID:            true,
 			Volumes: []v1.Volume{
 				{
 					Name: "workspace",
@@ -47,6 +48,7 @@ func createKernelForwarderPod(name string, node *v1.Node, liveness, readiness *v
 						},
 					},
 				},
+				spireVolume(),
 			},
 			Containers: []v1.Container{
 				containerMod(&v1.Container{
@@ -59,6 +61,7 @@ func createKernelForwarderPod(name string, node *v1.Node, liveness, readiness *v
 							MountPath:        "/var/lib/networkservicemesh/",
 							MountPropagation: &mode,
 						},
+						spireVolumeMount(),
 					},
 					Env: []v1.EnvVar{
 						{
@@ -85,6 +88,9 @@ func createKernelForwarderPod(name string, node *v1.Node, liveness, readiness *v
 			TerminationGracePeriodSeconds: &ZeroGraceTimeout,
 		},
 	}
+
+	variables = setInsecureEnvIfExist(variables)
+
 	if len(variables) > 0 {
 		for k, v := range variables {
 			pod.Spec.Containers[0].Env = append(pod.Spec.Containers[0].Env, v1.EnvVar{
