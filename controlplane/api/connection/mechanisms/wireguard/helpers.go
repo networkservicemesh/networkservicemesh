@@ -17,6 +17,8 @@
 package wireguard
 
 import (
+	"strconv"
+
 	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
@@ -31,8 +33,16 @@ type Mechanism interface {
 	DstIP() (string, error)
 	// SrcPublicKey - source public key
 	SrcPublicKey() (string, error)
-	// DstPublicKey - source public key
+	// DstPublicKey - destination public key
 	DstPublicKey() (string, error)
+	// SrcPrivateKey - source private key
+	SrcPrivateKey() (string, error)
+	// dstPrivateKey - destination private key
+	DstPrivateKey() (string, error)
+	// SrcPort - Source interface listening port
+	SrcPort() (int, error)
+	// SrcPort - Destination interface listening port
+	DstPort() (int, error)
 }
 
 type mechanism struct {
@@ -57,8 +67,7 @@ func (m *mechanism) DstIP() (string, error) {
 	return common.GetDstIP(m.Mechanism)
 }
 
-// SrcPublicKey returns the SrcPublicKey parameter of the Mechanism
-func (m *mechanism) SrcPublicKey() (string, error) {
+func (m *mechanism) stringValue(parameter string) (string, error) {
 	if m == nil {
 		return "", errors.New("mechanism cannot be nil")
 	}
@@ -67,28 +76,66 @@ func (m *mechanism) SrcPublicKey() (string, error) {
 		return "", errors.Errorf("mechanism.Parameters cannot be nil: %v", m)
 	}
 
-	srcPublicKey, ok := m.Parameters[SrcPublicKey]
+	value, ok := m.Parameters[parameter]
 	if !ok {
-		return "", errors.Errorf("mechanism.Type %s requires mechanism.Parameters[%s]", m.GetType(), SrcPublicKey)
+		return "", errors.Errorf("mechanism.Type %s requires mechanism.Parameters[%s]", m.GetType(), parameter)
 	}
 
-	return srcPublicKey, nil
+	return value, nil
+}
+
+// SrcPublicKey returns the SrcPublicKey parameter of the Mechanism
+func (m *mechanism) SrcPublicKey() (string, error) {
+	return m.stringValue(SrcPublicKey)
 }
 
 // DstPublicKey returns the DstPublicKey parameter of the Mechanism
 func (m *mechanism) DstPublicKey() (string, error) {
-	if m == nil {
-		return "", errors.New("mechanism cannot be nil")
+	return m.stringValue(DstPublicKey)
+}
+
+// SrcPrivateKey returns the SrcPrivateKey parameter of the Mechanism
+func (m *mechanism) SrcPrivateKey() (string, error) {
+	return m.stringValue(SrcPrivateKey)
+}
+
+// DstPrivateKey returns the DstPrivateKey parameter of the Mechanism
+func (m *mechanism) DstPrivateKey() (string, error) {
+	return m.stringValue(DstPrivateKey)
+}
+
+func (m *mechanism) SrcPort() (int, error) {
+	srcPortStr, err := m.stringValue(SrcPort)
+	if err != nil {
+		return 0, err
 	}
 
-	if m.GetParameters() == nil {
-		return "", errors.Errorf("mechanism.Parameters cannot be nil: %v", m)
+	srcPort, err := strconv.ParseInt(srcPortStr, 10, 64)
+	if err != nil {
+		return 0, errors.Wrapf(err, "cannot parse mechanism.Parameters[%s]=%v value", SrcPort, srcPortStr)
 	}
 
-	dstPublicKey, ok := m.Parameters[DstPublicKey]
-	if !ok {
-		return "", errors.Errorf("mechanism.Type %s requires mechanism.Parameters[%s]", m.GetType(), DstPublicKey)
+	return int(srcPort), nil
+}
+
+func (m *mechanism) DstPort() (int, error) {
+	dstPortStr, err := m.stringValue(DstPort)
+	if err != nil {
+		return 0, err
 	}
 
-	return dstPublicKey, nil
+	dstPort, err := strconv.ParseInt(dstPortStr, 10, 64)
+	if err != nil {
+		return 0, errors.Wrapf(err, "cannot parse mechanism.Parameters[%s]=%v value", DstPort, dstPortStr)
+	}
+
+	return int(dstPort), nil
+}
+
+func AssignPort(connId string) string {
+	id, err := strconv.ParseUint(connId, 16, 64)
+	if err != nil {
+		id = 0
+	}
+	return strconv.FormatUint(BasePort+id, 10)
 }

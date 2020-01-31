@@ -25,6 +25,9 @@ const (
 	// MECHANISM type string
 	MECHANISM = "WIREGUARD"
 
+	// Wireguard base port
+	BasePort = 51820
+
 	// Mechanism parameters
 
 	// SrcIP - source IP
@@ -35,6 +38,10 @@ const (
 	SrcOriginalIP = "orig_src_ip"
 	// DstExternalIP - external destination ip
 	DstExternalIP = "ext_src_ip"
+	// SrcPort - Source interface listening port
+	SrcPort = "src_port"
+	// DstPort - Destination interface listening port
+	DstPort = "dst_port"
 	// SrcPublicKey - Source public key
 	SrcPublicKey = "src_public_key"
 	// SrcPrivateKey - Source private key

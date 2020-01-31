@@ -108,19 +108,19 @@ func (cce *forwarderService) selectRemoteMechanism(request *networkservice.Netwo
 		return nil, errors.Errorf("failed to select mechanism, no matched mechanisms found")
 	}
 
+	connectionID := request.GetConnection().GetId()
+	parameters := mechanism.GetParameters()
+	dpParameters := dpMechanism.GetParameters()
+
 	switch mechanism.GetType() {
 	case vxlan.MECHANISM:
-		cce.configureVXLANParameters(mechanism.GetParameters(), dpMechanism.GetParameters())
+		cce.configureVXLANParameters(parameters, dpParameters)
 
 	case srv6.MECHANISM:
-		connectionID := request.GetConnection().GetId()
-		parameters := mechanism.GetParameters()
-		dpParameters := dpMechanism.GetParameters()
-
 		cce.configureSRv6Parameters(connectionID, parameters, dpParameters)
 
 	case wireguard.MECHANISM:
-		cce.configureWireguardParameters(mechanism.GetParameters(), dpMechanism.GetParameters())
+		cce.configureWireguardParameters(connectionID, parameters, dpParameters)
 	}
 
 	logrus.Infof("NSM:(5.1) Remote mechanism selected %v", mechanism)
@@ -161,7 +161,7 @@ func (cce *forwarderService) configureSRv6Parameters(connectionID string, parame
 	parameters[srv6.DstLocalSID] = cce.serviceRegistry.SIDAllocator().SID(connectionID)
 }
 
-func (cce *forwarderService) configureWireguardParameters(parameters, dpParameters map[string]string) {
+func (cce *forwarderService) configureWireguardParameters(connectionID string, parameters, dpParameters map[string]string) {
 	parameters[wireguard.DstIP] = dpParameters[wireguard.SrcIP]
 
 	key, err := wgtypes.GeneratePrivateKey()
@@ -171,6 +171,8 @@ func (cce *forwarderService) configureWireguardParameters(parameters, dpParamete
 
 	parameters[wireguard.DstPrivateKey] = key.String()
 	parameters[wireguard.DstPublicKey] = key.PublicKey().String()
+
+	parameters[wireguard.DstPort] = wireguard.AssignPort(connectionID)
 }
 
 func (cce *forwarderService) updateMechanism(request *networkservice.NetworkServiceRequest, dp *model.Forwarder) error {

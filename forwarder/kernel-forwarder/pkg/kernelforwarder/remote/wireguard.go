@@ -32,33 +32,59 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/wireguard"
 )
 
-const (
-	wireguardPort = 51820
-)
-
 // CreateVXLANInterface creates a VXLAN interface
 func (c *Connect) createWireguardInterface(ifaceName string, remoteConnection *connection.Connection, direction uint8) error {
+	mechanism := wireguard.ToMechanism(remoteConnection.GetMechanism())
+
 	/* Create interface - host namespace */
-	var localPrivateKey wgtypes.Key
-	var remotePublicKey wgtypes.Key
-	var dstIP net.IP
+	var localPrivateKeyStr string
+	var remotePublicKeyStr string
+	var localPort int
+	var remotePort int
+	var dstIPStr string
 	var err error
 	if direction == INCOMING {
-		if localPrivateKey, err = wgtypes.ParseKey(remoteConnection.GetMechanism().GetParameters()[wireguard.DstPrivateKey]); err != nil {
-			return errors.Errorf("failed to parse local private key: %v", err)
+		if localPrivateKeyStr, err = mechanism.DstPrivateKey(); err != nil {
+			return err
 		}
-		if remotePublicKey, err = wgtypes.ParseKey(remoteConnection.GetMechanism().GetParameters()[wireguard.SrcPublicKey]); err != nil {
-			return errors.Errorf("failed to parse local private key: %v", err)
+		if remotePublicKeyStr, err = mechanism.SrcPublicKey(); err != nil {
+			return err
 		}
-		dstIP = net.ParseIP(remoteConnection.GetMechanism().GetParameters()[wireguard.SrcIP])
+		if dstIPStr, err = mechanism.SrcIP(); err != nil {
+			return err
+		}
+		if localPort, err = mechanism.DstPort(); err != nil {
+			return err
+		}
+		if remotePort, err = mechanism.SrcPort(); err != nil {
+			return err
+		}
 	} else {
-		if localPrivateKey, err = wgtypes.ParseKey(remoteConnection.GetMechanism().GetParameters()[wireguard.SrcPrivateKey]); err != nil {
-			return errors.Errorf("failed to parse local private key: %v", err)
+		if localPrivateKeyStr, err = mechanism.SrcPrivateKey(); err != nil {
+			return err
 		}
-		if remotePublicKey, err = wgtypes.ParseKey(remoteConnection.GetMechanism().GetParameters()[wireguard.DstPublicKey]); err != nil {
-			return errors.Errorf("failed to parse local private key: %v", err)
+		if remotePublicKeyStr, err = mechanism.DstPublicKey(); err != nil {
+			return err
 		}
-		dstIP = net.ParseIP(remoteConnection.GetMechanism().GetParameters()[wireguard.DstIP])
+		if dstIPStr, err = mechanism.DstIP(); err != nil {
+			return err
+		}
+		if localPort, err = mechanism.SrcPort(); err != nil {
+			return err
+		}
+		if remotePort, err = mechanism.DstPort(); err != nil {
+			return err
+		}
+	}
+
+	dstIP := net.ParseIP(dstIPStr)
+	localPrivateKey, err := wgtypes.ParseKey(localPrivateKeyStr)
+	if err != nil {
+		return errors.Errorf("failed to parse local private key: %v", err)
+	}
+	remotePublicKey, err := wgtypes.ParseKey(remotePublicKeyStr)
+	if err != nil {
+		return errors.Errorf("failed to parse remote public key: %v", err)
 	}
 
 	wgDevice, err := createWireguardDevice(ifaceName)
@@ -78,7 +104,7 @@ func (c *Connect) createWireguardInterface(ifaceName string, remoteConnection *c
 		}
 	}()
 
-	err = configureWireguardDevice(ifaceName, localPrivateKey, remotePublicKey, dstIP)
+	err = configureWireguardDevice(ifaceName, localPrivateKey, remotePublicKey, localPort, remotePort, dstIP)
 	if err != nil {
 		wgDevice.Close()
 		return errors.Errorf("Wireguard error: %v", err)
@@ -130,7 +156,7 @@ func startWireguardAPI(ifaceName string, wgDevice *device.Device) (net.Listener,
 	return uapi, nil
 }
 
-func configureWireguardDevice(ifaceName string, localPrivateKey, remotePublicKey wgtypes.Key, dstIP net.IP) error {
+func configureWireguardDevice(ifaceName string, localPrivateKey, remotePublicKey wgtypes.Key, localPort, remotePort int, dstIP net.IP) error {
 	client, err := wgctrl.New()
 	if err != nil {
 		return errors.Errorf("failed to create configuration client: %v", err)
@@ -146,7 +172,7 @@ func configureWireguardDevice(ifaceName string, localPrivateKey, remotePublicKey
 		return errors.Errorf("failed to configure device: %v", err)
 	}
 	err = client.ConfigureDevice(ifaceName, wgtypes.Config{
-		ListenPort: intPtr(wireguardPort),
+		ListenPort: intPtr(localPort),
 		PrivateKey: &localPrivateKey,
 		Peers: []wgtypes.PeerConfig{
 			{
@@ -156,7 +182,7 @@ func configureWireguardDevice(ifaceName string, localPrivateKey, remotePublicKey
 				},
 				Endpoint: &net.UDPAddr{
 					IP:   dstIP,
-					Port: wireguardPort,
+					Port: remotePort,
 				},
 			},
 		},
