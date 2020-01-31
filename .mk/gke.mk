@@ -27,7 +27,7 @@ gke-start: gcloud-check
 		gcloud compute firewall-rules create allow-proxy-nsm --action ALLOW --rules tcp:80 --project=${GKE_PROJECT_ID}; \
 		gcloud compute firewall-rules create allow-nsm --action ALLOW --rules tcp:5000-5100 --project=${GKE_PROJECT_ID}; \
 		gcloud compute firewall-rules create allow-vxlan --action ALLOW --rules udp:4789 --project=${GKE_PROJECT_ID}; \
-		gcloud compute firewall-rules create allow-wireguard --action ALLOW --rules udp:51820 --project=${GKE_PROJECT_ID}; \
+		gcloud compute firewall-rules create allow-wireguard --action ALLOW --rules udp:51820-52000 --project=${GKE_PROJECT_ID}; \
 		kubectl create clusterrolebinding cluster-admin-binding \
 			--clusterrole cluster-admin \
   			--user $$(gcloud config get-value account); \
