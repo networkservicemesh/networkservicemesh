@@ -83,7 +83,10 @@ func testKernelNSCAndICMP(t *testing.T, nodesCount int, remoteMechanism string) 
 	// Run ICMP on latest node
 	_ = kubetest.DeployICMP(k8s, nodesSetup[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
 
+	// Check mechanism parameters selection on two clients
 	nscPodNode := kubetest.DeployNSC(k8s, nodesSetup[0].Node, "nsc-1", defaultTimeout)
+	nsc2PodNode := kubetest.DeployNSC(k8s, nodesSetup[0].Node, "nsc-2", defaultTimeout)
 
 	kubetest.CheckNSC(k8s, nscPodNode)
+	kubetest.CheckNSC(k8s, nsc2PodNode)
 }

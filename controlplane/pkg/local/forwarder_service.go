@@ -140,7 +140,7 @@ func (cce *forwarderService) prepareRemoteMechanisms(request *networkservice.Net
 		case srv6.MECHANISM:
 			cce.prepareSRv6Mechanism(m, request)
 		case wireguard.MECHANISM:
-			cce.prepareWireguardMechanism(m)
+			cce.prepareWireguardMechanism(m, request)
 		}
 		mechanisms = append(mechanisms, m)
 	}
@@ -159,7 +159,7 @@ func (cce *forwarderService) prepareSRv6Mechanism(m *connection.Mechanism, reque
 	return m
 }
 
-func (cce *forwarderService) prepareWireguardMechanism(m *connection.Mechanism) *connection.Mechanism {
+func (cce *forwarderService) prepareWireguardMechanism(m *connection.Mechanism, request *networkservice.NetworkServiceRequest) *connection.Mechanism {
 	parameters := m.GetParameters()
 	if parameters == nil {
 		parameters = map[string]string{}
@@ -172,6 +172,8 @@ func (cce *forwarderService) prepareWireguardMechanism(m *connection.Mechanism) 
 
 	parameters[wireguard.SrcPrivateKey] = key.String()
 	parameters[wireguard.SrcPublicKey] = key.PublicKey().String()
+
+	parameters[wireguard.SrcPort] = wireguard.AssignPort(request.Connection.Id)
 
 	return m
 }
