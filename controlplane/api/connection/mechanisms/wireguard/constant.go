@@ -25,7 +25,7 @@ const (
 	// MECHANISM type string
 	MECHANISM = "WIREGUARD"
 
-	// Wireguard base port
+	// BasePort - Wireguard base port
 	BasePort = 51820
 
 	// Mechanism parameters
