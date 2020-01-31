@@ -3,6 +3,10 @@ package common
 const (
 	SrcIP = "src_ip"
 	DstIP = "dst_ip"
+	// SrcOriginalIP - original src IP
+	SrcOriginalIP = "orig_src_ip"
+	// DstExternalIP - external destination ip
+	DstExternalIP = "ext_src_ip"
 
 	// NetNsInodeKey - netns inode mechanism property key
 	NetNsInodeKey = "netnsInode"

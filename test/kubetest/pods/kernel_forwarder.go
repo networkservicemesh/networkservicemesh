@@ -38,6 +38,7 @@ func createKernelForwarderPod(name string, node *v1.Node, liveness, readiness *v
 		Spec: v1.PodSpec{
 			ServiceAccountName: ForwardPlaneServiceAccount,
 			HostPID:            true,
+			HostNetwork:        true,
 			Volumes: []v1.Volume{
 				{
 					Name: "workspace",

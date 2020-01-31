@@ -6,23 +6,20 @@ import (
 	"strings"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
-
-	"github.com/pkg/errors"
-
-	"github.com/networkservicemesh/networkservicemesh/utils/interdomain"
-
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/clusterinfo"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	common2 "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+	"github.com/networkservicemesh/networkservicemesh/utils/interdomain"
 )
 
 // Default values and environment variables of proxy connection
@@ -99,20 +96,20 @@ func (srv *proxyNetworkServiceServer) Request(ctx context.Context, request *netw
 	if err != nil {
 		return response, err
 	}
-	srv.updatereResponse(ctx, remoteClusterInfoClient, response, localSrcIP, destNsmName, originalNetworkService)
+	srv.updateResponse(ctx, remoteClusterInfoClient, response, localSrcIP, destNsmName, originalNetworkService)
 	logrus.Infof("ProxyNSMD: Received response from remote network service: %v", response)
 	return response, err
 }
 
-func (srv *proxyNetworkServiceServer) updatereResponse(ctx context.Context, remoteClusterInfoClient clusterinfo.ClusterInfoClient, response *connection.Connection, localSrcIP, destNsmName, originalNetworkService string) {
+func (srv *proxyNetworkServiceServer) updateResponse(ctx context.Context, remoteClusterInfoClient clusterinfo.ClusterInfoClient, response *connection.Connection, localSrcIP, destNsmName, originalNetworkService string) {
 	remoteNodeIPConfiguration, err := remoteClusterInfoClient.GetNodeIPConfiguration(ctx, &clusterinfo.NodeIPConfiguration{InternalIP: response.Mechanism.Parameters["dst_ip"]})
 	if err == nil {
 		if len(remoteNodeIPConfiguration.ExternalIP) > 0 {
-			response.Mechanism.Parameters[vxlan.DstIP] = remoteNodeIPConfiguration.ExternalIP
+			response.Mechanism.Parameters[common2.DstIP] = remoteNodeIPConfiguration.ExternalIP
 		}
 	}
 
-	response.Mechanism.Parameters[vxlan.SrcIP] = localSrcIP
+	response.Mechanism.Parameters[common2.SrcIP] = localSrcIP
 	response.Path = common.AppendStrings2Path(response.GetPath(), destNsmName)
 	response.NetworkService = originalNetworkService
 }
@@ -125,14 +122,14 @@ func (srv *proxyNetworkServiceServer) newManager(dNsmName, dNsmAddress string) *
 }
 
 func (srv *proxyNetworkServiceServer) updateParameters(ctx context.Context, request *networkservice.NetworkServiceRequest, dNsmAddress string, localClusterInfoClient clusterinfo.ClusterInfoClient) (string, string) {
-	localSrcIP := request.MechanismPreferences[0].Parameters[vxlan.SrcIP]
-	request.MechanismPreferences[0].Parameters[vxlan.DstExternalIP] = dNsmAddress[:strings.Index(dNsmAddress, ":")]
+	localSrcIP := request.MechanismPreferences[0].Parameters[common2.SrcIP]
+	request.MechanismPreferences[0].Parameters[common2.DstExternalIP] = dNsmAddress[:strings.Index(dNsmAddress, ":")]
 
 	localNodeIPConfiguration, err := localClusterInfoClient.GetNodeIPConfiguration(ctx, &clusterinfo.NodeIPConfiguration{InternalIP: localSrcIP})
 	if err == nil {
 		if len(localNodeIPConfiguration.ExternalIP) > 0 {
-			request.MechanismPreferences[0].Parameters[vxlan.SrcIP] = localNodeIPConfiguration.ExternalIP
-			request.MechanismPreferences[0].Parameters[vxlan.SrcOriginalIP] = localSrcIP
+			request.MechanismPreferences[0].Parameters[common2.SrcIP] = localNodeIPConfiguration.ExternalIP
+			request.MechanismPreferences[0].Parameters[common2.SrcOriginalIP] = localSrcIP
 		}
 	}
 
