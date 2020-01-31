@@ -104,6 +104,7 @@ func (m *mechanism) DstPrivateKey() (string, error) {
 	return m.stringValue(DstPrivateKey)
 }
 
+// SrcPort - Source interface listening port
 func (m *mechanism) SrcPort() (int, error) {
 	srcPortStr, err := m.stringValue(SrcPort)
 	if err != nil {
@@ -118,6 +119,7 @@ func (m *mechanism) SrcPort() (int, error) {
 	return int(srcPort), nil
 }
 
+// DstPort - Destination interface listening port
 func (m *mechanism) DstPort() (int, error) {
 	dstPortStr, err := m.stringValue(DstPort)
 	if err != nil {
@@ -132,8 +134,9 @@ func (m *mechanism) DstPort() (int, error) {
 	return int(dstPort), nil
 }
 
-func AssignPort(connId string) string {
-	id, err := strconv.ParseUint(connId, 16, 64)
+// AssignPort - generate unique port by connection ID for wireguard connection
+func AssignPort(connID string) string {
+	id, err := strconv.ParseUint(connID, 16, 64)
 	if err != nil {
 		id = 0
 	}
