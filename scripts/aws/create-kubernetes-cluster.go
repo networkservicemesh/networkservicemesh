@@ -368,7 +368,7 @@ func (ac *AWSCluster) authorizeSecurityGroupIngress(ec2client *ec2.EC2, groupID 
 			},
 			{
 				IpProtocol: aws.String("udp"),
-				ToPort:     aws.Int64(51820),
+				ToPort:     aws.Int64(52000),
 				FromPort:   aws.Int64(51820),
 				IpRanges: []*ec2.IpRange{
 					{
