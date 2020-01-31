@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 make k8s-pods
-make k8s-logs-snapshot
+make k8s-save-artifacts
 
 # cleanup
 make helm-delete k8s-terminating-cleanup

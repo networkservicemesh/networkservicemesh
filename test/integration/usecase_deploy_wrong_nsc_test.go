@@ -30,7 +30,7 @@ func TestDeployWrongNsc(t *testing.T) {
 
 	nodes, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
 	g.Expect(err).To(BeNil())
-	defer kubetest.MakeLogsSnapshot(k8s, t)
+	defer k8s.SaveTestArtifacts(t)
 
 	_, err = k8s.CreatePodsRaw(defaultTimeout, false, pods.WrongNSCPodWebhook("wrong-nsc-client-pod", nodes[0].Node))
 	g.Expect(strings.Contains(err.Error(), "do not use init-container and nsm annotation")).Should(BeTrue())

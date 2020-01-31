@@ -14,35 +14,41 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package artifact
+package artifacts
 
-type SaveBehavior int32
+//SaveOption means how artifact will save / presented
+type SaveOption byte
 
 const (
-	SaveAsDir SaveBehavior = 2 << iota
+	//SaveAsFiles means that artifacts should be saved as files
+	SaveAsFiles SaveOption = 2 << iota
+	//SaveAsArchive means that artifacts should be saved as archive
 	SaveAsArchive
+	//PrintToConsole means that artifacts should be printed to console
 	PrintToConsole
 )
 
+//Config is configuration of artifacts manager
 type Config interface {
-	SaveBehavior() SaveBehavior
+	SaveOption() SaveOption
 	OutputPath() string
 	SaveInAnyCase() bool
 }
 
+//ConfigFromEnv reads config options from environment variables.
 func ConfigFromEnv() Config {
-	var b SaveBehavior
-	if processInToConsole.GetBooleanOrDefault(false) {
+	var b SaveOption
+	if printToConsole.GetBooleanOrDefault(false) {
 		b |= PrintToConsole
 	}
-	if processInToArchive.GetBooleanOrDefault(false) {
+	if archiveArtifacts.GetBooleanOrDefault(false) {
 		b |= SaveAsArchive
 	}
-	if processInToDir.GetBooleanOrDefault(false) {
-		b |= SaveAsDir
+	if saveAsFiles.GetBooleanOrDefault(false) {
+		b |= SaveAsFiles
 	}
-	dir := dir.GetStringOrDefault(defaultOutputPath)
-	saveInAnyCase := processInAnyCase.GetBooleanOrDefault(false)
+	dir := outputDirectory.GetStringOrDefault(defaultOutputPath)
+	saveInAnyCase := saveInAnyCase.GetBooleanOrDefault(false)
 	return &config{
 		behavior:      b,
 		outputPath:    dir,
@@ -51,9 +57,9 @@ func ConfigFromEnv() Config {
 }
 
 type config struct {
-	behavior      SaveBehavior
-	outputPath    string
+	behavior      SaveOption
 	saveInAnyCase bool
+	outputPath    string
 }
 
 func (c *config) SaveInAnyCase() bool {
@@ -64,6 +70,6 @@ func (c *config) OutputPath() string {
 	return c.outputPath
 }
 
-func (c *config) SaveBehavior() SaveBehavior {
+func (c *config) SaveOption() SaveOption {
 	return c.behavior
 }

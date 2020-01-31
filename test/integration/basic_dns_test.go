@@ -26,7 +26,7 @@ func TestBasicDns(t *testing.T) {
 
 	configs, err := kubetest.SetupNodesConfig(k8s, 1, defaultTimeout, []*pods.NSMgrPodConfig{}, k8s.GetK8sNamespace())
 	assert.Expect(err).To(gomega.BeNil())
-	defer kubetest.MakeLogsSnapshot(k8s, t)
+	defer k8s.SaveTestArtifacts(t)
 	err = kubetest.DeployCorefile(k8s, "basic-corefile", `. {
     log
     hosts {
@@ -63,7 +63,7 @@ func TestDNSMonitoringNsc(t *testing.T) {
 
 	configs, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
 	assert.Expect(err).To(gomega.BeNil())
-	defer kubetest.MakeLogsSnapshot(k8s, t)
+	defer k8s.SaveTestArtifacts(t)
 
 	kubetest.DeployICMPAndCoredns(k8s, configs[0].Node, "icmp-responder", "icmp-responder-corefile", defaultTimeout)
 	nsc := kubetest.DeployMonitoringNSCAndCoredns(k8s, configs[0].Node, "nsc", defaultTimeout)
@@ -78,7 +78,7 @@ func TestDNSExternalClient(t *testing.T) {
 	assert := gomega.NewWithT(t)
 	k8s, err := kubetest.NewK8s(assert, true)
 	defer k8s.Cleanup()
-	defer kubetest.MakeLogsSnapshot(k8s, t)
+	defer k8s.SaveTestArtifacts(t)
 	assert.Expect(err).To(gomega.BeNil())
 
 	deleteWebhook := func() func() {
@@ -115,7 +115,7 @@ func TestNsmCorednsNotBreakDefaultK8sDNS(t *testing.T) {
 	defer k8s.Cleanup()
 	configs, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
 	assert.Expect(err).To(gomega.BeNil())
-	defer kubetest.MakeLogsSnapshot(k8s, t)
+	defer k8s.SaveTestArtifacts(t)
 
 	nse := kubetest.DeployICMP(k8s, configs[0].Node, "icmp-responder", defaultTimeout)
 	nsc := kubetest.DeployMonitoringNSCAndCoredns(k8s, configs[0].Node, "nsc", defaultTimeout)

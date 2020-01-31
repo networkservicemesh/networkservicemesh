@@ -44,7 +44,7 @@ func TestAdmissionWebhookInitContainerOrderTest(t *testing.T) {
 
 	nodes, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
 	assert.Expect(err).To(gomega.BeNil())
-	defer kubetest.MakeLogsSnapshot(k8s, t)
+	defer k8s.SaveTestArtifacts(t)
 
 	kubetest.DeployICMP(k8s, nodes[0].Node, "nse", defaultTimeout)
 	nsc := pods.NSCPodWebhook("nsc", nodes[0].Node)

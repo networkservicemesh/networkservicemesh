@@ -14,40 +14,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package artifact
+package artifacts
 
-type Artifact interface {
-	Name() string
-	Kind() string
-	Content() []byte
-}
-
-func New(name, kind string, content []byte) Artifact {
-	return &artifact{
-		name:    name,
-		kind:    kind,
-		content: content,
-	}
-}
-
-func ModifyContent(a Artifact, newContent []byte) Artifact {
-	return New(a.Name(), a.Kind(), newContent)
-}
-
-type artifact struct {
-	name    string
-	kind    string
-	content []byte
-}
-
-func (a *artifact) Name() string {
-	return a.name
-}
-
-func (a *artifact) Kind() string {
-	return a.kind
-}
-
-func (a *artifact) Content() []byte {
-	return a.content
+//Presenter exports artifacts
+type Presenter interface {
+	Present(artifact Artifact)
 }

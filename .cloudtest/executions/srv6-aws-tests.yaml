@@ -2,7 +2,8 @@
 executions:
   - name: "SRv6 AWS tests"
     env:
-      - STORE_POD_LOGS_IN_FILES=true
+      - ARTIFACTS_SAVE_FILES=true
+      - ARTIFACTS_ARCHIVE=true
     source:
       tags:
         - srv6

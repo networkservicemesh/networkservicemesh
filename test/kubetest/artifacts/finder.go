@@ -14,13 +14,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package artifact
+package artifacts
 
-const (
-	startLogsOf             = "Start logs of"
-	endLogsOf               = "End logs of"
-	defaultOutputPath       = "logs/last"
-	maxTransactionLineWidth = 128
-	transactionLogUnit      = '#'
-	artifactWorkerCount     = 4
-)
+//Finder finds artifacts
+type Finder interface {
+	Find() []Artifact
+}

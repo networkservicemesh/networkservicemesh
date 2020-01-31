@@ -14,14 +14,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package artifact
-
-import "github.com/networkservicemesh/networkservicemesh/utils"
+package artifacts
 
 const (
-	processInAnyCase   utils.EnvVar = "PROCESS_ARTIFACTS_IN_ANY_CASE"
-	processInToConsole utils.EnvVar = "PROCESS_ARTIFACTS_IN_TO_CONSOLE"
-	processInToArchive utils.EnvVar = "ARCHIVE_ARTIFACTS"
-	processInToDir     utils.EnvVar = "PROCESS_ARTIFACTS_IN_TO_DIR"
-	dir                utils.EnvVar = "artifacts-dir"
+	startLogsOf             = "Start logs of"
+	endLogsOf               = "End logs of"
+	defaultOutputPath       = "logs/last"
+	maxTransactionLineWidth = 128
+	transactionLogUnit      = '#'
+	saveWorkerCount         = 4
 )

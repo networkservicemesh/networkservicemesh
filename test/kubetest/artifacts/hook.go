@@ -14,8 +14,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package artifact
+package artifacts
 
-type Finder interface {
-	Find() []Artifact
+//Hook calls when before artifact presents and after
+type Hook interface {
+	OnPresent(Artifact) Artifact
+	OnPresented(Artifact)
+	OnStart()
+	OnFinish()
 }

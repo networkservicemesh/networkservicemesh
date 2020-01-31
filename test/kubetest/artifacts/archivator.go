@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package artifact
+package artifacts
 
 import (
 	"archive/zip"
@@ -29,72 +29,71 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+//Archivator hook for artifacts manager. Archives artifact content.
 func Archivator(c Config) Hook {
-	return &artifactArchivator{c: c}
+	return &archivator{c: c}
 }
 
-type artifactArchivator struct {
+type archivator struct {
 	c      Config
 	buff   *bytes.Buffer
 	writer *zip.Writer
 	m      sync.Mutex
 }
 
-func (aa *artifactArchivator) Present(a Artifact) {
+func (a *archivator) Present(artifact Artifact) {
 }
 
-func (aa *artifactArchivator) Started() {
-	aa.buff = new(bytes.Buffer)
-	aa.writer = zip.NewWriter(aa.buff)
+func (a *archivator) OnStart() {
+	a.buff = new(bytes.Buffer)
+	a.writer = zip.NewWriter(a.buff)
 }
 
-func (aa *artifactArchivator) Finished() {
-	dir, _ := path.Split(aa.c.OutputPath())
-	if dir != "" {
-		if _, err := os.Stat(dir); os.IsNotExist(err) {
-			_ = os.MkdirAll(dir, os.ModePerm)
-		}
+func (a *archivator) OnFinish() {
+	if _, err := os.Stat(a.c.OutputPath()); os.IsNotExist(err) {
+		_ = os.MkdirAll(a.c.OutputPath(), os.ModePerm)
 	}
-	outfile := filepath.Join(aa.c.OutputPath() + ".zip")
+	_, name := path.Split(a.c.OutputPath())
+	outfile := filepath.Join(a.c.OutputPath(), name+".zip")
 	if _, err := os.Stat(outfile); err == nil {
 		zr, err := zip.OpenReader(outfile)
 		if err != nil {
 			logrus.Errorf("Can not zip write, err: %v", err)
 		} else {
-			distill(aa.writer, zr)
+			distill(a.writer, zr)
 			_ = zr.Close()
 		}
 	}
 
-	err := aa.writer.Flush()
+	err := a.writer.Flush()
 	if err != nil {
 		logrus.Errorf("An error during writer.Flush(), err: %v", err)
 	}
-	err = aa.writer.Close()
+	err = a.writer.Close()
 	if err != nil {
 		logrus.Errorf("An error during zip writer.Close(), err: %v", err)
 	}
-	err = ioutil.WriteFile(outfile, aa.buff.Bytes(), os.ModePerm)
+	err = ioutil.WriteFile(outfile, a.buff.Bytes(), os.ModePerm)
 	if err != nil {
 		logrus.Errorf("An error during zip file.Close(), err: %v", err)
 	}
 }
 
-func (aa *artifactArchivator) PostProcess(a Artifact) {
-	aa.m.Lock()
-	defer aa.m.Unlock()
-	writer, err := aa.writer.Create(a.Name())
+func (a *archivator) OnPresented(artifact Artifact) {
+	a.m.Lock()
+	defer a.m.Unlock()
+	writer, err := a.writer.Create(artifact.Name())
 	if err != nil {
-		logrus.Errorf("Can not create zip writer for artifact %v, error: %v", a.Name(), err)
+		logrus.Errorf("Can not create zip writer for artifact %v, error: %v", artifact.Name(), err)
 	}
-	_, err = writer.Write(a.Content())
+	_, err = writer.Write(artifact.Content())
 	if err != nil {
-		logrus.Errorf("An error during write artifact content %v, error: %v", a.Name(), err)
+		logrus.Errorf("An error during write artifact content %v, error: %v", artifact.Name(), err)
 	}
 }
 
-func (aa *artifactArchivator) PreProcess(a Artifact) Artifact {
-	return a
+func (a *archivator) OnPresent(artifact Artifact) Artifact {
+	return artifact
 }
 
 func distill(w *zip.Writer, r *zip.ReadCloser) {

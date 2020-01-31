@@ -6,7 +6,8 @@ executions:
     env:
       - NSM_NAMESPACE=nsm-system
       - CLUSTER_RULES_PREFIX=null
-      - STORE_POD_LOGS_IN_FILES=true
+      - ARTIFACTS_SAVE_FILES=true
+      - ARTIFACTS_ARCHIVE=true
       - SPIRE_ENABLED=false  # because spire is already installed
     cluster-env:
       - KUBECONFIG

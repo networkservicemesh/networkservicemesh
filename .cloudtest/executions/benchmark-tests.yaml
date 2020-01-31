@@ -2,7 +2,8 @@
 executions:
   - name: "Benchmark tests"
     env:
-      - STORE_POD_LOGS_IN_FILES=true
+      - ARTIFACTS_SAVE_FILES=true
+      - ARTIFACTS_ARCHIVE=true
     source:
       tags:
         - bench

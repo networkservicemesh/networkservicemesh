@@ -14,8 +14,39 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package artifact
+//Package artifacts provides API for manage tests artifacts.
+package artifacts
 
-type Presenter interface {
-	Present(artifact Artifact)
+// Artifact represents specific content
+type Artifact interface {
+	Name() string
+	Kind() string
+	Content() []byte
+}
+
+//New creates new artifact with specific name, kind and content
+func New(name, kind string, content []byte) Artifact {
+	return &artifact{
+		name:    name,
+		kind:    kind,
+		content: content,
+	}
+}
+
+type artifact struct {
+	name    string
+	kind    string
+	content []byte
+}
+
+func (a *artifact) Name() string {
+	return a.name
+}
+
+func (a *artifact) Kind() string {
+	return a.kind
+}
+
+func (a *artifact) Content() []byte {
+	return a.content
 }

@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package artifact
+package artifacts
 
 import (
 	"os"
@@ -30,22 +30,22 @@ type filePresenter struct {
 func (f *filePresenter) Present(artifact Artifact) {
 	name := artifact.Name()
 	bytes := artifact.Content()
-
 	if _, err := os.Stat(f.path); os.IsNotExist(err) {
-		os.MkdirAll(f.path, os.ModePerm)
+		err = os.MkdirAll(f.path, os.ModePerm)
+		if err != nil {
+			logrus.Error(err.Error())
+		}
 	}
-
 	filePath := path.Join(f.path, name)
-
-	if file, err := os.Create(filePath); err != nil {
+	file, err := os.Create(filePath)
+	if err != nil {
 		logrus.Errorf("Can not save artifact:%v, in path: %v. Error: %v", name, filePath, err.Error())
 		return
-	} else {
-		if _, err = file.Write(bytes); err != nil {
-			logrus.Errorf("An error during write to file: %v. Error: %v", filePath, err)
-		}
-		if err = file.Close(); err != nil {
-			logrus.Errorf("An error during close file: %v. Error: %v", filePath, err)
-		}
+	}
+	if _, err = file.Write(bytes); err != nil {
+		logrus.Errorf("An error during write to file: %v. Error: %v", filePath, err)
+	}
+	if err = file.Close(); err != nil {
+		logrus.Errorf("An error during close file: %v. Error: %v", filePath, err)
 	}
 }

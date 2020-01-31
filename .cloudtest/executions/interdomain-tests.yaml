@@ -2,8 +2,8 @@
 executions:
   - name: "Interdomain tests packet-aws"
     env:
-      - STORE_POD_LOGS_IN_FILES=true
-      - USE_JAEGER_SERVICE=true
+      - ARTIFACTS_SAVE_FILES=true
+      - ARTIFACTS_ARCHIVE=true
     source:
       tags:
         - interdomain

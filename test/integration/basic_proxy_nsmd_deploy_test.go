@@ -33,7 +33,7 @@ func testProxyNSMgrDeploy(t *testing.T, proxyNsmdPodFactory func(string, *v1.Nod
 	defer k8s.Cleanup()
 
 	g.Expect(err).To(BeNil())
-	defer kubetest.MakeLogsSnapshot(k8s, t)
+	defer k8s.SaveTestArtifacts(t)
 
 	nodes := k8s.GetNodesWait(1, defaultTimeout)
 
@@ -43,7 +43,9 @@ func testProxyNSMgrDeploy(t *testing.T, proxyNsmdPodFactory func(string, *v1.Nod
 
 	k8s.Cleanup()
 	count := 0
-	for _, lpod := range k8s.ListPods() {
+	list, err := k8s.ListPods()
+	g.Expect(err).Should(BeNil())
+	for _, lpod := range list {
 		logrus.Printf("Found pod %s %+v", lpod.Name, lpod.Status)
 		if strings.Contains(lpod.Name, "pnsmgr") {
 			count += 1

@@ -14,13 +14,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package artifact
+package artifacts
 
+//PresenterFactory creates artifact presenters and hooks based on config
 type PresenterFactory interface {
 	Presenter(config Config) Presenter
 	Hooks(config Config) []Hook
 }
 
+//DefaultPresenterFactory returns default presenter factory
 func DefaultPresenterFactory() PresenterFactory {
 	return &defaultFactory{}
 }
@@ -29,7 +31,7 @@ type defaultFactory struct {
 }
 
 func (f *defaultFactory) Hooks(config Config) []Hook {
-	if config.SaveBehavior()&SaveAsArchive != 0 {
+	if config.SaveOption()&SaveAsArchive != 0 {
 		return []Hook{Archivator(config)}
 	}
 	return nil
@@ -37,10 +39,10 @@ func (f *defaultFactory) Hooks(config Config) []Hook {
 
 func (f *defaultFactory) Presenter(config Config) Presenter {
 	combined := &combinedPresenter{}
-	if config.SaveBehavior()&SaveAsDir != 0 {
+	if config.SaveOption()&SaveAsFiles != 0 {
 		combined.presenters = append(combined.presenters, &filePresenter{path: config.OutputPath()})
 	}
-	if config.SaveBehavior()&PrintToConsole != 0 {
+	if config.SaveOption()&PrintToConsole != 0 {
 		combined.presenters = append(combined.presenters, &consolePresnter{})
 	}
 	return combined

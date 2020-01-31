@@ -14,12 +14,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package artifact
+package artifacts
 
 import (
 	"io/ioutil"
 	"os"
 	"path"
+	"path/filepath"
 	"testing"
 
 	"github.com/onsi/gomega"
@@ -32,24 +33,26 @@ func TestManager_ProcessArtifacts(t *testing.T) {
 	defer func() {
 		_ = os.Remove(artifactPath)
 	}()
-	dir.Set(artifactPath)
-	processInAnyCase.Set(true)
-	processInToDir.Set(true)
+	outputDirectory.Set(artifactPath)
+	saveInAnyCase.Set(true)
+	saveAsFiles.Set(true)
 	c := ConfigFromEnv()
-	assert.Expect(c.SaveBehavior()).Should(gomega.Equal(SaveAsDir))
+	assert.Expect(c.SaveOption()).Should(gomega.Equal(SaveAsFiles))
 	assert.Expect(c.OutputPath()).Should(gomega.Equal(artifactPath))
 	assert.Expect(c.SaveInAnyCase()).Should(gomega.Equal(true))
 	m := NewManager(c, DefaultPresenterFactory(), []Finder{&testFinder{}}, []Hook{&testHook{}})
-	m.ProcessArtifacts()
+	m.SaveArtifacts()
 	files, err := ioutil.ReadDir(artifactPath)
 	assert.Expect(err).Should(gomega.BeNil())
 	assert.Expect(len(files)).Should(gomega.Equal(2))
 	assert.Expect(files[0].Name() == "A")
 	assert.Expect(files[1].Name() == "B")
-	bytes, err := ioutil.ReadFile(path.Join(artifactPath, files[0].Name()))
+	filePath1 := path.Join(artifactPath, files[0].Name())
+	bytes, err := ioutil.ReadFile(filepath.Clean(filePath1))
 	assert.Expect(err).Should(gomega.BeNil())
 	assert.Expect(string(bytes)).Should(gomega.Equal("changed"))
-	bytes, err = ioutil.ReadFile(path.Join(artifactPath, files[1].Name()))
+	filePath2 := path.Join(artifactPath, files[1].Name())
+	bytes, err = ioutil.ReadFile(filepath.Clean(filePath2))
 	assert.Expect(err).Should(gomega.BeNil())
 	assert.Expect(string(bytes)).Should(gomega.Equal("{}"))
 }
@@ -68,9 +71,9 @@ func (t *testFinder) Find() []Artifact {
 type testHook struct {
 }
 
-func (t testHook) PreProcess(a Artifact) Artifact {
+func (t testHook) OnPresent(a Artifact) Artifact {
 	if a.Kind() == "log" {
-		return ModifyContent(a, []byte("changed"))
+		return modifyContent(a, []byte("changed"))
 	}
 	if a.Kind() == "bin" {
 		return nil
@@ -78,9 +81,12 @@ func (t testHook) PreProcess(a Artifact) Artifact {
 	return a
 }
 
-func (t testHook) PostProcess(Artifact) {
+func (t testHook) OnPresented(Artifact) {
 }
-func (t testHook) Started() {
+func (t testHook) OnStart() {
 }
-func (t testHook) Finished() {
+func (t testHook) OnFinish() {
+}
+func modifyContent(a Artifact, newContent []byte) Artifact {
+	return New(a.Name(), a.Kind(), newContent)
 }

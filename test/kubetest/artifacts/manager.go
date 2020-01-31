@@ -14,16 +14,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package artifact
+package artifacts
 
-import "sync"
+import (
+	"sync"
 
+	"github.com/sirupsen/logrus"
+)
+
+//Manager saves artifacts
 type Manager interface {
-	ProcessArtifacts()
+	SaveArtifacts()
 	Config() Config
 }
 
+//NewManager creates artifacts manager with specific parameters.
 func NewManager(c Config, factory PresenterFactory, finders []Finder, hooks []Hook) Manager {
+	logrus.Infof("Creating artifact manager with config: %v", c)
 	return &manager{
 		presenter: factory.Presenter(c),
 		finders:   finders,
@@ -43,12 +50,12 @@ func (m *manager) Config() Config {
 	return m.config
 }
 
-func (m *manager) ProcessArtifacts() {
+func (m *manager) SaveArtifacts() {
 	for _, hook := range m.hooks {
-		hook.Started()
+		hook.OnStart()
 	}
 	wg := sync.WaitGroup{}
-	artifactCh := make(chan Artifact, artifactWorkerCount)
+	artifactCh := make(chan Artifact, saveWorkerCount)
 	for i := 0; i < len(m.finders); i++ {
 		wg.Add(1)
 		go func(index int) {
@@ -63,11 +70,11 @@ func (m *manager) ProcessArtifacts() {
 			}
 		}(i)
 	}
-	for i := 0; i < artifactWorkerCount; i++ {
+	for i := 0; i < saveWorkerCount; i++ {
 		go func() {
 			for artifact := range artifactCh {
 				for _, hook := range m.hooks {
-					artifact = hook.PreProcess(artifact)
+					artifact = hook.OnPresent(artifact)
 				}
 				if artifact == nil {
 					wg.Done()
@@ -75,7 +82,7 @@ func (m *manager) ProcessArtifacts() {
 				}
 				m.presenter.Present(artifact)
 				for _, hook := range m.hooks {
-					hook.PostProcess(artifact)
+					hook.OnPresented(artifact)
 				}
 				wg.Done()
 			}
@@ -84,6 +91,6 @@ func (m *manager) ProcessArtifacts() {
 	wg.Wait()
 	close(artifactCh)
 	for _, hook := range m.hooks {
-		hook.Finished()
+		hook.OnFinish()
 	}
 }

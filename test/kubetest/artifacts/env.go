@@ -14,11 +14,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package artifact
+package artifacts
 
-type Hook interface {
-	PreProcess(Artifact) Artifact
-	PostProcess(Artifact)
-	Started()
-	Finished()
+import "github.com/networkservicemesh/networkservicemesh/utils"
+
+const (
+	printToConsole   utils.EnvVar = "ARTIFACTS_PRINT_INTO_CONSOLE"
+	saveAsFiles      utils.EnvVar = "ARTIFACTS_SAVE_FILES"
+	saveInAnyCase    utils.EnvVar = "ARTIFACTS_SAVE_ALWAYS"
+	archiveArtifacts utils.EnvVar = "ARTIFACTS_ARCHIVE"
+	outputDirectory  utils.EnvVar = "ARTIFACTS_DIR"
+)
+
+//NeedToSave returns true if any of saving artifact option envs is not empty.
+func NeedToSave() bool {
+	return saveAsFiles.GetBooleanOrDefault(false) ||
+		archiveArtifacts.GetBooleanOrDefault(false)
 }

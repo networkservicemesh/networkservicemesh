@@ -11,7 +11,7 @@ make helm-install-crossconnect-monitor || exit $?
 make k8s-crossconnect-monitor-check || exit $?
 
 # collect logs for correct test execution
-make k8s-logs-snapshot-only-master
+make k8s-save-artifacts-only-master
 
 # cleanup
 make helm-delete k8s-terminating-cleanup
