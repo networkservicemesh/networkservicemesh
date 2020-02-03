@@ -2,7 +2,6 @@
 executions:
   - name: "Single cluster tests"
     env:
-      - ARTIFACTS_SAVE_FILES=true
       - ARTIFACTS_ARCHIVE=true
     source:
       tags:

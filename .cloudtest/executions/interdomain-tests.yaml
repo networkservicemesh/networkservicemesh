@@ -2,8 +2,8 @@
 executions:
   - name: "Interdomain tests packet-aws"
     env:
-      - ARTIFACTS_SAVE_FILES=true
       - ARTIFACTS_ARCHIVE=true
+      - USE_JAEGER_SERVICE=true
     source:
       tags:
         - interdomain
@@ -21,7 +21,7 @@ executions:
 
   - name: "Interdomain tests gke-packet"
     env:
-      - STORE_POD_LOGS_IN_FILES=true
+      - ARTIFACTS_ARCHIVE=true
       - USE_JAEGER_SERVICE=true
     source:
       tags:
@@ -40,7 +40,7 @@ executions:
 
   - name: "Interdomain tests azure-gke"
     env:
-      - STORE_POD_LOGS_IN_FILES=true
+      - ARTIFACTS_ARCHIVE=true
       - USE_JAEGER_SERVICE=true
     source:
       tags:
@@ -59,7 +59,7 @@ executions:
 
   - name: "Interdomain tests aws-azure"
     env:
-      - STORE_POD_LOGS_IN_FILES=true
+      - ARTIFACTS_ARCHIVE=true
       - USE_JAEGER_SERVICE=true
     source:
       tags:

@@ -7,6 +7,7 @@ require (
 	github.com/ghodss/yaml v1.0.0
 	github.com/golang/protobuf v1.3.2
 	github.com/ligato/vpp-agent v2.5.1+incompatible
+	github.com/networkservicemesh/networkservicemesh/applications/nsmrs v0.3.0
 	github.com/networkservicemesh/networkservicemesh/controlplane v0.3.0
 	github.com/networkservicemesh/networkservicemesh/controlplane/api v0.3.0
 	github.com/networkservicemesh/networkservicemesh/forwarder v0.3.0
