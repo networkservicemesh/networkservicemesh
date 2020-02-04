@@ -146,6 +146,7 @@ func (ac *AWSCluster) deleteEksClusterVpc(cfClient *cloudformation.CloudFormatio
 
 	_, err = cfClient.DeleteStack(&cloudformation.DeleteStackInput{
 		StackName: clusterStackName,
+		RetainResources: []*string{aws.String("Ipv6VPCCidrBlock")},
 	})
 	if ac.checkDeferError(err) {
 		return
