@@ -40,7 +40,7 @@ func testNSMHealRemoteDieNSMD_NSE(t *testing.T, remoteMechanism string) {
 	defer k8s.Cleanup()
 
 	g.Expect(err).To(BeNil())
-	defer kubetest.MakeLogsSnapshot(k8s, t)
+	defer k8s.SaveTestArtifacts(t)
 	// Deploy open tracing to see what happening.
 	config := []*pods.NSMgrPodConfig{
 		{

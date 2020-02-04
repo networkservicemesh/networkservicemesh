@@ -289,11 +289,8 @@ func (fixture *standaloneForwarderFixture) handleFailures(failures []string) {
 		for _, failure := range failures {
 			logrus.Errorf("test failure: %s\n", failure)
 		}
-		fixture.printLogs(fixture.forwarderPod)
-		fixture.printLogs(fixture.sourcePod)
-		fixture.printLogs(fixture.destPod)
 		fixture.test.Fail()
-		kubetest.MakeLogsSnapshot(fixture.k8s, fixture.test)
+		defer fixture.k8s.SaveTestArtifacts(fixture.test)
 	}
 }
 

@@ -19,7 +19,7 @@ func JaegerService(pod *v1.Pod) *v1.Service {
 			Type: v1.ServiceTypeNodePort,
 			Ports: []v1.ServicePort{
 				{Name: "http", Port: 16686, Protocol: "TCP"},
-				{Name: "jaeger", Port: 6831, NodePort: jaeger.GetJaegerNodePort(), Protocol: "UDP"},
+				{Name: "jaeger", Port: 6831, NodePort: jaeger.GetNodePort(), Protocol: "UDP"},
 			},
 			Selector: map[string]string{"run": "jaeger"},
 		},

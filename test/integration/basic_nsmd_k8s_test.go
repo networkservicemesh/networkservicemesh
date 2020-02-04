@@ -29,7 +29,7 @@ func TestNSMDDRegistryNSE(t *testing.T) {
 
 	k8s, err := kubetest.NewK8s(g, true)
 	defer k8s.Cleanup()
-	defer kubetest.MakeLogsSnapshot(k8s, t)
+	defer k8s.SaveTestArtifacts(t)
 	g.Expect(err).To(BeNil())
 
 	nsmd := k8s.CreatePod(pods.NSMgrPod("nsmgr-1", nil, k8s.GetK8sNamespace()))

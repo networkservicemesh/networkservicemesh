@@ -28,7 +28,7 @@ func TestNSMDDeploy(t *testing.T) {
 	// Warmup
 	k8s, err = kubetest.NewK8s(g, true)
 	defer k8s.Cleanup()
-	defer kubetest.MakeLogsSnapshot(k8s, t)
+	defer k8s.SaveTestArtifacts(t)
 	var node *kubetest.NodeConf
 	deploy := measureTime(func() {
 		nodes, setupErr := kubetest.SetupNodes(k8s, 1, defaultTimeout)

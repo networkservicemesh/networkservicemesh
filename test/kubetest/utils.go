@@ -14,8 +14,9 @@ import (
 	"os"
 	"strings"
 	"sync"
-	"testing"
 	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest/artifacts"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/security"
 
@@ -78,7 +79,11 @@ func SetupNodes(k8s *K8s, nodesCount int, timeout time.Duration) ([]*NodeConf, e
 
 //FindJaegerPod returns jaeger pod or nil
 func FindJaegerPod(k8s *K8s) *v1.Pod {
-	pods := k8s.ListPods()
+	pods, err := k8s.ListPods()
+	if err != nil {
+		logrus.Errorf("Can not find jaeger pod %v", err.Error())
+		return nil
+	}
 	for i := range pods {
 		p := &pods[i]
 		if strings.Contains(p.Name, "jaeger") {
@@ -112,12 +117,12 @@ func SetupNodesConfig(k8s *K8s, nodesCount int, timeout time.Duration, conf []*p
 	nodes := k8s.GetNodesWait(nodesCount, timeout)
 	k8s.g.Expect(len(nodes) >= nodesCount).To(Equal(true),
 		"At least one Kubernetes node is required for this test")
-	if jaeger.ShouldStoreJaegerTraces() {
-		if !jaeger.UseJaegerService.GetBooleanOrDefault(false) {
+	if artifacts.NeedToSave() {
+		if !jaeger.UseService.GetBooleanOrDefault(false) {
 			jaegerPod := k8s.CreatePod(pods.Jaeger())
-			jaeger.JaegerAgentHost.Set(jaegerPod.Status.PodIP)
+			jaeger.AgentHost.Set(jaegerPod.Status.PodIP)
 			k8s.WaitLogsContains(jaegerPod, jaegerPod.Spec.Containers[0].Name, "Starting HTTP server", timeout)
-		} else if jaeger.JaegerAgentHost.StringValue() == "" {
+		} else if jaeger.AgentHost.StringValue() == "" {
 			template := pods.Jaeger()
 			template.Spec.NodeSelector = map[string]string{
 				"kubernetes.io/hostname": nodes[0].Labels["kubernetes.io/hostname"],
@@ -125,8 +130,8 @@ func SetupNodesConfig(k8s *K8s, nodesCount int, timeout time.Duration, conf []*p
 			jaegerPod := k8s.CreatePod(template)
 			_, err := k8s.CreateService(pods.JaegerService(jaegerPod), k8s.namespace)
 			k8s.g.Expect(err).Should(BeNil())
-			jaeger.JaegerAgentHost.Set(getExternalOrInternalAddress(&nodes[0]))
-			jaeger.JaegerAgentPort.Set(jaeger.GetJaegerNodePort())
+			jaeger.AgentHost.Set(getExternalOrInternalAddress(&nodes[0]))
+			jaeger.AgentPort.Set(jaeger.GetNodePort())
 			k8s.WaitLogsContains(jaegerPod, jaegerPod.Spec.Containers[0].Name, "Starting HTTP server", timeout)
 		}
 	}
@@ -764,7 +769,8 @@ func waitWebhookPod(k8s *K8s, name string, timeout time.Duration) *v1.Pod {
 			logrus.Errorf("can find pod %v during %v", name, timeout)
 			return nil
 		default:
-			list := k8s.ListPods()
+			list, err := k8s.ListPods()
+			k8s.g.Expect(err).Should(BeNil())
 			for i := 0; i < len(list); i++ {
 				p := &list[i]
 				if strings.Contains(p.Name, name) {
@@ -908,17 +914,6 @@ func IsNsePinged(k8s *K8s, from *v1.Pod) (result bool) {
 	}
 
 	return result
-}
-
-// PrintErrors - Print errors for system NSMgr pods
-func PrintErrors(failures []string, k8s *K8s, nodesSetup []*NodeConf, nscInfo *NSCCheckInfo, t *testing.T) {
-	if len(failures) > 0 {
-		logrus.Errorf("Failures: %v", failures)
-		makeLogsSnapshot(k8s, t)
-		nscInfo.PrintLogs()
-
-		t.Fail()
-	}
 }
 
 //NSLookup invokes nslookup on pod with concrete hostname. Tries several times

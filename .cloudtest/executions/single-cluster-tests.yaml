@@ -2,7 +2,7 @@
 executions:
   - name: "Single cluster tests"
     env:
-      - STORE_POD_LOGS_IN_FILES=true
+      - ARTIFACTS_ARCHIVE=true
     source:
       tags:
         - basic

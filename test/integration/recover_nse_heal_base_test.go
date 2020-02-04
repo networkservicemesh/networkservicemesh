@@ -53,7 +53,7 @@ func testNSEHeal(t *testing.T, nodesCount int, affinity map[string]int, fixture 
 	}
 	nodesSetup, err := kubetest.SetupNodesConfig(k8s, nodesCount, defaultTimeout, config, k8s.GetK8sNamespace())
 	g.Expect(err).To(BeNil())
-	defer kubetest.MakeLogsSnapshot(k8s, t)
+	defer k8s.SaveTestArtifacts(t)
 
 	// Run ICMP
 	node := affinity["icmp-responder-nse-1"]

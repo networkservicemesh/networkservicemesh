@@ -69,7 +69,7 @@ func testInterdomainNSEHeal(t *testing.T, clustersCount int, nodesCount int, aff
 		k8s, err := kubetest.NewK8sForConfig(g, true, kubeconfig)
 		g.Expect(err).To(BeNil())
 		defer k8s.Cleanup()
-		defer kubetest.MakeLogsSnapshot(k8s, t)
+		defer k8s.SaveTestArtifacts(t)
 
 		config := []*pods.NSMgrPodConfig{}
 

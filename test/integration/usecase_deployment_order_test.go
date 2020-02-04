@@ -142,7 +142,7 @@ func testDeploymentOrder(t *testing.T, order []Deployment) {
 
 	k8s, err := kubetest.NewK8s(g, true)
 	defer k8s.Cleanup()
-	defer kubetest.MakeLogsSnapshot(k8s, t)
+	defer k8s.SaveTestArtifacts(t)
 
 	g.Expect(err).To(BeNil())
 

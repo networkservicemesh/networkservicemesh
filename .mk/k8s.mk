@@ -143,12 +143,12 @@ k8s-crossconnect-monitor-check:
 	$(info Checking crossconnect-monitor...)
 	@NSM_NAMESPACE=${NSM_NAMESPACE} ./scripts/verify_crossconnect_monitor.sh
 
-.PHONY: k8s-logs-snapshot
-k8s-logs-snapshot:
-	@NSM_NAMESPACE=${NSM_NAMESPACE} ./scripts/logs_snapshot.sh
+.PHONY: k8s-save-artifacts
+k8s-save-artifacts:
+	@NSM_NAMESPACE=${NSM_NAMESPACE} ./scripts/save_artifacts.sh
 
-k8s-logs-snapshot-only-master:
-	@NSM_NAMESPACE=${NSM_NAMESPACE} ./scripts/logs_snapshot.sh only-master
+k8s-save-artifacts-only-master:
+	@NSM_NAMESPACE=${NSM_NAMESPACE} ./scripts/save_artifacts.sh only-master
 
 .PHONY: k8s-terminating-cleanup
 k8s-terminating-cleanup:
