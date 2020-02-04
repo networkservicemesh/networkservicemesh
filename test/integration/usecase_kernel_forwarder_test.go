@@ -62,7 +62,7 @@ func testKernelNSCAndICMP(t *testing.T, nodesCount int, remoteMechanism string) 
 	g.Expect(err).To(BeNil())
 
 	defer k8s.Cleanup()
-	defer kubetest.MakeLogsSnapshot(k8s, t)
+	defer k8s.SaveTestArtifacts(t)
 
 	err = k8s.SetForwardingPlane(pods.EnvForwardingPlaneKernel)
 	g.Expect(err).To(BeNil())
