@@ -51,7 +51,8 @@ packet-%-load-images:
 		pushd scripts/terraform; \
 		echo "Loading image $*.tar to master and worker"; \
 		scp ${SSH_OPTS} ../../$(IMAGE_DIR)/$*.tar root@`terraform output master${PACKET_CLUSTER_ID}.public_ip`:~/ & \
-		scp ${SSH_OPTS} ../../$(IMAGE_DIR)/$*.tar root@`terraform output worker${PACKET_CLUSTER_ID}_1.public_ip`:~/
+		scp ${SSH_OPTS} ../../$(IMAGE_DIR)/$*.tar root@`terraform output worker${PACKET_CLUSTER_ID}_1.public_ip`:~/ ; \
+		wait ; \
 		ssh ${SSH_OPTS} root@`terraform output master${PACKET_CLUSTER_ID}.public_ip` "sudo docker rmi networkservicemesh/$* -f && docker load -i $*.tar" > /dev/null 2>&1; \
 		ssh ${SSH_OPTS} root@`terraform output worker${PACKET_CLUSTER_ID}_1.public_ip` "sudo docker rmi networkservicemesh/$* -f && docker load -i $*.tar" > /dev/null 2>&1; \
 		popd ; \
