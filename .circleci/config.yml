@@ -161,7 +161,7 @@ jobs:
             fi
             export STORE_JAEGER_TRACES=true
             pushd test
-            go get github.com/networkservicemesh/cloudtest@v0.1-beta
+            go get github.com/networkservicemesh/cloudtest
             popd
             cloudtest || ERR=$?
             [ "${CIRCLE_BRANCH}" == "master" ] && [ "$ERR" == "" ] && exit 0
