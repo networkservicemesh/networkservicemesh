@@ -25,4 +25,4 @@ if has_unavailable_apiservice; then
 fi
 
 echo "Preparing cluster..."
-make helm-init helm-install-config spire-install
+make helm-init k8s-config spire-install

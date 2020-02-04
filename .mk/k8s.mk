@@ -53,10 +53,12 @@ k8s-%-load-images:  k8s-start $(CLUSTER_RULES_PREFIX)-%-load-images
 	@echo "Delegated to $(CLUSTER_RULES_PREFIX)-$*-load-images"
 
 .PHONY: k8s-config
-k8s-config: helm-install-config
+k8s-config:
+	helm --namespace ${NSM_NAMESPACE} install --name config deployments/helm/nsm/charts/config
 
 .PHONY: k8s-deconfig
-k8s-deconfig: helm-delete-config
+k8s-deconfig:
+	helm delete config --purge || true
 
 .PHONY: k8s-start
 k8s-start: $(CLUSTER_RULES_PREFIX)-start
