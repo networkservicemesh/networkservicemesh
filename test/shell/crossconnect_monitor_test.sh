@@ -2,11 +2,12 @@
 
 # helm tests expect cluster to be clean
 make k8s-deconfig
+read -r -a HELM_TEST_OPTS < <(make helm-test-opts)
 
-make helm-install-nsm || exit $?
-make helm-install-endpoint || exit $?
-make helm-install-client || exit $?
-make helm-install-crossconnect-monitor || exit $?
+helm install deployments/helm/nsm "${HELM_TEST_OPTS[@]}" || exit $?
+helm install deployments/helm/endpoint "${HELM_TEST_OPTS[@]}" || exit $?
+helm install deployments/helm/client "${HELM_TEST_OPTS[@]}" || exit $?
+helm install deployments/helm/crossconnect-monitor "${HELM_TEST_OPTS[@]}" || exit $?
 
 make k8s-crossconnect-monitor-check || exit $?
 

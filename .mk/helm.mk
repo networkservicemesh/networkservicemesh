@@ -21,9 +21,26 @@ INSECURE?=false
 PROMETHEUS?=true
 METRICS_COLLECTOR_ENABLED?=true
 
+TEST_OPTS:=--atomic \
+  --set org='${CONTAINER_REPO}',tag='${CONTAINER_TAG}' \
+  --set forwardingPlane='${FORWARDING_PLANE}' \
+  --set insecure='${INSECURE}' \
+  --set networkservice='${NETWORK_SERVICE}' \
+  --set prometheus='${PROMETHEUS}' \
+  --set metricsCollectorEnabled='${METRICS_COLLECTOR_ENABLED}' \
+  --set global.JaegerTracing='true' \
+  --set spire.enabled='${SPIRE_ENABLED}',spire.org='${CONTAINER_REPO}',spire.tag='${CONTAINER_TAG}' \
+  --set admission-webhook.org='${CONTAINER_REPO}',admission-webhook.tag='${CONTAINER_TAG}' \
+  --set prefix-service.org='${CONTAINER_REPO}',prefix-service.tag='${CONTAINER_TAG}' \
+  --namespace '${NSM_NAMESPACE}'
+
 .PHONY: helm-init
 helm-init:
 	./scripts/helm-init-wrapper.sh
+
+.PHONY: helm-test-opts
+helm-test-opts:
+	@echo ${TEST_OPTS}
 
 .PHONY: $(INSTALL_CHARTS)
 $(INSTALL_CHARTS): export CHART=$(subst helm-install-,,$@)
