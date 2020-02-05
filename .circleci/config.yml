@@ -71,6 +71,7 @@ jobs:
             export CONTAINER_FORCE_PULL="true"
             export INSECURE="true"
             ./scripts/run_unit_tests.sh
+      - run: git diff --exit-code || (echo 'Detected diff after run ./scripts/run_unit_tests.sh' && exit 1)
       - store_test_results:
           path: ~/junit
       - store_artifacts:
