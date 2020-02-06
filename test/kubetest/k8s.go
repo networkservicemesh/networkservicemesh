@@ -808,15 +808,17 @@ func (k8s *K8s) Cleanup(t *testing.T) {
 	st := time.Now()
 	defer logrus.Infof("Cleanup time: %v", time.Since(st))
 
+	clearOption := k8s.clearOption
+
 	if t.Failed() {
-		k8s.clearOption = DefaultClear
+		clearOption = DefaultClear
 	}
 
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if k8s.clearOption == ReuseNSMResources {
+		if clearOption == ReuseNSMResources {
 			k8s.podLock.Lock()
 			k8s.pods = filterPods(k8s.g, k8s.pods, excludePodByName("nsmgr", "forwarder", "nsmd"))
 			k8s.podLock.Unlock()
@@ -851,7 +853,7 @@ func (k8s *K8s) Cleanup(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if k8s.clearOption != ReuseNSMResources {
+		if clearOption != ReuseNSMResources {
 			_ = k8s.DeleteServiceAccounts()
 		}
 	}()

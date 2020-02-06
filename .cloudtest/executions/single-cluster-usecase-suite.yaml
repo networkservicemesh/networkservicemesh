@@ -1,0 +1,17 @@
+---
+executions:
+  - name: "Single cluster usecase suite"
+    env:
+      - ARTIFACTS_ARCHIVE=true
+    source:
+      tags:
+        - usecase_suite
+    root: ./test/integration
+    timeout: 300
+    cluster-count: 1
+    kubernetes-env:
+      - KUBECONFIG
+    on_fail: |
+      make k8s-delete-nsm-namespaces
+    after: |
+      make k8s-delete-nsm-namespaces

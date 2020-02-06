@@ -1,13 +1,11 @@
 ---
 executions:
-  - name: "Single cluster suite"
+  - name: "Single cluster basic suite"
     env:
       - ARTIFACTS_ARCHIVE=true
     source:
       tags:
         - basic_suite
-        - recover_suite
-        - usecase_suite
     root: ./test/integration
     timeout: 300
     cluster-count: 1
