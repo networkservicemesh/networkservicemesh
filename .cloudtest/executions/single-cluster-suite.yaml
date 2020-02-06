@@ -2,8 +2,7 @@
 executions:
   - name: "Single cluster suite"
     env:
-      - SAVE_ARTIFACTS_AS_FILES=true
-      - ARCHIVE_ARTIFACTS=true
+      - ARTIFACTS_ARCHIVE=true
     source:
       tags:
         - basic_suite

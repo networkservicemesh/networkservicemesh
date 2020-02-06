@@ -2,8 +2,8 @@
 executions:
   - name: "Interdomain suite packet-aws"
     env:
-      - SAVE_ARTIFACTS_AS_FILES=true
-      - ARCHIVE_ARTIFACTS=true
+      - ARTIFACTS_ARCHIVE=true
+      - USE_JAEGER_SERVICE=true
     source:
       tags:
         - interdomain_suite
@@ -23,7 +23,7 @@ executions:
 
   - name: "Interdomain suite gke-packet"
     env:
-      - STORE_POD_LOGS_IN_FILES=true
+      - ARTIFACTS_ARCHIVE=true
       - USE_JAEGER_SERVICE=true
     source:
       tags:
@@ -44,7 +44,7 @@ executions:
 
   - name: "Interdomain suite azure-gke"
     env:
-      - STORE_POD_LOGS_IN_FILES=true
+      - ARTIFACTS_ARCHIVE=true
       - USE_JAEGER_SERVICE=true
     source:
       tags:
@@ -65,7 +65,7 @@ executions:
 
   - name: "Interdomain suite aws-azure"
     env:
-      - STORE_POD_LOGS_IN_FILES=true
+      - ARTIFACTS_ARCHIVE=true
       - USE_JAEGER_SERVICE=true
     source:
       tags:

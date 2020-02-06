@@ -16,7 +16,7 @@
 
 // +build usecase
 
-package nsmd_integration_tests
+package integration
 
 import (
 	"testing"

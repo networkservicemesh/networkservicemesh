@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build interdomain
+// +build interdomain_suite
 
 package integration
 
@@ -59,10 +59,10 @@ func testFloatingInterdomainMonitor(t *testing.T, killPod string) {
 		kubeconfig := os.Getenv(fmt.Sprintf("KUBECONFIG_CLUSTER_%d", i+1))
 		g.Expect(len(kubeconfig)).ToNot(Equal(0))
 
-		k8s, err := kubetest.NewK8sForConfig(g, true, kubeconfig)
+		k8s, err := kubetest.NewK8sForConfig(g, kubetest.ReuseNSMResources, kubeconfig)
 		g.Expect(err).To(BeNil())
 
-		defer k8s.Cleanup()
+		defer k8s.Cleanup(t)
 		defer k8s.SaveTestArtifacts(t)
 
 		k8ss = append(k8ss, &kubetest.ExtK8s{

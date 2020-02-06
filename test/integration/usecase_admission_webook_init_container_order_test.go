@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build usecase
+// +build usecase_suite
 
 package integration
 
@@ -35,8 +35,8 @@ func TestAdmissionWebhookInitContainerOrderTest(t *testing.T) {
 		return
 	}
 	assert := gomega.NewWithT(t)
-	k8s, err := kubetest.NewK8s(assert, true)
-	defer k8s.Cleanup()
+	k8s, err := kubetest.NewK8s(assert, kubetest.ReuseNSMResources)
+	defer k8s.Cleanup(t)
 	assert.Expect(err).To(gomega.BeNil())
 
 	awc, awDeployment, awService := kubetest.DeployAdmissionWebhook(k8s, "nsm-admission-webhook", "networkservicemesh/admission-webhook", k8s.GetK8sNamespace(), defaultTimeout)

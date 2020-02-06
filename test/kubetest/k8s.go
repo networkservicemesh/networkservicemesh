@@ -498,7 +498,6 @@ func (k8s *K8s) prepare(option ClearOption) {
 	k8s.CleanupMutatingWebhookConfigurations()
 	k8s.CleanupSecrets("nsm-admission-webhook-certs")
 	k8s.CleanupConfigMaps()
-
 }
 
 // SaveArtifacts saves artifacts
