@@ -17,7 +17,7 @@ executions:
       - KUBECONFIG_CLUSTER_1
       - KUBECONFIG_CLUSTER_2
     on-fail: |
-      make k8s-delete-nsm-namespaces
+      make k8s-reset
 
   - name: "Interdomain tests gke-packet"
     env:
@@ -36,7 +36,7 @@ executions:
       - KUBECONFIG_CLUSTER_1
       - KUBECONFIG_CLUSTER_2
     on-fail: |
-      make k8s-delete-nsm-namespaces
+      make k8s-reset
 
   - name: "Interdomain tests azure-gke"
     env:
@@ -55,7 +55,7 @@ executions:
       - KUBECONFIG_CLUSTER_1
       - KUBECONFIG_CLUSTER_2
     on-fail: |
-      make k8s-delete-nsm-namespaces
+      make k8s-reset
 
   - name: "Interdomain tests aws-azure"
     env:
@@ -74,4 +74,4 @@ executions:
       - KUBECONFIG_CLUSTER_1
       - KUBECONFIG_CLUSTER_2
     on-fail: |
-      make k8s-delete-nsm-namespaces
+      make k8s-reset

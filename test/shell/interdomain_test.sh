@@ -5,10 +5,11 @@
 export KUBECONFIG=$KUBECONFIG_CLUSTER_1
 
 make k8s-deconfig
+read -r -a HELM_TEST_OPTS < <(make helm-test-opts)
 
-make helm-install-nsm || exit $?
-make helm-install-proxy-nsmgr || exit $?
-make helm-install-endpoint || exit $?
+helm install deployments/helm/nsm "${HELM_TEST_OPTS[@]}" || exit $?
+helm install deployments/helm/proxy-nsmgr "${HELM_TEST_OPTS[@]}" || exit $?
+helm install deployments/helm/endpoint "${HELM_TEST_OPTS[@]}" || exit $?
 
 # get external ip address of CLUSTER 1 node
 # shellcheck disable=SC2089 disable=SC1083 disable=SC2102
@@ -23,10 +24,10 @@ export KUBECONFIG=$KUBECONFIG_CLUSTER_2
 
 make k8s-deconfig
 
-make helm-install-nsm || exit $?
-make helm-install-proxy-nsmgr || exit $?
-export NETWORK_SERVICE="icmp-responder@$CLUSTER1_NODE_IP"
-make helm-install-client || exit $?
+helm install deployments/helm/nsm "${HELM_TEST_OPTS[@]}" || exit $?
+helm install deployments/helm/proxy-nsmgr "${HELM_TEST_OPTS[@]}" || exit $?
+helm install deployments/helm/client "${HELM_TEST_OPTS[@]}" \
+             --set networkservice="icmp-responder@$CLUSTER1_NODE_IP" || exit $?
 
 # check connection
 make k8s-icmp-check || exit $?
@@ -36,17 +37,11 @@ export KUBECONFIG=$KUBECONFIG_CLUSTER_1
 make k8s-logs-snapshot-only-master
 
 # cleanup
-make helm-delete k8s-terminating-cleanup
-
-# restore CRDs and RBAC
-make k8s-deconfig k8s-config
+make k8s-reset
 
 export KUBECONFIG=$KUBECONFIG_CLUSTER_2
 # collect logs for correct test execution
 make k8s-logs-snapshot-only-master
 
 # cleanup
-make helm-delete k8s-terminating-cleanup
-
-# restore CRDs and RBAC
-make k8s-deconfig k8s-config
+make k8s-reset

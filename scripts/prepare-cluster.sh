@@ -25,4 +25,18 @@ if has_unavailable_apiservice; then
 fi
 
 echo "Preparing cluster..."
-make helm-init helm-install-config spire-install
+make helm-init k8s-config spire-install
+ERR=$?
+
+echo
+echo "Cluster info ====================================================="
+kubectl get all -A -o wide
+
+echo
+if [ "$ERR" == 0 ]; then
+  echo "Cluster prepare is OK"
+else
+  echo "Cluster prepare failed"
+fi
+
+exit $ERR

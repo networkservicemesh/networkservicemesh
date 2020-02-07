@@ -32,7 +32,7 @@ with_helm2() {
   if [ -z ${NSM_PURGE+x} ]; then
     $HELM delete --purge "${CHART}"
   else
-    $HELM list --namespace="${NSM_NAMESPACE}" --short | xargs -L1 helm delete --purge
+    $HELM list --namespace="${NSM_NAMESPACE}" --short | xargs --no-run-if-empty -L1 helm delete --purge
   fi
 }
 
@@ -40,7 +40,7 @@ with_helm3() {
   if [ -z ${NSM_PURGE+x} ]; then
     $HELM uninstall -n "$NSM_NAMESPACE" "${CHART}"
   else
-    $HELM list -n "${NSM_NAMESPACE}" --short | xargs -L1 helm uninstall -n "${NSM_NAMESPACE}"
+    $HELM list -n "${NSM_NAMESPACE}" --short | xargs --no-run-if-empty -L1 helm uninstall -n "${NSM_NAMESPACE}"
   fi
 }
 
