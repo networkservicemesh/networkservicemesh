@@ -10,7 +10,7 @@ helm install deployments/helm/vpp-icmp-responder "${HELM_TEST_OPTS[@]}" || exit 
 make k8s-icmp-check || exit $?
 
 # collect logs for correct test execution
-make k8s-logs-snapshot-only-master
+make k8s-save-artifacts-only-master
 
 # cleanup
 make k8s-reset
