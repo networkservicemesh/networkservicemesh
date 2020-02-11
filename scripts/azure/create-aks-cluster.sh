@@ -50,7 +50,7 @@ else
                 \"location\": \"centralus\",
                 \"properties\":
                 {
-                    \"kubernetesVersion\": \"\",
+                    \"kubernetesVersion\": \"1.16.4\",
                     \"dnsPrefix\": \"${AZURE_CLUSTER_NAME::10}-${AZURE_RESOURCE_GROUP}\",
                     \"agentPoolProfiles\":
                     [{
