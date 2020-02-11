@@ -197,7 +197,7 @@ func main() {
 		td, address := s[0], s[1]
 		url, err := url.Parse(td)
 		if err != nil {
-			logrus.Error("wrong trust_id format: %v", err)
+			logrus.Errorf("wrong trust_id format: %v", err)
 			return
 		}
 
