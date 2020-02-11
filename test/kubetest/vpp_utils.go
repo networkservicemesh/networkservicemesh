@@ -84,10 +84,10 @@ func IsVppAgentNsePinged(k8s *K8s, from *v1.Pod) (result bool) {
 	k8s.g.Expect(err).Should(BeNil())
 	logrus.Infof("%v trying vppctl ping to %v", from.Name, nseIP)
 	response, _, _ := k8s.Exec(from, from.Spec.Containers[0].Name, "vppctl", "ping", nseIP.String())
-	logrus.Infof("ping result: %s", response)
+	logrus.Infof("%s: ping result: %s", from.Name, response)
 	if strings.TrimSpace(response) != "" && !strings.Contains(response, "100% packet loss") && !strings.Contains(response, "Fail") {
 		result = true
-		logrus.Info("Ping successful")
+		logrus.Infof("%s: ping successful", from.Name)
 	}
 
 	return result

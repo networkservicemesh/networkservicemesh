@@ -901,7 +901,7 @@ func pingNse(k8s *K8s, from *v1.Pod) string {
 	k8s.g.Expect(err).Should(BeNil())
 	logrus.Infof("%v trying ping to %v", from.Name, nseIp)
 	response, _, _ := k8s.Exec(from, from.Spec.Containers[0].Name, "ping", nseIp.String(), "-A", "-c", "4")
-	logrus.Infof("ping result: %s", response)
+	logrus.Infof("%s: ping result: %s", from.Name, response)
 	return response
 }
 
@@ -910,7 +910,7 @@ func IsNsePinged(k8s *K8s, from *v1.Pod) (result bool) {
 	response := pingNse(k8s, from)
 	if strings.TrimSpace(response) != "" && !strings.Contains(response, "100% packet loss") && !strings.Contains(response, "Fail") {
 		result = true
-		logrus.Info("Ping successful")
+		logrus.Infof("%s: ping successful", from.Name)
 	}
 
 	return result
