@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package federation;
 
-import "github.com/spiffe/spire/proto/spire/common/common.proto";
+import "github.com/spiffe/spire/proto/spire@v0.9.2/common/common.proto";
 
 enum BundleEventType {
     INITIAL_STATE_TRANSFER = 0;
