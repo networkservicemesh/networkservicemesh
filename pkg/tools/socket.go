@@ -2,7 +2,7 @@ package tools
 
 import (
 	"context"
-	"errors"
+	"github.com/pkg/errors"
 	"net"
 	"sync"
 	"time"
