@@ -66,6 +66,7 @@ aws-%-load-images:
 		echo "Loading image $*.tar to master and worker" ; \
 		scp ${SSH_PARAMS} $(IMAGE_DIR)/$*.tar aws-master:~/ & \
 		scp ${SSH_PARAMS} $(IMAGE_DIR)/$*.tar aws-worker:~/ ; \
+		wait ; \
 		ssh ${SSH_PARAMS} aws-master "sudo docker load -i $*.tar" & \
 		ssh ${SSH_PARAMS} aws-worker "sudo docker load -i $*.tar" ; \
 	else \
