@@ -9,7 +9,7 @@ executions:
     root: ./test/integration
     timeout: 300
     cluster-count: 1
-    kubernetes-env:
+    cluster-env:
       - KUBECONFIG
     on_fail: |
       make k8s-delete-nsm-namespaces

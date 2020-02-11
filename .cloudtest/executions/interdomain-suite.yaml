@@ -13,7 +13,7 @@ executions:
     cluster-selector:
       - packet
       - aws
-    kubernetes-env:
+    cluster-env:
       - KUBECONFIG_CLUSTER_1
       - KUBECONFIG_CLUSTER_2
     on_fail: |
@@ -34,7 +34,7 @@ executions:
     cluster-selector:
       - gke
       - packet
-    kubernetes-env:
+    cluster-env:
       - KUBECONFIG_CLUSTER_1
       - KUBECONFIG_CLUSTER_2
     on_fail: |
@@ -55,7 +55,7 @@ executions:
     cluster-selector:
       - azure
       - gke
-    kubernetes-env:
+    cluster-env:
       - KUBECONFIG_CLUSTER_1
       - KUBECONFIG_CLUSTER_2
     on_fail: |
@@ -76,7 +76,7 @@ executions:
     cluster-selector:
       - aws
       - azure
-    kubernetes-env:
+    cluster-env:
       - KUBECONFIG_CLUSTER_1
       - KUBECONFIG_CLUSTER_2
     on_fail: |
