@@ -17,11 +17,13 @@
 package main
 
 import (
-	federation "github.com/networkservicemesh/networkservicemesh/applications/federation-server/api"
-	server "github.com/networkservicemesh/networkservicemesh/applications/federation-server/pkg"
+	"net"
+
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
-	"net"
+
+	federation "github.com/networkservicemesh/networkservicemesh/applications/federation-server/api"
+	server "github.com/networkservicemesh/networkservicemesh/applications/federation-server/pkg"
 )
 
 const (

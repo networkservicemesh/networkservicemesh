@@ -19,14 +19,16 @@ package server_test
 import (
 	"context"
 	"fmt"
-	federation "github.com/networkservicemesh/networkservicemesh/applications/federation-server/api"
-	server "github.com/networkservicemesh/networkservicemesh/applications/federation-server/pkg"
+	"net"
+	"testing"
+
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	"github.com/spiffe/spire/proto/spire/common"
 	"google.golang.org/grpc"
-	"net"
-	"testing"
+
+	federation "github.com/networkservicemesh/networkservicemesh/applications/federation-server/api"
+	server "github.com/networkservicemesh/networkservicemesh/applications/federation-server/pkg"
 )
 
 func TestFederationServer(t *testing.T) {

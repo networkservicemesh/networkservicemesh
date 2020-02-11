@@ -18,9 +18,11 @@ package server
 
 import (
 	"context"
+
+	"github.com/spiffe/spire/proto/spire/common"
+
 	federation "github.com/networkservicemesh/networkservicemesh/applications/federation-server/api"
 	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
-	"github.com/spiffe/spire/proto/spire/common"
 )
 
 func New() federation.RegistrationServer {

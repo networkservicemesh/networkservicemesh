@@ -18,10 +18,12 @@ package server
 
 import (
 	"context"
-	federation "github.com/networkservicemesh/networkservicemesh/applications/federation-server/api"
-	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
+
 	"github.com/pkg/errors"
 	"github.com/spiffe/spire/proto/spire/common"
+
+	federation "github.com/networkservicemesh/networkservicemesh/applications/federation-server/api"
+	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
 )
 
 type event struct {

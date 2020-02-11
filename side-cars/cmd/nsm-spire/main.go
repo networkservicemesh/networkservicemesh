@@ -20,14 +20,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/gogo/protobuf/proto"
-	federation "github.com/networkservicemesh/networkservicemesh/applications/federation-server/api"
-	"github.com/networkservicemesh/networkservicemesh/utils"
 	"io/ioutil"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/gogo/protobuf/proto"
+
+	federation "github.com/networkservicemesh/networkservicemesh/applications/federation-server/api"
+	"github.com/networkservicemesh/networkservicemesh/utils"
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"

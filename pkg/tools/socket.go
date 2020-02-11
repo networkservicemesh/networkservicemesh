@@ -2,10 +2,11 @@ package tools
 
 import (
 	"context"
-	"github.com/pkg/errors"
 	"net"
 	"sync"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/security"
 

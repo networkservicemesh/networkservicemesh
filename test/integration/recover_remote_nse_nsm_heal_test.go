@@ -5,14 +5,16 @@ package integration
 import (
 	"context"
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/golang/protobuf/ptypes/empty"
+	. "github.com/onsi/gomega"
+	"github.com/sirupsen/logrus"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
-	. "github.com/onsi/gomega"
-	"github.com/sirupsen/logrus"
-	"testing"
-	"time"
 )
 
 func TestNSMHealRemoteDieNSMD_NSE(t *testing.T) {
