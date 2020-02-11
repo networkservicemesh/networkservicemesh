@@ -37,6 +37,7 @@ replace (
 
 replace (
 	github.com/networkservicemesh/networkservicemesh => ./
+	github.com/networkservicemesh/networkservicemesh/applications/federation-server => ./applications/federation-server
 	github.com/networkservicemesh/networkservicemesh/applications/nsmrs => ./applications/nsmrs
 	github.com/networkservicemesh/networkservicemesh/controlplane => ./controlplane
 	github.com/networkservicemesh/networkservicemesh/controlplane/api => ./controlplane/api
@@ -51,4 +52,9 @@ replace (
 	github.com/networkservicemesh/networkservicemesh/side-cars => ./side-cars
 	github.com/networkservicemesh/networkservicemesh/test => ./test
 	github.com/networkservicemesh/networkservicemesh/utils => ./utils
+)
+
+require (
+	github.com/networkservicemesh/networkservicemesh/scripts/aws v0.0.0-00010101000000-000000000000 // indirect
+	github.com/networkservicemesh/networkservicemesh/test v0.0.0-00010101000000-000000000000 // indirect
 )

@@ -7,7 +7,6 @@ require (
 	github.com/ghodss/yaml v1.0.0
 	github.com/golang/protobuf v1.3.2
 	github.com/ligato/vpp-agent v2.5.1+incompatible
-	github.com/networkservicemesh/networkservicemesh/applications/federation-server v0.3.0
 	github.com/networkservicemesh/networkservicemesh/applications/nsmrs v0.3.0
 	github.com/networkservicemesh/networkservicemesh/controlplane v0.3.0
 	github.com/networkservicemesh/networkservicemesh/controlplane/api v0.3.0
@@ -36,7 +35,6 @@ require (
 
 replace (
 	github.com/census-instrumentation/opencensus-proto v0.1.0-0.20181214143942-ba49f56771b8 => github.com/census-instrumentation/opencensus-proto v0.0.3-0.20181214143942-ba49f56771b8
-	github.com/networkservicemesh/networkservicemesh/applications/federation-server => ../applications/federation-server
 	gonum.org/v1/gonum => github.com/gonum/gonum v0.0.0-20190331200053-3d26580ed485
 	gonum.org/v1/netlib => github.com/gonum/netlib v0.0.0-20190331212654-76723241ea4e
 	k8s.io/api => k8s.io/api v0.17.1
@@ -67,6 +65,7 @@ replace (
 
 replace (
 	github.com/networkservicemesh/networkservicemesh => ../
+	github.com/networkservicemesh/networkservicemesh/applications/federation-server => ../applications/federation-server
 	github.com/networkservicemesh/networkservicemesh/applications/nsmrs => ../applications/nsmrs
 	github.com/networkservicemesh/networkservicemesh/controlplane => ../controlplane
 	github.com/networkservicemesh/networkservicemesh/controlplane/api => ../controlplane/api
