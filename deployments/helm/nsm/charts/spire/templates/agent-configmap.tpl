@@ -12,7 +12,7 @@ data:
       server_port = "8081"
       socket_path = "/run/spire/sockets/agent.sock"
       trust_bundle_path = "/run/spire/bundle/bundle.crt"
-      trust_domain = "test.com"
+      trust_domain = {{ .Values.trustDomain | quote }}
     }
     plugins {
       NodeAttestor "k8s_sat" {

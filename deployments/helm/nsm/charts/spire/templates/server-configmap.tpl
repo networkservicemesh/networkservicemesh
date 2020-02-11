@@ -1,3 +1,5 @@
+{{ $td := .Values.trustDomain }}
+
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -14,7 +16,7 @@ data:
     server {
       bind_address = "0.0.0.0"
       bind_port = "8081"
-      trust_domain = "test.com"
+      trust_domain = {{ $td | quote }}
       data_dir = "/run/spire/data"
       log_level = "DEBUG"
       svid_ttl = "1h"
@@ -25,12 +27,24 @@ data:
         Organization = ["SPIFFE"],
         CommonName = "",
       }
+
+      experimental {
+              bundle_endpoint_enabled = true
+              bundle_endpoint_port = 8443
+
+              federates_with {{ (index .Values $td).federatesDomain }} {
+                      bundle_endpoint_address = {{ (index .Values $td).federatesDomain | quote }}
+                      bundle_endpoint_port = 8443
+                      bundle_endpoint_spiffe_id = "spiffe://{{ (index .Values $td).federatesDomain }}/spire/server"
+              }
+      }
     }
     plugins {
       DataStore "sql" {
         plugin_data {
           database_type = "sqlite3"
-          connection_string = "/run/spire/data/datastore.sqlite3"
+          connection_string = "file::memory:?cache=shared"
+          # connection_string = "/run/spire/data/datastore.sqlite3"
         }
       }
       NodeAttestor "k8s_sat" {
@@ -47,9 +61,13 @@ data:
       NodeResolver "noop" {
         plugin_data {}
       }
-      KeyManager "disk" {
+      # KeyManager "disk" {
+      #  plugin_data {
+      #    keys_path = "/run/spire/data/keys.json"
+      #  }
+      # }
+      KeyManager "memory" {
         plugin_data {
-          keys_path = "/run/spire/data/keys.json"
         }
       }
       {{- if not .Values.selfSignedCA }}

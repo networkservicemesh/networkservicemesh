@@ -5,16 +5,14 @@ package integration
 import (
 	"context"
 	"fmt"
-	"testing"
-	"time"
-
 	"github.com/golang/protobuf/ptypes/empty"
-	. "github.com/onsi/gomega"
-	"github.com/sirupsen/logrus"
-
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
+	. "github.com/onsi/gomega"
+	"github.com/sirupsen/logrus"
+	"testing"
+	"time"
 )
 
 func TestNSMHealRemoteDieNSMD_NSE(t *testing.T) {
@@ -50,6 +48,7 @@ func TestNSMHealRemoteDieNSMDFakeEndpoint(t *testing.T) {
 	defer k8s.SaveTestArtifacts(t)
 
 	// Deploy open tracing to see what happening.
+	//_, err = kubetest.SetupNodes(k8s, 2, defaultTimeout)
 	nodesSetup, err := kubetest.SetupNodes(k8s, 2, defaultTimeout)
 	g.Expect(err).To(BeNil())
 

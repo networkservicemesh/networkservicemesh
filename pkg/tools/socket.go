@@ -2,6 +2,7 @@ package tools
 
 import (
 	"context"
+	"errors"
 	"net"
 	"sync"
 	"time"
@@ -98,7 +99,11 @@ func openTracingOpts() []grpc.ServerOption {
 // DialContext allows to call DialContext using net.Addr
 func DialContext(ctx context.Context, addr net.Addr, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
 	dialCtx := new(dialBuilder).Network(addr.Network()).DialContextFunc()
+	grpc.WithContextDialer(func(i context.Context, s string) (conn net.Conn, e error) {
+		return nil, errors.New("some spire error here")
+	})
 	return dialCtx(ctx, addr.String(), opts...)
+
 }
 
 // DialContextUnix establish connection with passed unix socket

@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package federation;
+
+import "github.com/spiffe/spire/proto/spire/common/common.proto";
+
+enum BundleEventType {
+    INITIAL_STATE_TRANSFER = 0;
+    UPDATE = 1;
+    DELETE = 2;
+}
+
+message BundleEvent {
+    BundleEventType type = 1;
+    map<string, spire.common.Bundle> bundles = 2;
+}
+
+service Registration {
+    rpc CreateFederatedBundle (spire.common.Bundle) returns (spire.common.Empty);
+    rpc ListFederatedBundles (spire.common.Empty) returns (stream BundleEvent);
+}

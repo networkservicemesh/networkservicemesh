@@ -1,3 +1,5 @@
+{{ $td := .Values.trustDomain }}
+
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -24,6 +26,13 @@ spec:
           securityContext:
             privileged: true
           image: {{ .Values.registry }}/{{ .Values.org }}/nsm-spire:{{ .Values.tag }}
+          env:
+            - name: FEDERATION_SERVER
+              value: {{ (index .Values $td).federationServer }}
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
           volumeMounts:
             - name: spire-server-socket
               mountPath: /run/spire/sockets
@@ -39,6 +48,8 @@ spec:
             - /run/spire/config/server.conf
           ports:
             - containerPort: 8081
+            - containerPort: 8443
+              hostPort: 8443
           volumeMounts:
             - name: spire-server-socket
               mountPath: /run/spire/sockets
