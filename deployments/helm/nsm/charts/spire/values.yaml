@@ -22,4 +22,3 @@ cluster-2.com:
 cluster-1.com:
   federatesDomain: cluster-2.com
   federationServer: federation-server.nsm-system
-

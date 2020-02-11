@@ -1,3 +1,4 @@
+---
 # Default values for federation-server.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
@@ -10,4 +11,3 @@ pullPolicy: IfNotPresent
 global:
   # set to true to enable Jaeger tracing for NSM components
   JaegerTracing: false
-
