@@ -14,4 +14,7 @@ executions:
     cluster-env:
       - KUBECONFIG
     on-fail: |
+      echo "Cluster info ====================================================="
+      kubectl describe all -A
+      echo " END OF Cluster info ====================================================="
       make k8s-reset
