@@ -4,8 +4,8 @@ package integration
 import "time"
 
 const (
-	defaultTimeout  = 2 * time.Minute
-	fastTimeout     = defaultTimeout / 5
+	defaultTimeout  = 5 * time.Minute
+	fastTimeout     = defaultTimeout / 10
 	nscDefaultName  = "nsc"
 	icmpDefaultName = "icmp-responder"
 	nscCount        = 10
