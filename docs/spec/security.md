@@ -1,7 +1,7 @@
 Security
 ============================
 
-##Specification
+## Specification
 Network Service Mesh utilizes GRPC for messaging. GRPC can be secured using TLS. Network Service Mesh 
 should utilize TLS using certificates issued by some authority. 
 

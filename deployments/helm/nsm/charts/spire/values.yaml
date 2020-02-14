@@ -6,9 +6,19 @@
 registry: docker.io
 org: networkservicemesh
 tag: master
-pullPolicy: IfNotPresent
+pullPolicy: Always
 
 # workaround since Azure doesn't support by default 10250 security port for kubelet
 azure: false
 namespace: spire
 selfSignedCA: true
+
+trustDomain: cluster-2.com
+
+cluster-2.com:
+  federatesDomain: cluster-1.com
+  federationServer: 172.17.0.2
+
+cluster-1.com:
+  federatesDomain: cluster-2.com
+  federationServer: federation-server.nsm-system

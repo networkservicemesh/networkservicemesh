@@ -3,6 +3,8 @@ module github.com/networkservicemesh/networkservicemesh/side-cars
 go 1.13
 
 require (
+	github.com/gogo/protobuf v1.2.2-0.20190723190241-65acae22fc9d
+	github.com/networkservicemesh/networkservicemesh/applications/federation-server v0.3.0
 	github.com/networkservicemesh/networkservicemesh/controlplane v0.3.0
 	github.com/networkservicemesh/networkservicemesh/controlplane/api v0.3.0
 	github.com/networkservicemesh/networkservicemesh/k8s/api v0.3.0
@@ -12,7 +14,7 @@ require (
 	github.com/onsi/gomega v1.7.0
 	github.com/pkg/errors v0.8.1
 	github.com/sirupsen/logrus v1.4.2
-	github.com/spiffe/spire/proto/spire v0.0.0-20200103215556-34b7e3785007
+	github.com/spiffe/spire/proto/spire v0.9.2
 	google.golang.org/grpc v1.27.0
 )
 
@@ -20,6 +22,7 @@ replace github.com/census-instrumentation/opencensus-proto v0.1.0-0.201812141439
 
 replace (
 	github.com/networkservicemesh/networkservicemesh => ../
+	github.com/networkservicemesh/networkservicemesh/applications/federation-server => ../applications/federation-server
 	github.com/networkservicemesh/networkservicemesh/controlplane => ../controlplane
 	github.com/networkservicemesh/networkservicemesh/controlplane/api => ../controlplane/api
 	github.com/networkservicemesh/networkservicemesh/forwarder => ../forwarder
