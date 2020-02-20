@@ -20,6 +20,8 @@
 package remote
 
 import (
+	"sync"
+
 	"github.com/pkg/errors"
 	wg "golang.zx2c4.com/wireguard/device"
 
@@ -36,12 +38,15 @@ const (
 
 // Connect - struct with remote mechanism interfaces creation and deletion methods
 type Connect struct {
-	wireguardDevices map[string]wg.Device
+	wireguardDevicesMutex sync.Mutex
+	wireguardDevices      map[string]*wg.Device
 }
 
 // NewConnect - creates instance of remote Connect
 func NewConnect() *Connect {
-	return &Connect{}
+	return &Connect{
+		wireguardDevices: make(map[string]*wg.Device),
+	}
 }
 
 // CreateInterface - creates interface to remote connection
