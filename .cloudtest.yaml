@@ -25,6 +25,7 @@ retest:  # Allow to do test re-run if some kind of failures are detected, line C
     - "unable to establish connection to VPP (VPP API socket file /run/vpp/api.sock does not exist)"  # a VPP is not started, it will be re-started in general, but will cause test fail.
     # Sometimes (rarely) docker registry is unavailable for a moment
     - "Error response from daemon: Get https://.*docker.io/.*: dial tcp: lookup registry"
+    - "Failed create pod sandbox"
 reporting:
   junit-report: "results/junit.xml"
 health-check:
