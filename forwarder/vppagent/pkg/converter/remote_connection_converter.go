@@ -18,6 +18,7 @@ package converter
 import (
 	"math"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/wireguard"
 	vpp_l3 "go.ligato.io/vpp-agent/v3/proto/ligato/vpp/l3"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/srv6"
@@ -53,7 +54,7 @@ func NewRemoteConnectionConverter(c *connection.Connection, name, tapName string
 }
 
 func (c *RemoteConnectionConverter) checkMechanism() bool {
-	mechanisms := []string{vxlan.MECHANISM, srv6.MECHANISM}
+	mechanisms := []string{vxlan.MECHANISM, srv6.MECHANISM, wireguard.MECHANISM}
 	for _, m := range mechanisms {
 		if m == c.GetMechanism().GetType() {
 			return true
@@ -83,6 +84,8 @@ func (c *RemoteConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 	}
 
 	switch c.GetMechanism().GetType() {
+	case wireguard.MECHANISM:
+		//do nothing here
 	case vxlan.MECHANISM:
 		m := vxlan.ToMechanism(c.GetMechanism())
 		// If the remote Connection is DESTINATION Side then srcip/dstip match the Connection
