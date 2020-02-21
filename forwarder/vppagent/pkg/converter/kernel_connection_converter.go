@@ -3,8 +3,8 @@ package converter
 import (
 	"strings"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/common"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/kernel"
 
 	"github.com/ligato/vpp-agent/api/configurator"
 	"github.com/ligato/vpp-agent/api/models/linux"
@@ -16,16 +16,16 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
 )
 
 type KernelConnectionConverter struct {
-	*connection.Connection
+	*networkservice.Connection
 	conversionParameters *ConnectionConversionParameters
 }
 
-func NewKernelConnectionConverter(c *connection.Connection, conversionParameters *ConnectionConversionParameters) *KernelConnectionConverter {
+// NewKernelConnectionConverter - creates a kernel connection converter.
+func NewKernelConnectionConverter(c *networkservice.Connection, conversionParameters *ConnectionConversionParameters) *KernelConnectionConverter {
 	return &KernelConnectionConverter{
 		Connection:           c,
 		conversionParameters: conversionParameters,
@@ -156,7 +156,7 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 	}
 
 	// Process static routes
-	var routes []*connectioncontext.Route
+	var routes []*networkservice.Route
 	switch c.conversionParameters.Side {
 	case SOURCE:
 		routes = c.Connection.GetContext().GetIpContext().GetDstRoutes()

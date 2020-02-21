@@ -5,7 +5,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/networkservicemesh/networkservicemesh/utils/caddyfile"
 )
 
@@ -15,11 +16,11 @@ const anyDomain = "."
 //Can be used from different goroutines
 type DNSConfigManager struct {
 	configs     sync.Map
-	basicConfig *connectioncontext.DNSConfig
+	basicConfig *networkservice.DNSConfig
 }
 
 //NewDNSConfigManager creates new config manager
-func NewDNSConfigManager(basic connectioncontext.DNSConfig) *DNSConfigManager {
+func NewDNSConfigManager(basic networkservice.DNSConfig) *DNSConfigManager {
 	return &DNSConfigManager{
 		configs:     sync.Map{},
 		basicConfig: &basic,
@@ -27,7 +28,7 @@ func NewDNSConfigManager(basic connectioncontext.DNSConfig) *DNSConfigManager {
 }
 
 //Store stores new config with specific id
-func (m *DNSConfigManager) Store(id string, config connectioncontext.DNSConfig) {
+func (m *DNSConfigManager) Store(id string, config networkservice.DNSConfig) {
 	m.configs.Store(id, &config)
 }
 
@@ -41,7 +42,7 @@ func (m *DNSConfigManager) Caddyfile(path string) caddyfile.Caddyfile {
 	file := caddyfile.NewCaddyfile(path)
 	m.writeDNSConfig(file, m.basicConfig)
 	m.configs.Range(func(k, v interface{}) bool {
-		config := v.(*connectioncontext.DNSConfig)
+		config := v.(*networkservice.DNSConfig)
 		m.writeDNSConfig(file, config)
 		return true
 	})
@@ -56,7 +57,7 @@ func (m *DNSConfigManager) getBasicConfigScopeName() string {
 	return r
 }
 
-func (m *DNSConfigManager) writeDNSConfig(c caddyfile.Caddyfile, config *connectioncontext.DNSConfig) {
+func (m *DNSConfigManager) writeDNSConfig(c caddyfile.Caddyfile, config *networkservice.DNSConfig) {
 	scopeName := strings.Join(config.SearchDomains, " ")
 	if scopeName == "" {
 		scopeName = anyDomain

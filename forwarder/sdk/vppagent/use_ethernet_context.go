@@ -20,11 +20,11 @@ import (
 	"context"
 	"strings"
 
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/networkservicemesh/networkservicemesh/forwarder/vppagent/pkg/converter"
 
 	"github.com/ligato/vpp-agent/api/models/linux"
-
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/ligato/vpp-agent/api/configurator"
@@ -74,7 +74,7 @@ func setEthernetContext(ctx context.Context, c *crossconnect.CrossConnect) {
 		return
 	}
 	if c.GetLocalDestination() != nil {
-		c.GetLocalDestination().GetContext().EthernetContext = &connectioncontext.EthernetContext{
+		c.GetLocalDestination().GetContext().EthernetContext = &networkservice.EthernetContext{
 			DstMac: mac,
 		}
 	}

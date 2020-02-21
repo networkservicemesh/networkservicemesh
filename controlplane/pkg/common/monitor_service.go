@@ -21,8 +21,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/connectionmonitor"
 )
 
@@ -37,7 +37,7 @@ func NewMonitorService(monitor connectionmonitor.MonitorServer) networkservice.N
 	}
 }
 
-func (srv *monitorService) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+func (srv *monitorService) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.Connection, error) {
 	ctx = WithConnectionMonitor(ctx, srv.monitor)
 
 	conn, err := ProcessNext(ctx, request)
@@ -47,7 +47,7 @@ func (srv *monitorService) Request(ctx context.Context, request *networkservice.
 	return conn, err
 }
 
-func (srv *monitorService) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
+func (srv *monitorService) Close(ctx context.Context, connection *networkservice.Connection) (*empty.Empty, error) {
 	logrus.Infof("Closing connection: %v", connection)
 
 	// Pass model connection with context

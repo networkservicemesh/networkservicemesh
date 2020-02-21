@@ -23,9 +23,9 @@ import (
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/pkg/errors"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	unified "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+	unified "github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 )
 
@@ -45,7 +45,7 @@ func (mce *MonitorEndpoint) Init(context *InitContext) error {
 // Consumes from ctx context.Context:
 //     ConnectionMonitor
 //	   Next
-func (mce *MonitorEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+func (mce *MonitorEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.Connection, error) {
 	if Next(ctx) != nil {
 		// Pass monitor server
 		ctx = WithMonitorServer(ctx, mce.monitorConnectionServer)
@@ -69,7 +69,7 @@ func (mce *MonitorEndpoint) Request(ctx context.Context, request *networkservice
 // Consumes from ctx context.Context:
 //     ConnectionMonitor
 //	   Next
-func (mce *MonitorEndpoint) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
+func (mce *MonitorEndpoint) Close(ctx context.Context, connection *networkservice.Connection) (*empty.Empty, error) {
 	Log(ctx).Infof("Monitor DeleteConnection: %v", connection)
 
 	// Pass monitor server

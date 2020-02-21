@@ -6,14 +6,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/common"
+
 	cmn "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/kernel"
 
 	. "github.com/onsi/gomega"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 )
 
@@ -47,10 +49,10 @@ func TestRestoreConnectionShouldNotPanic(t *testing.T) {
 
 	nsmClient := srv.RequestNSM("nsm1")
 
-	requestConnection := &connection.Connection{
+	requestConnection := &networkservice.Connection{
 		Id:             "1",
 		NetworkService: "ns1",
-		Mechanism: &connection.Mechanism{
+		Mechanism: &networkservice.Mechanism{
 			Parameters: map[string]string{
 				common.Workspace: nsmClient.Workspace,
 			},
@@ -58,9 +60,9 @@ func TestRestoreConnectionShouldNotPanic(t *testing.T) {
 		Path: cmn.Strings2Path("src"),
 	}
 
-	dstConnection := &connection.Connection{
+	dstConnection := &networkservice.Connection{
 		Id: "2",
-		Mechanism: &connection.Mechanism{
+		Mechanism: &networkservice.Mechanism{
 			Type: kernel.MECHANISM,
 			Parameters: map[string]string{
 				kernel.WorkspaceNSEName: "nse1",
@@ -92,10 +94,10 @@ func TestRestoreConnectionStateWrongDst(t *testing.T) {
 
 	nsmClient := srv.RequestNSM("nsm1")
 
-	requestConnection := &connection.Connection{
+	requestConnection := &networkservice.Connection{
 		Id:             "1",
 		NetworkService: "ns1",
-		Mechanism: &connection.Mechanism{
+		Mechanism: &networkservice.Mechanism{
 			Parameters: map[string]string{
 				common.Workspace: nsmClient.Workspace + "?",
 			},
@@ -103,9 +105,9 @@ func TestRestoreConnectionStateWrongDst(t *testing.T) {
 		Path: cmn.Strings2Path("src"),
 	}
 
-	dstConnection := &connection.Connection{
+	dstConnection := &networkservice.Connection{
 		Id: "2",
-		Mechanism: &connection.Mechanism{
+		Mechanism: &networkservice.Mechanism{
 			Type: kernel.MECHANISM,
 			Parameters: map[string]string{
 				kernel.WorkspaceNSEName: "nse1",

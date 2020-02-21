@@ -153,8 +153,8 @@ The NSM SDK Endpoint API enables plugging together different functionalities bas
 
 Writing a new *endpoint* is done by extending the `networkservice.NetworkServiceServer` structure. 
 
-* `Request(context.Context, *NetworkServiceRequest) (*connection.Connection, error)` - the request handler. The contract here is that the implementer should call next composite's Request method and should return whatever should be the incoming connection. Example: check the implementation in `sdk/endpoint/monitor.go`.
-* `Close(context.Context, *connection.Connection) (*empty.Empty, error)` - the close handler. The implementer should ensure that next composite's Close method is called before returning.
+* `Request(context.Context, *NetworkServiceRequest) (*networkservice.Connection, error)` - the request handler. The contract here is that the implementer should call next composite's Request method and should return whatever should be the incoming connection. Example: check the implementation in `sdk/endpoint/monitor.go`.
+* `Close(context.Context, *networkservice.Connection) (*empty.Empty, error)` - the close handler. The implementer should ensure that next composite's Close method is called before returning.
 
 
 In case endpoint need some initialization logic it could implement `endpoint.Initable` interface and method
@@ -180,7 +180,7 @@ The SDK comes with a set of useful *composites*, that can be chained together an
 * `ipam` - receives a connection and assigns it an IP pair from the configure prefix pool.
 * `monitor` - adds connection to the monitoring mechanism. Typically would be at the top of the composite chain.
 * `dns` - add DNS servers to ConnectionContext available in two flavors:
-* * `NewAddDNSConfigs(...connectioncontext.DNSConfig)` - Adds DNSConfigs to your connectionContext
+* * `NewAddDNSConfigs(...networkservice.DNSConfig)` - Adds DNSConfigs to your connectionContext
 * * `NewAddDnsConfigDstIp(searchDomains...string)` - Adds DNSConfig using the DstIp from ConnectionContext as the DNS Server IP
 * `customfunc` - allows for specifying a custom connection mutator, it also accept ctx.Context to access extra prameters.
 

@@ -8,12 +8,14 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/networkservicemesh/networkservicemesh/forwarder/vppagent/pkg/converter"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
-func CreateVppInterface(nscConnection *connection.Connection, baseDir string, vppAgentEndpoint string) error {
+// CreateVppInterface - will create vpp interface based on connection and params
+func CreateVppInterface(nscConnection *networkservice.Connection, baseDir, vppAgentEndpoint string) error {
 	conn, err := tools.DialTCPInsecure(vppAgentEndpoint)
 	if err != nil {
 		logrus.Errorf("can't dial grpc server: %v", err)

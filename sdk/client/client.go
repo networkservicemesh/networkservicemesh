@@ -23,7 +23,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/cls"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/cls"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
@@ -31,9 +31,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 )
@@ -52,18 +51,18 @@ type NsmClient struct {
 	*common.NsmConnection
 	ClientNetworkService string
 	ClientLabels         map[string]string
-	OutgoingConnections  []*connection.Connection
+	OutgoingConnections  []*networkservice.Connection
 	NscInterfaceName     string
 	tracerCloser         io.Closer
 }
 
 // Connect with no retry and delay
-func (nsmc *NsmClient) Connect(ctx context.Context, name, mechanism, description string) (*connection.Connection, error) {
+func (nsmc *NsmClient) Connect(ctx context.Context, name, mechanism, description string) (*networkservice.Connection, error) {
 	return nsmc.ConnectRetry(ctx, name, mechanism, description, 1, 0)
 }
 
 // Connect implements the business logic
-func (nsmc *NsmClient) ConnectRetry(ctx context.Context, name, mechanism, description string, retryCount int, retryDelay time.Duration) (*connection.Connection, error) {
+func (nsmc *NsmClient) ConnectRetry(ctx context.Context, name, mechanism, description string, retryCount int, retryDelay time.Duration) (*networkservice.Connection, error) {
 	span := spanhelper.FromContext(ctx, "nsmClient.Connect")
 	defer span.Finish()
 
@@ -86,18 +85,18 @@ func (nsmc *NsmClient) ConnectRetry(ctx context.Context, name, mechanism, descri
 		return nil, err
 	}
 
-	routes := []*connectioncontext.Route{}
+	routes := []*networkservice.Route{}
 	for _, r := range nsmc.Configuration.Routes {
-		routes = append(routes, &connectioncontext.Route{
+		routes = append(routes, &networkservice.Route{
 			Prefix: r,
 		})
 	}
 
 	outgoingRequest := &networkservice.NetworkServiceRequest{
-		Connection: &connection.Connection{
+		Connection: &networkservice.Connection{
 			NetworkService: nsmc.Configuration.ClientNetworkService,
-			Context: &connectioncontext.ConnectionContext{
-				IpContext: &connectioncontext.IPContext{
+			Context: &networkservice.ConnectionContext{
+				IpContext: &networkservice.IPContext{
 					SrcIpRequired: true,
 					DstIpRequired: true,
 					SrcRoutes:     routes,
@@ -105,11 +104,11 @@ func (nsmc *NsmClient) ConnectRetry(ctx context.Context, name, mechanism, descri
 			},
 			Labels: nsmc.ClientLabels,
 		},
-		MechanismPreferences: []*connection.Mechanism{
+		MechanismPreferences: []*networkservice.Mechanism{
 			outgoingMechanism,
 		},
 	}
-	var outgoingConnection *connection.Connection
+	var outgoingConnection *networkservice.Connection
 	maxRetry := retryCount
 	for retryCount >= 0 {
 		var attemptSpan = spanhelper.FromContext(span.Context(), fmt.Sprintf("nsmClient.Connect.attempt:%v", maxRetry-retryCount))
@@ -145,7 +144,7 @@ func (nsmc *NsmClient) ConnectRetry(ctx context.Context, name, mechanism, descri
 }
 
 // Close will terminate a particular connection
-func (nsmc *NsmClient) Close(ctx context.Context, outgoingConnection *connection.Connection) error {
+func (nsmc *NsmClient) Close(ctx context.Context, outgoingConnection *networkservice.Connection) error {
 	nsmc.Lock()
 	defer nsmc.Unlock()
 

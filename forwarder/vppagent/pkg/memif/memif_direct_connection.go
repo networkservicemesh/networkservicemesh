@@ -5,7 +5,7 @@ import (
 	"path"
 	"sync"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/memif"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/memif"
 
 	"github.com/sirupsen/logrus"
 

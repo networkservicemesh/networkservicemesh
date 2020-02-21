@@ -5,7 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
 )
 
 // ForwarderState describes state of forwarder
@@ -23,8 +23,8 @@ const (
 type Forwarder struct {
 	RegisteredName       string
 	SocketLocation       string
-	LocalMechanisms      []*connection.Mechanism
-	RemoteMechanisms     []*connection.Mechanism
+	LocalMechanisms      []*networkservice.Mechanism
+	RemoteMechanisms     []*networkservice.Mechanism
 	MechanismsConfigured bool
 }
 
@@ -34,12 +34,12 @@ func (d *Forwarder) clone() cloneable {
 		return nil
 	}
 
-	lm := make([]*connection.Mechanism, 0, len(d.LocalMechanisms))
+	lm := make([]*networkservice.Mechanism, 0, len(d.LocalMechanisms))
 	for _, m := range d.LocalMechanisms {
 		lm = append(lm, m.Clone())
 	}
 
-	rm := make([]*connection.Mechanism, 0, len(d.RemoteMechanisms))
+	rm := make([]*networkservice.Mechanism, 0, len(d.RemoteMechanisms))
 	for _, m := range d.RemoteMechanisms {
 		rm = append(rm, m.Clone())
 	}
@@ -54,8 +54,8 @@ func (d *Forwarder) clone() cloneable {
 }
 
 // SetLocalMechanisms sets forwarder local mechanisms
-func (d *Forwarder) SetLocalMechanisms(mechanisms []*connection.Mechanism) {
-	lm := make([]*connection.Mechanism, 0, len(mechanisms))
+func (d *Forwarder) SetLocalMechanisms(mechanisms []*networkservice.Mechanism) {
+	lm := make([]*networkservice.Mechanism, 0, len(mechanisms))
 	for _, m := range mechanisms {
 		lm = append(lm, m)
 	}
@@ -64,8 +64,8 @@ func (d *Forwarder) SetLocalMechanisms(mechanisms []*connection.Mechanism) {
 }
 
 // SetRemoteMechanisms sets forwarder remote mechanisms
-func (d *Forwarder) SetRemoteMechanisms(mechanisms []*connection.Mechanism) {
-	rm := make([]*connection.Mechanism, 0, len(mechanisms))
+func (d *Forwarder) SetRemoteMechanisms(mechanisms []*networkservice.Mechanism) {
+	rm := make([]*networkservice.Mechanism, 0, len(mechanisms))
 	for _, m := range mechanisms {
 		rm = append(rm, m)
 	}

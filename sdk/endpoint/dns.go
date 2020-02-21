@@ -21,20 +21,19 @@ import (
 
 	"github.com/golang/protobuf/ptypes/empty"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
 )
 
 type addDnsConfigs struct {
-	dnsConfigs []*connectioncontext.DNSConfig
+	dnsConfigs []*networkservice.DNSConfig
 }
 
-func NewAddDNSConfigs(dnsConfigs ...*connectioncontext.DNSConfig) networkservice.NetworkServiceServer {
+// NewAddDNSConfigs - creates new DNS network service server.
+func NewAddDNSConfigs(dnsConfigs ...*networkservice.DNSConfig) networkservice.NetworkServiceServer {
 	return addDnsConfigs{dnsConfigs: dnsConfigs}
 }
 
-func (a addDnsConfigs) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+func (a addDnsConfigs) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.Connection, error) {
 	ensureDnsContextPresent(request)
 	dnsConfigs := request.GetConnection().GetContext().GetDnsContext().GetConfigs()
 	dnsConfigs = append(dnsConfigs, a.dnsConfigs...)
@@ -45,7 +44,7 @@ func (a addDnsConfigs) Request(ctx context.Context, request *networkservice.Netw
 	return request.GetConnection(), nil
 }
 
-func (a addDnsConfigs) Close(ctx context.Context, conn *connection.Connection) (*empty.Empty, error) {
+func (a addDnsConfigs) Close(ctx context.Context, conn *networkservice.Connection) (*empty.Empty, error) {
 	if Next(ctx) != nil {
 		return Next(ctx).Close(ctx, conn)
 	}
@@ -60,7 +59,7 @@ func NewAddDnsConfigDstIp(searchDomains ...string) networkservice.NetworkService
 	return &addDnsConfigDstIp{searchDomains: searchDomains}
 }
 
-func (a addDnsConfigDstIp) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+func (a addDnsConfigDstIp) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.Connection, error) {
 	conn := request.GetConnection()
 	if Next(ctx) != nil {
 		var err error
@@ -74,7 +73,7 @@ func (a addDnsConfigDstIp) Request(ctx context.Context, request *networkservice.
 		ensureDnsContextPresent(request)
 		dstIp = strings.Split(dstIp, "/")[0]
 		dnsConfigs := conn.GetContext().GetDnsContext().GetConfigs()
-		dnsConfigs = append(dnsConfigs, &connectioncontext.DNSConfig{
+		dnsConfigs = append(dnsConfigs, &networkservice.DNSConfig{
 			DnsServerIps:  []string{dstIp},
 			SearchDomains: a.searchDomains,
 		})
@@ -83,7 +82,7 @@ func (a addDnsConfigDstIp) Request(ctx context.Context, request *networkservice.
 	return conn, nil
 }
 
-func (a addDnsConfigDstIp) Close(ctx context.Context, conn *connection.Connection) (*empty.Empty, error) {
+func (a addDnsConfigDstIp) Close(ctx context.Context, conn *networkservice.Connection) (*empty.Empty, error) {
 	if Next(ctx) != nil {
 		return Next(ctx).Close(ctx, conn)
 	}
@@ -92,12 +91,12 @@ func (a addDnsConfigDstIp) Close(ctx context.Context, conn *connection.Connectio
 
 func ensureDnsContextPresent(request *networkservice.NetworkServiceRequest) {
 	if request.GetConnection() == nil {
-		request.Connection = &connection.Connection{}
+		request.Connection = &networkservice.Connection{}
 	}
 	if request.GetConnection().GetContext() == nil {
-		request.GetConnection().Context = &connectioncontext.ConnectionContext{}
+		request.GetConnection().Context = &networkservice.ConnectionContext{}
 	}
 	if request.GetConnection().GetContext().GetDnsContext() == nil {
-		request.GetConnection().GetContext().DnsContext = &connectioncontext.DNSContext{}
+		request.GetConnection().GetContext().DnsContext = &networkservice.DNSContext{}
 	}
 }

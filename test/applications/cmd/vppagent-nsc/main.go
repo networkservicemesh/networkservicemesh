@@ -28,8 +28,9 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/memif"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/memif"
+
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/client"
 )
@@ -52,7 +53,7 @@ func (nscb *nsClientBackend) New() error {
 	return nil
 }
 
-func (nscb *nsClientBackend) Connect(connection *connection.Connection) error {
+func (nscb *nsClientBackend) Connect(connection *networkservice.Connection) error {
 	logrus.Infof("nsClientBackend received: %v", connection)
 	err := CreateVppInterface(connection, nscb.workspace, nscb.vppAgentEndpoint)
 	if err != nil {
@@ -63,7 +64,7 @@ func (nscb *nsClientBackend) Connect(connection *connection.Connection) error {
 
 var version string
 
-func (nscb *nsClientBackend) Updated(_, new *connection.Connection) {
+func (nscb *nsClientBackend) Updated(_, new *networkservice.Connection) {
 	err := nscb.Connect(new)
 	if err != nil {
 		logrus.Fatalf("Unable to re-connect %v", err)
@@ -105,7 +106,7 @@ func main() {
 	ctx, cancelProc = context.WithTimeout(context.Background(), client.ConnectionRetry*(client.RequestDelay+client.ConnectTimeout))
 	defer cancelProc()
 
-	var outgoingConnection *connection.Connection
+	var outgoingConnection *networkservice.Connection
 	outgoingConnection, err = nsmClient.ConnectRetry(ctx, "if1", memif.MECHANISM, "Primary interface", client.ConnectionRetry, client.RequestDelay)
 	if err != nil {
 		logrus.Fatalf("Unable to connect %v", err)

@@ -5,9 +5,9 @@ import (
 	"sync"
 	"time"
 
-	mechanismCommon "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
+	mechanismCommon "github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/common"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/kernel"
 
 	"github.com/pkg/errors"
 
@@ -17,7 +17,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
@@ -79,7 +80,7 @@ func (m *ClientConnectionManager) UpdateXcon(ctx context.Context, cc nsm.ClientC
 		return
 	}
 
-	if src := newXcon.GetLocalSource(); src != nil && src.State == connection.State_DOWN {
+	if src := newXcon.GetLocalSource(); src != nil && src.State == networkservice.State_DOWN {
 		logger.Info("ClientConnection src state is down. Closing.")
 		go func() {
 			for {
@@ -96,7 +97,7 @@ func (m *ClientConnectionManager) UpdateXcon(ctx context.Context, cc nsm.ClientC
 		return
 	}
 
-	if dst := newXcon.GetLocalDestination(); dst != nil && dst.State == connection.State_DOWN {
+	if dst := newXcon.GetLocalDestination(); dst != nil && dst.State == networkservice.State_DOWN {
 		logger.Info("ClientConnection dst state is down. calling Heal.")
 		m.manager.Heal(ctx, cc, nsm.HealStateDstDown)
 		return
@@ -132,7 +133,7 @@ func (m *ClientConnectionManager) ForwarderDown(ctx context.Context, forwarder *
 }
 
 // LocalDestinationUpdated handles case when local connection parameters changed
-func (m *ClientConnectionManager) LocalDestinationUpdated(ctx context.Context, cc *model.ClientConnection, localDst *connection.Connection) {
+func (m *ClientConnectionManager) LocalDestinationUpdated(ctx context.Context, cc *model.ClientConnection, localDst *networkservice.Connection) {
 	span := spanhelper.FromContext(ctx, "LocalDestinationUpdated")
 	defer span.Finish()
 	ctx = span.Context()
@@ -153,7 +154,7 @@ func (m *ClientConnectionManager) LocalDestinationUpdated(ctx context.Context, c
 }
 
 // RemoteDestinationUpdated handles case when remote connection parameters changed
-func (m *ClientConnectionManager) RemoteDestinationUpdated(ctx context.Context, cc *model.ClientConnection, remoteDst *connection.Connection) {
+func (m *ClientConnectionManager) RemoteDestinationUpdated(ctx context.Context, cc *model.ClientConnection, remoteDst *networkservice.Connection) {
 	span := spanhelper.FromContext(ctx, "RemoteDestinationUpdated")
 	defer span.Finish()
 	ctx = span.Context()
@@ -166,7 +167,7 @@ func (m *ClientConnectionManager) RemoteDestinationUpdated(ctx context.Context, 
 		return
 	}
 
-	if remoteDst.State == connection.State_UP {
+	if remoteDst.State == networkservice.State_UP {
 		logger.Infof("State is already UP do not send")
 		// TODO: in order to update connection parameters we need to update model here
 		// We do not need to heal in case DST state is UP, remote NSM will try to recover and only when will send Update, Delete of connection.
@@ -177,7 +178,7 @@ func (m *ClientConnectionManager) RemoteDestinationUpdated(ctx context.Context, 
 	m.destinationUpdated(ctx, cc, remoteDst)
 }
 
-func (m *ClientConnectionManager) destinationUpdated(ctx context.Context, cc nsm.ClientConnection, dst *connection.Connection) {
+func (m *ClientConnectionManager) destinationUpdated(ctx context.Context, cc nsm.ClientConnection, dst *networkservice.Connection) {
 	span := spanhelper.FromContext(ctx, "destinationUpdated")
 	defer span.Finish()
 	ctx = span.Context()
@@ -378,7 +379,7 @@ func (m *ClientConnectionManager) GetClientConnectionBySource(networkServiceMana
 }
 
 // UpdateRemoteMonitorDone - update remote monitor connection lost
-func (m *ClientConnectionManager) UpdateRemoteMonitorDone(networkServiceManagers []*connection.PathSegment) {
+func (m *ClientConnectionManager) UpdateRemoteMonitorDone(networkServiceManagers []*networkservice.PathSegment) {
 	// We need to be sure there is no active connections from selected Remote NSM.
 	if len(networkServiceManagers) >= 1 {
 		for _, conn := range m.GetClientConnectionBySource(networkServiceManagers[0].GetName()) {

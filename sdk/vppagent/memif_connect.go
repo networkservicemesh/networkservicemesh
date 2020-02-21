@@ -11,10 +11,10 @@ import (
 	interfaces "github.com/ligato/vpp-agent/api/models/vpp/interfaces"
 	"github.com/pkg/errors"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/memif"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/memif"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
 )
@@ -28,7 +28,7 @@ type MemifConnect struct {
 // Provides/Consumes from ctx context.Context:
 //     VppAgentConfig
 //     ConnectionMap
-func (mc *MemifConnect) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+func (mc *MemifConnect) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.Connection, error) {
 	ctx = WithConfig(ctx) // Guarantees we will retrieve a non-nil VppAgentConfig from context.Context
 	vppAgentConfig := Config(ctx)
 
@@ -47,7 +47,7 @@ func (mc *MemifConnect) Request(ctx context.Context, request *networkservice.Net
 	return request.GetConnection(), nil
 }
 
-func (mc *MemifConnect) updateConnectionMap(ctx context.Context, vppAgentConfig *configurator.Config, incomingConnection *connection.Connection) {
+func (mc *MemifConnect) updateConnectionMap(ctx context.Context, vppAgentConfig *configurator.Config, incomingConnection *networkservice.Connection) {
 	connectionMap := ConnectionMap(ctx)
 	interfaces := vppAgentConfig.VppConfig.Interfaces
 	connectionMap[incomingConnection.GetId()] = interfaces[len(interfaces)-1]
@@ -58,7 +58,7 @@ func (mc *MemifConnect) updateConnectionMap(ctx context.Context, vppAgentConfig 
 //     VppAgentConfig
 //     ConnectionMap
 //	   Next
-func (mc *MemifConnect) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
+func (mc *MemifConnect) Close(ctx context.Context, connection *networkservice.Connection) (*empty.Empty, error) {
 	ctx = WithConfig(ctx) // Guarantees we will retrieve a non-nil VppAgentConfig from context.Context
 	vppAgentConfig := Config(ctx)
 	if err := appendMemifInterface(vppAgentConfig, connection, mc.Workspace, true); err != nil {
@@ -86,7 +86,7 @@ func NewMemifConnect(configuration *common.NSConfiguration) *MemifConnect {
 	}
 }
 
-func appendMemifInterface(rv *configurator.Config, connection *connection.Connection, workspace string, master bool) error {
+func appendMemifInterface(rv *configurator.Config, connection *networkservice.Connection, workspace string, master bool) error {
 	socketFilename := path.Join(workspace, memif.ToMechanism(connection.GetMechanism()).GetSocketFilename())
 	socketDir := path.Dir(socketFilename)
 

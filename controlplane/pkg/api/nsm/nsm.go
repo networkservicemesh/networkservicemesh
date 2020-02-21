@@ -19,9 +19,8 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/properties"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
@@ -36,15 +35,15 @@ import (
 // ClientConnection is an interface for client connection
 type ClientConnection interface {
 	GetID() string
-	GetConnectionSource() *connection.Connection
-	GetConnectionDestination() *connection.Connection
+	GetConnectionSource() *networkservice.Connection
+	GetConnectionDestination() *networkservice.Connection
 	GetNetworkService() string
 }
 
 // NetworkServiceClient is an interface for network service client
 type NetworkServiceClient interface {
-	Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error)
-	Close(ctx context.Context, connection *connection.Connection) error
+	Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.Connection, error)
+	Close(ctx context.Context, connection *networkservice.Connection) error
 
 	Cleanup() error
 }
@@ -102,7 +101,7 @@ type NetworkServiceManager interface {
 
 //NetworkServiceEndpointManager - manages endpoints, TODO: Will be removed in next PRs.
 type NetworkServiceEndpointManager interface {
-	GetEndpoint(ctx context.Context, requestConnection *connection.Connection, ignoreEndpoints map[registry.EndpointNSMName]*registry.NSERegistration) (*registry.NSERegistration, error)
+	GetEndpoint(ctx context.Context, requestConnection *networkservice.Connection, ignoreEndpoints map[registry.EndpointNSMName]*registry.NSERegistration) (*registry.NSERegistration, error)
 	CreateNSEClient(ctx context.Context, endpoint *registry.NSERegistration) (NetworkServiceClient, error)
 	IsLocalEndpoint(endpoint *registry.NSERegistration) bool
 	CheckUpdateNSE(ctx context.Context, reg *registry.NSERegistration) bool

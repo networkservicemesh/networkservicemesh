@@ -13,7 +13,8 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	metricspkg "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/metrics"
 
@@ -200,7 +201,7 @@ func TestPrometheusMetrics(t *testing.T) {
 func TestGetMetricsIdentifiers(t *testing.T) {
 	cc := &crossconnect.CrossConnect{
 		Id: "1",
-		Source: &connection.Connection{
+		Source: &networkservice.Connection{
 			Id: "1",
 			Labels: map[string]string{
 				"app":       "icmp",
@@ -208,7 +209,7 @@ func TestGetMetricsIdentifiers(t *testing.T) {
 				"podName":   "icmp-responder-nsc-6475749466-qbcq5",
 			},
 		},
-		Destination: &connection.Connection{
+		Destination: &networkservice.Connection{
 			Id: "2",
 			Labels: map[string]string{
 				"app":       "icmp",

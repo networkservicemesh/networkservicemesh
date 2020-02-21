@@ -23,13 +23,13 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	mechanismCommon "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/srv6"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+	mechanismCommon "github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/common"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/kernel"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/srv6"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/vxlan"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
@@ -47,7 +47,7 @@ const (
 	ForwarderTimeout    = 15 * time.Second
 )
 
-// Network service manager to manage both local/remote NSE connections.
+// Network service Manager to manage both local/remote NSE connections.
 type networkServiceManager struct {
 	nsm.NetworkServiceHealProcessor
 	sync.RWMutex
@@ -206,7 +206,7 @@ func (srv *networkServiceManager) restoreXconnection(ctx context.Context, xcon *
 			// Update request to match source connection
 			request = &networkservice.NetworkServiceRequest{
 				Connection: src,
-				MechanismPreferences: []*connection.Mechanism{
+				MechanismPreferences: []*networkservice.Mechanism{
 					src.Mechanism,
 				},
 			}
@@ -280,7 +280,7 @@ func (srv *networkServiceManager) performHeal(ctx context.Context, xcon *crossco
 			}
 		}
 
-		if src.GetState() == connection.State_DOWN {
+		if src.GetState() == networkservice.State_DOWN {
 			// if source is down, we need to close connection properly.
 			_ = srv.CloseConnection(ctx, clientConnection)
 		}
@@ -354,13 +354,13 @@ func (srv *networkServiceManager) getConnectionParameters(xcon *crossconnect.Cro
 		switch mm.GetType() {
 		case vxlan.MECHANISM:
 			m := vxlan.ToMechanism(mm)
-			srcIP, err := m.SrcIP()
-			dstIP, err2 := m.DstIP()
+			srcIP := m.SrcIP()
+			dstIP := m.DstIP()
 			vni, err3 := m.VNI()
-			if err != nil || err2 != nil || err3 != nil {
-				logrus.Errorf("Error retrieving SRC/DST IP or VNI from Remote connection %v %v", err, err2)
+			if err3 != nil {
+				logrus.Errorf("Error retrieving SRC/DST IP or VNI from Remote connection %v", err3)
 			} else {
-				srv.serviceRegistry.VniAllocator().Restore(srcIP, dstIP, vni)
+				srv.serviceRegistry.VniAllocator().Restore(srcIP.String(), dstIP.String(), vni)
 			}
 		case srv6.MECHANISM:
 			m := srv6.ToMechanism(mm)

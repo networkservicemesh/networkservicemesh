@@ -7,16 +7,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/common"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
 )
 
 type nseWithOptions struct {
@@ -24,11 +22,11 @@ type nseWithOptions struct {
 	srcIp             string
 	dstIp             string
 	need_ip_neighbors bool
-	connection        *connection.Connection
+	connection        *networkservice.Connection
 }
 
-func (impl *nseWithOptions) Request(ctx context.Context, in *networkservice.NetworkServiceRequest, opts ...grpc.CallOption) (*connection.Connection, error) {
-	var mechanism *connection.Mechanism
+func (impl *nseWithOptions) Request(ctx context.Context, in *networkservice.NetworkServiceRequest, opts ...grpc.CallOption) (*networkservice.Connection, error) {
+	var mechanism *networkservice.Mechanism
 
 	if in.Connection.Labels != nil {
 		if val, ok := in.Connection.Labels["nse_sleep"]; ok {
@@ -39,21 +37,21 @@ func (impl *nseWithOptions) Request(ctx context.Context, in *networkservice.Netw
 			}
 		}
 	}
-	mechanism = &connection.Mechanism{
+	mechanism = &networkservice.Mechanism{
 		Type: in.MechanismPreferences[0].Type,
 		Parameters: map[string]string{
-			common.NetNsInodeKey: impl.netns,
+			common.NetNSInodeKey: impl.netns,
 			// TODO: Fix this terrible hack using xid for getting a unique interface name
 			common.InterfaceNameKey: "nsm" + in.GetConnection().GetId(),
 		},
 	}
 
-	conn := &connection.Connection{
+	conn := &networkservice.Connection{
 		Id:             in.GetConnection().GetId(),
 		NetworkService: in.GetConnection().GetNetworkService(),
 		Mechanism:      mechanism,
-		Context: &connectioncontext.ConnectionContext{
-			IpContext: &connectioncontext.IPContext{
+		Context: &networkservice.ConnectionContext{
+			IpContext: &networkservice.IPContext{
 				SrcIpAddr: impl.srcIp,
 				DstIpAddr: impl.dstIp,
 			},
@@ -61,7 +59,7 @@ func (impl *nseWithOptions) Request(ctx context.Context, in *networkservice.Netw
 	}
 
 	if impl.need_ip_neighbors {
-		conn.GetContext().GetIpContext().IpNeighbors = []*connectioncontext.IpNeighbor{
+		conn.GetContext().GetIpContext().IpNeighbors = []*networkservice.IpNeighbor{
 			{
 				Ip:              "127.0.0.1",
 				HardwareAddress: "ff-ee-ff-ee-ff",
@@ -72,7 +70,7 @@ func (impl *nseWithOptions) Request(ctx context.Context, in *networkservice.Netw
 	return conn, nil
 }
 
-func (nseWithOptions) Close(ctx context.Context, in *connection.Connection, opts ...grpc.CallOption) (*empty.Empty, error) {
+func (nseWithOptions) Close(ctx context.Context, in *networkservice.Connection, opts ...grpc.CallOption) (*empty.Empty, error) {
 	return nil, nil
 }
 

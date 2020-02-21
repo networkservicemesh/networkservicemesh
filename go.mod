@@ -52,3 +52,5 @@ replace (
 	github.com/networkservicemesh/networkservicemesh/test => ./test
 	github.com/networkservicemesh/networkservicemesh/utils => ./utils
 )
+
+require github.com/networkservicemesh/networkservicemesh/pkg v0.0.0-00010101000000-000000000000

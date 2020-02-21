@@ -3,9 +3,8 @@ package utils
 import (
 	"testing"
 
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
 	"github.com/onsi/gomega"
-
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
 )
 
 func TestDnsConfigManagerCreation(t *testing.T) {
@@ -67,8 +66,8 @@ func TestRemoveDuplicates(t *testing.T) {
 	assert.Expect(r).Should(gomega.Equal("aaa bbb ccc aa bb ee"))
 }
 
-func testBasicConfig() *connectioncontext.DNSConfig {
-	return &connectioncontext.DNSConfig{
+func testBasicConfig() *networkservice.DNSConfig {
+	return &networkservice.DNSConfig{
 		DnsServerIps:  []string{"127.0.0.1"},
 		SearchDomains: []string{},
 	}

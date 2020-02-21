@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package nsmd
+package tests
 
 import (
 	"context"
@@ -31,9 +31,10 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
@@ -54,7 +55,7 @@ func TestNsmdMonitorShouldHandleServerShutdown(t *testing.T) {
 func startClient(g *gomega.WithT, timeout time.Duration, serverPort int) error {
 	conn, err := tools.DialTCP(fmt.Sprintf(":%v", serverPort))
 	g.Expect(err).Should(gomega.BeNil())
-	client, err := connectionmonitor.NewMonitorClient(conn, &connection.MonitorScopeSelector{})
+	client, err := connectionmonitor.NewMonitorClient(conn, &networkservice.MonitorScopeSelector{})
 	g.Expect(err).Should(gomega.BeNil())
 	for {
 		select {
@@ -73,7 +74,7 @@ func startClient(g *gomega.WithT, timeout time.Duration, serverPort int) error {
 func setupServer(g *gomega.WithT) (int, func()) {
 	grpcServer := tools.NewServer(context.Background())
 	remoteMonitor := remote.NewMonitorServer(nil)
-	connection.RegisterMonitorConnectionServer(grpcServer, remoteMonitor)
+	networkservice.RegisterMonitorConnectionServer(grpcServer, remoteMonitor)
 	l, err := net.Listen("tcp", ":0")
 	g.Expect(err).Should(gomega.BeNil())
 	go func() {
@@ -102,8 +103,8 @@ func (*testEvent) Entities() map[string]monitor.Entity {
 }
 
 func (t *testEvent) Message() (interface{}, error) {
-	return &connection.ConnectionEvent{
-		Type:        connection.ConnectionEventType_UPDATE,
+	return &networkservice.ConnectionEvent{
+		Type:        networkservice.ConnectionEventType_UPDATE,
 		Connections: nil,
 	}, nil
 }

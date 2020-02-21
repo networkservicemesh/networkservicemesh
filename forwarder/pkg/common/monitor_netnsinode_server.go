@@ -21,12 +21,15 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
+
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/memif"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/kernel"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/memif"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	monitor_crossconnect "github.com/networkservicemesh/networkservicemesh/sdk/monitor/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/utils"
@@ -120,19 +123,19 @@ func (m *MonitorNetNsInodeServer) checkCrossConnectLiveness() error {
 }
 
 // Accept cross connection and one of connections from it,
-func (m *MonitorNetNsInodeServer) checkConnectionLiveness(xcon *crossconnect.CrossConnect, conn *connection.Connection,
+func (m *MonitorNetNsInodeServer) checkConnectionLiveness(xcon monitor.Entity, conn *networkservice.Connection,
 	inodeSet *InodeSet) error {
 	var inode uint64
 	var err error
 
 	switch conn.GetMechanism().GetType() {
 	case kernel.MECHANISM:
-		inode, err = strconv.ParseUint(kernel.ToMechanism(conn.GetMechanism()).GetNetNsInode(), 10, 64)
+		inode, err = strconv.ParseUint(kernel.ToMechanism(conn.GetMechanism()).GetNetNSInode(), 10, 64)
 		if err != nil {
 			return err
 		}
 	case memif.MECHANISM:
-		inode, err = strconv.ParseUint(memif.ToMechanism(conn.GetMechanism()).GetNetNsInode(), 10, 64)
+		inode, err = strconv.ParseUint(memif.ToMechanism(conn.GetMechanism()).GetNetNSInode(), 10, 64)
 		if err != nil {
 			return err
 		}
@@ -140,9 +143,9 @@ func (m *MonitorNetNsInodeServer) checkConnectionLiveness(xcon *crossconnect.Cro
 		return errors.New("nsmonitor: wrong mechanism type passed")
 	}
 
-	if !inodeSet.Contains(inode) && conn.State == connection.State_UP {
+	if !inodeSet.Contains(inode) && conn.State == networkservice.State_UP {
 		logrus.Infof("nsmonitor: connection is down")
-		conn.State = connection.State_DOWN
+		conn.State = networkservice.State_DOWN
 		if m.notifyForwarder != nil {
 			m.notifyForwarder()
 		}

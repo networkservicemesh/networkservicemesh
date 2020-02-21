@@ -23,8 +23,8 @@ import (
 	l2 "github.com/ligato/vpp-agent/api/models/vpp/l2"
 	"github.com/pkg/errors"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
 )
@@ -36,7 +36,7 @@ type bridgeConnect struct {
 }
 
 // Request - plugs interface into a Bridge domain
-func (vbc *bridgeConnect) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+func (vbc *bridgeConnect) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.Connection, error) {
 	err := vbc.insertInterfaceIntoBridge(ctx, request.GetConnection())
 	if err != nil {
 		endpoint.Log(ctx).Error(err)
@@ -49,7 +49,7 @@ func (vbc *bridgeConnect) Request(ctx context.Context, request *networkservice.N
 }
 
 // Close - disconnect interface from Bridge Domain
-func (vbc *bridgeConnect) Close(ctx context.Context, conn *connection.Connection) (*empty.Empty, error) {
+func (vbc *bridgeConnect) Close(ctx context.Context, conn *networkservice.Connection) (*empty.Empty, error) {
 	err := vbc.insertInterfaceIntoBridge(ctx, conn)
 	if err != nil {
 		endpoint.Log(ctx).Error(err)
@@ -72,7 +72,7 @@ func NewBridgeConnect(configuration *common.NSConfiguration, bridgeName string) 
 	return bridge
 }
 
-func (vbc *bridgeConnect) insertInterfaceIntoBridge(ctx context.Context, conn *connection.Connection) error {
+func (vbc *bridgeConnect) insertInterfaceIntoBridge(ctx context.Context, conn *networkservice.Connection) error {
 	cfg := Config(ctx)
 	conMap := ConnectionMap(ctx)
 	if conMap[conn.GetId()] == nil {

@@ -22,13 +22,14 @@ import (
 	"path"
 	"strings"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/common"
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/memif"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/kernel"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/memif"
+
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
@@ -63,19 +64,19 @@ func IsIPv6(address string) bool {
 }
 
 // NewMechanism creates a new mechanism with passed type and description.
-func NewMechanism(cls string, t string, name, description string) (*connection.Mechanism, error) {
+func NewMechanism(cls, t, name, description string) (*networkservice.Mechanism, error) {
 	inodeNum, err := tools.GetCurrentNS()
 	if err != nil {
 		return nil, err
 	}
-	rv := &connection.Mechanism{
+	rv := &networkservice.Mechanism{
 		Cls:  cls,
 		Type: t,
 		Parameters: map[string]string{
 			common.InterfaceNameKey:        name,
 			common.InterfaceDescriptionKey: description,
 			kernel.SocketFilename:          path.Join(name, memif.MemifSocket),
-			common.NetNsInodeKey:           inodeNum,
+			common.NetNSInodeKey:           inodeNum,
 		},
 	}
 	err = rv.IsValid()

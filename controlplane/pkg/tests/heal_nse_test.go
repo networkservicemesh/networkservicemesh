@@ -11,18 +11,17 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/common"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/kernel"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
 
 	. "github.com/onsi/gomega"
 	"golang.org/x/net/context"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 )
 
@@ -57,21 +56,21 @@ func TestHealRemoteNSE(t *testing.T) {
 	defer conn.Close()
 
 	request := &networkservice.NetworkServiceRequest{
-		Connection: &connection.Connection{
+		Connection: &networkservice.Connection{
 			NetworkService: "golden_network",
-			Context: &connectioncontext.ConnectionContext{
-				IpContext: &connectioncontext.IPContext{
+			Context: &networkservice.ConnectionContext{
+				IpContext: &networkservice.IPContext{
 					DstIpRequired: true,
 					SrcIpRequired: true,
 				},
 			},
 			Labels: make(map[string]string),
 		},
-		MechanismPreferences: []*connection.Mechanism{
+		MechanismPreferences: []*networkservice.Mechanism{
 			{
 				Type: kernel.MECHANISM,
 				Parameters: map[string]string{
-					common.NetNsInodeKey:    "10",
+					common.NetNSInodeKey:    "10",
 					common.InterfaceNameKey: "icmp-responder1",
 				},
 			},
@@ -105,7 +104,7 @@ func TestHealRemoteNSE(t *testing.T) {
 	srv2.TestModel.DeleteEndpoint(context.Background(), epName)
 
 	// Simulate delete
-	clientConnection2.Xcon.Destination.State = connection.State_DOWN
+	clientConnection2.Xcon.Destination.State = networkservice.State_DOWN
 	srv.manager.GetHealProperties().HealDSTNSEWaitTimeout = time.Second * 1
 	srv2.manager.Heal(context.Background(), clientConnection2, nsm.HealStateDstDown)
 
@@ -163,21 +162,21 @@ func TestDeleteNSCAfterWaitNSEWhenHeal(t *testing.T) {
 	defer conn.Close()
 
 	request := &networkservice.NetworkServiceRequest{
-		Connection: &connection.Connection{
+		Connection: &networkservice.Connection{
 			NetworkService: "golden_network",
-			Context: &connectioncontext.ConnectionContext{
-				IpContext: &connectioncontext.IPContext{
+			Context: &networkservice.ConnectionContext{
+				IpContext: &networkservice.IPContext{
 					DstIpRequired: true,
 					SrcIpRequired: true,
 				},
 			},
 			Labels: make(map[string]string),
 		},
-		MechanismPreferences: []*connection.Mechanism{
+		MechanismPreferences: []*networkservice.Mechanism{
 			{
 				Type: kernel.MECHANISM,
 				Parameters: map[string]string{
-					common.NetNsInodeKey:    "10",
+					common.NetNSInodeKey:    "10",
 					common.InterfaceNameKey: "icmp-responder1",
 				},
 			},
@@ -204,7 +203,7 @@ func TestDeleteNSCAfterWaitNSEWhenHeal(t *testing.T) {
 
 	srv.TestModel.DeleteEndpoint(context.Background(), epName)
 
-	clientConnection1.Xcon.Destination.State = connection.State_DOWN
+	clientConnection1.Xcon.Destination.State = networkservice.State_DOWN
 	srv.manager.GetHealProperties().HealDSTNSEWaitTimeout = time.Second * 1
 	srv.manager.Heal(context.Background(), clientConnection1, nsm.HealStateDstDown)
 
@@ -263,21 +262,21 @@ func TestDeleteNSCBeforeWaitNSEWhenHeal(t *testing.T) {
 	defer conn.Close()
 
 	request := &networkservice.NetworkServiceRequest{
-		Connection: &connection.Connection{
+		Connection: &networkservice.Connection{
 			NetworkService: "golden_network",
-			Context: &connectioncontext.ConnectionContext{
-				IpContext: &connectioncontext.IPContext{
+			Context: &networkservice.ConnectionContext{
+				IpContext: &networkservice.IPContext{
 					DstIpRequired: true,
 					SrcIpRequired: true,
 				},
 			},
 			Labels: make(map[string]string),
 		},
-		MechanismPreferences: []*connection.Mechanism{
+		MechanismPreferences: []*networkservice.Mechanism{
 			{
 				Type: kernel.MECHANISM,
 				Parameters: map[string]string{
-					common.NetNsInodeKey:    "10",
+					common.NetNSInodeKey:    "10",
 					common.InterfaceNameKey: "icmp-responder1",
 				},
 			},
@@ -304,7 +303,7 @@ func TestDeleteNSCBeforeWaitNSEWhenHeal(t *testing.T) {
 
 	srv.TestModel.DeleteEndpoint(context.Background(), epName)
 
-	clientConnection1.Xcon.Destination.State = connection.State_DOWN
+	clientConnection1.Xcon.Destination.State = networkservice.State_DOWN
 	srv.manager.GetHealProperties().HealDSTNSEWaitTimeout = time.Second * 10
 	go srv.manager.Heal(context.Background(), clientConnection1, nsm.HealStateDstDown)
 

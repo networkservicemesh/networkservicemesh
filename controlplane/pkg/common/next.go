@@ -23,8 +23,8 @@ import (
 
 	"github.com/golang/protobuf/ptypes/empty"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/networkservicemesh/networkservicemesh/utils/typeutils"
 )
 
@@ -56,7 +56,7 @@ func Next(ctx context.Context) networkservice.NetworkServiceServer {
 }
 
 // ProcessNext - performs a next operation on chain if defined.
-func ProcessNext(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+func ProcessNext(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.Connection, error) {
 	if Next(ctx) != nil {
 		return Next(ctx).Request(ctx, request)
 	}
@@ -64,14 +64,14 @@ func ProcessNext(ctx context.Context, request *networkservice.NetworkServiceRequ
 }
 
 // ProcessClose - perform a next close operation on chain if defined
-func ProcessClose(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
+func ProcessClose(ctx context.Context, connection *networkservice.Connection) (*empty.Empty, error) {
 	if Next(ctx) != nil {
 		return Next(ctx).Close(ctx, connection)
 	}
 	return &empty.Empty{}, nil
 }
 
-func (n *nextEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+func (n *nextEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.Connection, error) {
 	if n.index+1 < len(n.composite.services) {
 		ctx = WithNext(ctx, &nextEndpoint{factoryName: n.factoryName, composite: n.composite, index: n.index + 1})
 	} else {
@@ -94,7 +94,7 @@ func (n *nextEndpoint) Request(ctx context.Context, request *networkservice.Netw
 	return rv, err
 }
 
-func (n *nextEndpoint) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
+func (n *nextEndpoint) Close(ctx context.Context, connection *networkservice.Connection) (*empty.Empty, error) {
 	if n.index+1 < len(n.composite.services) {
 		ctx = WithNext(ctx, &nextEndpoint{factoryName: n.factoryName, composite: n.composite, index: n.index + 1})
 	} else {

@@ -20,7 +20,7 @@ import (
 
 	vpp_l3 "github.com/ligato/vpp-agent/api/models/vpp/l3"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/srv6"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/srv6"
 
 	"github.com/ligato/vpp-agent/api/configurator"
 	"github.com/ligato/vpp-agent/api/models/vpp"
@@ -29,21 +29,21 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/vxlan"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
 )
 
 // RemoteConnectionConverter described the remote connection
 type RemoteConnectionConverter struct {
-	*connection.Connection
+	*networkservice.Connection
 	name    string
 	tapName string
 	side    ConnectionContextSide
 }
 
 // NewRemoteConnectionConverter creates a new remote connection coverter
-func NewRemoteConnectionConverter(c *connection.Connection, name, tapName string, side ConnectionContextSide) *RemoteConnectionConverter {
+func NewRemoteConnectionConverter(c *networkservice.Connection, name, tapName string, side ConnectionContextSide) *RemoteConnectionConverter {
 	return &RemoteConnectionConverter{
 		Connection: c,
 		name:       name,
@@ -86,12 +86,12 @@ func (c *RemoteConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 	case vxlan.MECHANISM:
 		m := vxlan.ToMechanism(c.GetMechanism())
 		// If the remote Connection is DESTINATION Side then srcip/dstip match the Connection
-		srcip, _ := m.SrcIP()
-		dstip, _ := m.DstIP()
+		srcip := m.SrcIP()
+		dstip := m.DstIP()
 		if c.side == SOURCE {
 			// If the remote Connection is DESTINATION Side then srcip/dstip need to be flipped from the Connection
-			srcip, _ = m.DstIP()
-			dstip, _ = m.SrcIP()
+			srcip = m.DstIP()
+			dstip = m.SrcIP()
 		}
 		vni, _ := m.VNI()
 
@@ -105,8 +105,8 @@ func (c *RemoteConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 			Enabled: true,
 			Link: &vpp_interfaces.Interface_Vxlan{
 				Vxlan: &vpp_interfaces.VxlanLink{
-					SrcAddress: srcip,
-					DstAddress: dstip,
+					SrcAddress: srcip.String(),
+					DstAddress: dstip.String(),
 					Vni:        vni,
 				},
 			},

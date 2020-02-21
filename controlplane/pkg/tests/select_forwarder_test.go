@@ -4,21 +4,20 @@ import (
 	"context"
 	"testing"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/memif"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/kernel"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/memif"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/vxlan"
 
 	. "github.com/onsi/gomega"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/common"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 )
 
-func createTestForwarder(name string, localMechanisms, remoteMechanisms []*connection.Mechanism) *model.Forwarder {
+func createTestForwarder(name string, localMechanisms, remoteMechanisms []*networkservice.Mechanism) *model.Forwarder {
 	return &model.Forwarder{
 		RegisteredName:       name,
 		SocketLocation:       "tcp:some_addr",
@@ -32,7 +31,7 @@ func TestSelectForwarder(t *testing.T) {
 	g := NewWithT(t)
 
 	testForwarder1_1 := createTestForwarder("test_data_plane_2",
-		[]*connection.Mechanism{
+		[]*networkservice.Mechanism{
 			{
 				Type: "VHOST_INTERFACE",
 			},
@@ -40,7 +39,7 @@ func TestSelectForwarder(t *testing.T) {
 				Type: memif.MECHANISM,
 			},
 		},
-		[]*connection.Mechanism{
+		[]*networkservice.Mechanism{
 			{
 				Type: vxlan.MECHANISM,
 				Parameters: map[string]string{
@@ -81,21 +80,21 @@ func TestSelectForwarder(t *testing.T) {
 
 	t.Run("Check-kernel", func(t *testing.T) {
 		request := &networkservice.NetworkServiceRequest{
-			Connection: &connection.Connection{
+			Connection: &networkservice.Connection{
 				NetworkService: "golden_network",
-				Context: &connectioncontext.ConnectionContext{
-					IpContext: &connectioncontext.IPContext{
+				Context: &networkservice.ConnectionContext{
+					IpContext: &networkservice.IPContext{
 						DstIpRequired: true,
 						SrcIpRequired: true,
 					},
 				},
 				Labels: make(map[string]string),
 			},
-			MechanismPreferences: []*connection.Mechanism{
+			MechanismPreferences: []*networkservice.Mechanism{
 				{
 					Type: kernel.MECHANISM,
 					Parameters: map[string]string{
-						common.NetNsInodeKey:    "10",
+						common.NetNSInodeKey:    "10",
 						common.InterfaceNameKey: "icmp-responder1",
 					},
 				},
@@ -108,21 +107,21 @@ func TestSelectForwarder(t *testing.T) {
 
 	t.Run("Check-memif", func(t *testing.T) {
 		request := &networkservice.NetworkServiceRequest{
-			Connection: &connection.Connection{
+			Connection: &networkservice.Connection{
 				NetworkService: "golden_network",
-				Context: &connectioncontext.ConnectionContext{
-					IpContext: &connectioncontext.IPContext{
+				Context: &networkservice.ConnectionContext{
+					IpContext: &networkservice.IPContext{
 						DstIpRequired: true,
 						SrcIpRequired: true,
 					},
 				},
 				Labels: make(map[string]string),
 			},
-			MechanismPreferences: []*connection.Mechanism{
+			MechanismPreferences: []*networkservice.Mechanism{
 				{
 					Type: memif.MECHANISM,
 					Parameters: map[string]string{
-						common.NetNsInodeKey:    "10",
+						common.NetNSInodeKey:    "10",
 						common.InterfaceNameKey: "icmp-responder1",
 					},
 				},
@@ -136,21 +135,21 @@ func TestSelectForwarder(t *testing.T) {
 
 	t.Run("Check-sriov", func(t *testing.T) {
 		request := &networkservice.NetworkServiceRequest{
-			Connection: &connection.Connection{
+			Connection: &networkservice.Connection{
 				NetworkService: "golden_network",
-				Context: &connectioncontext.ConnectionContext{
-					IpContext: &connectioncontext.IPContext{
+				Context: &networkservice.ConnectionContext{
+					IpContext: &networkservice.IPContext{
 						DstIpRequired: true,
 						SrcIpRequired: true,
 					},
 				},
 				Labels: make(map[string]string),
 			},
-			MechanismPreferences: []*connection.Mechanism{
+			MechanismPreferences: []*networkservice.Mechanism{
 				{
 					Type: "SRIOV_INTERFACE",
 					Parameters: map[string]string{
-						common.NetNsInodeKey:    "10",
+						common.NetNSInodeKey:    "10",
 						common.InterfaceNameKey: "icmp-responder1",
 					},
 				},

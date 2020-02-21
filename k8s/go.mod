@@ -6,8 +6,9 @@ require (
 	github.com/caddyserver/caddy v1.0.3
 	github.com/coredns/coredns v1.5.2
 	github.com/dnstap/golang-dnstap v0.1.0
-	github.com/golang/protobuf v1.3.2
+	github.com/golang/protobuf v1.3.3
 	github.com/miekg/dns v1.1.15
+	github.com/networkservicemesh/api v0.0.0-20200215182000-b74a0ee948b1
 	github.com/networkservicemesh/networkservicemesh/controlplane v0.3.0
 	github.com/networkservicemesh/networkservicemesh/controlplane/api v0.3.0
 	github.com/networkservicemesh/networkservicemesh/k8s/api v0.3.0
@@ -16,7 +17,7 @@ require (
 	github.com/networkservicemesh/networkservicemesh/sdk v0.3.0
 	github.com/networkservicemesh/networkservicemesh/utils v0.3.0
 	github.com/onsi/gomega v1.7.0
-	github.com/pkg/errors v0.8.1
+	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.4.2
 	golang.org/x/net v0.0.0-20200114155413-6afb5195e5aa
 	google.golang.org/grpc v1.27.0

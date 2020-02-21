@@ -19,15 +19,14 @@ import (
 
 	"github.com/golang/protobuf/ptypes/empty"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
 )
 
 // requestValidator -
 type requestValidator struct {
 }
 
-func (cce *requestValidator) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+func (cce *requestValidator) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.Connection, error) {
 	err := request.IsValid()
 
 	if err != nil {
@@ -37,7 +36,7 @@ func (cce *requestValidator) Request(ctx context.Context, request *networkservic
 	return ProcessNext(ctx, request)
 }
 
-func (cce *requestValidator) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
+func (cce *requestValidator) Close(ctx context.Context, connection *networkservice.Connection) (*empty.Empty, error) {
 	return ProcessClose(ctx, connection)
 }
 

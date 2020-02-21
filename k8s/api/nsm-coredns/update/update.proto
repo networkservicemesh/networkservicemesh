@@ -3,7 +3,7 @@ syntax = "proto3";
 package update;
 
 import "ptypes/empty/empty.proto";
-import "github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext/connectioncontext.proto";
+import "connectioncontext.proto";
 
 message AddDNSContextMessage {
     connectioncontext.DNSContext context = 1;

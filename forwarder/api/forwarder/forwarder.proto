@@ -2,8 +2,8 @@ syntax = "proto3";
 
 package forwarder;
 
-import "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/connection.proto";
-import "github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect/crossconnect.proto";
+import "connection.proto";
+import "crossconnect.proto";
 import "ptypes/empty/empty.proto";
 
 // Message sent by forwarder module informing NSM of any changes in its

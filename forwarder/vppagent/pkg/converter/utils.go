@@ -10,8 +10,9 @@ import (
 	"github.com/rs/xid"
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/common"
+
 	"github.com/networkservicemesh/networkservicemesh/utils/fs"
 )
 
@@ -72,7 +73,7 @@ func extractCleanIPAddress(addr string) string {
 	return addr
 }
 
-func netNsFileName(m *connection.Mechanism) (string, error) {
+func netNsFileName(m *networkservice.Mechanism) (string, error) {
 	if m == nil {
 		return "", errors.New("mechanism cannot be nil")
 	}
@@ -80,13 +81,13 @@ func netNsFileName(m *connection.Mechanism) (string, error) {
 		return "", errors.Errorf("Mechanism.Parameters cannot be nil: %v", m)
 	}
 
-	if _, ok := m.Parameters[common.NetNsInodeKey]; !ok {
-		return "", errors.Errorf("Mechanism.Type %s requires Mechanism.Parameters[%s] for network namespace", m.GetType(), common.NetNsInodeKey)
+	if _, ok := m.Parameters[common.NetNSInodeKey]; !ok {
+		return "", errors.Errorf("Mechanism.Type %s requires Mechanism.Parameters[%s] for network namespace", m.GetType(), common.NetNSInodeKey)
 	}
 
-	inodeNum, err := strconv.ParseUint(m.Parameters[common.NetNsInodeKey], 10, 64)
+	inodeNum, err := strconv.ParseUint(m.Parameters[common.NetNSInodeKey], 10, 64)
 	if err != nil {
-		return "", errors.Errorf("Mechanism.Parameters[%s] must be an unsigned int, instead was: %s: %v", common.NetNsInodeKey, m.Parameters[common.NetNsInodeKey], m)
+		return "", errors.Errorf("Mechanism.Parameters[%s] must be an unsigned int, instead was: %s: %v", common.NetNSInodeKey, m.Parameters[common.NetNSInodeKey], m)
 	}
 	filename, err := fs.ResolvePodNsByInode(inodeNum)
 	if err != nil {

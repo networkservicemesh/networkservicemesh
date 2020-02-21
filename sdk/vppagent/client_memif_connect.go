@@ -6,8 +6,8 @@ import (
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/pkg/errors"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
 )
@@ -22,7 +22,7 @@ type ClientMemifConnect struct {
 //     VppAgentConfig
 //     ClientConnection
 //	   Next
-func (cmc *ClientMemifConnect) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+func (cmc *ClientMemifConnect) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.Connection, error) {
 	ctx = WithConfig(ctx) // Guarantees we will retrieve a non-nil VppAgentConfig from context.Context
 	vppAgentConfig := Config(ctx)
 
@@ -52,7 +52,7 @@ func (cmc *ClientMemifConnect) Request(ctx context.Context, request *networkserv
 //     VppAgentConfig
 //     ClientConnection
 //	   Next
-func (cmc *ClientMemifConnect) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
+func (cmc *ClientMemifConnect) Close(ctx context.Context, connection *networkservice.Connection) (*empty.Empty, error) {
 	ctx = WithConfig(ctx) // Guarantees we will retrieve a non-nil VppAgentConfig from context.Context
 	vppAgentConfig := Config(ctx)
 

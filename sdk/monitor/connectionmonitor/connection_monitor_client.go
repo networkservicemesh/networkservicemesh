@@ -19,14 +19,15 @@ package connectionmonitor
 import (
 	"context"
 
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"google.golang.org/grpc"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
 )
 
 type eventStream struct {
-	connection.MonitorConnection_MonitorConnectionsClient
+	networkservice.MonitorConnection_MonitorConnectionsClient
 }
 
 func (s *eventStream) Recv() (interface{}, error) {
@@ -34,9 +35,9 @@ func (s *eventStream) Recv() (interface{}, error) {
 }
 
 // NewMonitorClient creates a new monitor.Client for local/connection GRPC API
-func NewMonitorClient(cc *grpc.ClientConn, in *connection.MonitorScopeSelector) (monitor.Client, error) {
+func NewMonitorClient(cc *grpc.ClientConn, in *networkservice.MonitorScopeSelector) (monitor.Client, error) {
 	newEventStream := func(ctx context.Context, cc *grpc.ClientConn) (monitor.EventStream, error) {
-		stream, err := connection.NewMonitorConnectionClient(cc).MonitorConnections(ctx, in)
+		stream, err := networkservice.NewMonitorConnectionClient(cc).MonitorConnections(ctx, in)
 
 		return &eventStream{
 			MonitorConnection_MonitorConnectionsClient: stream,

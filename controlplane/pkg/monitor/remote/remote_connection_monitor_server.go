@@ -1,7 +1,8 @@
 package remote
 
 import (
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/services"
 	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
 	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/connectionmonitor"
@@ -10,7 +11,7 @@ import (
 // MonitorServer is a monitor.Server for remote/connection GRPC API
 type MonitorServer interface {
 	monitor.Server
-	connection.MonitorConnectionServer
+	networkservice.MonitorConnectionServer
 }
 
 type monitorServer struct {
@@ -28,7 +29,7 @@ func NewMonitorServer(manager *services.ClientConnectionManager) MonitorServer {
 }
 
 // MonitorConnections adds recipient for MonitorServer events
-func (s *monitorServer) MonitorConnections(selector *connection.MonitorScopeSelector, recipient connection.MonitorConnection_MonitorConnectionsServer) error {
+func (s *monitorServer) MonitorConnections(selector *networkservice.MonitorScopeSelector, recipient networkservice.MonitorConnection_MonitorConnectionsServer) error {
 	err := s.MonitorServer.MonitorConnections(selector, recipient)
 	if s.manager != nil {
 		s.manager.UpdateRemoteMonitorDone(selector.GetPathSegments())

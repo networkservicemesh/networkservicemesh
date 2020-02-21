@@ -5,7 +5,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 )
 
@@ -20,7 +21,7 @@ func NewRoundRobinSelector() Selector {
 	}
 }
 
-func (rr *roundRobinSelector) SelectEndpoint(requestConnection *connection.Connection, ns *registry.NetworkService, networkServiceEndpoints []*registry.NetworkServiceEndpoint) *registry.NetworkServiceEndpoint {
+func (rr *roundRobinSelector) SelectEndpoint(requestConnection *networkservice.Connection, ns *registry.NetworkService, networkServiceEndpoints []*registry.NetworkServiceEndpoint) *registry.NetworkServiceEndpoint {
 	if rr == nil {
 		return nil
 	}

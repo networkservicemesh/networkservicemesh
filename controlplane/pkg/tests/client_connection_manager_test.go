@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 
 	"github.com/onsi/gomega"
@@ -24,11 +24,11 @@ func newConnection() *model.ClientConnection {
 		ConnectionID:    "1",
 		ConnectionState: model.ClientConnectionHealing,
 		Xcon: crossconnect.NewCrossConnect("1", "ip",
-			&connection.Connection{
+			&networkservice.Connection{
 				Id:   "1",
 				Path: common.Strings2Path("local_nsm"),
 			},
-			&connection.Connection{
+			&networkservice.Connection{
 				Id:   "-",
 				Path: common.Strings2Path("local_nsm", "remote_nsm"),
 			}),
@@ -167,12 +167,12 @@ func TestGetClientConnectionByXCon(t *testing.T) {
 		ConnectionID:    "5",
 		ConnectionState: model.ClientConnectionHealing,
 		Xcon: crossconnect.NewCrossConnect("5", "IP",
-			&connection.Connection{
+			&networkservice.Connection{
 				Id:             "2",
 				NetworkService: "s2",
 				Path:           common.Strings2Path("local_nsm"),
 			},
-			&connection.Connection{
+			&networkservice.Connection{
 				Id:   "3",
 				Path: common.Strings2Path("local_nsm", "remote_nsm"),
 			}),
@@ -200,12 +200,12 @@ func createConnections(mdl model.Model) {
 			MechanismPreferences: nil,
 		},
 		Xcon: crossconnect.NewCrossConnect("2", "ip",
-			&connection.Connection{
+			&networkservice.Connection{
 				Id:             "2",
 				NetworkService: "s2",
 				Path:           common.Strings2Path("local_nsm"),
 			},
-			&connection.Connection{
+			&networkservice.Connection{
 				Id:   "3",
 				Path: common.Strings2Path("local_nsm", "remote_nsm"),
 			}),
@@ -218,12 +218,12 @@ func createConnections(mdl model.Model) {
 			MechanismPreferences: nil,
 		},
 		Xcon: crossconnect.NewCrossConnect("3", "ip",
-			&connection.Connection{
+			&networkservice.Connection{
 				Id:             "3",
 				NetworkService: "s2",
 				Path:           common.Strings2Path("nsm1", "remote_nsm"),
 			},
-			&connection.Connection{
+			&networkservice.Connection{
 				Id:   "4",
 				Path: common.Strings2Path("local_nsm"),
 			}),

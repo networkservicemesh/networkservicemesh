@@ -28,9 +28,9 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
-	unified "github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+	unified "github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nseregistry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
@@ -136,7 +136,7 @@ func registerWorkspaceServices(span spanhelper.SpanHelper, w *Workspace, nsm *ns
 	span.Logger().Infof("Registering NetworkServiceServer with registerServer")
 	unified.RegisterNetworkServiceServer(w.grpcServer, w.networkServiceServer)
 	span.Logger().Infof("Registering MonitorConnectionServer with registerServer")
-	connection.RegisterMonitorConnectionServer(w.grpcServer, w.monitorConnectionServer)
+	unified.RegisterMonitorConnectionServer(w.grpcServer, w.monitorConnectionServer)
 }
 
 func (w *Workspace) Name() string {

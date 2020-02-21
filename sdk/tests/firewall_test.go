@@ -9,12 +9,11 @@ import (
 	"github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/cls"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/memif"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/cls"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/memif"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
 	"github.com/networkservicemesh/networkservicemesh/sdk/vppagent"
@@ -38,12 +37,12 @@ func TestFirewallMemif(t *testing.T) {
 	mechanism, err := common.NewMechanism(cls.LOCAL, memif.MECHANISM, "memif_outgoing", "")
 	g.Expect(err).To(gomega.BeNil())
 
-	outgoingConnection := &connection.Connection{
+	outgoingConnection := &networkservice.Connection{
 		Mechanism:      mechanism,
 		NetworkService: "my_network_sercice",
 		Id:             "2",
-		Context: &connectioncontext.ConnectionContext{
-			IpContext: &connectioncontext.IPContext{
+		Context: &networkservice.ConnectionContext{
+			IpContext: &networkservice.IPContext{
 				SrcIpRequired: true,
 				DstIpRequired: true,
 				SrcIpAddr:     "192.168.1.1",
@@ -73,17 +72,17 @@ func TestFirewallMemif(t *testing.T) {
 	g.Expect(err).To(gomega.BeNil())
 
 	req := networkservice.NetworkServiceRequest{
-		Connection: &connection.Connection{
+		Connection: &networkservice.Connection{
 			Id:             "1",
 			NetworkService: "my_network_sercice",
-			Context: &connectioncontext.ConnectionContext{
-				IpContext: &connectioncontext.IPContext{
+			Context: &networkservice.ConnectionContext{
+				IpContext: &networkservice.IPContext{
 					SrcIpRequired: true,
 					DstIpRequired: true,
 				},
 			},
 		},
-		MechanismPreferences: []*connection.Mechanism{inMechanism},
+		MechanismPreferences: []*networkservice.Mechanism{inMechanism},
 	}
 	conn, err := composite.Request(context.Background(), &req)
 	g.Expect(conn).ToNot(gomega.BeNil())

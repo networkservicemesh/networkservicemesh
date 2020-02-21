@@ -22,9 +22,9 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/status"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/kernel"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/vxlan"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/forwarder/api/forwarder"
@@ -118,12 +118,12 @@ func (k *KernelForwarder) connectOrDisconnect(crossConnect *crossconnect.CrossCo
 func (k *KernelForwarder) configureKernelForwarder() {
 	k.common.MechanismsUpdateChannel = make(chan *common.Mechanisms, 1)
 	k.common.Mechanisms = &common.Mechanisms{
-		LocalMechanisms: []*connection.Mechanism{
+		LocalMechanisms: []*networkservice.Mechanism{
 			{
 				Type: kernel.MECHANISM,
 			},
 		},
-		RemoteMechanisms: []*connection.Mechanism{
+		RemoteMechanisms: []*networkservice.Mechanism{
 			{
 				Type: vxlan.MECHANISM,
 				Parameters: map[string]string{

@@ -6,8 +6,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
 )
 
 //// Remote NSM Connection Client
@@ -16,7 +15,7 @@ type nsmClient struct {
 	connection *grpc.ClientConn
 }
 
-func (c *nsmClient) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+func (c *nsmClient) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.Connection, error) {
 	if c == nil || c.client == nil {
 		return nil, errors.New("Remote NSM Connection is not initialized...")
 	}
@@ -29,7 +28,7 @@ func (c *nsmClient) Request(ctx context.Context, request *networkservice.Network
 	return response.Clone(), nil
 }
 
-func (c *nsmClient) Close(ctx context.Context, conn *connection.Connection) error {
+func (c *nsmClient) Close(ctx context.Context, conn *networkservice.Connection) error {
 	if c == nil || c.client == nil {
 		return errors.New("Remote NSM Connection is not initialized...")
 	}

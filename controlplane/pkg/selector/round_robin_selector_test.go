@@ -19,13 +19,14 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 )
 
 func Test_roundRobinSelector_SelectEndpoint(t *testing.T) {
 	type args struct {
-		requestConnection       *connection.Connection
+		requestConnection       *networkservice.Connection
 		ns                      *registry.NetworkService
 		networkServiceEndpoints []*registry.NetworkServiceEndpoint
 	}

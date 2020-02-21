@@ -27,8 +27,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
 )
 
 type connectionService struct {
@@ -42,7 +41,7 @@ func NewConnectionService(model model.Model) networkservice.NetworkServiceServer
 	}
 }
 
-func (cce *connectionService) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+func (cce *connectionService) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.Connection, error) {
 	span := spanhelper.GetSpanHelper(ctx)
 	span.Logger().Infof("Received request from client to connect to NetworkService: %v", request)
 
@@ -131,7 +130,7 @@ func (cce *connectionService) createClientConnection(ctx context.Context, reques
 	}
 }
 
-func (cce *connectionService) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
+func (cce *connectionService) Close(ctx context.Context, connection *networkservice.Connection) (*empty.Empty, error) {
 	logger := common.Log(ctx)
 	logger.Infof("Closing connection: %v", connection)
 

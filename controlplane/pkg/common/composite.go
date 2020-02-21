@@ -22,8 +22,7 @@ import (
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/opentracing/opentracing-go"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
 )
 
 // CompositeNetworkService is the base service composition struct
@@ -33,7 +32,7 @@ type CompositeNetworkService struct {
 }
 
 // Request implements a dummy request handler
-func (cns *CompositeNetworkService) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+func (cns *CompositeNetworkService) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.Connection, error) {
 	if len(cns.services) == 0 {
 		return request.Connection, nil
 	}
@@ -46,7 +45,7 @@ func (cns *CompositeNetworkService) Request(ctx context.Context, request *networ
 }
 
 // Close implements a dummy close handler
-func (cns *CompositeNetworkService) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
+func (cns *CompositeNetworkService) Close(ctx context.Context, connection *networkservice.Connection) (*empty.Empty, error) {
 	if len(cns.services) == 0 {
 		return &empty.Empty{}, nil
 	}

@@ -22,9 +22,8 @@ import (
 
 	"github.com/golang/protobuf/ptypes/empty"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"github.com/networkservicemesh/networkservicemesh/sdk/prefix_pool"
 )
@@ -37,7 +36,7 @@ type IpamEndpoint struct {
 // Request implements the request handler
 // Consumes from ctx context.Context:
 //	   Next
-func (ice *IpamEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+func (ice *IpamEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.Connection, error) {
 	/* Exclude the prefixes from the pool of available prefixes */
 	excludedPrefixes, err := ice.PrefixPool.ExcludePrefixes(request.Connection.GetContext().GetIpContext().GetExcludedPrefixes())
 	if err != nil {
@@ -45,9 +44,9 @@ func (ice *IpamEndpoint) Request(ctx context.Context, request *networkservice.Ne
 	}
 
 	/* Determine whether the pool is IPv4 or IPv6 */
-	currentIPFamily := connectioncontext.IpFamily_IPV4
+	currentIPFamily := networkservice.IpFamily_IPV4
 	if common.IsIPv6(ice.PrefixPool.GetPrefixes()[0]) {
-		currentIPFamily = connectioncontext.IpFamily_IPV6
+		currentIPFamily = networkservice.IpFamily_IPV6
 	}
 
 	srcIP, dstIP, prefixes, err := ice.PrefixPool.Extract(request.Connection.Id, currentIPFamily, request.Connection.GetContext().GetIpContext().GetExtraPrefixRequest()...)
@@ -77,7 +76,7 @@ func (ice *IpamEndpoint) Request(ctx context.Context, request *networkservice.Ne
 // Close implements the close handler
 // Consumes from ctx context.Context:
 //	   Next
-func (ice *IpamEndpoint) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
+func (ice *IpamEndpoint) Close(ctx context.Context, connection *networkservice.Connection) (*empty.Empty, error) {
 	prefix, requests, err := ice.PrefixPool.GetConnectionInformation(connection.GetId())
 	Log(ctx).Infof("Release connection prefixes network: %s extra requests: %v", prefix, requests)
 	if err != nil {

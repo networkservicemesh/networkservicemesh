@@ -4,10 +4,9 @@ import (
 	"net"
 	"testing"
 
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
 )
 
 func TestPrefixPoolSubnet1(t *testing.T) {
@@ -48,14 +47,14 @@ func TestPrefixPoolSubnet1(t *testing.T) {
 }
 
 func TestNetExtractIPv4(t *testing.T) {
-	testNetExtract(t, "10.10.1.0/24", "10.10.1.1/30", "10.10.1.2/30", connectioncontext.IpFamily_IPV4)
+	testNetExtract(t, "10.10.1.0/24", "10.10.1.1/30", "10.10.1.2/30", networkservice.IpFamily_IPV4)
 }
 
 func TestNetExtractIPv6(t *testing.T) {
-	testNetExtract(t, "100::/64", "100::1/126", "100::2/126", connectioncontext.IpFamily_IPV6)
+	testNetExtract(t, "100::/64", "100::1/126", "100::2/126", networkservice.IpFamily_IPV6)
 }
 
-func testNetExtract(t *testing.T, inPool, srcDesired, dstDesired string, family connectioncontext.IpFamily_Family) {
+func testNetExtract(t *testing.T, inPool, srcDesired, dstDesired string, family networkservice.IpFamily_Family) {
 	g := NewWithT(t)
 
 	pool, err := NewPrefixPool(inPool)
@@ -85,8 +84,8 @@ func TestExtractPrefixes_1_ipv4(t *testing.T) {
 	g := NewWithT(t)
 
 	newPrefixes, prefixes, err := ExtractPrefixes([]string{"10.10.1.0/24"},
-		&connectioncontext.ExtraPrefixRequest{
-			AddrFamily:      &connectioncontext.IpFamily{Family: connectioncontext.IpFamily_IPV4},
+		&networkservice.ExtraPrefixRequest{
+			AddrFamily:      &networkservice.IpFamily{Family: networkservice.IpFamily_IPV4},
 			RequiredNumber:  10,
 			RequestedNumber: 20,
 			PrefixLen:       31,
@@ -102,8 +101,8 @@ func TestExtractPrefixes_1_ipv6(t *testing.T) {
 	g := NewWithT(t)
 
 	newPrefixes, prefixes, err := ExtractPrefixes([]string{"100::/64"},
-		&connectioncontext.ExtraPrefixRequest{
-			AddrFamily:      &connectioncontext.IpFamily{Family: connectioncontext.IpFamily_IPV6},
+		&networkservice.ExtraPrefixRequest{
+			AddrFamily:      &networkservice.IpFamily{Family: networkservice.IpFamily_IPV6},
 			RequiredNumber:  100,
 			RequestedNumber: 200,
 			PrefixLen:       128,

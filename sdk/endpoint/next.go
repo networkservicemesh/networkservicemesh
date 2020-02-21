@@ -8,8 +8,8 @@ import (
 
 	"github.com/golang/protobuf/ptypes/empty"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/networkservicemesh/networkservicemesh/utils/typeutils"
 )
 
@@ -18,7 +18,7 @@ type nextEndpoint struct {
 	index     int
 }
 
-func (n *nextEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+func (n *nextEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.Connection, error) {
 	if n.index+1 < len(n.composite.endpoints) {
 		ctx = withNext(ctx, &nextEndpoint{composite: n.composite, index: n.index + 1})
 	} else {
@@ -46,7 +46,7 @@ func (n *nextEndpoint) Request(ctx context.Context, request *networkservice.Netw
 	return rv, err
 }
 
-func (n *nextEndpoint) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
+func (n *nextEndpoint) Close(ctx context.Context, connection *networkservice.Connection) (*empty.Empty, error) {
 	if n.index+1 < len(n.composite.endpoints) {
 		ctx = withNext(ctx, &nextEndpoint{composite: n.composite, index: n.index + 1})
 	} else {

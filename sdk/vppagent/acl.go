@@ -27,8 +27,8 @@ import (
 	acl "github.com/ligato/vpp-agent/api/models/vpp/acl"
 	"github.com/pkg/errors"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
 )
@@ -53,7 +53,7 @@ type ACL struct {
 // Provides/Consumes from ctx context.Context:
 //     VppAgentConfig
 //     ConnectionMap
-func (a *ACL) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+func (a *ACL) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.Connection, error) {
 	ctx = WithConfig(ctx) // Guarantees we will retrieve a non-nil VppAgentConfig from context.Context
 	vppAgentConfig := Config(ctx)
 
@@ -83,7 +83,7 @@ func (a *ACL) Request(ctx context.Context, request *networkservice.NetworkServic
 // Provides/Consumes from ctx context.Context:
 //     VppAgentConfig
 //     ConnectionMap
-func (a *ACL) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
+func (a *ACL) Close(ctx context.Context, connection *networkservice.Connection) (*empty.Empty, error) {
 	ctx = WithConfig(ctx) // Guarantees we will retrieve a non-nil VppAgentConfig from context.Context
 	vppAgentConfig := Config(ctx)
 

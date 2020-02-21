@@ -19,12 +19,11 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 
-	mechanismCommon "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
+	mechanismCommon "github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/common"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
 )
 
 type workspaceProviderService struct {
@@ -38,7 +37,7 @@ func NewWorkspaceService(name string) networkservice.NetworkServiceServer {
 	}
 }
 
-func (srv *workspaceProviderService) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+func (srv *workspaceProviderService) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.Connection, error) {
 	logrus.Infof("Received request from client to connect to NetworkService: %v", request)
 	srv.updateMechanisms(request)
 
@@ -62,7 +61,7 @@ func (srv *workspaceProviderService) updateMechanisms(request *networkservice.Ne
 	}
 }
 
-func (srv *workspaceProviderService) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
+func (srv *workspaceProviderService) Close(ctx context.Context, connection *networkservice.Connection) (*empty.Empty, error) {
 	ctx = common.WithWorkspaceName(ctx, srv.name)
 	return common.ProcessClose(ctx, connection)
 }

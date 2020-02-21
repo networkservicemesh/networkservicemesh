@@ -25,8 +25,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/networkservicemesh/networkservicemesh/sdk/client"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 )
@@ -41,15 +41,15 @@ const (
 // Handler - handler to perform configuration of monitoring app
 type Handler interface {
 	//Connected occurs when the nsm-monitor connected
-	Connected(map[string]*connection.Connection)
+	Connected(map[string]*networkservice.Connection)
 	//Healing occurs when the healing started
-	Healing(conn *connection.Connection)
+	Healing(conn *networkservice.Connection)
 	//Closed occurs when the connection closed
-	Closed(conn *connection.Connection)
+	Closed(conn *networkservice.Connection)
 	//ProcessHealing occurs when the restore failed, the error pass as the second parameter
-	ProcessHealing(newConn *connection.Connection, e error)
+	ProcessHealing(newConn *networkservice.Connection, e error)
 	//Updated triggers when existing connection updated
-	Updated(old, new *connection.Connection)
+	Updated(old, new *networkservice.Connection)
 }
 
 // App - application to perform monitoring.
@@ -65,19 +65,19 @@ type EmptyNSMMonitorHandler struct {
 }
 
 //Connected occurs when the nsm-monitor connected
-func (h *EmptyNSMMonitorHandler) Connected(map[string]*connection.Connection) {}
+func (h *EmptyNSMMonitorHandler) Connected(map[string]*networkservice.Connection) {}
 
 //Healing occurs when the healing started
-func (h *EmptyNSMMonitorHandler) Healing(conn *connection.Connection) {}
+func (h *EmptyNSMMonitorHandler) Healing(conn *networkservice.Connection) {}
 
 //Closed occurs when the connection closed
-func (h *EmptyNSMMonitorHandler) Closed(conn *connection.Connection) {}
+func (h *EmptyNSMMonitorHandler) Closed(conn *networkservice.Connection) {}
 
 //ProcessHealing occurs when the restore failed, the error pass as the second parameter
-func (h *EmptyNSMMonitorHandler) ProcessHealing(newConn *connection.Connection, e error) {}
+func (h *EmptyNSMMonitorHandler) ProcessHealing(newConn *networkservice.Connection, e error) {}
 
 type nsmMonitorApp struct {
-	connections map[string]*connection.Connection
+	connections map[string]*networkservice.Connection
 	helper      Handler
 	cancelFunc  context.CancelFunc
 
@@ -107,7 +107,7 @@ func (c *nsmMonitorApp) Run() {
 // NewNSMMonitorApp - creates a monitoring application.
 func NewNSMMonitorApp(configuration *common.NSConfiguration) App {
 	return &nsmMonitorApp{
-		connections:   map[string]*connection.Connection{},
+		connections:   map[string]*networkservice.Connection{},
 		configuration: configuration,
 	}
 }
@@ -126,7 +126,7 @@ func (c *nsmMonitorApp) beginMonitoring() {
 
 		//		monitorClient, err := local.NewMonitorClient(nsmClient.NsmConnection.GrpcClient)
 		ctx, cancelFunc := context.WithCancel(context.Background())
-		monitorClient, err := connection.NewMonitorConnectionClient(nsmClient.NsmConnection.GrpcClient).MonitorConnections(ctx, &connection.MonitorScopeSelector{})
+		monitorClient, err := networkservice.NewMonitorConnectionClient(nsmClient.NsmConnection.GrpcClient).MonitorConnections(ctx, &networkservice.MonitorScopeSelector{})
 		if err != nil {
 			logrus.Errorf(nsmMonitorLogWithParamFormat, "failed to start monitor client", err)
 
@@ -166,25 +166,25 @@ func (c *nsmMonitorApp) beginMonitoring() {
 	}
 }
 
-func (c *nsmMonitorApp) readEvents(monitorClient connection.MonitorConnection_MonitorConnectionsClient) bool {
+func (c *nsmMonitorApp) readEvents(monitorClient networkservice.MonitorConnection_MonitorConnectionsClient) bool {
 	event, err := monitorClient.Recv()
 	if err != nil {
 		logrus.Errorf(nsmMonitorLogWithParamFormat, "NSM die, re-connecting", err)
 		for _, c := range c.connections {
-			c.State = connection.State_DOWN // Mark all as down.
+			c.State = networkservice.State_DOWN // Mark all as down.
 		}
 		return false
 	}
-	if event.Type == connection.ConnectionEventType_INITIAL_STATE_TRANSFER {
+	if event.Type == networkservice.ConnectionEventType_INITIAL_STATE_TRANSFER {
 		logrus.Infof(nsmMonitorLogFormat, "Monitor started")
 		c.initRecieved = true
 	}
 
 	for _, conn := range event.GetConnections() {
 		switch event.Type {
-		case connection.ConnectionEventType_INITIAL_STATE_TRANSFER, connection.ConnectionEventType_UPDATE:
+		case networkservice.ConnectionEventType_INITIAL_STATE_TRANSFER, networkservice.ConnectionEventType_UPDATE:
 			c.updateConnection(conn)
-		case connection.ConnectionEventType_DELETE:
+		case networkservice.ConnectionEventType_DELETE:
 			logrus.Infof(nsmMonitorLogFormat, "Connection closed")
 			if c.helper != nil {
 				c.helper.Closed(conn)
@@ -194,7 +194,7 @@ func (c *nsmMonitorApp) readEvents(monitorClient connection.MonitorConnection_Mo
 	return true
 }
 
-func (c *nsmMonitorApp) updateConnection(conn *connection.Connection) {
+func (c *nsmMonitorApp) updateConnection(conn *networkservice.Connection) {
 	if existingConn, exists := c.connections[conn.GetId()]; exists {
 		logrus.Infof(nsmMonitorLogWithParamFormat, "Connection updated", fmt.Sprintf("%v %v", existingConn, conn))
 		c.helper.Updated(existingConn, conn)
@@ -214,7 +214,7 @@ func (c *nsmMonitorApp) performRecovery(nsmClient *client.NsmClient) bool {
 
 	needRetry := false
 	for _, conn := range c.connections {
-		if conn.State == connection.State_UP {
+		if conn.State == networkservice.State_UP {
 			continue
 		}
 		cClone := conn.Clone()
@@ -231,7 +231,7 @@ func (c *nsmMonitorApp) performRecovery(nsmClient *client.NsmClient) bool {
 
 		outgoingRequest := networkservice.NetworkServiceRequest{
 			Connection: cClone,
-			MechanismPreferences: []*connection.Mechanism{
+			MechanismPreferences: []*networkservice.Mechanism{
 				conn.Mechanism,
 			},
 		}

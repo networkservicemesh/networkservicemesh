@@ -7,8 +7,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
 )
 
 type contextKeyType string
@@ -23,7 +22,7 @@ const (
 // WithClientConnection -
 //   Wraps 'parent' in a new Context that has the ClientConnection
 //   provided in:
-//       connection *connection.Connection
+//       connection *networkservice.Connection
 //   using Context.Value(...) and returns the result.
 //   Note: any previously existing ClientConnection will be overwritten.
 //
@@ -33,7 +32,7 @@ const (
 //   In any Request or Close call that consumes a ClientConnection, call:
 //	    connectionMap := ClientConnection(ctx)
 //   to retrieve the ClientConnection from the context.Context
-func WithClientConnection(parent context.Context, connection *connection.Connection) context.Context {
+func WithClientConnection(parent context.Context, connection *networkservice.Connection) context.Context {
 	if parent == nil {
 		parent = context.Background()
 	}
@@ -44,12 +43,12 @@ func WithClientConnection(parent context.Context, connection *connection.Connect
 //    Returns a ClientConnection from:
 //      ctx context.Context
 //    If any is present, otherwise nil
-func ClientConnection(ctx context.Context) *connection.Connection {
+func ClientConnection(ctx context.Context) *networkservice.Connection {
 	conn := ctx.Value(clientConnectionKey)
 	if conn == nil {
 		return nil
 	}
-	return conn.(*connection.Connection)
+	return conn.(*networkservice.Connection)
 }
 
 // withNext -

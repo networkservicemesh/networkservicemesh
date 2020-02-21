@@ -6,7 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/vxlan"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 
 	"github.com/pkg/errors"
@@ -17,9 +18,9 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/clusterinfo"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
@@ -48,7 +49,7 @@ func NewProxyNetworkServiceServer(serviceRegistry serviceregistry.ServiceRegistr
 	return server
 }
 
-func (srv *proxyNetworkServiceServer) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+func (srv *proxyNetworkServiceServer) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.Connection, error) {
 	logrus.Infof("ProxyNSMD: Received request from client to connect to NetworkService: %v", request)
 
 	destNsmName := request.Connection.GetDestinationNetworkServiceManagerName() //DestinationNetworkServiceManagerName
@@ -104,7 +105,7 @@ func (srv *proxyNetworkServiceServer) Request(ctx context.Context, request *netw
 	return response, err
 }
 
-func (srv *proxyNetworkServiceServer) updatereResponse(ctx context.Context, remoteClusterInfoClient clusterinfo.ClusterInfoClient, response *connection.Connection, localSrcIP, destNsmName, originalNetworkService string) {
+func (srv *proxyNetworkServiceServer) updatereResponse(ctx context.Context, remoteClusterInfoClient clusterinfo.ClusterInfoClient, response *networkservice.Connection, localSrcIP, destNsmName, originalNetworkService string) {
 	remoteNodeIPConfiguration, err := remoteClusterInfoClient.GetNodeIPConfiguration(ctx, &clusterinfo.NodeIPConfiguration{InternalIP: response.Mechanism.Parameters["dst_ip"]})
 	if err == nil {
 		if len(remoteNodeIPConfiguration.ExternalIP) > 0 {
@@ -179,7 +180,7 @@ func (srv *proxyNetworkServiceServer) getRemoteNsrPort() string {
 	return remoteNsrPort
 }
 
-func (srv *proxyNetworkServiceServer) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
+func (srv *proxyNetworkServiceServer) Close(ctx context.Context, connection *networkservice.Connection) (*empty.Empty, error) {
 	logrus.Infof("ProxyNSMD: Proxy closing connection: %v", *connection)
 
 	destNsmName := connection.GetPath().GetPathSegments()[1].GetName()

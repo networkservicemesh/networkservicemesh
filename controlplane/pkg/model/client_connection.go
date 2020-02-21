@@ -5,9 +5,9 @@ import (
 
 	"github.com/golang/protobuf/proto"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/connectionmonitor"
@@ -67,7 +67,7 @@ func (cc *ClientConnection) GetNetworkService() string {
 }
 
 // GetConnectionSource returns source part of connection
-func (cc *ClientConnection) GetConnectionSource() *connection.Connection {
+func (cc *ClientConnection) GetConnectionSource() *networkservice.Connection {
 	if cc.Xcon == nil {
 		return nil
 	}
@@ -75,7 +75,7 @@ func (cc *ClientConnection) GetConnectionSource() *connection.Connection {
 }
 
 // GetConnectionDestination returns destination part of connection
-func (cc *ClientConnection) GetConnectionDestination() *connection.Connection {
+func (cc *ClientConnection) GetConnectionDestination() *networkservice.Connection {
 	return cc.Xcon.GetDestination()
 }
 

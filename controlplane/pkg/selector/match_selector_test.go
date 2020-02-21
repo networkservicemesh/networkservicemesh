@@ -20,12 +20,13 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 )
 
 type args struct {
-	requestConnection       *connection.Connection
+	requestConnection       *networkservice.Connection
 	ns                      *registry.NetworkService
 	networkServiceEndpoints []*registry.NetworkServiceEndpoint
 }
@@ -83,7 +84,7 @@ func genArgs(p genArgsParam) args {
 	endpoints = append(endpoints, p.endpoints...)
 
 	return args{
-		requestConnection: &connection.Connection{
+		requestConnection: &networkservice.Connection{
 			Labels: labels,
 		},
 		ns: &registry.NetworkService{
@@ -467,7 +468,7 @@ func Test_matchSelector_SelectEndpoint(t *testing.T) {
 		{
 			name: "match any with non-empty source selector",
 			args: args{
-				requestConnection: &connection.Connection{
+				requestConnection: &networkservice.Connection{
 					Labels: map[string]string{
 						"app": "firewall",
 					},
@@ -512,7 +513,7 @@ func Test_matchSelector_SelectEndpoint(t *testing.T) {
 		{
 			name: "match with node selector",
 			args: args{
-				requestConnection: &connection.Connection{
+				requestConnection: &networkservice.Connection{
 					Labels: map[string]string{
 						"nodeName": "node1",
 					},
@@ -556,7 +557,7 @@ func Test_matchSelector_SelectEndpoint(t *testing.T) {
 		{
 			name: "match with with label selector",
 			args: args{
-				requestConnection: &connection.Connection{
+				requestConnection: &networkservice.Connection{
 					Labels: map[string]string{
 						"app": "firewall",
 					},

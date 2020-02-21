@@ -63,7 +63,7 @@ func Config(ctx context.Context) *configurator.Config {
 //   Else wraps 'parent' in a new Context that has an empty ConnectionMap
 //   using Context.Value(...) and returns the result.
 //
-//   A ConnectionMap is simply a map[*connection.Connection]*interfaces.Interface)
+//   A ConnectionMap is simply a map[*networkservice.Connection]*interfaces.Interface)
 //   mapping Connections to the VppAgent Interface objects they as associated with
 //
 //   Recommended use: in any Request or Close call, start with:
