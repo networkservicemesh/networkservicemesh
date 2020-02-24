@@ -18,17 +18,19 @@ import (
 	"context"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/wireguard"
+
 	"github.com/gogo/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/ligato/vpp-agent/api/configurator"
-	"github.com/ligato/vpp-agent/api/models/vpp"
-	vpp_acl "github.com/ligato/vpp-agent/api/models/vpp/acl"
-	vpp_interfaces "github.com/ligato/vpp-agent/api/models/vpp/interfaces"
-	vpp_l3 "github.com/ligato/vpp-agent/api/models/vpp/l3"
 	"github.com/sirupsen/logrus"
+	"go.ligato.io/vpp-agent/v3/proto/ligato/configurator"
+	"go.ligato.io/vpp-agent/v3/proto/ligato/vpp"
+	vpp_acl "go.ligato.io/vpp-agent/v3/proto/ligato/vpp/acl"
+	vpp_interfaces "go.ligato.io/vpp-agent/v3/proto/ligato/vpp/interfaces"
+	vpp_l3 "go.ligato.io/vpp-agent/v3/proto/ligato/vpp/l3"
 	"google.golang.org/grpc/status"
 
-	vpp_srv6 "github.com/ligato/vpp-agent/api/models/vpp/srv6"
+	vpp_srv6 "go.ligato.io/vpp-agent/v3/proto/ligato/vpp/srv6"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
@@ -69,6 +71,7 @@ func (v *VPPAgent) CreateForwarderServer(config *common.ForwarderConfig) forward
 		sdk.DirectMemifInterfaces(config.NSMBaseDir),
 		sdk.Connect(v.endpoint()),
 		sdk.KernelInterfaces(config.NSMBaseDir),
+		sdk.NewWgInterfaces(),
 		sdk.UseEthernetContext(),
 		sdk.ClearMechanisms(config.NSMBaseDir),
 		sdk.Commit(v.downstreamResync))
@@ -111,7 +114,7 @@ func (v *VPPAgent) MonitorMechanisms(empty *empty.Empty, updateSrv forwarder.Mec
 	}
 }
 
-func (v *VPPAgent) printVppAgentConfiguration(client configurator.ConfiguratorClient) {
+func (v *VPPAgent) printVppAgentConfiguration(client configurator.ConfiguratorServiceClient) {
 	dumpResult, err := client.Dump(context.Background(), &configurator.DumpRequest{})
 	if err != nil {
 		logrus.Errorf("Failed to dump VPP-agent state %v", err)
@@ -132,7 +135,7 @@ func (v *VPPAgent) reset() error {
 		return err
 	}
 	defer conn.Close()
-	client := configurator.NewConfiguratorClient(conn)
+	client := configurator.NewConfiguratorServiceClient(conn)
 	logrus.Infof("Resetting vppagent...")
 	_, err = client.Update(context.Background(), &configurator.UpdateRequest{Update: &configurator.Config{}, FullResync: true})
 	if err != nil {
@@ -155,7 +158,7 @@ func (v *VPPAgent) programMgmtInterface() error {
 		return err
 	}
 	defer conn.Close()
-	client := configurator.NewConfiguratorClient(conn)
+	client := configurator.NewConfiguratorServiceClient(conn)
 
 	vppArpEntries := []*vpp.ARPEntry{}
 	vppArpEntriesMap := make(map[string]bool)
@@ -170,7 +173,6 @@ func (v *VPPAgent) programMgmtInterface() error {
 			PhysAddress: arpEntry.PhysAddress,
 		})
 	}
-
 	dataRequest := &configurator.UpdateRequest{
 		Update: &configurator.Config{
 			VppConfig: &vpp.ConfigData{
@@ -410,6 +412,12 @@ func (v *VPPAgent) configureVPPAgent() error {
 				Type: vxlan.MECHANISM,
 				Parameters: map[string]string{
 					vxlan.SrcIP: v.common.EgressInterface.SrcIPNet().IP.String(),
+				},
+			},
+			{
+				Type: wireguard.MECHANISM,
+				Parameters: map[string]string{
+					wireguard.SrcIP: v.common.EgressInterface.SrcIPNet().IP.String(),
 				},
 			},
 		},

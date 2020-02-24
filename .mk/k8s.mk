@@ -78,7 +78,7 @@ k8s-delete-nsm-namespaces:
 
 .PHONY: k8s-reset
 k8s-reset:
-	make -i k8s-deconfig helm-delete k8s-terminating-cleanup k8s-delete-nsm-namespaces
+	make -i k8s-deconfig helm-delete k8s-terminating-cleanup k8s-delete-nsm-namespaces || true
 	make k8s-config && echo "Cluster reset successfull"
 
 .PHONY: k8s-%logs

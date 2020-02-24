@@ -18,16 +18,18 @@ package converter
 import (
 	"math"
 
-	vpp_l3 "github.com/ligato/vpp-agent/api/models/vpp/l3"
+	vpp_l3 "go.ligato.io/vpp-agent/v3/proto/ligato/vpp/l3"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/wireguard"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/srv6"
 
-	"github.com/ligato/vpp-agent/api/configurator"
-	"github.com/ligato/vpp-agent/api/models/vpp"
-	vpp_interfaces "github.com/ligato/vpp-agent/api/models/vpp/interfaces"
-	vpp_srv6 "github.com/ligato/vpp-agent/api/models/vpp/srv6"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"go.ligato.io/vpp-agent/v3/proto/ligato/configurator"
+	"go.ligato.io/vpp-agent/v3/proto/ligato/vpp"
+	vpp_interfaces "go.ligato.io/vpp-agent/v3/proto/ligato/vpp/interfaces"
+	vpp_srv6 "go.ligato.io/vpp-agent/v3/proto/ligato/vpp/srv6"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
 
@@ -53,7 +55,7 @@ func NewRemoteConnectionConverter(c *connection.Connection, name, tapName string
 }
 
 func (c *RemoteConnectionConverter) checkMechanism() bool {
-	mechanisms := []string{vxlan.MECHANISM, srv6.MECHANISM}
+	mechanisms := []string{vxlan.MECHANISM, srv6.MECHANISM, wireguard.MECHANISM}
 	for _, m := range mechanisms {
 		if m == c.GetMechanism().GetType() {
 			return true
@@ -83,6 +85,8 @@ func (c *RemoteConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 	}
 
 	switch c.GetMechanism().GetType() {
+	case wireguard.MECHANISM:
+		//do nothing here
 	case vxlan.MECHANISM:
 		m := vxlan.ToMechanism(c.GetMechanism())
 		// If the remote Connection is DESTINATION Side then srcip/dstip match the Connection
@@ -138,8 +142,8 @@ func (c *RemoteConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 		rv.VppConfig.Srv6Localsids = []*vpp_srv6.LocalSID{
 			{
 				Sid: srcLocalSID,
-				EndFunction: &vpp_srv6.LocalSID_EndFunction_DX2{
-					EndFunction_DX2: &vpp_srv6.LocalSID_EndDX2{
+				EndFunction: &vpp_srv6.LocalSID_EndFunctionDx2{
+					EndFunctionDx2: &vpp_srv6.LocalSID_EndDX2{
 						VlanTag:           math.MaxUint32,
 						OutgoingInterface: c.tapName,
 					},

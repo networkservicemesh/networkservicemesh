@@ -5,9 +5,7 @@ executions:
       - ARTIFACTS_ARCHIVE=true
     source:
       tags:
-        - basic
-        - recover
-        - usecase
+        - wireguard
     root: ./test/integration
     timeout: 300
     cluster-count: 1

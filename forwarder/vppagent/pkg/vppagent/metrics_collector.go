@@ -6,12 +6,13 @@ import (
 	"io"
 	"time"
 
+	vpp_interfaces "go.ligato.io/vpp-agent/v3/proto/ligato/vpp/interfaces"
+
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 
 	"github.com/golang/protobuf/proto"
-	rpc "github.com/ligato/vpp-agent/api/configurator"
-	interfaces "github.com/ligato/vpp-agent/api/models/vpp/interfaces"
 	"github.com/sirupsen/logrus"
+	rpc "go.ligato.io/vpp-agent/v3/proto/ligato/configurator"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/metrics"
@@ -40,15 +41,15 @@ func (m *MetricsCollector) collect(monitor metrics.MetricsMonitor, endpoint stri
 		return
 	}
 	logrus.Infof("Metrics collector: creating notification client for %v", endpoint)
-	notificationClient := rpc.NewConfiguratorClient(conn)
+	notificationClient := rpc.NewConfiguratorServiceClient(conn)
 	m.startListenNotifications(monitor, notificationClient)
 }
 
-func (m *MetricsCollector) startListenNotifications(monitor metrics.MetricsMonitor, client rpc.ConfiguratorClient) {
+func (m *MetricsCollector) startListenNotifications(monitor metrics.MetricsMonitor, client rpc.ConfiguratorServiceClient) {
 	var nextIdx uint32 = 0
 	for {
 		logrus.Infof("Metrics collector: request %v", nextIdx)
-		request := &rpc.NotificationRequest{
+		request := &rpc.NotifyRequest{
 			Idx: nextIdx,
 		}
 		stream, err := client.Notify(context.Background(), request)
@@ -64,20 +65,20 @@ func (m *MetricsCollector) startListenNotifications(monitor metrics.MetricsMonit
 		time.Sleep(m.requestPeriod)
 	}
 }
-func (m *MetricsCollector) handleNotifications(monitor metrics.MetricsMonitor, stream rpc.Configurator_NotifyClient, nextIndex *uint32) error {
+func (m *MetricsCollector) handleNotifications(monitor metrics.MetricsMonitor, stream rpc.ConfiguratorService_NotifyClient, nextIndex *uint32) error {
 	for {
 		notification, err := stream.Recv()
 		if err != nil {
 			return err
 		}
 		*nextIndex = notification.NextIdx
-		statistics := convertStatistics(notification.Notification.GetVppNotification().Interface.State)
+		statistics := convertStatistics(notification.Notification.GetVppNotification().Interface.GetState())
 		logrus.Infof("Metrics collector: new statistics %v", proto.MarshalTextString(notification.Notification))
 		monitor.HandleMetrics(statistics)
 	}
 }
 
-func convertStatistics(state *interfaces.InterfaceState) map[string]*crossconnect.Metrics {
+func convertStatistics(state *vpp_interfaces.InterfaceState) map[string]*crossconnect.Metrics {
 	stats := state.Statistics
 	metrics := make(map[string]string)
 	metrics["rx_bytes"] = fmt.Sprint(stats.InBytes)

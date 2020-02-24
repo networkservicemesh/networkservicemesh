@@ -6,10 +6,10 @@ import (
 	"path"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/ligato/vpp-agent/api/configurator"
-	"github.com/ligato/vpp-agent/api/models/vpp"
-	interfaces "github.com/ligato/vpp-agent/api/models/vpp/interfaces"
 	"github.com/pkg/errors"
+	"go.ligato.io/vpp-agent/v3/proto/ligato/configurator"
+	"go.ligato.io/vpp-agent/v3/proto/ligato/vpp"
+	interfaces "go.ligato.io/vpp-agent/v3/proto/ligato/vpp/interfaces"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/memif"
 
@@ -116,6 +116,7 @@ func appendMemifInterface(rv *configurator.Config, connection *connection.Connec
 			Memif: &interfaces.MemifLink{
 				Master:         master,
 				SocketFilename: socketFilename,
+				Mode:           interfaces.MemifLink_IP,
 			},
 		},
 	})

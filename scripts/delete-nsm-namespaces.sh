@@ -9,6 +9,7 @@ for ns in $(kubectl get ns -o custom-columns=NAME:.metadata.name); do
   echo "Checking ns: ${ns}"
   if [[ ${ns} == *${NSM_NAMESPACE}* ]]; then
     echo "Deleting ns: ${ns}"
+    kubectl delete pods --all --force --grace-period 0 --namespace "${ns}"
     kubectl delete ns "${ns}"
     continue
   fi
