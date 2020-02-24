@@ -22,12 +22,12 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/forwarder/vppagent/pkg/converter"
 
-	"github.com/ligato/vpp-agent/api/models/linux"
+	"go.ligato.io/vpp-agent/v3/proto/ligato/linux"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/ligato/vpp-agent/api/configurator"
+	"go.ligato.io/vpp-agent/v3/proto/ligato/configurator"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/forwarder/api/forwarder"

@@ -3,8 +3,8 @@ package tests
 import (
 	"context"
 
-	"github.com/ligato/vpp-agent/api/configurator"
 	"github.com/pkg/errors"
+	"go.ligato.io/vpp-agent/v3/proto/ligato/configurator"
 
 	"github.com/networkservicemesh/networkservicemesh/sdk/vppagent"
 
