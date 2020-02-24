@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/ligato/vpp-agent/api/configurator"
+	"go.ligato.io/vpp-agent/v3/proto/ligato/configurator"
 
 	"github.com/sirupsen/logrus"
 
@@ -20,7 +20,7 @@ func CreateVppInterface(nscConnection *connection.Connection, baseDir string, vp
 		return err
 	}
 	defer conn.Close()
-	client := configurator.NewConfiguratorClient(conn)
+	client := configurator.NewConfiguratorServiceClient(conn)
 
 	conversionParameters := &converter.ConnectionConversionParameters{
 		Name:      "SRC-" + nscConnection.GetId(),
@@ -55,7 +55,7 @@ func Reset(vppAgentEndpoint string) error {
 	}
 	defer conn.Close()
 
-	client := configurator.NewConfiguratorClient(conn)
+	client := configurator.NewConfiguratorServiceClient(conn)
 	logrus.Infof("Resetting vppagent...")
 	_, err = client.Update(context.Background(), &configurator.UpdateRequest{
 		Update:     &configurator.Config{},

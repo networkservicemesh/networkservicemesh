@@ -3,8 +3,8 @@ package vppagent
 import (
 	"context"
 
-	"github.com/ligato/vpp-agent/api/configurator"
 	"github.com/sirupsen/logrus"
+	"go.ligato.io/vpp-agent/v3/proto/ligato/configurator"
 
 	"github.com/networkservicemesh/networkservicemesh/forwarder/api/forwarder"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
@@ -40,14 +40,14 @@ func WithConfiguratorClient(ctx context.Context, endpoint string) (context.Conte
 		Logger(ctx).Errorf("Can't dial grpc server: %v", err)
 		return nil, nil, err
 	}
-	client := configurator.NewConfiguratorClient(conn)
+	client := configurator.NewConfiguratorServiceClient(conn)
 
 	return context.WithValue(ctx, clientKey, client), conn.Close, nil
 }
 
 //ConfiguratorClient returns configurator client or nill if client not created
-func ConfiguratorClient(ctx context.Context) configurator.ConfiguratorClient {
-	if client, ok := ctx.Value(clientKey).(configurator.ConfiguratorClient); ok {
+func ConfiguratorClient(ctx context.Context) configurator.ConfiguratorServiceClient {
+	if client, ok := ctx.Value(clientKey).(configurator.ConfiguratorServiceClient); ok {
 		return client
 	}
 	return nil
