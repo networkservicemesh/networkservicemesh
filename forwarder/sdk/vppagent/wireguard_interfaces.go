@@ -20,12 +20,12 @@ import (
 	"context"
 	"fmt"
 
+	vpp_l3 "go.ligato.io/vpp-agent/v3/proto/ligato/vpp/l3"
+
 	sdk "github.com/networkservicemesh/networkservicemesh/forwarder/sdk/wireguard"
 
 	"github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
-	vpp_l2 "go.ligato.io/vpp-agent/v3/proto/ligato/vpp/l2"
-
 	vpp_interfaces "go.ligato.io/vpp-agent/v3/proto/ligato/vpp/interfaces"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
@@ -88,7 +88,7 @@ func (w *wgInterfaces) Close(ctx context.Context, crossConn *crossconnect.CrossC
 // NewWgInterfaces creates chain element for manage wirguard mechanism cases
 func NewWgInterfaces() forwarder.ForwarderServer {
 	return &wgInterfaces{
-		DeviceManager: sdk.NewWireguardDeviceManager(true),
+		DeviceManager: sdk.NewWireguardDeviceManager(false),
 	}
 }
 
@@ -127,13 +127,21 @@ func (w *wgInterfaces) appendInterfaces(rv *configurator.Config, id string, r *c
 		},
 		Enabled: true,
 	})
-	rv.VppConfig.XconnectPairs = append(rv.VppConfig.XconnectPairs, &vpp_l2.XConnectPair{
-		ReceiveInterface:  vppWgName,
-		TransmitInterface: name,
+	rv.VppConfig.L3Xconnects = append(rv.VppConfig.L3Xconnects, &vpp_l3.L3XConnect{
+		Interface: vppWgName,
+		Paths: []*vpp_l3.L3XConnect_Path{
+			{
+				OutgoingInterface: name,
+			},
+		},
 	})
-	rv.VppConfig.XconnectPairs = append(rv.VppConfig.XconnectPairs, &vpp_l2.XConnectPair{
-		ReceiveInterface:  name,
-		TransmitInterface: vppWgName,
+	rv.VppConfig.L3Xconnects = append(rv.VppConfig.L3Xconnects, &vpp_l3.L3XConnect{
+		Interface: name,
+		Paths: []*vpp_l3.L3XConnect_Path{
+			{
+				OutgoingInterface: vppWgName,
+			},
+		},
 	})
 	return nil
 }

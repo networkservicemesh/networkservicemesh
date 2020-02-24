@@ -87,6 +87,7 @@ func (c *MemifInterfaceConverter) ToDataRequest(rv *configurator.Config, connect
 		Link: &vpp_interfaces.Interface_Memif{
 			Memif: &vpp_interfaces.MemifLink{
 				Master:         isMaster,
+				Mode:           vpp_interfaces.MemifLink_IP,
 				SocketFilename: path.Join(fullyQualifiedSocketFilename),
 			},
 		},
