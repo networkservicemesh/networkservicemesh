@@ -22,9 +22,8 @@ import (
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/pkg/errors"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/networkservicemesh/networkservicemesh/sdk/prefix_pool"
 )
 
@@ -45,7 +44,7 @@ func NewExcludedPrefixesServiceFromPath(configPath string) networkservice.Networ
 	}
 }
 
-func (eps *excludedPrefixesService) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+func (eps *excludedPrefixesService) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.Connection, error) {
 	logger := Log(ctx)
 
 	if request.GetConnection() == nil {
@@ -55,10 +54,10 @@ func (eps *excludedPrefixesService) Request(ctx context.Context, request *networ
 	requestNext := request.Clone()
 	conn := requestNext.Connection
 	if conn.Context == nil {
-		conn.Context = &connectioncontext.ConnectionContext{}
+		conn.Context = &networkservice.ConnectionContext{}
 	}
 	if conn.Context.IpContext == nil {
-		conn.Context.IpContext = &connectioncontext.IPContext{}
+		conn.Context.IpContext = &networkservice.IPContext{}
 	}
 	prefixes := eps.prefixes.GetPrefixes()
 	logger.Infof("ExcludedPrefixesService: adding excluded prefixes to connection: %v", prefixes)
@@ -78,7 +77,7 @@ func (eps *excludedPrefixesService) Request(ctx context.Context, request *networ
 	return conn, nil
 }
 
-func (eps *excludedPrefixesService) validateConnection(conn *connection.Connection) error {
+func (eps *excludedPrefixesService) validateConnection(conn *networkservice.Connection) error {
 	if err := conn.IsComplete(); err != nil {
 		return err
 	}
@@ -105,6 +104,6 @@ func (eps *excludedPrefixesService) validateIPAddress(ip, ipName string) error {
 	return nil
 }
 
-func (eps *excludedPrefixesService) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
+func (eps *excludedPrefixesService) Close(ctx context.Context, connection *networkservice.Connection) (*empty.Empty, error) {
 	return ProcessClose(ctx, connection)
 }

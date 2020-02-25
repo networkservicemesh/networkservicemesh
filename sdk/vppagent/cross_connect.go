@@ -9,8 +9,8 @@ import (
 	l2 "github.com/ligato/vpp-agent/api/models/vpp/l2"
 	"github.com/pkg/errors"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
 )
@@ -24,7 +24,7 @@ type XConnect struct {
 // Provides/Consumes from ctx context.Context:
 //     VppAgentConfig
 //	   Next
-func (xc *XConnect) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+func (xc *XConnect) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.Connection, error) {
 	ctx = WithConfig(ctx) // Guarantees we will retrieve a non-nil VppAgentConfig from context.Context
 	vppAgentConfig := Config(ctx)
 
@@ -50,7 +50,7 @@ func (xc *XConnect) Request(ctx context.Context, request *networkservice.Network
 // Provides/Consumes from ctx context.Context:
 //     VppAgentConfig
 //	   Next
-func (xc *XConnect) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
+func (xc *XConnect) Close(ctx context.Context, connection *networkservice.Connection) (*empty.Empty, error) {
 	ctx = WithConfig(ctx) // Guarantees we will retrieve a non-nil VppAgentConfig from context.Context
 	vppAgentConfig := Config(ctx)
 

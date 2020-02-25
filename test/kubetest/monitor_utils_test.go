@@ -7,19 +7,20 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 )
 
 func newXcon(eventType crossconnect.CrossConnectEventType, srcUp, dstUp, empty bool) *crossconnect.CrossConnectEvent {
-	srcState := connection.State_DOWN
+	srcState := networkservice.State_DOWN
 	if srcUp {
-		srcState = connection.State_UP
+		srcState = networkservice.State_UP
 	}
 
-	dstState := connection.State_DOWN
+	dstState := networkservice.State_DOWN
 	if dstUp {
-		dstState = connection.State_UP
+		dstState = networkservice.State_UP
 	}
 
 	xcons := map[string]*crossconnect.CrossConnect{}
@@ -27,12 +28,12 @@ func newXcon(eventType crossconnect.CrossConnectEventType, srcUp, dstUp, empty b
 		xcons = map[string]*crossconnect.CrossConnect{
 			"newid": {
 				Id: "newid",
-				Source: &connection.Connection{
+				Source: &networkservice.Connection{
 					Id:    "1",
 					State: srcState,
 					Path:  common.Strings2Path("local"),
 				},
-				Destination: &connection.Connection{
+				Destination: &networkservice.Connection{
 					Id:    "2",
 					State: dstState,
 					Path:  common.Strings2Path("local"),

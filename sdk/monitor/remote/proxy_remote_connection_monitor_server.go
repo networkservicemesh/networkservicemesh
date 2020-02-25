@@ -10,7 +10,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
 	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/connectionmonitor"
 )
@@ -22,13 +23,13 @@ const (
 
 // ProxyMonitorServer is a monitor.Server for proxy remote/connection GRPC API
 type ProxyMonitorServer interface {
-	connection.MonitorConnectionServer
+	networkservice.MonitorConnectionServer
 }
 
 type proxyMonitorServer struct {
 }
 
-type entityHandler func(connectionServer connection.MonitorConnection_MonitorConnectionsServer, entity monitor.Entity, event monitor.Event) error
+type entityHandler func(connectionServer networkservice.MonitorConnection_MonitorConnectionsServer, entity monitor.Entity, event monitor.Event) error
 
 // NewProxyMonitorServer creates a new ProxyMonitorServer
 func NewProxyMonitorServer() ProxyMonitorServer {
@@ -37,7 +38,7 @@ func NewProxyMonitorServer() ProxyMonitorServer {
 }
 
 // MonitorConnections adds recipient for MonitorServer events
-func (s *proxyMonitorServer) MonitorConnections(selector *connection.MonitorScopeSelector, recipient connection.MonitorConnection_MonitorConnectionsServer) error {
+func (s *proxyMonitorServer) MonitorConnections(selector *networkservice.MonitorScopeSelector, recipient networkservice.MonitorConnection_MonitorConnectionsServer) error {
 	filtered := connectionmonitor.NewMonitorConnectionFilter(selector, recipient)
 
 	logrus.Printf("Monitor Connections request: %s -> %s", selector.GetPathSegments()[0].GetName(), selector.GetPathSegments()[1].GetName())
@@ -75,7 +76,7 @@ func (s *proxyMonitorServer) MonitorConnections(selector *connection.MonitorScop
 func (s *proxyMonitorServer) monitorConnection(
 	ctx context.Context,
 	name, remotePeerName, remotePeerURL string,
-	entityHandler entityHandler, connectionServer connection.MonitorConnection_MonitorConnectionsServer,
+	entityHandler entityHandler, connectionServer networkservice.MonitorConnection_MonitorConnectionsServer,
 	quit chan error) {
 	logrus.Infof(proxyLogFormat, name, "Added")
 
@@ -88,8 +89,8 @@ func (s *proxyMonitorServer) monitorConnection(
 	logrus.Infof(proxyLogFormat, name, "Connected")
 	defer func() { _ = conn.Close() }()
 
-	monitorClient, err := connectionmonitor.NewMonitorClient(conn, &connection.MonitorScopeSelector{
-		PathSegments: []*connection.PathSegment{
+	monitorClient, err := connectionmonitor.NewMonitorClient(conn, &networkservice.MonitorScopeSelector{
+		PathSegments: []*networkservice.PathSegment{
 			{
 				Name: name,
 			},
@@ -128,8 +129,8 @@ func (s *proxyMonitorServer) monitorConnection(
 	}
 }
 
-func (s *proxyMonitorServer) handleRemoteConnection(connectionServer connection.MonitorConnection_MonitorConnectionsServer, entity monitor.Entity, event monitor.Event) error {
-	remoteConnection, ok := entity.(*connection.Connection)
+func (s *proxyMonitorServer) handleRemoteConnection(connectionServer networkservice.MonitorConnection_MonitorConnectionsServer, entity monitor.Entity, event monitor.Event) error {
+	remoteConnection, ok := entity.(*networkservice.Connection)
 	if !ok {
 		return errors.Errorf("unable to cast %v to remote.Connection", entity)
 	}

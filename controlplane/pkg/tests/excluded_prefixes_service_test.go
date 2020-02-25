@@ -25,9 +25,8 @@ import (
 
 	"github.com/onsi/gomega"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 	"github.com/networkservicemesh/networkservicemesh/sdk/prefix_pool"
 )
@@ -54,14 +53,14 @@ func TestExcludePrefixesValidation(t *testing.T) {
 
 	request := buildRequest()
 
-	request.Connection.Context = &connectioncontext.ConnectionContext{
-		IpContext: &connectioncontext.IPContext{DstIpAddr: "10.32.0.1/32"},
+	request.Connection.Context = &networkservice.ConnectionContext{
+		IpContext: &networkservice.IPContext{DstIpAddr: "10.32.0.1/32"},
 	}
 	_, err := doRequest(g, request)
 	g.Expect(err.Error()).To(gomega.MatchRegexp("dstIP .* intersects excluded prefixes list"))
 
-	request.Connection.Context = &connectioncontext.ConnectionContext{
-		IpContext: &connectioncontext.IPContext{SrcIpAddr: "10.32.0.1/32"},
+	request.Connection.Context = &networkservice.ConnectionContext{
+		IpContext: &networkservice.IPContext{SrcIpAddr: "10.32.0.1/32"},
 	}
 	_, err = doRequest(g, request)
 	g.Expect(err.Error()).To(gomega.MatchRegexp("srcIP .* intersects excluded prefixes list"))
@@ -69,14 +68,14 @@ func TestExcludePrefixesValidation(t *testing.T) {
 
 func buildRequest() *networkservice.NetworkServiceRequest {
 	return &networkservice.NetworkServiceRequest{
-		Connection: &connection.Connection{
+		Connection: &networkservice.Connection{
 			Id:             "id",
 			NetworkService: "foo_service",
 		},
 	}
 }
 
-func doRequest(g *gomega.GomegaWithT, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+func doRequest(g *gomega.GomegaWithT, request *networkservice.NetworkServiceRequest) (*networkservice.Connection, error) {
 	// create folder for config
 	configDir := os.TempDir()
 	err := os.MkdirAll(configDir, os.ModeDir|os.ModePerm)

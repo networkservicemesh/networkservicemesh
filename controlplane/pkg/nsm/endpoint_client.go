@@ -6,8 +6,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
 )
 
 //// Endpoint Connection Client
@@ -16,7 +15,7 @@ type endpointClient struct {
 	connection *grpc.ClientConn
 }
 
-func (c *endpointClient) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+func (c *endpointClient) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.Connection, error) {
 	if c == nil || c.client == nil {
 		return nil, errors.New("NSE Connection is not initialized...")
 	}
@@ -41,7 +40,7 @@ func (c *endpointClient) Cleanup() error {
 	return err
 }
 
-func (c *endpointClient) Close(ctx context.Context, conn *connection.Connection) error {
+func (c *endpointClient) Close(ctx context.Context, conn *networkservice.Connection) error {
 	if c.client == nil {
 		return errors.New("Remote NSM Connection is already cleaned...")
 	}

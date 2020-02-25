@@ -16,15 +16,15 @@
 package kernelforwarder
 
 import (
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
 	"github.com/pkg/errors"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/common"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/vxlan"
 
 	"net"
 	"strconv"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 
 	"github.com/sirupsen/logrus"
@@ -56,14 +56,14 @@ type connectionConfig struct {
 	dstIP         string
 	srcIPVXLAN    net.IP
 	dstIPVXLAN    net.IP
-	srcRoutes     []*connectioncontext.Route
-	dstRoutes     []*connectioncontext.Route
-	neighbors     []*connectioncontext.IpNeighbor
+	srcRoutes     []*networkservice.Route
+	dstRoutes     []*networkservice.Route
+	neighbors     []*networkservice.IpNeighbor
 	vni           int
 }
 
 // setupLinkInNs is responsible for configuring an interface inside a given namespace - assigns IP address, routes, etc.
-func setupLinkInNs(containerNs netns.NsHandle, ifaceName, ifaceIP string, routes []*connectioncontext.Route, neighbors []*connectioncontext.IpNeighbor, inject bool) error {
+func setupLinkInNs(containerNs netns.NsHandle, ifaceName, ifaceIP string, routes []*networkservice.Route, neighbors []*networkservice.IpNeighbor, inject bool) error {
 	if inject {
 		/* Get a link object for the interface */
 		ifaceLink, err := netlink.LinkByName(ifaceName)
@@ -161,8 +161,8 @@ func newConnectionConfig(crossConnect *crossconnect.CrossConnect, connType uint8
 	case cLOCAL:
 		return &connectionConfig{
 			id:            crossConnect.GetId(),
-			srcNetNsInode: crossConnect.GetSource().GetMechanism().GetParameters()[common.NetNsInodeKey],
-			dstNetNsInode: crossConnect.GetDestination().GetMechanism().GetParameters()[common.NetNsInodeKey],
+			srcNetNsInode: crossConnect.GetSource().GetMechanism().GetParameters()[common.NetNSInodeKey],
+			dstNetNsInode: crossConnect.GetDestination().GetMechanism().GetParameters()[common.NetNSInodeKey],
 			srcName:       crossConnect.GetSource().GetMechanism().GetParameters()[common.InterfaceNameKey],
 			dstName:       crossConnect.GetDestination().GetMechanism().GetParameters()[common.InterfaceNameKey],
 			srcIP:         crossConnect.GetSource().GetContext().GetIpContext().GetSrcIpAddr(),
@@ -175,7 +175,7 @@ func newConnectionConfig(crossConnect *crossconnect.CrossConnect, connType uint8
 		vni, _ := strconv.Atoi(crossConnect.GetSource().GetMechanism().GetParameters()[vxlan.VNI])
 		return &connectionConfig{
 			id:            crossConnect.GetId(),
-			dstNetNsInode: crossConnect.GetDestination().GetMechanism().GetParameters()[common.NetNsInodeKey],
+			dstNetNsInode: crossConnect.GetDestination().GetMechanism().GetParameters()[common.NetNSInodeKey],
 			dstName:       crossConnect.GetDestination().GetMechanism().GetParameters()[common.InterfaceNameKey],
 			dstIP:         crossConnect.GetDestination().GetContext().GetIpContext().GetDstIpAddr(),
 			dstRoutes:     crossConnect.GetDestination().GetContext().GetIpContext().GetSrcRoutes(),
@@ -188,7 +188,7 @@ func newConnectionConfig(crossConnect *crossconnect.CrossConnect, connType uint8
 		vni, _ := strconv.Atoi(crossConnect.GetDestination().GetMechanism().GetParameters()[vxlan.VNI])
 		return &connectionConfig{
 			id:            crossConnect.GetId(),
-			srcNetNsInode: crossConnect.GetSource().GetMechanism().GetParameters()[common.NetNsInodeKey],
+			srcNetNsInode: crossConnect.GetSource().GetMechanism().GetParameters()[common.NetNSInodeKey],
 			srcName:       crossConnect.GetSource().GetMechanism().GetParameters()[common.InterfaceNameKey],
 			srcIP:         crossConnect.GetSource().GetContext().GetIpContext().GetSrcIpAddr(),
 			srcRoutes:     crossConnect.GetSource().GetContext().GetIpContext().GetDstRoutes(),
@@ -204,7 +204,7 @@ func newConnectionConfig(crossConnect *crossconnect.CrossConnect, connType uint8
 }
 
 // addRoutes adds routes
-func addRoutes(link netlink.Link, addr *netlink.Addr, routes []*connectioncontext.Route) error {
+func addRoutes(link netlink.Link, addr *netlink.Addr, routes []*networkservice.Route) error {
 	for _, route := range routes {
 		_, routeNet, err := net.ParseCIDR(route.GetPrefix())
 		if err != nil {
@@ -228,7 +228,7 @@ func addRoutes(link netlink.Link, addr *netlink.Addr, routes []*connectioncontex
 }
 
 // addNeighbors adds neighbors
-func addNeighbors(link netlink.Link, neighbors []*connectioncontext.IpNeighbor) error {
+func addNeighbors(link netlink.Link, neighbors []*networkservice.IpNeighbor) error {
 	for _, neighbor := range neighbors {
 		mac, err := net.ParseMAC(neighbor.GetHardwareAddress())
 		if err != nil {

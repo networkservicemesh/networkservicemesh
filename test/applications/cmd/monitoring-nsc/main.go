@@ -17,7 +17,8 @@ package main
 import (
 	"context"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/kernel"
+
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
 	"github.com/networkservicemesh/networkservicemesh/utils"
 

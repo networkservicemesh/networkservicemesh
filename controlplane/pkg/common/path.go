@@ -16,20 +16,20 @@
 
 package common
 
-import "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+import "github.com/networkservicemesh/api/pkg/api/networkservice"
 
 // These functions are intentionally not put in api path_helper because they are particular to adapting the existing
 // code to using Path and so intentionally overly simplified.
 
 // Strings2Path is a utility function to create a Path from a list of NSMgr names
-func Strings2Path(strs ...string) *connection.Path {
-	return AppendStrings2Path(&connection.Path{}, strs...)
+func Strings2Path(strs ...string) *networkservice.Path {
+	return AppendStrings2Path(&networkservice.Path{}, strs...)
 }
 
 // AppendStrings2Path is a utility function to append PathSegments to a Path from a list of Names
-func AppendStrings2Path(path *connection.Path, strs ...string) *connection.Path {
+func AppendStrings2Path(path *networkservice.Path, strs ...string) *networkservice.Path {
 	for _, str := range strs {
-		path.PathSegments = append(path.GetPathSegments(), &connection.PathSegment{Name: str})
+		path.PathSegments = append(path.GetPathSegments(), &networkservice.PathSegment{Name: str})
 	}
 	return path
 }

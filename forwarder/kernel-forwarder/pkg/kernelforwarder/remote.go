@@ -18,12 +18,13 @@ package kernelforwarder
 import (
 	"runtime"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/kernel"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/vxlan"
 
 	"github.com/pkg/errors"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/utils/fs"
 
@@ -86,7 +87,7 @@ func handleConnection(egress common.EgressInterfaceType, crossConnect *crossconn
 }
 
 // createRemoteConnection handler for creating a remote connection
-func createRemoteConnection(nsInode, ifaceName, xconName, ifaceIP string, egressIP, remoteIP net.IP, vni int, routes []*connectioncontext.Route, neighbors []*connectioncontext.IpNeighbor) (map[string]monitoring.Device, error) {
+func createRemoteConnection(nsInode, ifaceName, xconName, ifaceIP string, egressIP, remoteIP net.IP, vni int, routes []*networkservice.Route, neighbors []*networkservice.IpNeighbor) (map[string]monitoring.Device, error) {
 	logrus.Info("remote: creating connection...")
 
 	/* Lock the OS thread so we don't accidentally switch namespaces */
@@ -169,7 +170,7 @@ func deleteRemoteConnection(nsInode, ifaceName, xconName string) (map[string]mon
 }
 
 // modifyConfiguration swaps the values based on the direction of the connection - incoming or outgoing
-func modifyConfiguration(cfg *connectionConfig, direction uint8) (string, string, string, net.IP, []*connectioncontext.Route, string) {
+func modifyConfiguration(cfg *connectionConfig, direction uint8) (string, string, string, net.IP, []*networkservice.Route, string) {
 	if direction == cINCOMING {
 		return cfg.dstNetNsInode, cfg.dstName, cfg.dstIP, cfg.srcIPVXLAN, cfg.dstRoutes, "DST-" + cfg.id
 	}

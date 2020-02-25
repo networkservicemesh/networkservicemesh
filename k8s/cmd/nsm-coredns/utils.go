@@ -7,11 +7,12 @@ import (
 	"net"
 	"os"
 
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/pkg/errors"
 
 	"github.com/caddyserver/caddy"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/k8s/api/nsm-coredns/update"
 	"github.com/networkservicemesh/networkservicemesh/k8s/cmd/nsm-coredns/env"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
@@ -86,9 +87,9 @@ func updateResolvConfFile() {
 	r.ReplaceProperties(properties)
 }
 
-func defaultBasicDNSConfig() connectioncontext.DNSConfig {
+func defaultBasicDNSConfig() networkservice.DNSConfig {
 	r := resolvConfFile{path: resolvConfFilePath}
-	return connectioncontext.DNSConfig{
+	return networkservice.DNSConfig{
 		DnsServerIps:  r.Nameservers(),
 		SearchDomains: r.Searches(),
 	}

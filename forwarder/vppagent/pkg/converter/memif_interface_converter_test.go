@@ -5,15 +5,15 @@ import (
 	"path"
 	"testing"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/memif"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/common"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/memif"
 
 	"github.com/ligato/vpp-agent/api/models/vpp"
 	vpp_interfaces "github.com/ligato/vpp-agent/api/models/vpp/interfaces"
 	. "github.com/onsi/gomega"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	. "github.com/networkservicemesh/networkservicemesh/forwarder/vppagent/pkg/converter"
 )
 
@@ -29,8 +29,8 @@ const (
 	dstIp                = "10.30.1.2/30"
 )
 
-func createTestMechanism() *connection.Mechanism {
-	return &connection.Mechanism{
+func createTestMechanism() *networkservice.Mechanism {
+	return &networkservice.Mechanism{
 		Type: memif.MECHANISM,
 		Parameters: map[string]string{
 			common.InterfaceNameKey:        mechanismName,
@@ -40,17 +40,17 @@ func createTestMechanism() *connection.Mechanism {
 	}
 }
 
-func createTestContext() *connectioncontext.ConnectionContext {
-	return &connectioncontext.ConnectionContext{
-		IpContext: &connectioncontext.IPContext{
+func createTestContext() *networkservice.ConnectionContext {
+	return &networkservice.ConnectionContext{
+		IpContext: &networkservice.IPContext{
 			SrcIpAddr: srcIp,
 			DstIpAddr: dstIp,
 		},
 	}
 }
 
-func createTestConnection() *connection.Connection {
-	return &connection.Connection{
+func createTestConnection() *networkservice.Connection {
+	return &networkservice.Connection{
 		Id:             connectionId,
 		NetworkService: networkService,
 		Mechanism:      createTestMechanism(),

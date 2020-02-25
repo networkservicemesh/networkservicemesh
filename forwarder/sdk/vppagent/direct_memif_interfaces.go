@@ -3,7 +3,7 @@ package vppagent
 import (
 	"context"
 
-	memiIf "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/memif"
+	memiIf "github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/memif"
 
 	"github.com/golang/protobuf/ptypes/empty"
 

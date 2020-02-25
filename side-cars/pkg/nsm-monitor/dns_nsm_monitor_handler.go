@@ -10,7 +10,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/k8s/api/nsm-coredns/update"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
 )
 
 const (
@@ -24,7 +24,7 @@ type nsmDNSMonitorHandler struct {
 	dnsConfigUpdateClient update.DNSConfigServiceClient
 }
 
-func (h *nsmDNSMonitorHandler) Updated(old, new *connection.Connection) {
+func (h *nsmDNSMonitorHandler) Updated(old, new *networkservice.Connection) {
 	logrus.Infof("Deleting config with id %v", old.Id)
 	_, _ = h.dnsConfigUpdateClient.RemoveDNSContext(context.Background(), &update.RemoveDNSContextMessage{ConnectionID: old.Id})
 	logrus.Infof("Adding config with id %v", new.Id)
@@ -46,7 +46,7 @@ func NewNsmDNSMonitorHandler() Handler {
 	}
 }
 
-func (h *nsmDNSMonitorHandler) Connected(conns map[string]*connection.Connection) {
+func (h *nsmDNSMonitorHandler) Connected(conns map[string]*networkservice.Connection) {
 	for _, conn := range conns {
 		if conn.Context == nil || conn.Context.DnsContext == nil {
 			continue
@@ -56,7 +56,7 @@ func (h *nsmDNSMonitorHandler) Connected(conns map[string]*connection.Connection
 	}
 }
 
-func (h *nsmDNSMonitorHandler) Closed(conn *connection.Connection) {
+func (h *nsmDNSMonitorHandler) Closed(conn *networkservice.Connection) {
 	logrus.Infof("Deleting config with id %v", conn.Id)
 	_, _ = h.dnsConfigUpdateClient.RemoveDNSContext(context.Background(), &update.RemoveDNSContextMessage{ConnectionID: conn.Id})
 }

@@ -10,25 +10,25 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/empty"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
 )
 
 // ConnectionDump - opens a Client connection to another Network Service
 type ConnectionDump struct {
-	IncomingConnection *connection.Connection
-	OutgoingConnection *connection.Connection
+	IncomingConnection *networkservice.Connection
+	OutgoingConnection *networkservice.Connection
 	ConnectionMap      map[string]*vpp_interfaces.Interface
 }
 
 // Request implements the request handler
 // Consumes from ctx context.Context:
 //	   Next
-func (cce *ConnectionDump) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+func (cce *ConnectionDump) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.Connection, error) {
 	incomingConnection := request.GetConnection()
 	if incomingConnection != nil {
-		cce.IncomingConnection = proto.Clone(incomingConnection).(*connection.Connection)
+		cce.IncomingConnection = proto.Clone(incomingConnection).(*networkservice.Connection)
 	}
 	cce.OutgoingConnection = endpoint.ClientConnection(ctx)
 	cce.ConnectionMap = vppagent.ConnectionMap(ctx)
@@ -47,7 +47,7 @@ func (cce *ConnectionDump) Request(ctx context.Context, request *networkservice.
 // Close implements the close handler
 // Consumes from ctx context.Context:
 //	   Next
-func (cce *ConnectionDump) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
+func (cce *ConnectionDump) Close(ctx context.Context, connection *networkservice.Connection) (*empty.Empty, error) {
 	cce.IncomingConnection = connection
 	cce.OutgoingConnection = endpoint.ClientConnection(ctx)
 	cce.ConnectionMap = vppagent.ConnectionMap(ctx)

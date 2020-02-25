@@ -24,11 +24,11 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/srv6"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/srv6"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/vxlan"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
@@ -66,7 +66,7 @@ func (cce *forwarderService) selectForwarder(request *networkservice.NetworkServ
 	})
 	return dp, err
 }
-func (cce *forwarderService) findMechanism(mechanismPreferences []*connection.Mechanism, mechanismType string) *connection.Mechanism {
+func (cce *forwarderService) findMechanism(mechanismPreferences []*networkservice.Mechanism, mechanismType string) *networkservice.Mechanism {
 	for _, m := range mechanismPreferences {
 		if m.GetType() == mechanismType {
 			return m
@@ -75,9 +75,9 @@ func (cce *forwarderService) findMechanism(mechanismPreferences []*connection.Me
 	return nil
 }
 
-func (cce *forwarderService) selectRemoteMechanism(request *networkservice.NetworkServiceRequest, dp *model.Forwarder) (*connection.Mechanism, error) {
-	var mechanism *connection.Mechanism
-	var dpMechanism *connection.Mechanism
+func (cce *forwarderService) selectRemoteMechanism(request *networkservice.NetworkServiceRequest, dp *model.Forwarder) (*networkservice.Mechanism, error) {
+	var mechanism *networkservice.Mechanism
+	var dpMechanism *networkservice.Mechanism
 
 	if preferredMechanismName := PreferredRemoteMechanism.StringValue(); len(preferredMechanismName) > 0 {
 		for _, m := range request.GetRequestMechanismPreferences() {
@@ -176,7 +176,7 @@ func (cce *forwarderService) updateMechanism(request *networkservice.NetworkServ
 	return nil
 }
 
-func (cce *forwarderService) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+func (cce *forwarderService) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.Connection, error) {
 	logger := common.Log(ctx)
 	span := spanhelper.GetSpanHelper(ctx)
 
@@ -231,8 +231,7 @@ func (cce *forwarderService) doFailureClose(ctx context.Context) {
 	span.LogError(closeErr)
 }
 
-func (cce *forwarderService) Close(ctx context.Context, conn *connection.Connection) (*empty.Empty, error) {
-
+func (cce *forwarderService) Close(ctx context.Context, conn *networkservice.Connection) (*empty.Empty, error) {
 	cc := common.ModelConnection(ctx)
 	logger := common.Log(ctx)
 	empt, err := common.ProcessClose(ctx, conn)
@@ -265,7 +264,7 @@ func (cce *forwarderService) performClose(ctx context.Context, cc *model.ClientC
 	return nil
 }
 
-func (cce *forwarderService) programForwarder(ctx context.Context, conn *connection.Connection, dp *model.Forwarder, clientConnection *model.ClientConnection) (*connection.Connection, error) {
+func (cce *forwarderService) programForwarder(ctx context.Context, conn *networkservice.Connection, dp *model.Forwarder, clientConnection *model.ClientConnection) (*networkservice.Connection, error) {
 	span := spanhelper.FromContext(ctx, "programForwarder")
 	defer span.Finish()
 	// We need to program forwarder.
@@ -337,7 +336,7 @@ func (cce *forwarderService) programForwarder(ctx context.Context, conn *connect
 	return cce.updateClientConnection(ctx, conn, clientConnection, dp)
 }
 
-func (cce *forwarderService) updateClientConnection(ctx context.Context, conn *connection.Connection, clientConnection *model.ClientConnection, dp *model.Forwarder) (*connection.Connection, error) {
+func (cce *forwarderService) updateClientConnection(ctx context.Context, conn *networkservice.Connection, clientConnection *model.ClientConnection, dp *model.Forwarder) (*networkservice.Connection, error) {
 	// Update connection context if it updated from forwarder.
 	err := conn.UpdateContext(clientConnection.GetConnectionSource().GetContext())
 	if err != nil {

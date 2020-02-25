@@ -21,7 +21,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
 )
 
@@ -40,7 +41,7 @@ func (e *event) Message() (interface{}, error) {
 		return nil, err
 	}
 
-	return &connection.ConnectionEvent{
+	return &networkservice.ConnectionEvent{
 		Type:        eventType,
 		Connections: connections,
 	}, nil
@@ -60,7 +61,7 @@ func (m *eventFactory) NewEvent(ctx context.Context, eventType monitor.EventType
 }
 
 func (m *eventFactory) EventFromMessage(ctx context.Context, message interface{}) (monitor.Event, error) {
-	connectionEvent, ok := message.(*connection.ConnectionEvent)
+	connectionEvent, ok := message.(*networkservice.ConnectionEvent)
 	if !ok {
 		return nil, errors.Errorf("unable to cast %v to local.ConnectionEvent", message)
 	}
@@ -77,47 +78,47 @@ func (m *eventFactory) EventFromMessage(ctx context.Context, message interface{}
 	}, nil
 }
 
-func eventTypeToConnectionEventType(eventType monitor.EventType) (connection.ConnectionEventType, error) {
+func eventTypeToConnectionEventType(eventType monitor.EventType) (networkservice.ConnectionEventType, error) {
 	switch eventType {
 	case monitor.EventTypeInitialStateTransfer:
-		return connection.ConnectionEventType_INITIAL_STATE_TRANSFER, nil
+		return networkservice.ConnectionEventType_INITIAL_STATE_TRANSFER, nil
 	case monitor.EventTypeUpdate:
-		return connection.ConnectionEventType_UPDATE, nil
+		return networkservice.ConnectionEventType_UPDATE, nil
 	case monitor.EventTypeDelete:
-		return connection.ConnectionEventType_DELETE, nil
+		return networkservice.ConnectionEventType_DELETE, nil
 	default:
 		return 0, errors.Errorf("unable to cast %v to local.ConnectionEventType", eventType)
 	}
 }
 
-func connectionEventTypeToEventType(connectionEventType connection.ConnectionEventType) (monitor.EventType, error) {
+func connectionEventTypeToEventType(connectionEventType networkservice.ConnectionEventType) (monitor.EventType, error) {
 	switch connectionEventType {
-	case connection.ConnectionEventType_INITIAL_STATE_TRANSFER:
+	case networkservice.ConnectionEventType_INITIAL_STATE_TRANSFER:
 		return monitor.EventTypeInitialStateTransfer, nil
-	case connection.ConnectionEventType_UPDATE:
+	case networkservice.ConnectionEventType_UPDATE:
 		return monitor.EventTypeUpdate, nil
-	case connection.ConnectionEventType_DELETE:
+	case networkservice.ConnectionEventType_DELETE:
 		return monitor.EventTypeDelete, nil
 	default:
 		return "", errors.Errorf("unable to cast %v to monitor.EventType", connectionEventType)
 	}
 }
 
-func connectionsFromEntities(entities map[string]monitor.Entity) (map[string]*connection.Connection, error) {
-	connections := map[string]*connection.Connection{}
+func connectionsFromEntities(entities map[string]monitor.Entity) (map[string]*networkservice.Connection, error) {
+	connections := map[string]*networkservice.Connection{}
 
 	for k, v := range entities {
-		if conn, ok := v.(*connection.Connection); ok {
+		if conn, ok := v.(*networkservice.Connection); ok {
 			connections[k] = conn
 		} else {
-			return nil, errors.New("unable to cast Entity to connection.Connection")
+			return nil, errors.New("unable to cast Entity to networkservice.Connection")
 		}
 	}
 
 	return connections, nil
 }
 
-func entitiesFromConnections(connections map[string]*connection.Connection) map[string]monitor.Entity {
+func entitiesFromConnections(connections map[string]*networkservice.Connection) map[string]monitor.Entity {
 	entities := map[string]monitor.Entity{}
 
 	for k, v := range connections {

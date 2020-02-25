@@ -22,7 +22,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 
 	. "github.com/onsi/gomega"
@@ -82,10 +83,10 @@ func TestNSMDCrossConnectClientRemote(t *testing.T) {
 		&model.ClientConnection{
 			ConnectionID: "1",
 			Xcon: &crossconnect.CrossConnect{
-				Source: &connection.Connection{
+				Source: &networkservice.Connection{
 					Id: "1",
-					Path: &connection.Path{
-						PathSegments: []*connection.PathSegment{
+					Path: &networkservice.Path{
+						PathSegments: []*networkservice.PathSegment{
 							{
 								Name: "nsm1",
 							},
@@ -95,7 +96,7 @@ func TestNSMDCrossConnectClientRemote(t *testing.T) {
 						},
 					},
 				},
-				Destination: &connection.Connection{
+				Destination: &networkservice.Connection{
 					Id: "2",
 				},
 			},
@@ -111,7 +112,7 @@ func TestNSMDCrossConnectClientRemote(t *testing.T) {
 		g.Expect(true).To(BeNil(), "Timeout")
 	}
 	g.Expect(len(msgs.messages)).To(Equal(2))
-	evt := msg.(*connection.ConnectionEvent)
+	evt := msg.(*networkservice.ConnectionEvent)
 	ents := evt.Connections
 	g.Expect(len(ents)).To(Equal(1))
 	conn, ok := ents["1"]
@@ -147,17 +148,17 @@ func TestNSMDCrossConnectClientLocal(t *testing.T) {
 		&model.ClientConnection{
 			ConnectionID: "1",
 			Xcon: &crossconnect.CrossConnect{
-				Source: &connection.Connection{
+				Source: &networkservice.Connection{
 					Id: "1",
-					Path: &connection.Path{
-						PathSegments: []*connection.PathSegment{
+					Path: &networkservice.Path{
+						PathSegments: []*networkservice.PathSegment{
 							{
 								Name: "nsm1",
 							},
 						},
 					},
 				},
-				Destination: &connection.Connection{
+				Destination: &networkservice.Connection{
 					Id: "2",
 				},
 			},
@@ -173,7 +174,7 @@ func TestNSMDCrossConnectClientLocal(t *testing.T) {
 		g.Expect(true).To(BeNil(), "Timeout")
 	}
 	g.Expect(len(msgs.messages)).To(Equal(2))
-	evt := msg.(*connection.ConnectionEvent)
+	evt := msg.(*networkservice.ConnectionEvent)
 	ents := evt.Connections
 	g.Expect(len(ents)).To(Equal(1))
 	conn, ok := ents["1"]

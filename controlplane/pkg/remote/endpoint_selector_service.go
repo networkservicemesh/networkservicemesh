@@ -22,8 +22,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
@@ -36,7 +36,7 @@ type endpointSelectorService struct {
 	model      model.Model
 }
 
-func (cce *endpointSelectorService) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+func (cce *endpointSelectorService) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.Connection, error) {
 	logger := common.Log(ctx)
 	span := spanhelper.GetSpanHelper(ctx)
 	clientConnection := common.ModelConnection(ctx)
@@ -105,11 +105,11 @@ func (cce *endpointSelectorService) checkNSEUpdateIsRequired(ctx context.Context
 	return requestNSEOnUpdate
 }
 
-func (cce *endpointSelectorService) validateConnection(ctx context.Context, conn *connection.Connection) error {
+func (cce *endpointSelectorService) validateConnection(_ context.Context, conn *networkservice.Connection) error {
 	return conn.IsComplete()
 }
 
-func (cce *endpointSelectorService) updateConnectionContext(ctx context.Context, source, destination *connection.Connection) error {
+func (cce *endpointSelectorService) updateConnectionContext(ctx context.Context, source, destination *networkservice.Connection) error {
 	if err := cce.validateConnection(ctx, destination); err != nil {
 		return err
 	}
@@ -121,7 +121,7 @@ func (cce *endpointSelectorService) updateConnectionContext(ctx context.Context,
 	return nil
 }
 
-func (cce *endpointSelectorService) findMechanism(mechanismPreferences []*connection.Mechanism, mechanismType string) *connection.Mechanism {
+func (cce *endpointSelectorService) findMechanism(mechanismPreferences []*networkservice.Mechanism, mechanismType string) *networkservice.Mechanism {
 	for _, m := range mechanismPreferences {
 		if m.GetType() == mechanismType {
 			return m
@@ -130,16 +130,16 @@ func (cce *endpointSelectorService) findMechanism(mechanismPreferences []*connec
 	return nil
 }
 
-func (cce *endpointSelectorService) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
+func (cce *endpointSelectorService) Close(ctx context.Context, connection *networkservice.Connection) (*empty.Empty, error) {
 	return common.ProcessClose(ctx, connection)
 }
 
-func (cce *endpointSelectorService) checkUpdateConnectionContext(ctx context.Context, request *networkservice.NetworkServiceRequest, clientConnection *model.ClientConnection) (*connection.Connection, error) {
+func (cce *endpointSelectorService) checkUpdateConnectionContext(ctx context.Context, request *networkservice.NetworkServiceRequest, clientConnection *model.ClientConnection) (*networkservice.Connection, error) {
 	// We do not need to do request to endpoint and just need to update all stuff.
 	// 7.2 We do not need to access NSE, since all parameters are same.
 	logger := common.Log(ctx)
 	clientConnection.Xcon.Source.Mechanism = request.Connection.GetMechanism()
-	clientConnection.Xcon.Source.State = connection.State_UP
+	clientConnection.Xcon.Source.State = networkservice.State_UP
 
 	// 7.3 Destination context probably has been changed, so we need to update source context.
 	if err := cce.updateConnectionContext(ctx, request.GetConnection(), clientConnection.GetConnectionDestination()); err != nil {

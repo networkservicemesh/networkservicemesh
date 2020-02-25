@@ -23,7 +23,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
@@ -33,7 +34,7 @@ import (
 
 type nsmClientListEntry struct {
 	client      *NsmClient
-	connections []*connection.Connection
+	connections []*networkservice.Connection
 }
 
 // NsmClientList represents a set of clients
@@ -51,12 +52,12 @@ func (nsmcl *NsmClientList) ConnectRetry(ctx context.Context, name, mechanism, d
 	for idx := range nsmcl.clients {
 		entry := &nsmcl.clients[idx]
 		if entry.client.NsmConnection.Configuration.PodName != "" &&
-			entry.client.ClientLabels[connection.PodNameKey] == "" {
-			entry.client.ClientLabels[connection.PodNameKey] = entry.client.NsmConnection.Configuration.PodName
+			entry.client.ClientLabels[networkservice.PodNameKey] == "" {
+			entry.client.ClientLabels[networkservice.PodNameKey] = entry.client.NsmConnection.Configuration.PodName
 		}
 		if entry.client.NsmConnection.Configuration.Namespace != "" &&
-			entry.client.ClientLabels[connection.NamespaceKey] == "" {
-			entry.client.ClientLabels[connection.NamespaceKey] = entry.client.NsmConnection.Configuration.Namespace
+			entry.client.ClientLabels[networkservice.NamespaceKey] == "" {
+			entry.client.ClientLabels[networkservice.NamespaceKey] = entry.client.NsmConnection.Configuration.Namespace
 		}
 		conn, err := entry.client.ConnectRetry(ctx, name+strconv.Itoa(idx), mechanism, description, retryCount, retryDelay)
 		if err != nil {

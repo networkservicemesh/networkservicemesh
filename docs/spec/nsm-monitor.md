@@ -38,15 +38,15 @@ For creating custom nsm-monitor you need to implement next interface:
 // NSMMonitorHandler - handler to perform configuration of monitoring app
 type NSMMonitorHandler interface {
 	//Connected occurs when the nsm-monitor connected
-	Connected(map[string]*connection.Connection)
+	Connected(map[string]*networkservice.Connection)
 	//Closed occurs when the connection closed
-	Closed(conn *connection.Connection)
+	Closed(conn *networkservice.Connection)
 	//Healing occurs when the healing started
-	Healing(conn *connection.Connection)
+	Healing(conn *networkservice.Connection)
 	//GetConfiguration gets custom network service configuration
 	GetConfiguration() *common.NSConfiguration
 	//ProcessHealing occurs when the restore failed, the error pass as the second parameter
-	ProcessHealing(newConn *connection.Connection, e error)
+	ProcessHealing(newConn *networkservice.Connection, e error)
 	//Stopped occurs when the invoked NSMMonitorApp.Stop()
 	Stopped()
 	//IsEnableJaeger returns is Jaeger needed

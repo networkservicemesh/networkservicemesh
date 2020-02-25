@@ -1,13 +1,12 @@
 package crossconnect
 
 import (
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
 	"github.com/pkg/errors"
-
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 )
 
 // NewCrossConnect creates a new crossConnect
-func NewCrossConnect(id, payload string, src, dst *connection.Connection) *CrossConnect {
+func NewCrossConnect(id, payload string, src, dst *networkservice.Connection) *CrossConnect {
 	c := &CrossConnect{
 		Id:          id,
 		Payload:     payload,
@@ -70,7 +69,7 @@ func (c *CrossConnect) IsComplete() error {
 }
 
 // GetLocalSource - return a source and check if it is local
-func (c *CrossConnect) GetLocalSource() *connection.Connection {
+func (c *CrossConnect) GetLocalSource() *networkservice.Connection {
 	if c == nil {
 		return nil
 	}
@@ -81,7 +80,7 @@ func (c *CrossConnect) GetLocalSource() *connection.Connection {
 }
 
 // GetRemoteSource - return a source and check if it is remote
-func (c *CrossConnect) GetRemoteSource() *connection.Connection {
+func (c *CrossConnect) GetRemoteSource() *networkservice.Connection {
 	if c == nil {
 		return nil
 	}
@@ -92,7 +91,7 @@ func (c *CrossConnect) GetRemoteSource() *connection.Connection {
 }
 
 // GetLocalDestination - return a destination and check if it is local
-func (c *CrossConnect) GetLocalDestination() *connection.Connection {
+func (c *CrossConnect) GetLocalDestination() *networkservice.Connection {
 	if c == nil {
 		return nil
 	}
@@ -103,7 +102,7 @@ func (c *CrossConnect) GetLocalDestination() *connection.Connection {
 }
 
 // GetRemoteDestination - return a destination and check if it is remote
-func (c *CrossConnect) GetRemoteDestination() *connection.Connection {
+func (c *CrossConnect) GetRemoteDestination() *networkservice.Connection {
 	if c == nil {
 		return nil
 	}

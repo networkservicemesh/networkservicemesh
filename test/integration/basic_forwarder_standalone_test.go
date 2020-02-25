@@ -12,17 +12,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/common"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/memif"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/kernel"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/memif"
 
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	forwarderapi "github.com/networkservicemesh/networkservicemesh/forwarder/api/forwarder"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
@@ -215,25 +215,25 @@ func (fixture *standaloneForwarderFixture) createCrossConnectRequest(id, srcMech
 	return conn
 }
 
-func (fixture *standaloneForwarderFixture) createConnection(id, mech, iface, srcIp, dstIp string, pod *v1.Pod) *connection.Connection {
-	mechanism := &connection.Mechanism{
+func (fixture *standaloneForwarderFixture) createConnection(id, mech, iface, srcIp, dstIp string, pod *v1.Pod) *networkservice.Connection {
+	mechanism := &networkservice.Mechanism{
 		Type: mech,
 		Parameters: map[string]string{
 			common.InterfaceNameKey:        iface,
 			common.InterfaceDescriptionKey: "Some description",
 			memif.SocketFilename:           path.Join(iface, memif.MemifSocket),
-			common.NetNsInodeKey:           fixture.getNetNS(pod),
+			common.NetNSInodeKey:           fixture.getNetNS(pod),
 		},
 	}
 	err := mechanism.IsValid()
 	wt.Expect(err).To(BeNil())
 
-	return &connection.Connection{
+	return &networkservice.Connection{
 		Id:             id,
 		NetworkService: "some-network-service",
 		Mechanism:      mechanism,
-		Context: &connectioncontext.ConnectionContext{
-			IpContext: &connectioncontext.IPContext{
+		Context: &networkservice.ConnectionContext{
+			IpContext: &networkservice.IPContext{
 				SrcIpAddr: srcIp,
 				DstIpAddr: dstIp,
 			},
@@ -330,7 +330,7 @@ func maskIp(ip, mask string) string {
 	return fmt.Sprintf("%s/%s", ip, mask)
 }
 
-func getIface(conn *connection.Connection) string {
+func getIface(conn *networkservice.Connection) string {
 	return conn.Mechanism.Parameters[common.InterfaceNameKey]
 }
 

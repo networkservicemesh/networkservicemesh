@@ -30,7 +30,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/forwarder/api/forwarder"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
@@ -85,8 +86,8 @@ type ForwarderConfig struct {
 
 // Mechanisms is a message used to communicate any changes in operational parameters and constraints
 type Mechanisms struct {
-	RemoteMechanisms []*connection.Mechanism
-	LocalMechanisms  []*connection.Mechanism
+	RemoteMechanisms []*networkservice.Mechanism
+	LocalMechanisms  []*networkservice.Mechanism
 }
 
 func getEnvWithDefault(span spanhelper.SpanHelper, env, defaultValue string) string {

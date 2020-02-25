@@ -11,8 +11,8 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/empty"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
 )
 
@@ -25,7 +25,7 @@ type TestCommit struct {
 // Provides/Consumes from ctx context.Context:
 //     VppAgentConfig
 //	   Next
-func (c *TestCommit) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+func (c *TestCommit) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.Connection, error) {
 	ctx = vppagent.WithConfig(ctx) // Guarantees we will retrieve a non-nil VppAgentConfig from context.Context
 	vppAgentConfig := vppagent.Config(ctx)
 	if vppAgentConfig == nil {
@@ -45,7 +45,7 @@ func (c *TestCommit) Request(ctx context.Context, request *networkservice.Networ
 // Provides/Consumes from ctx context.Context:
 //     VppAgentConfig
 //	   Next
-func (c *TestCommit) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
+func (c *TestCommit) Close(ctx context.Context, connection *networkservice.Connection) (*empty.Empty, error) {
 	ctx = vppagent.WithConfig(ctx) // Guarantees we will retrieve a non-nil VppAgentConfig from context.Context
 	vppAgentConfig := vppagent.Config(ctx)
 

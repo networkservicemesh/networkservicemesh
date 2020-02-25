@@ -22,15 +22,15 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
-	mechanismCommon "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
+	mechanismCommon "github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/common"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/kernel"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
 
 	"github.com/golang/protobuf/ptypes/empty"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	unifiednsm "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
@@ -71,7 +71,7 @@ func (cce *endpointService) closeEndpoint(ctx context.Context, cc *model.ClientC
 	return nseClientError
 }
 
-func (cce *endpointService) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+func (cce *endpointService) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.Connection, error) {
 	logger := common.Log(ctx)
 	clientConnection := common.ModelConnection(ctx)
 	dp := common.Forwarder(ctx)
@@ -126,7 +126,7 @@ func (cce *endpointService) Request(ctx context.Context, request *networkservice
 	return common.ProcessNext(ctx, request)
 }
 
-func (cce *endpointService) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
+func (cce *endpointService) Close(ctx context.Context, connection *networkservice.Connection) (*empty.Empty, error) {
 	clientConnection := common.ModelConnection(ctx)
 	if clientConnection != nil {
 		if err := cce.closeEndpoint(ctx, clientConnection); err != nil {
@@ -137,11 +137,11 @@ func (cce *endpointService) Close(ctx context.Context, connection *connection.Co
 	return common.ProcessClose(ctx, connection)
 }
 
-func (cce *endpointService) createLocalNSERequest(endpoint *registry.NSERegistration, requestConn *connection.Connection, localMechanisms []*connection.Mechanism, clientConnection *model.ClientConnection) *networkservice.NetworkServiceRequest {
+func (cce *endpointService) createLocalNSERequest(endpoint *registry.NSERegistration, requestConn *networkservice.Connection, localMechanisms []*networkservice.Mechanism, clientConnection *model.ClientConnection) *networkservice.NetworkServiceRequest {
 	if clientConnection.ConnectionState == model.ClientConnectionHealing && endpoint == clientConnection.Endpoint {
 		if localDst := clientConnection.Xcon.GetLocalDestination(); localDst != nil {
 			return &networkservice.NetworkServiceRequest{
-				Connection: &connection.Connection{
+				Connection: &networkservice.Connection{
 					Id:             localDst.GetId(),
 					NetworkService: localDst.NetworkService,
 					Context:        localDst.GetContext(),
@@ -154,7 +154,7 @@ func (cce *endpointService) createLocalNSERequest(endpoint *registry.NSERegistra
 	}
 
 	return &networkservice.NetworkServiceRequest{
-		Connection: &connection.Connection{
+		Connection: &networkservice.Connection{
 			Id:             cce.model.ConnectionID(), // ID for NSE is managed by NSMgr
 			NetworkService: endpoint.GetNetworkService().GetName(),
 			Path:           common.Strings2Path(cce.model.GetNsm().GetName()),
@@ -166,12 +166,12 @@ func (cce *endpointService) createLocalNSERequest(endpoint *registry.NSERegistra
 }
 
 func (cce *endpointService) createRemoteNSMRequest(endpoint *registry.NSERegistration,
-	requestConn *connection.Connection, remoteMechanisms []*connection.Mechanism, clientConnection *model.ClientConnection) *networkservice.NetworkServiceRequest {
+	requestConn *networkservice.Connection, remoteMechanisms []*networkservice.Mechanism, clientConnection *model.ClientConnection) *networkservice.NetworkServiceRequest {
 	// Try Heal only if endpoint are same as for existing connection.
 	if clientConnection.ConnectionState == model.ClientConnectionHealing && endpoint == clientConnection.Endpoint {
 		if remoteDst := clientConnection.Xcon.GetRemoteDestination(); remoteDst != nil {
 			return &networkservice.NetworkServiceRequest{
-				Connection: &connection.Connection{
+				Connection: &networkservice.Connection{
 					Id:                         remoteDst.GetId(),
 					NetworkService:             remoteDst.NetworkService,
 					Context:                    remoteDst.GetContext(),
@@ -188,7 +188,7 @@ func (cce *endpointService) createRemoteNSMRequest(endpoint *registry.NSERegistr
 	}
 
 	return &networkservice.NetworkServiceRequest{
-		Connection: &connection.Connection{
+		Connection: &networkservice.Connection{
 			Id:                         "-",
 			NetworkService:             requestConn.GetNetworkService(),
 			Context:                    requestConn.GetContext(),
@@ -203,7 +203,7 @@ func (cce *endpointService) createRemoteNSMRequest(endpoint *registry.NSERegistr
 	}
 }
 
-func (cce *endpointService) validateConnection(ctx context.Context, conn *connection.Connection) error {
+func (cce *endpointService) validateConnection(_ context.Context, conn *networkservice.Connection) error {
 	if err := conn.IsComplete(); err != nil {
 		return err
 	}
@@ -211,7 +211,7 @@ func (cce *endpointService) validateConnection(ctx context.Context, conn *connec
 	return nil
 }
 
-func (cce *endpointService) updateConnectionContext(ctx context.Context, source, destination *connection.Connection) error {
+func (cce *endpointService) updateConnectionContext(ctx context.Context, source, destination *networkservice.Connection) error {
 	if err := cce.validateConnection(ctx, destination); err != nil {
 		return err
 	}
@@ -223,7 +223,7 @@ func (cce *endpointService) updateConnectionContext(ctx context.Context, source,
 	return nil
 }
 
-func (cce *endpointService) updateConnectionParameters(nseConn *connection.Connection, endpoint *registry.NSERegistration) {
+func (cce *endpointService) updateConnectionParameters(nseConn *networkservice.Connection, endpoint *registry.NSERegistration) {
 	if cce.nseManager.IsLocalEndpoint(endpoint) {
 		modelEp := cce.model.GetEndpoint(endpoint.GetNetworkServiceEndpoint().GetName())
 		if modelEp != nil { // In case of tests this could be empty

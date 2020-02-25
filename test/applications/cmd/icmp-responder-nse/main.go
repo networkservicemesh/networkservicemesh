@@ -28,9 +28,8 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
@@ -77,7 +76,7 @@ func main() {
 		if len(ServerIPsEnv.GetStringListValueOrDefault("")) == 1 && ServerIPsEnv.GetStringListValueOrDefault("")[0] == "" {
 			endpoints = append(endpoints, endpoint.NewAddDnsConfigDstIp(SearchDomainsEnv.GetStringListValueOrDefault("icmp.app")...))
 		} else {
-			endpoint.NewAddDNSConfigs(&connectioncontext.DNSConfig{
+			endpoint.NewAddDNSConfigs(&networkservice.DNSConfig{
 				DnsServerIps:  ServerIPsEnv.GetStringListValueOrDefault(""),
 				SearchDomains: SearchDomainsEnv.GetStringListValueOrDefault("icmp.app"),
 			})
@@ -90,7 +89,7 @@ func main() {
 	if flags.Update {
 		logrus.Infof("Adding updating endpoint to chain")
 		endpoints = append(endpoints,
-			endpoint.NewCustomFuncEndpoint("update", func(ctx context.Context, conn *connection.Connection) error {
+			endpoint.NewCustomFuncEndpoint("update", func(ctx context.Context, conn *networkservice.Connection) error {
 				monitorServer := endpoint.MonitorServer(ctx)
 				logrus.Infof("Delaying 5 seconds before send update event.")
 				go func() {
@@ -120,7 +119,7 @@ func main() {
 	<-c
 }
 
-func ipNeighborMutator(ctc context.Context, c *connection.Connection) error {
+func ipNeighborMutator(ctc context.Context, c *networkservice.Connection) error {
 	addrs, err := net.Interfaces()
 	if err != nil {
 		return err
@@ -137,7 +136,7 @@ func ipNeighborMutator(ctc context.Context, c *connection.Connection) error {
 			addr, _, _ := net.ParseCIDR(a.String())
 			if !addr.IsLoopback() {
 				c.GetContext().GetIpContext().IpNeighbors = append(c.GetContext().GetIpContext().GetIpNeighbors(),
-					&connectioncontext.IpNeighbor{
+					&networkservice.IpNeighbor{
 						Ip:              addr.String(),
 						HardwareAddress: iface.HardwareAddr.String(),
 					},
@@ -150,7 +149,7 @@ func ipNeighborMutator(ctc context.Context, c *connection.Connection) error {
 
 func updateConnections(ctx context.Context, monitorServer connectionMonitor.MonitorServer) {
 	for _, entity := range monitorServer.Entities() {
-		localConnection := proto.Clone(entity.(*connection.Connection)).(*connection.Connection)
+		localConnection := proto.Clone(entity.(*networkservice.Connection)).(*networkservice.Connection)
 		localConnection.GetContext().GetIpContext().ExcludedPrefixes =
 			append(localConnection.GetContext().GetIpContext().GetExcludedPrefixes(), "255.255.255.255/32")
 

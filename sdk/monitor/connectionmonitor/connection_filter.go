@@ -16,16 +16,16 @@
 
 package connectionmonitor
 
-import "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+import "github.com/networkservicemesh/api/pkg/api/networkservice"
 
 type monitorConnectionFilter struct {
-	connection.MonitorConnection_MonitorConnectionsServer
+	networkservice.MonitorConnection_MonitorConnectionsServer
 
-	selector *connection.MonitorScopeSelector
+	selector *networkservice.MonitorScopeSelector
 }
 
 // NewMonitorConnectionFilter - create a connection montior server filter
-func NewMonitorConnectionFilter(selector *connection.MonitorScopeSelector, monitor connection.MonitorConnection_MonitorConnectionsServer) connection.MonitorConnection_MonitorConnectionsServer {
+func NewMonitorConnectionFilter(selector *networkservice.MonitorScopeSelector, monitor networkservice.MonitorConnection_MonitorConnectionsServer) networkservice.MonitorConnection_MonitorConnectionsServer {
 	return &monitorConnectionFilter{
 		selector: selector,
 		MonitorConnection_MonitorConnectionsServer: monitor,
@@ -33,10 +33,10 @@ func NewMonitorConnectionFilter(selector *connection.MonitorScopeSelector, monit
 }
 
 // Send filters event connections and pass it to the next sending layer
-func (d *monitorConnectionFilter) Send(in *connection.ConnectionEvent) error {
-	out := &connection.ConnectionEvent{
+func (d *monitorConnectionFilter) Send(in *networkservice.ConnectionEvent) error {
+	out := &networkservice.ConnectionEvent{
 		Type:        in.Type,
-		Connections: make(map[string]*connection.Connection),
+		Connections: make(map[string]*networkservice.Connection),
 	}
 	for key, value := range in.GetConnections() {
 		if len(d.selector.GetPathSegments()) > 0 && value.GetSourceNetworkServiceManagerName() == d.selector.GetPathSegments()[0].GetName() {
@@ -46,7 +46,7 @@ func (d *monitorConnectionFilter) Send(in *connection.ConnectionEvent) error {
 			out.Connections[key] = value
 		}
 	}
-	if len(out.Connections) > 0 || out.Type == connection.ConnectionEventType_INITIAL_STATE_TRANSFER {
+	if len(out.Connections) > 0 || out.Type == networkservice.ConnectionEventType_INITIAL_STATE_TRANSFER {
 		return d.MonitorConnection_MonitorConnectionsServer.Send(out)
 	}
 	return nil

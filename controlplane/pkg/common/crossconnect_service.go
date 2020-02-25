@@ -20,16 +20,16 @@ import (
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/pkg/errors"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 )
 
 // ConnectionService makes basic Mechanism selection for the incoming connection
 type сrossConnectService struct {
 }
 
-func (cce *сrossConnectService) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+func (cce *сrossConnectService) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.Connection, error) {
 	logger := Log(ctx)
 	endpointConnection := EndpointConnection(ctx)
 	endpoint := Endpoint(ctx)
@@ -53,7 +53,7 @@ func (cce *сrossConnectService) Request(ctx context.Context, request *networkse
 	return ProcessNext(ctx, request)
 }
 
-func (cce *сrossConnectService) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
+func (cce *сrossConnectService) Close(ctx context.Context, connection *networkservice.Connection) (*empty.Empty, error) {
 	return ProcessClose(ctx, connection)
 }
 

@@ -23,8 +23,8 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/networkservicemesh/networkservicemesh/sdk/client"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 )
@@ -32,14 +32,14 @@ import (
 // ClientEndpoint - opens a Client connection to another Network Service
 type ClientEndpoint struct {
 	mechanismType string
-	ioConnMap     map[string]*connection.Connection
+	ioConnMap     map[string]*networkservice.Connection
 	configuration *common.NSConfiguration
 }
 
 // Request implements the request handler
 // Consumes from ctx context.Context:
 //	   Next
-func (cce *ClientEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+func (cce *ClientEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.Connection, error) {
 	name := request.GetConnection().GetId()
 
 	nsmClient, err := client.NewNSMClient(ctx, cce.configuration)
@@ -60,7 +60,7 @@ func (cce *ClientEndpoint) Request(ctx context.Context, request *networkservice.
 	}
 
 	//TODO: Do we need this ?
-	outgoingConnection.GetMechanism().GetParameters()[connection.Workspace] = ""
+	outgoingConnection.GetMechanism().GetParameters()[networkservice.Workspace] = ""
 	ctx = WithClientConnection(ctx, outgoingConnection)
 	incomingConnection := request.GetConnection()
 	if Next(ctx) != nil {
@@ -79,7 +79,7 @@ func (cce *ClientEndpoint) Request(ctx context.Context, request *networkservice.
 // Close implements the close handler
 // Consumes from ctx context.Context:
 //	   Next
-func (cce *ClientEndpoint) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
+func (cce *ClientEndpoint) Close(ctx context.Context, connection *networkservice.Connection) (*empty.Empty, error) {
 	var result error
 
 	nsmClient, err := client.NewNSMClient(ctx, cce.configuration)
@@ -121,7 +121,7 @@ func NewClientEndpoint(configuration *common.NSConfiguration) *ClientEndpoint {
 	}
 
 	self := &ClientEndpoint{
-		ioConnMap:     map[string]*connection.Connection{},
+		ioConnMap:     map[string]*networkservice.Connection{},
 		mechanismType: configuration.MechanismType,
 		configuration: configuration,
 	}

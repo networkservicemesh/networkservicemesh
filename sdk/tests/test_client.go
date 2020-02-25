@@ -10,20 +10,19 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
 )
 
 // TestClientEndpoint - opens a Client connection to another Network Service
 type TestClientEndpoint struct {
-	ioConnMap          map[string]*connection.Connection
-	outgoingConnection *connection.Connection
+	ioConnMap          map[string]*networkservice.Connection
+	outgoingConnection *networkservice.Connection
 }
 
 // Request implements the request handler
 // Consumes from ctx context.Context:
 //	   Next
-func (cce *TestClientEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+func (cce *TestClientEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.Connection, error) {
 	ctx = endpoint.WithClientConnection(ctx, cce.outgoingConnection)
 	incomingConnection := request.GetConnection()
 	var err error
@@ -43,7 +42,7 @@ func (cce *TestClientEndpoint) Request(ctx context.Context, request *networkserv
 // Close implements the close handler
 // Consumes from ctx context.Context:
 //	   Next
-func (cce *TestClientEndpoint) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
+func (cce *TestClientEndpoint) Close(ctx context.Context, connection *networkservice.Connection) (*empty.Empty, error) {
 	var result error
 
 	if outgoingConnection, ok := cce.ioConnMap[connection.GetId()]; ok {
@@ -68,9 +67,9 @@ func (cce *TestClientEndpoint) Name() string {
 }
 
 // NewTestClientEndpoint -  creates a test ClientEndpoint
-func NewTestClientEndpoint(outgoingConnection *connection.Connection) *TestClientEndpoint {
+func NewTestClientEndpoint(outgoingConnection *networkservice.Connection) *TestClientEndpoint {
 	self := &TestClientEndpoint{
-		ioConnMap:          map[string]*connection.Connection{},
+		ioConnMap:          map[string]*networkservice.Connection{},
 		outgoingConnection: outgoingConnection,
 	}
 

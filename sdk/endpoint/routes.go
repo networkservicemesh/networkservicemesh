@@ -5,9 +5,7 @@ import (
 
 	"github.com/golang/protobuf/ptypes/empty"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
 )
 
 // RoutesConfiguration is a list of prefixes for routes
@@ -16,13 +14,13 @@ type RoutesConfiguration []string
 // RoutesEndpoint -
 //   Adds routes to the ConnectionContext for the Request
 type RoutesEndpoint struct {
-	routes []*connectioncontext.Route
+	routes []*networkservice.Route
 }
 
 // Request handler
 //  Consumes from ctx context.Context:
 //    Next
-func (r *RoutesEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+func (r *RoutesEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.Connection, error) {
 	request.GetConnection().GetContext().GetIpContext().DstRoutes = r.routes
 	if Next(ctx) != nil {
 		return Next(ctx).Request(ctx, request)
@@ -33,7 +31,7 @@ func (r *RoutesEndpoint) Request(ctx context.Context, request *networkservice.Ne
 // Close handler
 //   Consumes from ctx context.Context:
 //     Next
-func (r *RoutesEndpoint) Close(ctx context.Context, conn *connection.Connection) (*empty.Empty, error) {
+func (r *RoutesEndpoint) Close(ctx context.Context, conn *networkservice.Connection) (*empty.Empty, error) {
 	if Next(ctx) != nil {
 		return Next(ctx).Close(ctx, conn)
 	}
@@ -47,9 +45,9 @@ func (r *RoutesEndpoint) Name() string {
 
 // NewRoutesEndpoint creates New RoutesEndpoint
 func NewRoutesEndpoint(prefixes []string) *RoutesEndpoint {
-	routes := make([]*connectioncontext.Route, 1)
+	routes := make([]*networkservice.Route, 1)
 	for _, prefix := range prefixes {
-		routes = append(routes, &connectioncontext.Route{Prefix: prefix})
+		routes = append(routes, &networkservice.Route{Prefix: prefix})
 	}
 	return &RoutesEndpoint{
 		routes: routes,

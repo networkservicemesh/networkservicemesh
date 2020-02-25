@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/memif"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/memif"
 
 	. "github.com/onsi/gomega"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
 )
 
 func TestAddAndGetDp(t *testing.T) {
@@ -18,16 +18,16 @@ func TestAddAndGetDp(t *testing.T) {
 	dp := &Forwarder{
 		RegisteredName: "dp1",
 		SocketLocation: "/socket",
-		LocalMechanisms: []*connection.Mechanism{
-			&connection.Mechanism{
+		LocalMechanisms: []*networkservice.Mechanism{
+			&networkservice.Mechanism{
 				Type: memif.MECHANISM,
 				Parameters: map[string]string{
 					"localParam": "value",
 				},
 			},
 		},
-		RemoteMechanisms: []*connection.Mechanism{
-			&connection.Mechanism{
+		RemoteMechanisms: []*networkservice.Mechanism{
+			&networkservice.Mechanism{
 				Type: "gre",
 				Parameters: map[string]string{
 					"remoteParam": "value",
@@ -58,16 +58,16 @@ func TestDeleteDp(t *testing.T) {
 	dd.AddForwarder(context.Background(), &Forwarder{
 		RegisteredName: "dp1",
 		SocketLocation: "/socket",
-		LocalMechanisms: []*connection.Mechanism{
-			&connection.Mechanism{
+		LocalMechanisms: []*networkservice.Mechanism{
+			&networkservice.Mechanism{
 				Type: memif.MECHANISM,
 				Parameters: map[string]string{
 					"localParam": "value",
 				},
 			},
 		},
-		RemoteMechanisms: []*connection.Mechanism{
-			&connection.Mechanism{
+		RemoteMechanisms: []*networkservice.Mechanism{
+			&networkservice.Mechanism{
 				Type: "gre",
 				Parameters: map[string]string{
 					"remoteParam": "value",
@@ -97,16 +97,16 @@ func TestSelectDp(t *testing.T) {
 		dd.AddForwarder(context.Background(), &Forwarder{
 			RegisteredName: fmt.Sprintf("dp%d", i),
 			SocketLocation: fmt.Sprintf("/socket-%d", i),
-			LocalMechanisms: []*connection.Mechanism{
-				&connection.Mechanism{
+			LocalMechanisms: []*networkservice.Mechanism{
+				&networkservice.Mechanism{
 					Type: memif.MECHANISM,
 					Parameters: map[string]string{
 						"localParam": "value",
 					},
 				},
 			},
-			RemoteMechanisms: []*connection.Mechanism{
-				&connection.Mechanism{
+			RemoteMechanisms: []*networkservice.Mechanism{
+				&networkservice.Mechanism{
 					Type: "gre",
 					Parameters: map[string]string{
 						"remoteParam": "value",

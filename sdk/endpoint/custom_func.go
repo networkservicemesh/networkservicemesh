@@ -5,12 +5,11 @@ import (
 
 	"github.com/golang/protobuf/ptypes/empty"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
 )
 
 // ConnectionMutator is function that accepts connection and modify it
-type ConnectionMutator func(context.Context, *connection.Connection) error
+type ConnectionMutator func(context.Context, *networkservice.Connection) error
 
 // CustomFuncEndpoint is endpoint that apply passed ConnectionMutator to connection that accepts from next endpoint
 type CustomFuncEndpoint struct {
@@ -21,7 +20,7 @@ type CustomFuncEndpoint struct {
 // Request implements Request method from NetworkServiceServer
 // Consumes from ctx context.Context:
 //	   Next
-func (cf *CustomFuncEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+func (cf *CustomFuncEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.Connection, error) {
 	if err := cf.connectionMutator(ctx, request.GetConnection()); err != nil {
 		Log(ctx).Error(err)
 		return nil, err
@@ -38,7 +37,7 @@ func (cf *CustomFuncEndpoint) Request(ctx context.Context, request *networkservi
 // Close implements Close method from NetworkServiceServer
 // Consumes from ctx context.Context:
 //	   Next
-func (cf *CustomFuncEndpoint) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
+func (cf *CustomFuncEndpoint) Close(ctx context.Context, connection *networkservice.Connection) (*empty.Empty, error) {
 	if Next(ctx) != nil {
 		return Next(ctx).Close(ctx, connection)
 	}

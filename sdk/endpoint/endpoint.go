@@ -30,9 +30,9 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
-	unified "github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+	unified "github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
@@ -151,7 +151,7 @@ func (nsme *nsmEndpoint) Delete() error {
 	return err
 }
 
-func (nsme *nsmEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+func (nsme *nsmEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.Connection, error) {
 	span := spanhelper.FromContext(ctx, "Endpoint.Request")
 	defer span.Finish()
 	span.LogObject("request", request)
@@ -170,7 +170,7 @@ func (nsme *nsmEndpoint) Request(ctx context.Context, request *networkservice.Ne
 	return incomingConnection, nil
 }
 
-func (nsme *nsmEndpoint) Close(ctx context.Context, incomingConnection *connection.Connection) (*empty.Empty, error) {
+func (nsme *nsmEndpoint) Close(ctx context.Context, incomingConnection *networkservice.Connection) (*empty.Empty, error) {
 	span := spanhelper.FromContext(ctx, "Endpoint.Close")
 	defer span.Finish()
 	span.LogObject("connection", incomingConnection)

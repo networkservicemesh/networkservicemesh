@@ -17,9 +17,9 @@
 package metrics
 
 import (
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
 	"github.com/pkg/errors"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 )
 
@@ -32,16 +32,16 @@ func GetMetricsIdentifiers(crossConnect *crossconnect.CrossConnect) (map[string]
 	}
 
 	ccSrcLabels := crossConnect.GetSource().GetLabels()
-	srcPod = ccSrcLabels[connection.PodNameKey]
-	srcNamespace = ccSrcLabels[connection.NamespaceKey]
+	srcPod = ccSrcLabels[networkservice.PodNameKey]
+	srcNamespace = ccSrcLabels[networkservice.NamespaceKey]
 
 	if crossConnect.GetDestination() == nil {
 		return nil, errors.Errorf("error: crossConnect should have at least one destination, %v", crossConnect)
 	}
 
 	ccDstLabels := crossConnect.GetDestination().GetLabels()
-	dstPod = ccDstLabels[connection.PodNameKey]
-	dstNamespace = ccDstLabels[connection.NamespaceKey]
+	dstPod = ccDstLabels[networkservice.PodNameKey]
+	dstNamespace = ccDstLabels[networkservice.NamespaceKey]
 
 	res := map[string]string{
 		SrcPodKey:       srcPod,

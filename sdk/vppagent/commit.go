@@ -10,8 +10,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 	"github.com/networkservicemesh/networkservicemesh/sdk/endpoint"
 )
@@ -31,7 +31,7 @@ type Commit struct {
 // Provides/Consumes from ctx context.Context:
 //     VppAgentConfig
 //	   Next
-func (c *Commit) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+func (c *Commit) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.Connection, error) {
 	ctx = WithConfig(ctx) // Guarantees we will retrieve a non-nil VppAgentConfig from context.Context
 	vppAgentConfig := Config(ctx)
 	if vppAgentConfig == nil {
@@ -53,7 +53,7 @@ func (c *Commit) Request(ctx context.Context, request *networkservice.NetworkSer
 // Provides/Consumes from ctx context.Context:
 //     VppAgentConfig
 //	   Next
-func (c *Commit) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
+func (c *Commit) Close(ctx context.Context, connection *networkservice.Connection) (*empty.Empty, error) {
 	ctx = WithConfig(ctx) // Guarantees we will retrieve a non-nil VppAgentConfig from context.Context
 	vppAgentConfig := Config(ctx)
 

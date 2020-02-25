@@ -14,10 +14,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package nsmd
+package tests
 
 import (
 	"testing"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 
 	"github.com/onsi/gomega"
 
@@ -30,22 +32,22 @@ func TestNSMDCrossConnectClient_ShouldCorrectlyWork_WhenRemotePeerCanceled(t *te
 	assert := gomega.NewWithT(t)
 	m := model.NewModel()
 	xconMgr := services.NewClientConnectionManager(m, nil, nil)
-	c := NewMonitorCrossConnectClient(m, nil, xconMgr, nil)
+	c := nsmd.NewMonitorCrossConnectClient(m, nil, xconMgr, nil)
 
-	c.startPeerMonitor(&model.ClientConnection{
+	c.StartPeerMonitor(&model.ClientConnection{
 		ConnectionID: "1",
 		RemoteNsm: &registry.NetworkServiceManager{
 			Name: "a",
 		},
 	})
-	c.remotePeerLock.Lock()
-	peer := c.remotePeers["a"]
-	c.remotePeerLock.Unlock()
+	c.RemotePeerLock.Lock()
+	peer := c.RemotePeers["a"]
+	c.RemotePeerLock.Unlock()
 	assert.Expect(peer).ShouldNot(gomega.BeNil())
 	assert.Expect(peer.IsCanceled()).Should(gomega.BeFalse())
 	peer.Cancel()
 	assert.Expect(peer.IsCanceled()).Should(gomega.BeTrue())
-	c.startPeerMonitor(&model.ClientConnection{
+	c.StartPeerMonitor(&model.ClientConnection{
 		ConnectionID: "1",
 		RemoteNsm: &registry.NetworkServiceManager{
 			Name: "a",

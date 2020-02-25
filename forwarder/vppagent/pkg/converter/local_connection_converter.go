@@ -1,18 +1,19 @@
 package converter
 
 import (
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/memif"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/kernel"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/memif"
 )
 
 type LocalConnectionConverter struct {
-	*connection.Connection
+	*networkservice.Connection
 	name         string
 	ipAddressKey string
 }
 
-func NewLocalConnectionConverter(c *connection.Connection, conversionParameters *ConnectionConversionParameters) Converter {
+// NewLocalConnectionConverter - creates a local connection converter.
+func NewLocalConnectionConverter(c *networkservice.Connection, conversionParameters *ConnectionConversionParameters) Converter {
 	if c.GetMechanism().GetType() == kernel.MECHANISM {
 		return NewKernelConnectionConverter(c, conversionParameters)
 	}

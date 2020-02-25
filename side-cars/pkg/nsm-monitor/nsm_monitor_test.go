@@ -13,7 +13,8 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsmdapi"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/tests"
 )
@@ -25,14 +26,14 @@ type nsmHelper struct {
 	healing   chan bool
 }
 
-func (h *nsmHelper) Updated(old, new *connection.Connection) {
+func (h *nsmHelper) Updated(old, new *networkservice.Connection) {
 }
 
-func (h *nsmHelper) Connected(map[string]*connection.Connection) {
+func (h *nsmHelper) Connected(map[string]*networkservice.Connection) {
 	h.connected <- true
 }
 
-func (h *nsmHelper) Healing(conn *connection.Connection) {
+func (h *nsmHelper) Healing(conn *networkservice.Connection) {
 	h.healing <- true
 }
 

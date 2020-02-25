@@ -11,7 +11,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
@@ -24,7 +25,7 @@ type nseManager struct {
 	props           *properties.Properties
 }
 
-func (nsem *nseManager) GetEndpoint(ctx context.Context, requestConnection *connection.Connection, ignoreEndpoints map[registry.EndpointNSMName]*registry.NSERegistration) (*registry.NSERegistration, error) {
+func (nsem *nseManager) GetEndpoint(ctx context.Context, requestConnection *networkservice.Connection, ignoreEndpoints map[registry.EndpointNSMName]*registry.NSERegistration) (*registry.NSERegistration, error) {
 	span := spanhelper.FromContext(ctx, "GetEndpoint")
 	defer span.Finish()
 	span.LogObject("request", requestConnection)
@@ -132,7 +133,7 @@ func (nsem *nseManager) CheckUpdateNSE(ctx context.Context, reg *registry.NSEReg
 }
 
 func (nsem *nseManager) cleanupNSE(ctx context.Context, endpoint *model.Endpoint) {
-	// Remove endpoint from model and put workspace into BAD state.
+	// Remove endpoint from Model and put workspace into BAD state.
 	nsem.model.DeleteEndpoint(ctx, endpoint.EndpointName())
 	logrus.Infof("NSM: Remove Endpoint since it is not available... %v", endpoint)
 }

@@ -55,12 +55,12 @@ func (r *remotePeerDescriptor) Context() context.Context {
 	return r.context
 }
 
-func (r *remotePeerDescriptor) AddConnection(connection *model.ClientConnection) {
-	r.connections[connection.ConnectionID] = connection
+func (r *remotePeerDescriptor) AddConnection(conn *model.ClientConnection) {
+	r.connections[conn.ConnectionID] = conn
 }
 
-func (r *remotePeerDescriptor) RemoveConnection(connection *model.ClientConnection) {
-	delete(r.connections, connection.ConnectionID)
+func (r *remotePeerDescriptor) RemoveConnection(conn *model.ClientConnection) {
+	delete(r.connections, conn.ConnectionID)
 }
 
 func (r *remotePeerDescriptor) Cancel() {

@@ -24,12 +24,12 @@ import (
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/teris-io/shortid"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/kernel"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/cls"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/cls"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 )
 
@@ -43,7 +43,7 @@ type ConnectionEndpoint struct {
 // Request implements the request handler
 // Consumes from ctx context.Context:
 //	   Next
-func (cce *ConnectionEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+func (cce *ConnectionEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.Connection, error) {
 	err := request.IsValid()
 	if err != nil {
 		Log(ctx).Errorf("Request is not valid: %v", err)
@@ -67,7 +67,7 @@ func (cce *ConnectionEndpoint) Request(ctx context.Context, request *networkserv
 // Close implements the close handler
 // Consumes from ctx context.Context:
 //	   Next
-func (cce *ConnectionEndpoint) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
+func (cce *ConnectionEndpoint) Close(ctx context.Context, connection *networkservice.Connection) (*empty.Empty, error) {
 	if Next(ctx) != nil {
 		return Next(ctx).Close(ctx, connection)
 	}

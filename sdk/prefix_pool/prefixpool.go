@@ -6,10 +6,10 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
 )
 
 /**
@@ -19,8 +19,8 @@ type PrefixPool interface {
 	/*
 		Process ExtraPrefixesRequest and provide a list of prefixes for clients to use.
 	*/
-	Extract(connectionId string, family connectioncontext.IpFamily_Family, requests ...*connectioncontext.ExtraPrefixRequest) (srcIP *net.IPNet, dstIP *net.IPNet, requested []string, err error)
-	Release(connectionId string) error
+	Extract(connectionID string, family networkservice.IpFamily_Family, requests ...*networkservice.ExtraPrefixRequest) (srcIP, dstIP *net.IPNet, requested []string, err error)
+	Release(connectionID string) error
 	GetConnectionInformation(connectionId string) (string, []string, error)
 	GetPrefixes() []string
 	Intersect(prefix string) (bool, error)
@@ -175,19 +175,20 @@ func extractSubnet(wider, smaller *net.IPNet) ([]string, error) {
 	return append(leftParts, rightParts...), nil
 }
 
-func (impl *prefixPool) Extract(connectionId string, family connectioncontext.IpFamily_Family, requests ...*connectioncontext.ExtraPrefixRequest) (srcIP *net.IPNet, dstIP *net.IPNet, requested []string, err error) {
+// Extract - extract prefix from prefix pool
+func (impl *prefixPool) Extract(connectionID string, family networkservice.IpFamily_Family, requests ...*networkservice.ExtraPrefixRequest) (srcIP, dstIP *net.IPNet, requested []string, err error) {
 	impl.Lock()
 	defer impl.Unlock()
 
 	prefixLen := 30 // At lest 4 addresses
-	if family == connectioncontext.IpFamily_IPV6 {
+	if family == networkservice.IpFamily_IPV6 {
 		prefixLen = 126
 	}
-	result, remaining, err := ExtractPrefixes(impl.prefixes, &connectioncontext.ExtraPrefixRequest{
+	result, remaining, err := ExtractPrefixes(impl.prefixes, &networkservice.ExtraPrefixRequest{
 		RequiredNumber:  1,
 		RequestedNumber: 1,
 		PrefixLen:       uint32(prefixLen),
-		AddrFamily:      &connectioncontext.IpFamily{Family: family},
+		AddrFamily:      &networkservice.IpFamily{Family: family},
 	})
 	if err != nil {
 		return nil, nil, nil, err
@@ -217,7 +218,7 @@ func (impl *prefixPool) Extract(connectionId string, family connectioncontext.Ip
 
 	impl.prefixes = remaining
 
-	impl.connections[connectionId] = &connectionRecord{
+	impl.connections[connectionID] = &connectionRecord{
 		ipNet:    ipNet,
 		prefixes: requested,
 	}
@@ -289,7 +290,8 @@ func intersect(first, second *net.IPNet) (bool, bool) {
 	return widerRange.Contains(narrowerRange.IP), firstIsBigger
 }
 
-func ExtractPrefixes(prefixes []string, requests ...*connectioncontext.ExtraPrefixRequest) (requested []string, remaining []string, err error) {
+// ExtractPrefixes - extra prefix from previs pool
+func ExtractPrefixes(prefixes []string, requests ...*networkservice.ExtraPrefixRequest) (requested, remaining []string, err error) {
 	// Check if requests are valid.
 	for _, request := range requests {
 		err := request.IsValid()

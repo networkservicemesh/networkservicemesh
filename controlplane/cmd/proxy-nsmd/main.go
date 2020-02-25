@@ -20,8 +20,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	unified "github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
+	unified "github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	proxynetworkserviceserver "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/remote/proxy_network_service_server"
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
@@ -85,7 +85,7 @@ func getProxyNSMDAPIAddress() string {
 func startAPIServerAt(sock net.Listener, serviceRegistry serviceregistry.ServiceRegistry, probes probes.Probes) {
 	grpcServer := tools.NewServer(context.Background())
 	remoteConnectionMonitor := remote.NewProxyMonitorServer()
-	connection.RegisterMonitorConnectionServer(grpcServer, remoteConnectionMonitor)
+	unified.RegisterMonitorConnectionServer(grpcServer, remoteConnectionMonitor)
 	probes.Append(health.NewGrpcHealth(grpcServer, sock.Addr(), time.Minute))
 	// Register Remote NetworkServiceManager
 	remoteServer := proxynetworkserviceserver.NewProxyNetworkServiceServer(serviceRegistry)

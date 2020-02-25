@@ -18,16 +18,16 @@
 package connectionmonitor
 
 import (
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/sdk/monitor"
 )
 
 // MonitorServer is a monitor.Server for local/connection GRPC API
 type MonitorServer interface {
 	monitor.Server
-	connection.MonitorConnectionServer
+	networkservice.MonitorConnectionServer
 }
 
 type monitorServer struct {
@@ -48,7 +48,7 @@ func NewMonitorServer(factoryName string) MonitorServer {
 }
 
 // MonitorConnections adds recipient for MonitorServer events
-func (s *monitorServer) MonitorConnections(in *connection.MonitorScopeSelector, recipient connection.MonitorConnection_MonitorConnectionsServer) error {
+func (s *monitorServer) MonitorConnections(in *networkservice.MonitorScopeSelector, recipient networkservice.MonitorConnection_MonitorConnectionsServer) error {
 	if in != nil {
 		logrus.Infof("%sMonitor using filter %v", s.factoryName, in)
 		recipient = NewMonitorConnectionFilter(in, recipient)

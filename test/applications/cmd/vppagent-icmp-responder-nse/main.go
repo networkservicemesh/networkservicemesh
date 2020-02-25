@@ -18,7 +18,8 @@ package main
 import (
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/memif"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/memif"
+
 	"github.com/networkservicemesh/networkservicemesh/utils"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"

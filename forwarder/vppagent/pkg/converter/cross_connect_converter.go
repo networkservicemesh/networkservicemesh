@@ -10,7 +10,8 @@ import (
 	"github.com/ligato/vpp-agent/api/configurator"
 	"github.com/ligato/vpp-agent/api/models/vpp"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/common"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 )
 

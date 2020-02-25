@@ -3,7 +3,8 @@ module github.com/networkservicemesh/networkservicemesh/forwarder/api
 go 1.13
 
 require (
-	github.com/golang/protobuf v1.3.2
+	github.com/golang/protobuf v1.3.3
+	github.com/networkservicemesh/api v0.0.0-20200215182000-b74a0ee948b1
 	github.com/networkservicemesh/networkservicemesh/controlplane/api v0.3.0
 	google.golang.org/grpc v1.27.0
 )

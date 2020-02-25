@@ -32,7 +32,8 @@ import (
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/common"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/services"
@@ -65,12 +66,12 @@ type NsmMonitorCrossConnectClient struct {
 	xconManager    *services.ClientConnectionManager
 	endpoints      sync.Map
 	forwarders     sync.Map
-	remotePeers    map[string]RemotePeerDescriptor
+	RemotePeers    map[string]RemotePeerDescriptor
 
 	endpointManager EndpointManager
 	model           model.Model
 
-	remotePeerLock sync.Mutex
+	RemotePeerLock sync.Mutex
 }
 
 // EndpointManager is an interface to delete endpoints with broken connection
@@ -85,7 +86,7 @@ func NewMonitorCrossConnectClient(model model.Model, monitorManager nsm.MonitorM
 		monitorManager:  monitorManager,
 		xconManager:     xconManager,
 		endpointManager: endpointManager,
-		remotePeers:     make(map[string]RemotePeerDescriptor),
+		RemotePeers:     make(map[string]RemotePeerDescriptor),
 		model:           model,
 	}
 	return rv
@@ -130,13 +131,14 @@ func (client *NsmMonitorCrossConnectClient) ForwarderDeleted(_ context.Context, 
 	}
 }
 
-func (client *NsmMonitorCrossConnectClient) startPeerMonitor(clientConnection *model.ClientConnection) {
-	client.remotePeerLock.Lock()
-	defer client.remotePeerLock.Unlock()
+// StartPeerMonitor - start remote peer monitoring
+func (client *NsmMonitorCrossConnectClient) StartPeerMonitor(clientConnection *model.ClientConnection) {
+	client.RemotePeerLock.Lock()
+	defer client.RemotePeerLock.Unlock()
 	if clientConnection.RemoteNsm == nil {
 		return
 	}
-	remotePeer, exist := client.remotePeers[clientConnection.RemoteNsm.Name]
+	remotePeer, exist := client.RemotePeers[clientConnection.RemoteNsm.Name]
 	if exist {
 		remotePeer.Lock()
 		defer remotePeer.Unlock()
@@ -148,13 +150,13 @@ func (client *NsmMonitorCrossConnectClient) startPeerMonitor(clientConnection *m
 		return
 	}
 	remotePeer = NewRemotePeerDescriptor(clientConnection)
-	client.remotePeers[clientConnection.RemoteNsm.Name] = remotePeer
+	client.RemotePeers[clientConnection.RemoteNsm.Name] = remotePeer
 	go client.remotePeerConnectionMonitor(remotePeer.Context(), remotePeer)
 }
 
 // ClientConnectionAdded - handle connection added
 func (client *NsmMonitorCrossConnectClient) ClientConnectionAdded(ctx context.Context, clientConnection *model.ClientConnection) {
-	client.startPeerMonitor(clientConnection)
+	client.StartPeerMonitor(clientConnection)
 
 	span := common.SpanHelperFromConnection(ctx, clientConnection, "ClientConnectionAdded")
 	defer span.Finish()
@@ -165,7 +167,7 @@ func (client *NsmMonitorCrossConnectClient) ClientConnectionAdded(ctx context.Co
 
 // ClientConnectionUpdated -  implements method from Listener
 func (client *NsmMonitorCrossConnectClient) ClientConnectionUpdated(ctx context.Context, old, new *model.ClientConnection) {
-	client.startPeerMonitor(new)
+	client.StartPeerMonitor(new)
 
 	span := common.SpanHelperFromConnection(ctx, new, "ClientConnectionUpdated")
 	defer span.Finish()
@@ -185,8 +187,8 @@ func (client *NsmMonitorCrossConnectClient) ClientConnectionUpdated(ctx context.
 
 // ClientConnectionDeleted - handle client connection deleted
 func (client *NsmMonitorCrossConnectClient) ClientConnectionDeleted(ctx context.Context, clientConnection *model.ClientConnection) {
-	client.remotePeerLock.Lock()
-	defer client.remotePeerLock.Unlock()
+	client.RemotePeerLock.Lock()
+	defer client.RemotePeerLock.Unlock()
 
 	span := common.SpanHelperFromConnection(ctx, clientConnection, "ClientConnectionDeleted")
 	defer span.Finish()
@@ -200,14 +202,14 @@ func (client *NsmMonitorCrossConnectClient) ClientConnectionDeleted(ctx context.
 		span.Logger().Infof("Not a remote connection")
 		return
 	}
-	remotePeer := client.remotePeers[clientConnection.RemoteNsm.Name]
+	remotePeer := client.RemotePeers[clientConnection.RemoteNsm.Name]
 	if remotePeer != nil {
 		remotePeer.Lock()
 		defer remotePeer.Unlock()
 		remotePeer.RemoveConnection(clientConnection)
 		if !remotePeer.HasConnection() {
 			remotePeer.Cancel()
-			delete(client.remotePeers, clientConnection.RemoteNsm.Name)
+			delete(client.RemotePeers, clientConnection.RemoteNsm.Name)
 			span.Logger().Infof("stopping remote monitor")
 		}
 		span.Logger().Infof("connection removed from monitor")
@@ -282,8 +284,8 @@ func (client *NsmMonitorCrossConnectClient) endpointConnectionMonitor(ctx contex
 	}
 
 	monFunc := func(cc *grpc.ClientConn) (monitor.Client, error) {
-		return connectionMonitor.NewMonitorClient(cc, &connection.MonitorScopeSelector{
-			PathSegments: []*connection.PathSegment{
+		return connectionMonitor.NewMonitorClient(cc, &networkservice.MonitorScopeSelector{
+			PathSegments: []*networkservice.PathSegment{
 				{
 					Name: client.model.GetNsm().GetName(),
 				},
@@ -317,7 +319,7 @@ func (client *NsmMonitorCrossConnectClient) connectToEndpoint(endpoint *model.En
 }
 
 func (client *NsmMonitorCrossConnectClient) handleLocalConnection(entity monitor.Entity, eventType monitor.EventType, parameters map[string]string) error {
-	localConnection, ok := entity.(*connection.Connection)
+	localConnection, ok := entity.(*networkservice.Connection)
 	if !ok {
 		return errors.Errorf("unable to cast %v to local.Connection", entity)
 	}
@@ -439,8 +441,8 @@ func (client *NsmMonitorCrossConnectClient) remotePeerConnectionMonitor(ctx cont
 		return tools.DialContextTCP(span.Context(), remoteNsm.GetUrl())
 	}
 	monitorClientSupplier := func(conn *grpc.ClientConn) (monitor.Client, error) {
-		return connectionMonitor.NewMonitorClient(conn, &connection.MonitorScopeSelector{
-			PathSegments: []*connection.PathSegment{
+		return connectionMonitor.NewMonitorClient(conn, &networkservice.MonitorScopeSelector{
+			PathSegments: []*networkservice.PathSegment{
 				{
 					Name: client.xconManager.GetNsmName(), // src
 				},
@@ -474,7 +476,7 @@ func (client *NsmMonitorCrossConnectClient) remotePeerConnectionMonitor(ctx cont
 }
 
 func (client *NsmMonitorCrossConnectClient) handleRemoteConnection(entity monitor.Entity, eventType monitor.EventType, parameters map[string]string) error {
-	remoteConnection, ok := entity.(*connection.Connection)
+	remoteConnection, ok := entity.(*networkservice.Connection)
 
 	if !ok {
 		return errors.Errorf("unable to cast %v to remote.Connection", entity)
@@ -519,7 +521,7 @@ func (client *NsmMonitorCrossConnectClient) handleRemoteConnection(entity monito
 	return nil
 }
 
-func (client *NsmMonitorCrossConnectClient) handleRemoteConnectionEvent(ctx context.Context, eventType monitor.EventType, cc *model.ClientConnection, remoteConnection *connection.Connection) {
+func (client *NsmMonitorCrossConnectClient) handleRemoteConnectionEvent(ctx context.Context, eventType monitor.EventType, cc *model.ClientConnection, remoteConnection *networkservice.Connection) {
 	switch eventType {
 	case monitor.EventTypeInitialStateTransfer, monitor.EventTypeUpdate:
 		// DST connection is updated, we most probable need to re-program our data plane.
@@ -531,7 +533,7 @@ func (client *NsmMonitorCrossConnectClient) handleRemoteConnectionEvent(ctx cont
 
 		// DST is down, we need to choose new NSE in any case.
 		downConnection := remoteConnection.Clone()
-		downConnection.State = connection.State_DOWN
+		downConnection.State = networkservice.State_DOWN
 
 		span.LogObject("current-remote", cc.GetConnectionDestination())
 		span.LogObject("new-remote", downConnection)

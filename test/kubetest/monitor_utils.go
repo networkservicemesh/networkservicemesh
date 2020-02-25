@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/kernel"
 
 	"github.com/pkg/errors"
 
@@ -201,7 +201,7 @@ func checkEventsCh(t *testing.T, actualCh <-chan *crossconnect.CrossConnectEvent
 }
 
 func checkXcon(actual *crossconnect.CrossConnect, srcUp, dstUp bool) error {
-	if src := actual.GetLocalSource(); src != nil && (srcUp != (src.GetState() == connection.State_UP)) {
+	if src := actual.GetLocalSource(); src != nil && (srcUp != (src.GetState() == networkservice.State_UP)) {
 		return xconStateError(actual, "SRC_UP", srcUp)
 	}
 	if src := actual.GetRemoteSource(); src != nil && (srcUp != (src.GetState().String() == "UP")) {

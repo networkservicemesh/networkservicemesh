@@ -30,11 +30,12 @@ import (
 
 	vpp_srv6 "github.com/ligato/vpp-agent/api/models/vpp/srv6"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/memif"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/srv6"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/kernel"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/memif"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/srv6"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/vxlan"
+
 	"github.com/networkservicemesh/networkservicemesh/forwarder/api/forwarder"
 	"github.com/networkservicemesh/networkservicemesh/forwarder/pkg/common"
 	sdk "github.com/networkservicemesh/networkservicemesh/forwarder/sdk/vppagent"
@@ -397,7 +398,7 @@ func (v *VPPAgent) configureVPPAgent() error {
 
 	v.common.MechanismsUpdateChannel = make(chan *common.Mechanisms, 1)
 	v.common.Mechanisms = &common.Mechanisms{
-		LocalMechanisms: []*connection.Mechanism{
+		LocalMechanisms: []*networkservice.Mechanism{
 			{
 				Type: memif.MECHANISM,
 			},
@@ -405,7 +406,7 @@ func (v *VPPAgent) configureVPPAgent() error {
 				Type: kernel.MECHANISM,
 			},
 		},
-		RemoteMechanisms: []*connection.Mechanism{
+		RemoteMechanisms: []*networkservice.Mechanism{
 			{
 				Type: vxlan.MECHANISM,
 				Parameters: map[string]string{
@@ -416,7 +417,7 @@ func (v *VPPAgent) configureVPPAgent() error {
 	}
 	if v.common.EgressInterface.SrcLocalSID() != nil {
 		v.common.Mechanisms.RemoteMechanisms = append(v.common.Mechanisms.RemoteMechanisms,
-			&connection.Mechanism{
+			&networkservice.Mechanism{
 				Type: "SRV6",
 				Parameters: map[string]string{
 					srv6.SrcHostIP:          v.common.EgressInterface.SrcIPV6Net().IP.String(),

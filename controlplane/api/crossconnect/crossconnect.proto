@@ -2,7 +2,9 @@ syntax = "proto3";
 
 package crossconnect;
 
-import "github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/connection.proto";
+option go_package = "github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect";
+
+import "connection.proto";
 import "ptypes/empty/empty.proto";
 
 enum CrossConnectEventType {

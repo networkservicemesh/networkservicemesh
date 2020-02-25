@@ -22,7 +22,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 )
 
@@ -93,7 +94,7 @@ func (m *matchSelector) matchEndpoint(nsLabels map[string]string, ns *registry.N
 	return nil
 }
 
-func (m *matchSelector) SelectEndpoint(requestConnection *connection.Connection, ns *registry.NetworkService, networkServiceEndpoints []*registry.NetworkServiceEndpoint) *registry.NetworkServiceEndpoint {
+func (m *matchSelector) SelectEndpoint(requestConnection *networkservice.Connection, ns *registry.NetworkService, networkServiceEndpoints []*registry.NetworkServiceEndpoint) *registry.NetworkServiceEndpoint {
 	logrus.Infof("Selecting endpoint for %s with %d matches.", requestConnection.GetNetworkService(), len(ns.GetMatches()))
 	if len(ns.GetMatches()) == 0 {
 		return m.roundRobin.SelectEndpoint(nil, ns, networkServiceEndpoints)

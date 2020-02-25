@@ -6,9 +6,8 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"os/signal"
-	"sync"
-	"syscall"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
 var version string
@@ -48,13 +47,6 @@ func main() {
 	checkError(err)
 
 	println("Initialisation done... \nPlease use docker run debug.sh app to attach and start debug for particular application\n#You could do Ctrl+C to detach from this log.")
-	var wg sync.WaitGroup
-	wg.Add(1)
-	c := make(chan os.Signal)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		<-c
-		wg.Done()
-	}()
-	wg.Wait()
+	c := tools.NewOSSignalChannel()
+	<-c
 }

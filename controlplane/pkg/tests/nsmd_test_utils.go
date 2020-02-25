@@ -22,12 +22,11 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/kernel"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/common"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/kernel"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsmdapi"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	nsm2 "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/api/nsm"
@@ -215,7 +214,7 @@ type localTestNSENetworkServiceClient struct {
 	requestHandleCounter int
 }
 
-func (impl *localTestNSENetworkServiceClient) Request(ctx context.Context, in *networkservice.NetworkServiceRequest, opts ...grpc.CallOption) (*connection.Connection, error) {
+func (impl *localTestNSENetworkServiceClient) Request(ctx context.Context, in *networkservice.NetworkServiceRequest, opts ...grpc.CallOption) (*networkservice.Connection, error) {
 	impl.Lock()
 	impl.requestHandleCounter++
 	impl.Unlock()
@@ -224,26 +223,26 @@ func (impl *localTestNSENetworkServiceClient) Request(ctx context.Context, in *n
 	if netns == "" {
 		netns = "12"
 	}
-	mechanism := &connection.Mechanism{
+	mechanism := &networkservice.Mechanism{
 		Type: kernel.MECHANISM,
 		Parameters: map[string]string{
-			common.NetNsInodeKey: netns,
+			common.NetNSInodeKey: netns,
 			// TODO: Fix this terrible hack using xid for getting a unique interface name
 			common.InterfaceNameKey: "nsm" + in.GetConnection().GetId(),
 		},
 	}
 
 	// TODO take into consideration LocalMechnism preferences sent in request
-	srcIP, dstIP, requested, err := impl.prefixPool.Extract(in.Connection.Id, connectioncontext.IpFamily_IPV4, in.Connection.GetContext().GetIpContext().ExtraPrefixRequest...)
+	srcIP, dstIP, requested, err := impl.prefixPool.Extract(in.Connection.Id, networkservice.IpFamily_IPV4, in.Connection.GetContext().GetIpContext().ExtraPrefixRequest...)
 	if err != nil {
 		return nil, err
 	}
-	conn := &connection.Connection{
+	conn := &networkservice.Connection{
 		Id:             in.GetConnection().GetId(),
 		NetworkService: in.GetConnection().GetNetworkService(),
 		Mechanism:      mechanism,
-		Context: &connectioncontext.ConnectionContext{
-			IpContext: &connectioncontext.IPContext{
+		Context: &networkservice.ConnectionContext{
+			IpContext: &networkservice.IPContext{
 				SrcIpAddr:     srcIP.String(),
 				DstIpAddr:     dstIP.String(),
 				ExtraPrefixes: requested,
@@ -258,7 +257,7 @@ func (impl *localTestNSENetworkServiceClient) Request(ctx context.Context, in *n
 	return conn, nil
 }
 
-func (impl *localTestNSENetworkServiceClient) Close(ctx context.Context, in *connection.Connection, opts ...grpc.CallOption) (*empty.Empty, error) {
+func (impl *localTestNSENetworkServiceClient) Close(ctx context.Context, in *networkservice.Connection, opts ...grpc.CallOption) (*empty.Empty, error) {
 	//panic("implement me")
 	return nil, nil
 }
@@ -422,7 +421,7 @@ func (srv *nsmdFullServerImpl) AddFakeForwarder(dp_name string, dp_addr string) 
 	srv.TestModel.AddForwarder(context.Background(), &model.Forwarder{
 		RegisteredName: dp_name,
 		SocketLocation: dp_addr,
-		LocalMechanisms: []*connection.Mechanism{
+		LocalMechanisms: []*networkservice.Mechanism{
 			{
 				Type: kernel.MECHANISM,
 			},
@@ -569,21 +568,21 @@ func newNSMDFullServerAt(ctx context.Context, nsmgrName string, storage *sharedS
 // CreateRequest - create test request
 func CreateRequest() *networkservice.NetworkServiceRequest {
 	request := &networkservice.NetworkServiceRequest{
-		Connection: &connection.Connection{
+		Connection: &networkservice.Connection{
 			NetworkService: "golden_network",
-			Context: &connectioncontext.ConnectionContext{
-				IpContext: &connectioncontext.IPContext{
+			Context: &networkservice.ConnectionContext{
+				IpContext: &networkservice.IPContext{
 					DstIpRequired: true,
 					SrcIpRequired: true,
 				},
 			},
 			Labels: make(map[string]string),
 		},
-		MechanismPreferences: []*connection.Mechanism{
+		MechanismPreferences: []*networkservice.Mechanism{
 			{
 				Type: kernel.MECHANISM,
 				Parameters: map[string]string{
-					common.NetNsInodeKey:    "10",
+					common.NetNSInodeKey:    "10",
 					common.InterfaceNameKey: "icmp-responder1",
 				},
 			},
@@ -637,7 +636,7 @@ func startAPIServer(model model.Model, nsmdAPIAddress string) (*grpc.Server, mon
 	}
 
 	crossconnect.RegisterMonitorCrossConnectServer(grpcServer, monitorManager.crossConnectMonitor)
-	connection.RegisterMonitorConnectionServer(grpcServer, monitorManager.remoteConnectionMonitor)
+	networkservice.RegisterMonitorConnectionServer(grpcServer, monitorManager.remoteConnectionMonitor)
 
 	monitorClient := nsmd.NewMonitorCrossConnectClient(model, monitorManager, xconManager, &endpointManager{model: model})
 	model.AddListener(monitorClient)

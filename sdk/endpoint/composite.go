@@ -22,8 +22,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/networkservicemesh/networkservicemesh/utils/typeutils"
 )
 
@@ -54,7 +54,7 @@ type CompositeEndpoint struct {
 }
 
 // Request implements a dummy request handler
-func (bce *CompositeEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
+func (bce *CompositeEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*networkservice.Connection, error) {
 	if len(bce.endpoints) == 0 {
 		return request.Connection, nil
 	}
@@ -63,7 +63,7 @@ func (bce *CompositeEndpoint) Request(ctx context.Context, request *networkservi
 }
 
 // Close implements a dummy close handler
-func (bce *CompositeEndpoint) Close(ctx context.Context, connection *connection.Connection) (*empty.Empty, error) {
+func (bce *CompositeEndpoint) Close(ctx context.Context, connection *networkservice.Connection) (*empty.Empty, error) {
 	if len(bce.endpoints) == 0 {
 		return &empty.Empty{}, nil
 	}

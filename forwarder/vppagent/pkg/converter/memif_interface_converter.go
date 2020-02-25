@@ -18,7 +18,7 @@ import (
 	"os"
 	"path"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/memif"
+	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/memif"
 
 	"github.com/ligato/vpp-agent/api/configurator"
 	"github.com/ligato/vpp-agent/api/models/vpp"
@@ -26,16 +26,16 @@ import (
 	vpp_l3 "github.com/ligato/vpp-agent/api/models/vpp/l3"
 	"github.com/pkg/errors"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
 )
 
 type MemifInterfaceConverter struct {
-	*connection.Connection
+	*networkservice.Connection
 	conversionParameters *ConnectionConversionParameters
 }
 
-func NewMemifInterfaceConverter(c *connection.Connection, conversionParameters *ConnectionConversionParameters) Converter {
+//NewMemifInterfaceConverter - creates Memif interface converter.
+func NewMemifInterfaceConverter(c *networkservice.Connection, conversionParameters *ConnectionConversionParameters) Converter {
 	rv := &MemifInterfaceConverter{
 		Connection:           c,
 		conversionParameters: conversionParameters,
@@ -93,7 +93,7 @@ func (c *MemifInterfaceConverter) ToDataRequest(rv *configurator.Config, connect
 
 	// Process static routes
 
-	routes := []*connectioncontext.Route{}
+	routes := []*networkservice.Route{}
 	switch c.conversionParameters.Side {
 	case SOURCE:
 		routes = c.Connection.GetContext().GetIpContext().GetDstRoutes()

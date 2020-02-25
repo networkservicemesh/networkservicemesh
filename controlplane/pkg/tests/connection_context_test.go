@@ -3,24 +3,24 @@ package tests
 import (
 	"testing"
 
-	. "github.com/onsi/gomega"
+	"github.com/networkservicemesh/api/pkg/api/networkservice"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
+	. "github.com/onsi/gomega"
 )
 
 func TestEmptyConnectionContext(t *testing.T) {
 	g := NewWithT(t)
 
-	ctx := &connectioncontext.ConnectionContext{}
+	ctx := &networkservice.ConnectionContext{}
 	g.Expect(ctx.IsValid()).To(BeNil())
 }
 
 func TestPrefixConnectionContext(t *testing.T) {
 	g := NewWithT(t)
 
-	ctx := &connectioncontext.ConnectionContext{
-		IpContext: &connectioncontext.IPContext{
-			SrcRoutes: []*connectioncontext.Route{
+	ctx := &networkservice.ConnectionContext{
+		IpContext: &networkservice.IPContext{
+			SrcRoutes: []*networkservice.Route{
 				{
 					Prefix: "",
 				},
@@ -29,9 +29,9 @@ func TestPrefixConnectionContext(t *testing.T) {
 	}
 	g.Expect(ctx.IsValid().Error()).To(Equal("ConnectionContext.Route.Prefix is required and cannot be empty/nil: src_routes:<> "))
 
-	ctx = &connectioncontext.ConnectionContext{
-		IpContext: &connectioncontext.IPContext{
-			DstRoutes: []*connectioncontext.Route{
+	ctx = &networkservice.ConnectionContext{
+		IpContext: &networkservice.IPContext{
+			DstRoutes: []*networkservice.Route{
 				{
 					Prefix: "",
 				},
@@ -43,9 +43,9 @@ func TestPrefixConnectionContext(t *testing.T) {
 func TestPrefixWrongConnectionContext(t *testing.T) {
 	g := NewWithT(t)
 
-	ctx := &connectioncontext.ConnectionContext{
-		IpContext: &connectioncontext.IPContext{
-			SrcRoutes: []*connectioncontext.Route{
+	ctx := &networkservice.ConnectionContext{
+		IpContext: &networkservice.IPContext{
+			SrcRoutes: []*networkservice.Route{
 				{
 					Prefix: "8.8.8.8",
 				},
@@ -54,9 +54,9 @@ func TestPrefixWrongConnectionContext(t *testing.T) {
 	}
 	g.Expect(ctx.IsValid().Error()).To(Equal("ConnectionContext.Route.Prefix should be a valid CIDR address: src_routes:<prefix:\"8.8.8.8\" > "))
 
-	ctx = &connectioncontext.ConnectionContext{
-		IpContext: &connectioncontext.IPContext{
-			DstRoutes: []*connectioncontext.Route{
+	ctx = &networkservice.ConnectionContext{
+		IpContext: &networkservice.IPContext{
+			DstRoutes: []*networkservice.Route{
 				{
 					Prefix: "8.8.8.8",
 				},
@@ -68,9 +68,9 @@ func TestPrefixWrongConnectionContext(t *testing.T) {
 func TestPrefixFineConnectionContext(t *testing.T) {
 	g := NewWithT(t)
 
-	ctx := &connectioncontext.ConnectionContext{
-		IpContext: &connectioncontext.IPContext{
-			SrcRoutes: []*connectioncontext.Route{
+	ctx := &networkservice.ConnectionContext{
+		IpContext: &networkservice.IPContext{
+			SrcRoutes: []*networkservice.Route{
 				{
 					Prefix: "8.8.8.8/30",
 				},
@@ -79,9 +79,9 @@ func TestPrefixFineConnectionContext(t *testing.T) {
 	}
 	g.Expect(ctx.IsValid()).To(BeNil())
 
-	ctx = &connectioncontext.ConnectionContext{
-		IpContext: &connectioncontext.IPContext{
-			DstRoutes: []*connectioncontext.Route{
+	ctx = &networkservice.ConnectionContext{
+		IpContext: &networkservice.IPContext{
+			DstRoutes: []*networkservice.Route{
 				{
 					Prefix: "8.8.8.8/30",
 				},
@@ -94,9 +94,9 @@ func TestPrefixFineConnectionContext(t *testing.T) {
 func TestIpNeighbors(t *testing.T) {
 	g := NewWithT(t)
 
-	ctx := &connectioncontext.ConnectionContext{
-		IpContext: &connectioncontext.IPContext{
-			IpNeighbors: []*connectioncontext.IpNeighbor{
+	ctx := &networkservice.ConnectionContext{
+		IpContext: &networkservice.IPContext{
+			IpNeighbors: []*networkservice.IpNeighbor{
 				{
 					Ip: "",
 				},
@@ -109,9 +109,9 @@ func TestIpNeighbors(t *testing.T) {
 func TestHWNeighbors(t *testing.T) {
 	g := NewWithT(t)
 
-	ctx := &connectioncontext.ConnectionContext{
-		IpContext: &connectioncontext.IPContext{
-			IpNeighbors: []*connectioncontext.IpNeighbor{
+	ctx := &networkservice.ConnectionContext{
+		IpContext: &networkservice.IPContext{
+			IpNeighbors: []*networkservice.IpNeighbor{
 				{
 					Ip: "8.8.8.8",
 				},
@@ -126,9 +126,9 @@ func TestHWNeighbors(t *testing.T) {
 func TestValidNeighbors(t *testing.T) {
 	g := NewWithT(t)
 
-	ctx := &connectioncontext.ConnectionContext{
-		IpContext: &connectioncontext.IPContext{
-			IpNeighbors: []*connectioncontext.IpNeighbor{
+	ctx := &networkservice.ConnectionContext{
+		IpContext: &networkservice.IPContext{
+			IpNeighbors: []*networkservice.IpNeighbor{
 				{
 					Ip:              "8.8.8.8",
 					HardwareAddress: "00:25:96:FF:FE:12:34:56",

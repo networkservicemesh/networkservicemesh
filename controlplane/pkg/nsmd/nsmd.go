@@ -24,9 +24,9 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/pkg/probes"
 	"github.com/networkservicemesh/networkservicemesh/pkg/probes/health"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	unified "github.com/networkservicemesh/api/pkg/api/networkservice"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
-	unified "github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/nsmdapi"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/registry"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
@@ -560,7 +560,7 @@ func (nsm *nsmServer) StartAPIServerAt(ctx context.Context, sock net.Listener, p
 	grpcServer := tools.NewServer(span.Context())
 
 	crossconnect.RegisterMonitorCrossConnectServer(grpcServer, nsm.crossConnectMonitor)
-	connection.RegisterMonitorConnectionServer(grpcServer, nsm.remoteConnectionMonitor)
+	unified.RegisterMonitorConnectionServer(grpcServer, nsm.remoteConnectionMonitor)
 	probes.Append(health.NewGrpcHealth(grpcServer, sock.Addr(), time.Minute))
 
 	// Register Remote NetworkServiceManager
