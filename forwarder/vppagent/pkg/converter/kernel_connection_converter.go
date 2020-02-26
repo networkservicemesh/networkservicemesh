@@ -122,7 +122,9 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 			HostIfName: c.conversionParameters.Name + "-veth",
 			Link: &linux_interfaces.Interface_Veth{
 				Veth: &linux_interfaces.VethLink{
-					PeerIfName: c.conversionParameters.Name,
+					PeerIfName:           c.conversionParameters.Name,
+					RxChecksumOffloading: linux_interfaces.VethLink_CHKSM_OFFLOAD_DISABLED,
+					TxChecksumOffloading: linux_interfaces.VethLink_CHKSM_OFFLOAD_DISABLED,
 				},
 			},
 		})
@@ -139,7 +141,9 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 			},
 			Link: &linux_interfaces.Interface_Veth{
 				Veth: &linux_interfaces.VethLink{
-					PeerIfName: c.conversionParameters.Name + "-veth",
+					PeerIfName:           c.conversionParameters.Name + "-veth",
+					RxChecksumOffloading: linux_interfaces.VethLink_CHKSM_OFFLOAD_DISABLED,
+					TxChecksumOffloading: linux_interfaces.VethLink_CHKSM_OFFLOAD_DISABLED,
 				},
 			},
 		})
@@ -149,7 +153,7 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 			Enabled: true,
 			Link: &vpp_interfaces.Interface_Afpacket{
 				Afpacket: &vpp_interfaces.AfpacketLink{
-					HostIfName: c.conversionParameters.Name + "-veth",
+					LinuxInterface: c.conversionParameters.Name + "-veth",
 				},
 			},
 		})
