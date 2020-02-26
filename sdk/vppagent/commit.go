@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/ligato/vpp-agent/api/configurator"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"go.ligato.io/vpp-agent/v3/proto/ligato/configurator"
 	"google.golang.org/grpc"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
@@ -118,7 +118,7 @@ func (c *Commit) send(ctx context.Context, dataChange *configurator.Config) erro
 			logrus.Errorf("error closing forwarder connection %v", err)
 		}
 	}()
-	client := configurator.NewConfiguratorClient(conn)
+	client := configurator.NewConfiguratorServiceClient(conn)
 
 	if _, err := client.Update(ctx, &configurator.UpdateRequest{Update: dataChange, FullResync: false}); err != nil {
 		logrus.Errorf("failed to updsate vpp configuration %v. trying to delete", err)
@@ -140,7 +140,7 @@ func (c *Commit) remove(ctx context.Context, dataChange *configurator.Config) er
 			logrus.Errorf("Failed to close vpp client connection")
 		}
 	}()
-	client := configurator.NewConfiguratorClient(conn)
+	client := configurator.NewConfiguratorServiceClient(conn)
 
 	if _, err := client.Delete(ctx, &configurator.DeleteRequest{Delete: dataChange}); err != nil {
 		return err
@@ -169,7 +169,7 @@ func (c *Commit) resetVpp() error {
 			logrus.Errorf("failed to close vpp agent connection %v", err)
 		}
 	}()
-	client := configurator.NewConfiguratorClient(conn)
+	client := configurator.NewConfiguratorServiceClient(conn)
 
 	ctx, cancel := context.WithTimeout(context.Background(), createConnectionTimeout)
 	defer cancel()

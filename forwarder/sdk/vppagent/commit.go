@@ -8,7 +8,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/ligato/vpp-agent/api/configurator"
+	"go.ligato.io/vpp-agent/v3/proto/ligato/configurator"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/forwarder/api/forwarder"
@@ -56,7 +56,7 @@ func (c *commit) Close(ctx context.Context, crossConnect *crossconnect.CrossConn
 	return next.Close(ctx, crossConnect)
 }
 
-func getDataChangeAndClient(ctx context.Context) (*configurator.Config, configurator.ConfiguratorClient, error) {
+func getDataChangeAndClient(ctx context.Context) (*configurator.Config, configurator.ConfiguratorServiceClient, error) {
 	dataChange := DataChange(ctx)
 	if dataChange == nil {
 		return nil, nil, errors.New("dataChange is not passed")
