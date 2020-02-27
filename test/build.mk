@@ -37,8 +37,8 @@ docker-vpp-test-common-prepare: docker-%-prepare: $(addsuffix -build, $(addprefi
 	$(info Preparing files for docker...)
 	$(call docker_prepare, $(BIN_DIR)/$*, \
 		$(foreach app, $(vpp_test_common_dep), $(BIN_DIR)/$(app)/$(app)) \
-		forwarder/vppagent/conf/supervisord/telemetry.conf \
 		forwarder/vppagent/conf/vpp/startup.conf \
+		forwarder/vppagent/conf/supervisord/govpp.conf \
 		test/applications/vpp-conf/supervisord.conf \
 		test/applications/vpp-conf/run.sh)
 

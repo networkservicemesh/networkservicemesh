@@ -5,12 +5,10 @@ import (
 	"fmt"
 	"time"
 
-
 	"go.ligato.io/vpp-agent/v3/proto/ligato/configurator"
 	vpp_interfaces "go.ligato.io/vpp-agent/v3/proto/ligato/vpp/interfaces"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/sdk/monitor/metrics"
@@ -74,7 +72,6 @@ func (m *MetricsCollector) startListenNotifications(monitor metrics.MetricsMonit
 		<-time.After(m.requestPeriod)
 	}
 }
-
 
 func convertStatistics(stats *vpp_interfaces.InterfaceStats) map[string]*crossconnect.Metrics {
 	metrics := make(map[string]string)
