@@ -17,6 +17,8 @@ require (
 	github.com/vishvananda/netlink v1.0.0
 	github.com/vishvananda/netns v0.0.0-20190625233234-7109fa855b0f
 	go.ligato.io/vpp-agent/v3 v3.0.1
+	golang.zx2c4.com/wireguard v0.0.20200121
+	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20200114203027-fcfc50b29cbb
 	google.golang.org/grpc v1.27.0
 )
 

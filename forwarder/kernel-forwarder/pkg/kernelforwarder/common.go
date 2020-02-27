@@ -16,50 +16,82 @@
 package kernelforwarder
 
 import (
-	"github.com/pkg/errors"
-
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
-
 	"net"
-	"strconv"
 
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
-
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
 	"github.com/vishvananda/netns"
+
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
+	"github.com/networkservicemesh/networkservicemesh/utils/fs"
 )
 
-// Kernel forwarding plane related constants
-const (
-	cLOCAL    = iota
-	cINCOMING = iota
-	cOUTGOING = iota
-)
+// SetupInterface - setup interface to namespace
+func SetupInterface(ifaceName string, conn *connection.Connection, isDst bool) (string, error) {
+	netNsInode := conn.GetMechanism().GetParameters()[common.NetNsInodeKey]
+	neighbors := conn.GetContext().GetIpContext().GetIpNeighbors()
+	var ifaceIP string
+	var routes []*connectioncontext.Route
+	if isDst {
+		ifaceIP = conn.GetContext().GetIpContext().GetDstIpAddr()
+		routes = conn.GetContext().GetIpContext().GetSrcRoutes()
+	} else {
+		ifaceIP = conn.GetContext().GetIpContext().GetSrcIpAddr()
+		routes = conn.GetContext().GetIpContext().GetDstRoutes()
+	}
 
-const (
-	/* VETH pairs are used only for local connections(same node), so we can use a larger MTU size as there's no multi-node connection */
-	cVETHMTU    = 16000
-	cCONNECT    = true
-	cDISCONNECT = false
-)
+	/* Get namespace handler - source */
+	nsHandle, err := fs.GetNsHandleFromInode(netNsInode)
+	if err != nil {
+		logrus.Errorf("local: failed to get source namespace handle - %v", err)
+		return netNsInode, err
+	}
+	/* If successful, don't forget to close the handler upon exit */
+	defer func() {
+		if err = nsHandle.Close(); err != nil {
+			logrus.Error("local: error when closing source handle: ", err)
+		}
+		logrus.Debug("local: closed source handle: ", nsHandle, netNsInode)
+	}()
+	logrus.Debug("local: opened source handle: ", nsHandle, netNsInode)
 
-type connectionConfig struct {
-	id            string
-	srcNetNsInode string
-	dstNetNsInode string
-	srcName       string
-	dstName       string
-	srcIP         string
-	dstIP         string
-	srcIPVXLAN    net.IP
-	dstIPVXLAN    net.IP
-	srcRoutes     []*connectioncontext.Route
-	dstRoutes     []*connectioncontext.Route
-	neighbors     []*connectioncontext.IpNeighbor
-	vni           int
+	/* Setup interface - source namespace */
+	if err = setupLinkInNs(nsHandle, ifaceName, ifaceIP, routes, neighbors, true); err != nil {
+		logrus.Errorf("local: failed to setup interface - source - %q: %v", ifaceName, err)
+		return netNsInode, err
+	}
+
+	return netNsInode, nil
+}
+
+// ClearInterfaceSetup - deletes interface setup
+func ClearInterfaceSetup(ifaceName string, conn *connection.Connection) (string, error) {
+	netNsInode := conn.GetMechanism().GetParameters()[common.NetNsInodeKey]
+	ifaceIP := conn.GetContext().GetIpContext().GetSrcIpAddr()
+
+	/* Get namespace handler - source */
+	nsHandle, err := fs.GetNsHandleFromInode(netNsInode)
+	if err != nil {
+		return "", errors.Errorf("failed to get source namespace handle - %v", err)
+	}
+	/* If successful, don't forget to close the handler upon exit */
+	defer func() {
+		if err = nsHandle.Close(); err != nil {
+			logrus.Error("local: error when closing source handle: ", err)
+		}
+		logrus.Debug("local: closed source handle: ", nsHandle, netNsInode)
+	}()
+	logrus.Debug("local: opened source handle: ", nsHandle, netNsInode)
+
+	/* Extract interface - source namespace */
+	if err = setupLinkInNs(nsHandle, ifaceName, ifaceIP, nil, nil, false); err != nil {
+		return "", errors.Errorf("failed to extract interface - source - %q: %v", ifaceName, err)
+	}
+
+	return netNsInode, nil
 }
 
 // setupLinkInNs is responsible for configuring an interface inside a given namespace - assigns IP address, routes, etc.
@@ -153,54 +185,6 @@ func setupLinkInNs(containerNs netns.NsHandle, ifaceName, ifaceIP string, routes
 		}
 	}
 	return nil
-}
-
-//nolint
-func newConnectionConfig(crossConnect *crossconnect.CrossConnect, connType uint8) (*connectionConfig, error) {
-	switch connType {
-	case cLOCAL:
-		return &connectionConfig{
-			id:            crossConnect.GetId(),
-			srcNetNsInode: crossConnect.GetSource().GetMechanism().GetParameters()[common.NetNsInodeKey],
-			dstNetNsInode: crossConnect.GetDestination().GetMechanism().GetParameters()[common.NetNsInodeKey],
-			srcName:       crossConnect.GetSource().GetMechanism().GetParameters()[common.InterfaceNameKey],
-			dstName:       crossConnect.GetDestination().GetMechanism().GetParameters()[common.InterfaceNameKey],
-			srcIP:         crossConnect.GetSource().GetContext().GetIpContext().GetSrcIpAddr(),
-			dstIP:         crossConnect.GetSource().GetContext().GetIpContext().GetDstIpAddr(),
-			srcRoutes:     crossConnect.GetSource().GetContext().GetIpContext().GetDstRoutes(),
-			dstRoutes:     crossConnect.GetDestination().GetContext().GetIpContext().GetSrcRoutes(),
-			neighbors:     crossConnect.GetSource().GetContext().GetIpContext().GetIpNeighbors(),
-		}, nil
-	case cINCOMING:
-		vni, _ := strconv.Atoi(crossConnect.GetSource().GetMechanism().GetParameters()[vxlan.VNI])
-		return &connectionConfig{
-			id:            crossConnect.GetId(),
-			dstNetNsInode: crossConnect.GetDestination().GetMechanism().GetParameters()[common.NetNsInodeKey],
-			dstName:       crossConnect.GetDestination().GetMechanism().GetParameters()[common.InterfaceNameKey],
-			dstIP:         crossConnect.GetDestination().GetContext().GetIpContext().GetDstIpAddr(),
-			dstRoutes:     crossConnect.GetDestination().GetContext().GetIpContext().GetSrcRoutes(),
-			neighbors:     nil,
-			srcIPVXLAN:    net.ParseIP(crossConnect.GetSource().GetMechanism().GetParameters()[vxlan.SrcIP]),
-			dstIPVXLAN:    net.ParseIP(crossConnect.GetSource().GetMechanism().GetParameters()[vxlan.DstIP]),
-			vni:           vni,
-		}, nil
-	case cOUTGOING:
-		vni, _ := strconv.Atoi(crossConnect.GetDestination().GetMechanism().GetParameters()[vxlan.VNI])
-		return &connectionConfig{
-			id:            crossConnect.GetId(),
-			srcNetNsInode: crossConnect.GetSource().GetMechanism().GetParameters()[common.NetNsInodeKey],
-			srcName:       crossConnect.GetSource().GetMechanism().GetParameters()[common.InterfaceNameKey],
-			srcIP:         crossConnect.GetSource().GetContext().GetIpContext().GetSrcIpAddr(),
-			srcRoutes:     crossConnect.GetSource().GetContext().GetIpContext().GetDstRoutes(),
-			neighbors:     crossConnect.GetSource().GetContext().GetIpContext().GetIpNeighbors(),
-			srcIPVXLAN:    net.ParseIP(crossConnect.GetDestination().GetMechanism().GetParameters()[vxlan.SrcIP]),
-			dstIPVXLAN:    net.ParseIP(crossConnect.GetDestination().GetMechanism().GetParameters()[vxlan.DstIP]),
-			vni:           vni,
-		}, nil
-	default:
-		logrus.Error("common: connection configuration: invalid connection type")
-		return nil, errors.New("common: invalid connection type")
-	}
 }
 
 // addRoutes adds routes
