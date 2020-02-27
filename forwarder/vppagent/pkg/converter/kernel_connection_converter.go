@@ -39,9 +39,6 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 	if err := c.IsComplete(); err != nil {
 		return rv, err
 	}
-	if c.GetMechanism().GetType() != kernel.MECHANISM {
-		return rv, errors.Errorf("KernelConnectionConverter cannot be used on Connection.Mechanism.Type %s", c.GetMechanism().GetType())
-	}
 	if rv == nil {
 		rv = &configurator.Config{
 			LinuxConfig: &linux.ConfigData{},
