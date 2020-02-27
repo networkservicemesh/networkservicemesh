@@ -26,6 +26,7 @@ retest:  # Allow to do test re-run if some kind of failures are detected, line C
     # Sometimes (rarely) docker registry is unavailable for a moment
     - "Error response from daemon: Get https://.*docker.io/.*: dial tcp: lookup registry"
     - "Error response from daemon: Get https://.*docker.io/.*: net/http: request canceled while waiting for connection"
+    - "Failed create pod sandbox"
 reporting:
   junit-report: "results/junit.xml"
 health-check:
