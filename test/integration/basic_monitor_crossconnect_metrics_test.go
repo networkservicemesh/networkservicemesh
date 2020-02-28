@@ -40,8 +40,8 @@ func TestSimpleMetrics(t *testing.T) {
 
 	defer k8s.Cleanup()
 
-	nodesCount := 2
-	requestPeriod := time.Second
+	nodesCount := 1
+	requestPeriod := time.Second * 3
 
 	nodes, err := kubetest.SetupNodesConfig(k8s, nodesCount, defaultTimeout, []*pods.NSMgrPodConfig{
 		{
@@ -69,6 +69,7 @@ func TestSimpleMetrics(t *testing.T) {
 	}
 	<-time.After(requestPeriod * 5)
 	k8s.DeletePods(nsc)
+
 	select {
 	case metrics := <-metricsCh:
 		g.Expect(isMetricsEmpty(metrics)).Should(Equal(false))
@@ -78,10 +79,11 @@ func TestSimpleMetrics(t *testing.T) {
 	case <-time.After(defaultTimeout):
 		t.Fatalf("Fail to get metrics during %v", defaultTimeout)
 	}
+
 }
 
 func metricsFromEventCh(eventCh <-chan *crossconnect.CrossConnectEvent) chan map[string]string {
-	metricsCh := make(chan map[string]string)
+	metricsCh := make(chan map[string]string, 10)
 	go func() {
 		defer close(metricsCh)
 		for {
