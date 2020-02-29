@@ -1,11 +1,8 @@
 #!/usr/bin/env bash
+set -x
 
 make k8s-pods
-make k8s-logs-snapshot
+make k8s-save-artifacts
 
 # cleanup
-make helm-delete k8s-terminating-cleanup
-make k8s-delete-nsm-namespaces
-
-# restore CRDs and RBAC
-make k8s-deconfig k8s-config
+make k8s-reset

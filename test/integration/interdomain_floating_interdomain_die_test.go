@@ -63,7 +63,7 @@ func testFloatingInterdomainDie(t *testing.T, clustersCount int, killPod string)
 		g.Expect(err).To(BeNil())
 
 		defer k8s.Cleanup()
-		defer kubetest.MakeLogsSnapshot(k8s, t)
+		defer k8s.SaveTestArtifacts(t)
 
 		k8ss = append(k8ss, &kubetest.ExtK8s{
 			K8s:        k8s,

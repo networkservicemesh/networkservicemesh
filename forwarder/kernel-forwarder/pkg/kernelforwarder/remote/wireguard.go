@@ -34,6 +34,8 @@ import (
 
 // CreateVXLANInterface creates a VXLAN interface
 func (c *Connect) createWireguardInterface(ifaceName string, remoteConnection *connection.Connection, direction uint8) error {
+	c.wireguardDevicesMutex.Lock()
+	defer c.wireguardDevicesMutex.Unlock()
 	mechanism := wireguard.ToMechanism(remoteConnection.GetMechanism())
 
 	/* Create interface - host namespace */
@@ -91,8 +93,7 @@ func (c *Connect) createWireguardInterface(ifaceName string, remoteConnection *c
 	if err != nil {
 		return errors.Errorf("Wireguard error: %v", err)
 	}
-	//defer wgDevice.Close()
-
+	c.wireguardDevices[ifaceName] = wgDevice
 	uapi, err := startWireguardAPI(ifaceName, wgDevice)
 	if err != nil {
 		wgDevice.Close()
@@ -114,6 +115,8 @@ func (c *Connect) createWireguardInterface(ifaceName string, remoteConnection *c
 }
 
 func (c *Connect) deleteWireguardInterface(ifaceName string) error {
+	c.wireguardDevicesMutex.Lock()
+	defer c.wireguardDevicesMutex.Unlock()
 	if wgDevice, ok := c.wireguardDevices[ifaceName]; ok {
 		wgDevice.Close()
 		delete(c.wireguardDevices, ifaceName)

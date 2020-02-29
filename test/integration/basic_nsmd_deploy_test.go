@@ -38,7 +38,7 @@ func testNSMgrForwarderDeploy(t *testing.T, nsmdPodFactory func(string, *v1.Node
 	defer k8s.Cleanup()
 
 	g.Expect(err).To(BeNil())
-	defer kubetest.MakeLogsSnapshot(k8s, t)
+	defer k8s.SaveTestArtifacts(t)
 
 	nodes := k8s.GetNodesWait(1, defaultTimeout)
 
@@ -56,7 +56,9 @@ func testNSMgrForwarderDeploy(t *testing.T, nsmdPodFactory func(string, *v1.Node
 
 	k8s.Cleanup()
 	var count int = 0
-	for _, lpod := range k8s.ListPods() {
+	list, err := k8s.ListPods()
+	g.Expect(err).Should(BeNil())
+	for _, lpod := range list {
 		logrus.Printf("Found pod %s %+v", lpod.Name, lpod.Status)
 		if strings.Contains(lpod.Name, "nsmgr") {
 			count += 1

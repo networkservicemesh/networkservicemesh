@@ -52,7 +52,7 @@ func TestExcludePrefixCheck(t *testing.T) {
 	}, k8s.GetK8sNamespace())
 	g.Expect(err).To(BeNil())
 
-	defer kubetest.MakeLogsSnapshot(k8s, t)
+	defer k8s.SaveTestArtifacts(t)
 
 	icmp := kubetest.DeployICMP(k8s, nodes[0].Node, "icmp-responder-nse-1", defaultTimeout)
 

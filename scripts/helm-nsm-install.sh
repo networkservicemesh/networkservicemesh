@@ -142,9 +142,9 @@ check_flags
 
 echo -n "Performing chart installation ..."
 if [[ $HELM_VERSION = v2* ]]; then
-  VERSION_SPECIFIC_OPTS="--name $CHART --timeout 300 --dep-up"
+  VERSION_SPECIFIC_OPTS="--name $CHART --timeout 300"
 elif [[ $HELM_VERSION = v3* ]]; then
-  VERSION_SPECIFIC_OPTS="$CHART --timeout 5m --dependency-update"
+  VERSION_SPECIFIC_OPTS="$CHART --timeout 5m"
 else
   echo "Unsupported Helm version: $HELM_VERSION"
   exit 1

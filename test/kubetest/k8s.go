@@ -1,3 +1,4 @@
+//Package kubetest provides API for writing Kubernetes specific tests
 package kubetest
 
 import (
@@ -13,14 +14,12 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"testing"
 	"time"
 
 	"k8s.io/apimachinery/pkg/watch"
 
 	"github.com/pkg/errors"
-
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
-	jaeger_env "github.com/networkservicemesh/networkservicemesh/test/kubetest/jaeger"
 
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
@@ -39,6 +38,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/namespace"
 	"github.com/networkservicemesh/networkservicemesh/sdk/prefix_pool"
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest/artifacts"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 	nsmrbac "github.com/networkservicemesh/networkservicemesh/test/kubetest/rbac"
 	"github.com/networkservicemesh/networkservicemesh/utils"
@@ -341,10 +341,12 @@ func blockUntilPodWorking(client kubernetes.Interface, context context.Context, 
 }
 
 type K8s struct {
+	artifactManager    artifacts.Manager
 	clientset          kubernetes.Interface
 	versionedClientSet *versioned.Clientset
 	podLock            sync.Mutex
 	pods               []*v1.Pod
+	startTime          metaV1.Time
 	servicesLock       sync.Mutex
 	services           []*v1.Service
 	config             *rest.Config
@@ -358,67 +360,20 @@ type K8s struct {
 	cleanupFunc        func()
 }
 
-type spanRecord struct {
-	spanPod map[string]*v1.Pod
-}
-
-func (k8s *K8s) reportSpans() {
-	if !jaeger.IsOpentracingEnabled() || jaeger_env.StoreJaegerTraces.GetBooleanOrDefault(false) {
-		return
-	}
-	logrus.Infof("Finding spans")
-	// We need to find all Reporting span and print uniq to console for analysis.
-	pods := k8s.ListPods()
-	spans := map[string]*spanRecord{}
-	for i := 0; i < len(pods); i++ {
-		pod := pods[i]
-		for ci := 0; ci < len(pod.Spec.Containers); ci++ {
-			c := pod.Spec.Containers[ci]
-			k8s.findSpans(&pods[i], c, spans)
-		}
-		for ci := 0; ci < len(pod.Spec.InitContainers); ci++ {
-			c := pod.Spec.Containers[ci]
-			k8s.findSpans(&pods[i], c, spans)
-		}
-	}
-	for spanID, span := range spans {
-		keys := []string{}
-		for k := range span.spanPod {
-			keys = append(keys, k)
-		}
-		logrus.Infof("Span %v pods: %v", spanID, keys)
-	}
-}
-
-func (k8s *K8s) findSpans(pod *v1.Pod, c v1.Container, spans map[string]*spanRecord) {
-	content, err := k8s.GetFullLogs(pod, c.Name, false)
-	if err == nil {
-		lines := strings.Split(content, "\n")
-		for _, l := range lines {
-			pos := strings.Index(l, " Reporting span ")
-			if pos > 0 {
-				value := l[pos:]
-				pos = strings.Index(value, ":")
-				value = value[0:pos]
-				if value != "" {
-					podRecordID := fmt.Sprintf("%s:%s", pod.Name, c.Name)
-					if span, ok := spans[value]; ok {
-						span.spanPod[podRecordID] = pod
-					} else {
-						spans[value] = &spanRecord{
-							spanPod: map[string]*v1.Pod{podRecordID: pod},
-						}
-					}
-				}
-			}
-		}
-	}
-}
-
 // ExtK8s - K8s ClientSet with nodes config
 type ExtK8s struct {
 	K8s        *K8s
 	NodesSetup []*NodeConf
+}
+
+//NewK8sWithClientset creates a k8s with injected API client
+func NewK8sWithClientset(clientset kubernetes.Interface, namespace string) *K8s {
+	r := &K8s{
+		clientset: clientset,
+		namespace: namespace,
+	}
+	r.artifactManager = createArtifactManager(r)
+	return r
 }
 
 // NewK8s - Creates a new K8s Clientset with roles for the default config
@@ -493,7 +448,8 @@ func NewK8sWithoutRolesForConfig(g *WithT, prepare bool, kubeconfigPath string) 
 	if err != nil {
 		return nil, err
 	}
-
+	client.startTime = metaV1.Now()
+	client.artifactManager = createArtifactManager(&client)
 	client.apiServerHost = config.Host
 	client.initNamespace()
 	client.setIPVersion()
@@ -523,6 +479,21 @@ func NewK8sWithoutRolesForConfig(g *WithT, prepare bool, kubeconfigPath string) 
 	g.Expect(err).To(BeNil())
 
 	return &client, nil
+}
+
+// SaveArtifacts saves artifacts
+func (k8s *K8s) SaveArtifacts() {
+	k8s.artifactManager.SaveArtifacts()
+}
+
+//SaveTestArtifacts force saving tests artifacts
+func (k8s *K8s) SaveTestArtifacts(t *testing.T) {
+	if exception := recover(); exception != nil {
+		k8s.SaveArtifacts()
+		panic(exception)
+	} else if t.Failed() || k8s.artifactManager.Config().SaveInAnyCase() {
+		k8s.SaveArtifacts()
+	}
 }
 
 // Immediate deletion does not wait for confirmation that the running resource has been terminated.
@@ -701,10 +672,12 @@ func (k8s *K8s) GetNodes() []v1.Node {
 }
 
 // ListPods lists the pods
-func (k8s *K8s) ListPods() []v1.Pod {
+func (k8s *K8s) ListPods() ([]v1.Pod, error) {
 	podList, err := k8s.clientset.CoreV1().Pods(k8s.namespace).List(metaV1.ListOptions{})
-	k8s.g.Expect(err).To(BeNil())
-	return podList.Items
+	if err != nil {
+		return nil, err
+	}
+	return podList.Items, nil
 }
 
 //ListPodsByNs returns pod list by specific namespace
@@ -801,7 +774,6 @@ func (k8s *K8s) CleanupEndpointsCRDs() {
 func (k8s *K8s) Cleanup() {
 	st := time.Now()
 
-	k8s.reportSpans()
 	k8s.cleanups()
 
 	logrus.Infof("Cleanup time: %v", time.Since(st))
@@ -858,8 +830,9 @@ func (k8s *K8s) cleanups() {
 
 // DeletePodsByName deletes pod if a pod's name contains one of the given strings
 func (k8s *K8s) DeletePodsByName(noPods ...string) {
-	pods := k8s.ListPods()
-	podsList := []*v1.Pod{}
+	pods, err := k8s.ListPods()
+	k8s.g.Expect(err).Should(BeNil())
+	var podsList []*v1.Pod
 	for _, podName := range noPods {
 		for i := range pods {
 			lpod := &pods[i]
@@ -1593,4 +1566,11 @@ func (k8s *K8s) IsNetworkProblem(pod *v1.Pod) error {
 		}
 	}
 	return nil
+}
+
+func createArtifactManager(k8s *K8s) artifacts.Manager {
+	return artifacts.NewManager(artifacts.ConfigFromEnv(), artifacts.DefaultPresenterFactory(), []artifacts.Finder{
+		NewK8sLogFinder(k8s),
+		NewJaegerTracesFinder(k8s),
+	}, nil)
 }

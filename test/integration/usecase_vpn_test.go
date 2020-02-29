@@ -101,7 +101,7 @@ func testVPN(t *testing.T, ptnum, nodesCount int, affinity map[string]int, verbo
 
 	_, err = kubetest.SetupNodes(k8s, nodesCount, defaultTimeout)
 	g.Expect(err).To(BeNil())
-	defer kubetest.MakeLogsSnapshot(k8s, t)
+	defer k8s.SaveTestArtifacts(t)
 
 	{
 		nscrd, err := crds.NewNSCRD(k8s.GetK8sNamespace())

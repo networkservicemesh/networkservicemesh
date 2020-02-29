@@ -1,8 +1,6 @@
 package converter
 
-import (
-	"github.com/ligato/vpp-agent/api/configurator"
-)
+import "go.ligato.io/vpp-agent/v3/proto/ligato/configurator"
 
 type Converter interface {
 	ToDataRequest(rv *configurator.Config, connect bool) (*configurator.Config, error)

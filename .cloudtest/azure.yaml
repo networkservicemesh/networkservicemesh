@@ -6,7 +6,7 @@ providers:
     instances: 6
     retry: 5
     node-count: 2
-    enabled: true
+    enabled: false
     timeout: 3600  # 30 minutes to start cluster
     env:
       - CLUSTER_RULES_PREFIX=azure
@@ -29,7 +29,7 @@ providers:
         make azure-start
       stop: make azure-destroy
       prepare: |
-        make helm-init helm-install-config
+        make helm-init k8s-config
         make spire-install-azure
       cleanup: |
         ./scripts/azure/destroy-old-clusters.sh 4 "^azure"

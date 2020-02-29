@@ -53,10 +53,12 @@ k8s-%-load-images:  k8s-start $(CLUSTER_RULES_PREFIX)-%-load-images
 	@echo "Delegated to $(CLUSTER_RULES_PREFIX)-$*-load-images"
 
 .PHONY: k8s-config
-k8s-config: helm-install-config
+k8s-config:
+	helm --namespace ${NSM_NAMESPACE} install --name config deployments/helm/nsm/charts/config
 
 .PHONY: k8s-deconfig
-k8s-deconfig: helm-delete-config
+k8s-deconfig:
+	helm delete config --purge || true
 
 .PHONY: k8s-start
 k8s-start: $(CLUSTER_RULES_PREFIX)-start
@@ -73,6 +75,11 @@ k8s-save: docker-save
 .PHONY: k8s-delete-nsm-namespaces
 k8s-delete-nsm-namespaces:
 	@NSM_NAMESPACE=${NSM_NAMESPACE} ./scripts/delete-nsm-namespaces.sh
+
+.PHONY: k8s-reset
+k8s-reset:
+	make -i k8s-deconfig helm-delete k8s-terminating-cleanup k8s-delete-nsm-namespaces || true
+	make k8s-config && echo "Cluster reset successfull"
 
 .PHONY: k8s-%logs
 k8s-%-logs:
@@ -143,16 +150,16 @@ k8s-crossconnect-monitor-check:
 	$(info Checking crossconnect-monitor...)
 	@NSM_NAMESPACE=${NSM_NAMESPACE} ./scripts/verify_crossconnect_monitor.sh
 
-.PHONY: k8s-logs-snapshot
-k8s-logs-snapshot:
-	@NSM_NAMESPACE=${NSM_NAMESPACE} ./scripts/logs_snapshot.sh
+.PHONY: k8s-save-artifacts
+k8s-save-artifacts:
+	@NSM_NAMESPACE=${NSM_NAMESPACE} ./scripts/save_artifacts.sh
 
-k8s-logs-snapshot-only-master:
-	@NSM_NAMESPACE=${NSM_NAMESPACE} ./scripts/logs_snapshot.sh only-master
+k8s-save-artifacts-only-master:
+	@NSM_NAMESPACE=${NSM_NAMESPACE} ./scripts/save_artifacts.sh only-master
 
 .PHONY: k8s-terminating-cleanup
 k8s-terminating-cleanup:
-	@$(kubectl) get pods -o wide |grep Terminating | cut -d \  -f 1 | xargs $(kubectl) delete pods --force --grace-period 0 {}
+	@$(kubectl) get pods -o wide |grep Terminating | cut -d \  -f 1 | xargs --no-run-if-empty $(kubectl) delete pods --force --grace-period 0 {}
 
 .PHONE: k8s-pods
 k8s-pods:

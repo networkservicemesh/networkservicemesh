@@ -2,7 +2,7 @@
 executions:
   - name: "Interdomain tests packet-aws"
     env:
-      - STORE_POD_LOGS_IN_FILES=true
+      - ARTIFACTS_ARCHIVE=true
       - USE_JAEGER_SERVICE=true
     source:
       tags:
@@ -17,11 +17,11 @@ executions:
       - KUBECONFIG_CLUSTER_1
       - KUBECONFIG_CLUSTER_2
     on-fail: |
-      make k8s-delete-nsm-namespaces
+      make k8s-reset
 
   - name: "Interdomain tests gke-packet"
     env:
-      - STORE_POD_LOGS_IN_FILES=true
+      - ARTIFACTS_ARCHIVE=true
       - USE_JAEGER_SERVICE=true
     source:
       tags:
@@ -36,11 +36,11 @@ executions:
       - KUBECONFIG_CLUSTER_1
       - KUBECONFIG_CLUSTER_2
     on-fail: |
-      make k8s-delete-nsm-namespaces
+      make k8s-reset
 
   - name: "Interdomain tests azure-gke"
     env:
-      - STORE_POD_LOGS_IN_FILES=true
+      - ARTIFACTS_ARCHIVE=true
       - USE_JAEGER_SERVICE=true
     source:
       tags:
@@ -55,11 +55,11 @@ executions:
       - KUBECONFIG_CLUSTER_1
       - KUBECONFIG_CLUSTER_2
     on-fail: |
-      make k8s-delete-nsm-namespaces
+      make k8s-reset
 
   - name: "Interdomain tests aws-azure"
     env:
-      - STORE_POD_LOGS_IN_FILES=true
+      - ARTIFACTS_ARCHIVE=true
       - USE_JAEGER_SERVICE=true
     source:
       tags:
@@ -74,4 +74,4 @@ executions:
       - KUBECONFIG_CLUSTER_1
       - KUBECONFIG_CLUSTER_2
     on-fail: |
-      make k8s-delete-nsm-namespaces
+      make k8s-reset

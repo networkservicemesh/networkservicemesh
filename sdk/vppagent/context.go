@@ -3,8 +3,8 @@ package vppagent
 import (
 	"context"
 
-	"github.com/ligato/vpp-agent/api/configurator"
-	interfaces "github.com/ligato/vpp-agent/api/models/vpp/interfaces"
+	"go.ligato.io/vpp-agent/v3/proto/ligato/configurator"
+	interfaces "go.ligato.io/vpp-agent/v3/proto/ligato/vpp/interfaces"
 )
 
 type contextKeyType string

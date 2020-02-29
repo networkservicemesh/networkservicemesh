@@ -75,7 +75,7 @@ func TestNSCAndICMPNeighbors(t *testing.T) {
 
 	k8s, err := kubetest.NewK8s(g, true)
 	defer k8s.Cleanup()
-	defer kubetest.MakeLogsSnapshot(k8s, t)
+	defer k8s.SaveTestArtifacts(t)
 	g.Expect(err).To(BeNil())
 
 	nodes_setup, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)

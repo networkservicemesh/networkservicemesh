@@ -157,11 +157,10 @@ jobs:
             export CONTAINER_REPO=${REPO}
             echo "CONTAINER_REPO=${CONTAINER_REPO}"
             if [ "${CIRCLE_BRANCH}" == "master" ]; then
-              export STORE_LOGS_IN_ANY_CASES=true
+              export ARTIFACTS_SAVE_ALWAYS=true
             fi
-            export STORE_JAEGER_TRACES=true
             pushd test
-            go get github.com/networkservicemesh/cloudtest@v0.1-beta
+            go get github.com/networkservicemesh/cloudtest
             popd
             cloudtest || ERR=$?
             [ "${CIRCLE_BRANCH}" == "master" ] && [ "$ERR" == "" ] && exit 0

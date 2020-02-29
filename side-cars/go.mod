@@ -10,7 +10,7 @@ require (
 	github.com/networkservicemesh/networkservicemesh/sdk v0.3.0
 	github.com/networkservicemesh/networkservicemesh/utils v0.3.0
 	github.com/onsi/gomega v1.7.0
-	github.com/pkg/errors v0.8.1
+	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.4.2
 	github.com/spiffe/spire/proto/spire v0.0.0-20200103215556-34b7e3785007
 	google.golang.org/grpc v1.27.0

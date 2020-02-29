@@ -26,37 +26,27 @@ import (
 )
 
 const (
-	jaegerPrefix = "JAEGER"
-	//StoreJaegerTraces env variable represents boolean, means store jaeger traces as files
-	StoreJaegerTraces utils.EnvVar = "STORE_JAEGER_TRACES"
-	//StoreJaegerTracesInAnyCases env variable represents boolean, means store jaeger traces if test passed
-	StoreJaegerTracesInAnyCases utils.EnvVar = "STORE_JAEGER_TRACES_IN_ANY_CASE"
-	//JaegerRestAPIPort means port of ingester api server
-	JaegerRestAPIPort utils.EnvVar = "JAEGER_REST_API_PORT"
-	//JaegerAgentHost the hostname for communicating with agent via UDP
-	JaegerAgentHost utils.EnvVar = "JAEGER_AGENT_HOST"
-	//JaegerAgentPort the port for communicating with agent via UDP
-	JaegerAgentPort utils.EnvVar = "JAEGER_AGENT_PORT"
-	//UseJaegerService means use jaeger service. Useful for interdomain cases
-	UseJaegerService utils.EnvVar = "USE_JAEGER_SERVICE"
-	//NodeJaegerPort means jaeger node port
-	NodeJaegerPort utils.EnvVar = "NODE_JAEGER_PORT"
+	prefix = "JAEGER"
+	//RestAPIPort means port of ingester api server
+	RestAPIPort utils.EnvVar = "JAEGER_REST_API_PORT"
+	//AgentHost the hostname for communicating with agent via UDP
+	AgentHost utils.EnvVar = "JAEGER_AGENT_HOST"
+	//AgentPort the port for communicating with agent via UDP
+	AgentPort utils.EnvVar = "JAEGER_AGENT_PORT"
+	//UseService means use jaeger service. Useful for interdomain cases
+	UseService utils.EnvVar = "USE_JAEGER_SERVICE"
+	//NodePort means jaeger node port
+	NodePort utils.EnvVar = "NODE_JAEGER_PORT"
 )
 
-//ShouldStoreJaegerTraces means store jaeger traces as files
-func ShouldStoreJaegerTraces() bool {
-	return StoreJaegerTraces.GetBooleanOrDefault(false) &&
-		utils.EnvVar("TRACER_ENABLED").GetBooleanOrDefault(true)
+//GetRestAPIPort returns jaeger API port
+func GetRestAPIPort() int {
+	return RestAPIPort.GetIntOrDefault(16686)
 }
 
-//GetJaegerRestAPIPort returns jaeger API port
-func GetJaegerRestAPIPort() int {
-	return JaegerRestAPIPort.GetIntOrDefault(16686)
-}
-
-//GetJaegerNodePort returns jaeger node port
-func GetJaegerNodePort() int32 {
-	return int32(NodeJaegerPort.GetIntOrDefault(30001))
+//GetNodePort returns jaeger node port
+func GetNodePort() int32 {
+	return int32(NodePort.GetIntOrDefault(30001))
 }
 
 //DefaultEnvValues returns default jaeger env values
@@ -75,7 +65,7 @@ func Env() []v1.EnvVar {
 	defaultEnvs := DefaultEnvValues()
 	result := []v1.EnvVar{}
 	for _, env := range envs {
-		if strings.HasPrefix(env, jaegerPrefix) {
+		if strings.HasPrefix(env, prefix) {
 			envParts := strings.Split(env, "=")
 			if len(envParts) < 2 {
 				continue

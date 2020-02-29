@@ -144,7 +144,7 @@ func TestClosingNSEHealRemoteToLocal(t *testing.T) {
 	// Deploy open tracing to see what happening.
 	nodesSetup, err := kubetest.SetupNodes(k8s, 2, defaultTimeout)
 	g.Expect(err).To(BeNil())
-	defer kubetest.MakeLogsSnapshot(k8s, t)
+	defer k8s.SaveTestArtifacts(t)
 
 	// Run ICMP
 	node := affinity["icmp-responder-nse-1"]
