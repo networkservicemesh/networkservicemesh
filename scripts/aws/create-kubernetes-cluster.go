@@ -356,13 +356,30 @@ func (ac *AWSCluster) authorizeSecurityGroupIngress(ec2client *ec2.EC2, groupID 
 				IpRanges: []*ec2.IpRange{
 					{
 						CidrIp:      aws.String("0.0.0.0/0"),
-						Description: aws.String("Remote ip4 access"),
+						Description: aws.String("vpp vxlan ip4 access"),
 					},
 				},
 				Ipv6Ranges: []*ec2.Ipv6Range{
 					{
 						CidrIpv6:    aws.String("::/0"),
-						Description: aws.String("Remote ip6 access"),
+						Description: aws.String("vpp vxlan ip6 access"),
+					},
+				},
+			},
+			{
+				IpProtocol: aws.String("udp"),
+				ToPort:     aws.Int64(8472),
+				FromPort:   aws.Int64(8472),
+				IpRanges: []*ec2.IpRange{
+					{
+						CidrIp:      aws.String("0.0.0.0/0"),
+						Description: aws.String("kernel vxlan ip4 access"),
+					},
+				},
+				Ipv6Ranges: []*ec2.Ipv6Range{
+					{
+						CidrIpv6:    aws.String("::/0"),
+						Description: aws.String("kernel vxlan ip6 access"),
 					},
 				},
 			},
