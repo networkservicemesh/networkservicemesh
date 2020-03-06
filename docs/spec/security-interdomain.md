@@ -76,7 +76,13 @@ But in order to make the first request to obtain bundle, we already should have 
 
 ### Federation Server
 
-Before start of NSM on particular cluster all we want to do is confugure the list of trust domain, that we want to federate with. We don't want to care about `bundles` for each trust domain or about specific endpoints address that must be used for refreshing.
+Before start of NSM on particular cluster all we want to do is confugure the list of trust domains, that we want to federate with. We don't want to care about `bundles` for each trust domain or about specific endpoints address that must be used for refreshing.
+
+But current implementation of spire implies that each spire server knows host and port of another spire server in order to obtain bundles and refresh them.
+
+That's why we need centralized service that provides certificate exchange.
+
+![root_ca_scheme](../images/security_interdomain_fed_server.png)
 
 ### Kind implementation
 
