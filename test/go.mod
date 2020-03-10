@@ -19,7 +19,7 @@ require (
 	github.com/networkservicemesh/networkservicemesh/utils v0.3.0
 	github.com/onsi/gomega v1.7.0
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus/client_golang v1.0.0
+	github.com/prometheus/client_golang v1.1.0
 	github.com/sirupsen/logrus v1.4.2
 	github.com/spf13/viper v1.5.0
 	github.com/spiffe/go-spiffe v0.0.0-20191104192205-d29ac0a1ba99
@@ -71,7 +71,6 @@ replace (
 	github.com/networkservicemesh/networkservicemesh/forwarder => ../forwarder
 	github.com/networkservicemesh/networkservicemesh/forwarder/api => ../forwarder/api
 	github.com/networkservicemesh/networkservicemesh/k8s => ../k8s
-	github.com/networkservicemesh/networkservicemesh/k8s/api => ../k8s/api
 	github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis => ../k8s/pkg/apis
 	github.com/networkservicemesh/networkservicemesh/pkg => ../pkg
 	github.com/networkservicemesh/networkservicemesh/sdk => ../sdk

@@ -9,27 +9,14 @@ Network Service Mesh needs to be able to provide a workload with DNS resolution 
 Overview
 --------
 
-The DNS integration capability is performed by running a DNS server co-resident with the application pod that can direct requests to multiple DNS servers. The DNS servers that should be sent requests are controlled by the NSEs that create connections into that application pod.  If the NSEs populate the DNSContext with a DNS server appropriate for this connection then additional containers in the application pod will ensure those DNS servers are consulted. The additional containers are nsm-coredns and nsm-dns-monitor.  They can be inserted directly or via the admission webhook.  The nsm-coredns container is responsible for handling the DNS resolution mechanics. The nsm-dns-monitor container is responsible for updating the configuration that the nsm-coredns container acts on based on DNS information in the connection contexts provided by the NSEs.
+The DNS integration capability is performed by running a DNS server co-resident with the application pod that can direct requests to multiple DNS servers. The DNS servers that should be sent requests are controlled by the NSEs that create connections into that application pod.  If the NSEs populate the DNSContext with a DNS server appropriate for this connection then additional containers in the application pod will ensure those DNS servers are consulted. The additional containers are coredns and nsm-dns-monitor.  They can be inserted directly or via the admission webhook.  The coredns container is responsible for handling the DNS resolution mechanics. The nsm-dns-monitor container is responsible for updating the configuration that the coredns container acts on based on DNS information in the connection contexts provided by the NSEs.
 
 The NSM endpoint SDK provides two functions `NewAddDNSConfigs` and  `NewAddDnsConfigDstIp` to update the connection context so the nsm-dns-monitor can update the coredns configuration.
 
 Implementation details (optional)
 ---------------------------------
 
-### nsm-coredns
-`nsm-corends` is a docker image based on [coredns](https://github.com/coredns/coredns.io/blob/master/content/manual/what.md). The difference with the original `coredns` is the set of plug-ins.
-The image uses only these `coredns` plugins:
-* `bind`
-* `hosts`
-* `log`
-
-Also, it includes a `fanout` plugin defined in the NSM tree (see below).	
-### Fanout plugin
-`fanout` is a custom [plugin for coredns](https://coredns.io/manual/plugins/).
-The fanout plugin re-uses already opened sockets to the upstreams. It supports TCP and DNS-over-TLS and uses in-band health checking.  The config provided to nsm-coredns may include multiple IPs based on the services a pod attachs to.
-Each incoming DNS query that hits the CoreDNS fanout plugin will be replicated in parallel to each listed IP (i.e. the DNS servers). The first non-negative response from any of the queried DNS Servers will be forwarded as a response to the application's DNS request.
-
-### Using nsm-coredns as the default name server for the pod
+### Using coredns as the default name server for the pod
 1) Deploy configmap with corefile content.
 ```
 apiVersion: v1
@@ -41,19 +28,19 @@ data:
   Corefile: |
     {domain} {
         log
-        fanout {IP addresses}
+        forward {IP addresses}
         ...
     }
 ```
-2) Deploy nsm-coredns. You can deploy it as sidecar for your Pod (see below).
+2) Deploy coredns. You can deploy it as sidecar for your Pod (see below).
 ```
 ...
 spec:
     spec:
       containers:
         #containers...
-        - name: nsm-coredns
-          image: networkservicemesh/nsm-coredns:lateest
+        - name: coredns
+          image: networkservicemesh/coredns:lateest
           imagePullPolicy: IfNotPresent
           volumeMounts: 
             - name: config-volume
@@ -88,11 +75,11 @@ func main() {
         ...
 }
 ``` 
-Make sure that your application pod includes the `nsm-coredns` and `nsm-coredns` containers and has [environment variable](https://github.com/networkservicemesh/networkservicemesh/blob/master/docs/env.md) `USE_UPDATE_API=true`.
+Make sure that your application pod includes the `coredns` and `coredns` containers and has [environment variable](https://github.com/networkservicemesh/networkservicemesh/blob/master/docs/env.md) `USE_UPDATE_API=true`.
 See an example of usage `nsm-dns-monitor` in `test/applications/cmd/monitoring-dns-nsc`
 
-### Using nsm-coredns and nsm-dns-monitor without changing the client's deployment configuration
-To inject the `nsm-coredns` and `nsm-dns-monitor` containers into a client's pod during deployment, you can simply deploy the [admission webhook](https://github.com/networkservicemesh/networkservicemesh/blob/master/docs/spec/admission.md). `Admission webhook` will automatically append the DNS specific containers to your `Network Service Client`.  When using the admission webhook there is no way to disable the insertion of these additional containers.
+### Using coredns and nsm-dns-monitor without changing the client's deployment configuration
+To inject the `coredns` and `nsm-dns-monitor` containers into a client's pod during deployment, you can simply deploy the [admission webhook](https://github.com/networkservicemesh/networkservicemesh/blob/master/docs/spec/admission.md). `Admission webhook` will automatically append the DNS specific containers to your `Network Service Client`.  When using the admission webhook there is no way to disable the insertion of these additional containers.
 
 ## NSE Requirements
 In order for the application pod to try multiple DNS servers the NSEs must populate the DNScontext.

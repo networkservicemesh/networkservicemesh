@@ -3,6 +3,7 @@ module github.com/networkservicemesh/networkservicemesh/utils
 go 1.13
 
 require (
+	github.com/caddyserver/caddy v1.0.5
 	github.com/networkservicemesh/networkservicemesh/controlplane/api v0.3.0
 	github.com/onsi/gomega v1.7.0
 	github.com/pkg/errors v0.8.1

@@ -3,14 +3,13 @@ module github.com/networkservicemesh/networkservicemesh/k8s
 go 1.13
 
 require (
-	github.com/caddyserver/caddy v1.0.3
+	github.com/caddyserver/caddy v1.0.5
 	github.com/coredns/coredns v1.5.2
 	github.com/dnstap/golang-dnstap v0.1.0
 	github.com/golang/protobuf v1.3.3
 	github.com/miekg/dns v1.1.15
 	github.com/networkservicemesh/networkservicemesh/controlplane v0.3.0
 	github.com/networkservicemesh/networkservicemesh/controlplane/api v0.3.0
-	github.com/networkservicemesh/networkservicemesh/k8s/api v0.3.0
 	github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis v0.3.0
 	github.com/networkservicemesh/networkservicemesh/pkg v0.3.0
 	github.com/networkservicemesh/networkservicemesh/sdk v0.3.0
@@ -65,7 +64,6 @@ replace (
 	github.com/networkservicemesh/networkservicemesh/controlplane/api => ../controlplane/api
 	github.com/networkservicemesh/networkservicemesh/forwarder => ../forwarder
 	github.com/networkservicemesh/networkservicemesh/forwarder/api => ../forwarder/api
-	github.com/networkservicemesh/networkservicemesh/k8s/api => ./api
 	github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis => ./pkg/apis
 	github.com/networkservicemesh/networkservicemesh/pkg => ../pkg
 	github.com/networkservicemesh/networkservicemesh/sdk => ../sdk

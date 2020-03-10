@@ -23,7 +23,6 @@ replace github.com/census-instrumentation/opencensus-proto v0.1.0-0.201812141439
 replace (
 	github.com/networkservicemesh/networkservicemesh => ../
 	github.com/networkservicemesh/networkservicemesh/controlplane/api => ../controlplane/api
-	github.com/networkservicemesh/networkservicemesh/k8s/api => ../k8s/api
 	github.com/networkservicemesh/networkservicemesh/pkg => ../pkg
 	github.com/networkservicemesh/networkservicemesh/sdk => ./
 	github.com/networkservicemesh/networkservicemesh/side-cars => ../side-cars

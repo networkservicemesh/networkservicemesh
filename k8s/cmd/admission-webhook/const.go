@@ -23,6 +23,7 @@ const (
 	namespaceDefault     = "default"
 	tagDefault           = "latest"
 	initContainerName    = "nsm-init-container"
+	dnsInitContainerName = "nsm-dns-init"
 	certFile             = "/etc/webhook/certs/" + v1.TLSCertKey
 	keyFile              = "/etc/webhook/certs/" + v1.TLSPrivateKeyKey
 	initContainersPath   = "/spec/initContainers"
@@ -30,7 +31,5 @@ const (
 	deploymentSubPath    = "/spec/template"
 	volumePath           = "/spec/volumes"
 	containersPath       = "/spec/containers"
-	dnsConfigPath        = "/spec/dnsConfig"
-	dnsPolicyPath        = "/spec/dnsPolicy"
 	defaultPort          = 443
 )

@@ -3,9 +3,9 @@ module github.com/networkservicemesh/networkservicemesh/side-cars
 go 1.13
 
 require (
+	github.com/caddyserver/caddy v1.0.5
 	github.com/networkservicemesh/networkservicemesh/controlplane v0.3.0
 	github.com/networkservicemesh/networkservicemesh/controlplane/api v0.3.0
-	github.com/networkservicemesh/networkservicemesh/k8s/api v0.3.0
 	github.com/networkservicemesh/networkservicemesh/pkg v0.3.0
 	github.com/networkservicemesh/networkservicemesh/sdk v0.3.0
 	github.com/networkservicemesh/networkservicemesh/utils v0.3.0
@@ -25,7 +25,6 @@ replace (
 	github.com/networkservicemesh/networkservicemesh/forwarder => ../forwarder
 	github.com/networkservicemesh/networkservicemesh/forwarder/api => ../forwarder/api
 	github.com/networkservicemesh/networkservicemesh/k8s => ../k8s
-	github.com/networkservicemesh/networkservicemesh/k8s/api => ../k8s/api
 	github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis => ../k8s/pkg/apis
 	github.com/networkservicemesh/networkservicemesh/pkg => ../pkg
 	github.com/networkservicemesh/networkservicemesh/sdk => ../sdk

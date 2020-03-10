@@ -6,8 +6,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 
-	nsmcorednsenv "github.com/networkservicemesh/networkservicemesh/k8s/cmd/nsm-coredns/env"
-
 	"github.com/networkservicemesh/networkservicemesh/sdk/client"
 )
 
@@ -31,9 +29,6 @@ func createDNSPatch(tuple *podSpecAndMeta, annotationValue string) (patch []patc
 						Value: "true",
 					},
 					{
-						Name:  nsmcorednsenv.UpdateAPIClientSock.Name(),
-						Value: "/etc/coredns/client.sock"},
-					{
 						Name:  client.AnnotationEnv,
 						Value: annotationValue,
 					},
@@ -53,8 +48,8 @@ func createDNSPatch(tuple *podSpecAndMeta, annotationValue string) (patch []patc
 	patch = append(patch, addContainer(tuple.spec,
 		[]corev1.Container{
 			{
-				Name:            "nsm-coredns",
-				Image:           fmt.Sprintf("%s/%s:%s", getRepo(), "nsm-coredns", getTag()),
+				Name:            "coredns",
+				Image:           "coredns/coredns:latest",
 				ImagePullPolicy: corev1.PullIfNotPresent,
 				Args:            []string{"-conf", "/etc/coredns/Corefile"},
 				VolumeMounts: []corev1.VolumeMount{{
@@ -62,16 +57,6 @@ func createDNSPatch(tuple *podSpecAndMeta, annotationValue string) (patch []patc
 					Name:      "nsm-coredns-volume",
 					MountPath: "/etc/coredns",
 				}},
-				Env: []corev1.EnvVar{
-					{
-						Name:  nsmcorednsenv.UseUpdateAPIEnv.Name(),
-						Value: "true",
-					},
-					{
-						Name:  nsmcorednsenv.UpdateAPIClientSock.Name(),
-						Value: "/etc/coredns/client.sock",
-					},
-				},
 				Resources: corev1.ResourceRequirements{
 					Limits: corev1.ResourceList{
 						"networkservicemesh.io/socket": resource.MustParse("1"),
@@ -143,8 +128,18 @@ func createNsmInitContainerPatch(target []corev1.Container, annotationValue stri
 			},
 		},
 	}
-
-	value = append([]corev1.Container{nsmInitContainer}, target...)
+	dnsNsmInitContainer := corev1.Container{
+		Name:            dnsInitContainerName,
+		Image:           fmt.Sprintf("%s/%s:%s", getRepo(), dnsInitContainerName, getTag()),
+		ImagePullPolicy: corev1.PullIfNotPresent,
+		Env:             envVals,
+		Resources: corev1.ResourceRequirements{
+			Limits: corev1.ResourceList{
+				"networkservicemesh.io/socket": resource.MustParse("1"),
+			},
+		},
+	}
+	value = append([]corev1.Container{dnsNsmInitContainer, nsmInitContainer}, target...)
 
 	patch = append(patch, patchOperation{
 		Op:    "add",

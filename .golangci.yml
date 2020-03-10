@@ -110,10 +110,6 @@ issues:
       linters:
         - gochecknoglobals
         - gochecknoinits
-    - path: cmd/nsm-coredns
-      linters:
-        - gochecknoglobals
-        - gochecknoinits
     - path: tools/socket.go
       linters:
         - gochecknoglobals

@@ -10,28 +10,28 @@ import (
 
 func TestDnsConfigManagerCreation(t *testing.T) {
 	assert := gomega.NewWithT(t)
-	m := NewDNSConfigManager(*testBasicConfig())
+	m := NewDNSConfigManager(testBasicConfig())
 	caddyfile := m.Caddyfile("test")
 	assert.Expect(len(caddyfile.Records()) == 1).Should(gomega.BeTrue())
 }
 
 func TestDnsConfigManagerMergeConfigs(t *testing.T) {
 	assert := gomega.NewWithT(t)
-	m := NewDNSConfigManager(*testBasicConfig())
-	other := *testBasicConfig()
+	m := NewDNSConfigManager(testBasicConfig())
+	other := testBasicConfig()
 	other.DnsServerIps = append(other.DnsServerIps, "192.168.0.1")
 	m.Store("1", other)
 	caddyfile := m.Caddyfile("test")
 	assert.Expect(len(caddyfile.Records()) == 1).Should(gomega.BeTrue())
-	assert.Expect(len(caddyfile.GetOrCreate(m.getBasicConfigScopeName()).Records()) == 2).Should(gomega.BeTrue())
-	assert.Expect(caddyfile.GetOrCreate(m.getBasicConfigScopeName()).Records()[0].String()).Should(gomega.Equal("log"))
-	assert.Expect(caddyfile.GetOrCreate(m.getBasicConfigScopeName()).Records()[1].String()).Should(gomega.Equal("fanout 127.0.0.1 192.168.0.1"))
+	assert.Expect(len(caddyfile.GetOrCreate(anyDomain).Records()) == 3).Should(gomega.BeTrue())
+	assert.Expect(caddyfile.GetOrCreate(anyDomain).Records()[0].String()).Should(gomega.Equal("log"))
+	assert.Expect(caddyfile.GetOrCreate(anyDomain).Records()[1].String()).Should(gomega.Equal("forward 127.0.0.1 192.168.0.1"))
 }
 
 func TestDnsConfigManagerStoreConfigs(t *testing.T) {
 	assert := gomega.NewWithT(t)
-	m := NewDNSConfigManager(*testBasicConfig())
-	other := *testBasicConfig()
+	m := NewDNSConfigManager(testBasicConfig())
+	other := testBasicConfig()
 	other.DnsServerIps = append(other.DnsServerIps, "192.168.0.1")
 	other.SearchDomains = append(other.SearchDomains, "other")
 	m.Store("1", other)
@@ -40,13 +40,13 @@ func TestDnsConfigManagerStoreConfigs(t *testing.T) {
 	assert.Expect(len(caddyfile.GetOrCreate("other").Records()) == 2).Should(gomega.BeTrue())
 	assert.Expect(caddyfile.HasScope("other")).Should(gomega.BeTrue())
 	assert.Expect(caddyfile.GetOrCreate("other").Records()[0].String()).Should(gomega.Equal("log"))
-	assert.Expect(caddyfile.GetOrCreate("other").Records()[1].String()).Should(gomega.Equal("fanout 127.0.0.1 192.168.0.1"))
+	assert.Expect(caddyfile.GetOrCreate("other").Records()[1].String()).Should(gomega.Equal("forward 127.0.0.1 192.168.0.1"))
 }
 
 func TestDnsConfigManagerDeleteConfigs(t *testing.T) {
 	assert := gomega.NewWithT(t)
-	m := NewDNSConfigManager(*testBasicConfig())
-	other := *testBasicConfig()
+	m := NewDNSConfigManager(testBasicConfig())
+	other := testBasicConfig()
 	other.DnsServerIps = append(other.DnsServerIps, "192.168.0.1")
 	other.SearchDomains = append(other.SearchDomains, "other")
 	m.Store("1", other)
