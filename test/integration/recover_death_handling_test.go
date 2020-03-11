@@ -57,7 +57,7 @@ func testDie(t *testing.T, killSrc bool, nodesCount int) {
 	defer k8s.Cleanup(t)
 	g.Expect(err).To(BeNil())
 
-	nodes, err := kubetest.SetupNodesConfig(k8s, nodesCount, defaultTimeout, kubetest.NoHealNSMgrPodConfig(k8s), k8s.GetK8sNamespace())
+	nodes, err := kubetest.SetupNodes(k8s, nodesCount, defaultTimeout)
 
 	defer k8s.SaveTestArtifacts(t)
 	g.Expect(err).To(BeNil())

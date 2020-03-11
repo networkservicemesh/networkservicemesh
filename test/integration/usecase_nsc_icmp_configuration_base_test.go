@@ -67,7 +67,7 @@ func testNSCAndICMP(pararms *testNSCAndNSEParams) {
 		}
 		config = append(config, cfg)
 	}
-	nodes_setup, err := kubetest.SetupNodesConfig(k8s, pararms.nodeCount, defaultTimeout, config, k8s.GetK8sNamespace())
+	nodes_setup, err := kubetest.SetupNodes(k8s, pararms.nodeCount, defaultTimeout)
 	g.Expect(err).To(BeNil())
 
 	// Run ICMP on latest node

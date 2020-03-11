@@ -1,4 +1,4 @@
-// +build basic_suite
+// +build basic
 
 package integration
 
@@ -27,7 +27,7 @@ func TestExcludePrefixCheck(t *testing.T) {
 		utils.EnvVar(prefixcollector.ExcludedPrefixesEnv).Set("100::/64")
 	}
 
-	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResources)
+	k8s, err := kubetest.NewK8s(g, kubetest.DefaultClear)
 	defer k8s.Cleanup(t)
 	g.Expect(err).To(BeNil())
 	nodes, err := kubetest.SetupNodes(k8s, 2, defaultTimeout)

@@ -60,7 +60,7 @@ func testNSEHeal(params *testNSEHealParameters) {
 		cfg.Variables[remote.PreferredRemoteMechanism.Name()] = params.remoteMechanism
 		config = append(config, cfg)
 	}
-	nodesSetup, err := kubetest.SetupNodesConfig(k8s, params.nodesCount, defaultTimeout, config, k8s.GetK8sNamespace())
+	nodesSetup, err := kubetest.SetupNodes(k8s, params.nodesCount, defaultTimeout)
 	g.Expect(err).To(BeNil())
 	defer k8s.SaveTestArtifacts(params.t)
 

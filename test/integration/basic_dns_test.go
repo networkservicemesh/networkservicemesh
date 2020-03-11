@@ -10,7 +10,6 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
-	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 )
 
 func TestBasicDns(t *testing.T) {
@@ -24,7 +23,7 @@ func TestBasicDns(t *testing.T) {
 	assert.Expect(err).To(gomega.BeNil())
 	defer k8s.Cleanup(t)
 
-	configs, err := kubetest.SetupNodesConfig(k8s, 1, defaultTimeout, []*pods.NSMgrPodConfig{}, k8s.GetK8sNamespace())
+	configs, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
 	assert.Expect(err).To(gomega.BeNil())
 	defer k8s.SaveTestArtifacts(t)
 	err = kubetest.DeployCorefile(k8s, "basic-corefile", `. {
