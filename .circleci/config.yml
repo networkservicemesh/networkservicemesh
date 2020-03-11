@@ -102,6 +102,7 @@ jobs:
 
 # integration
   integration-tests:
+    resource_class: xlarge
     docker:
       - image: circleci/golang:1.13-stretch
     steps:

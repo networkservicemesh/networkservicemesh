@@ -1,4 +1,4 @@
-// +build basic
+// +build basic_suite
 
 package integration
 
@@ -9,7 +9,6 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest"
-	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 )
 
 func TestDeleteDirtyNSE(t *testing.T) {
@@ -22,11 +21,11 @@ func TestDeleteDirtyNSE(t *testing.T) {
 
 	logrus.Print("Running delete dirty NSE test")
 
-	k8s, err := kubetest.NewK8s(g, true)
+	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResources)
 	g.Expect(err).To(BeNil())
-	defer k8s.Cleanup()
+	defer k8s.Cleanup(t)
 
-	nodesConf, err := kubetest.SetupNodesConfig(k8s, 1, defaultTimeout, []*pods.NSMgrPodConfig{}, k8s.GetK8sNamespace())
+	nodesConf, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
 	g.Expect(err).To(BeNil())
 	defer k8s.SaveTestArtifacts(t)
 
@@ -49,11 +48,11 @@ func TestDeleteDirtyNSEWithClient(t *testing.T) {
 
 	logrus.Print("Running delete dirty NSE with client test")
 
-	k8s, err := kubetest.NewK8s(g, true)
+	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResources)
 	g.Expect(err).To(BeNil())
-	defer k8s.Cleanup()
+	defer k8s.Cleanup(t)
 
-	nodesConf, err := kubetest.SetupNodesConfig(k8s, 1, defaultTimeout, []*pods.NSMgrPodConfig{}, k8s.GetK8sNamespace())
+	nodesConf, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
 	g.Expect(err).To(BeNil())
 	defer k8s.SaveTestArtifacts(t)
 

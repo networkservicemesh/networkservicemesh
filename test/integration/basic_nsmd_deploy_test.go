@@ -34,8 +34,8 @@ func testNSMgrForwarderDeploy(t *testing.T, nsmdPodFactory func(string, *v1.Node
 
 	logrus.Print("Running NSMgr Deploy test")
 
-	k8s, err := kubetest.NewK8s(g, true)
-	defer k8s.Cleanup()
+	k8s, err := kubetest.NewK8s(g, kubetest.DefaultClear)
+	defer k8s.Cleanup(t)
 
 	g.Expect(err).To(BeNil())
 	defer k8s.SaveTestArtifacts(t)
@@ -54,7 +54,7 @@ func testNSMgrForwarderDeploy(t *testing.T, nsmdPodFactory func(string, *v1.Node
 	k8s.WaitLogsContains(corePods[0], "nsmdp", "nsmdp: successfully started", defaultTimeout)
 	k8s.WaitLogsContains(corePods[0], "nsmd-k8s", "nsmd-k8s initialized and waiting for connection", defaultTimeout)
 
-	k8s.Cleanup()
+	k8s.Cleanup(t)
 	var count int = 0
 	list, err := k8s.ListPods()
 	g.Expect(err).Should(BeNil())

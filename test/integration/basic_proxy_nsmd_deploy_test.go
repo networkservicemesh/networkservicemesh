@@ -1,4 +1,4 @@
-// +build basic
+// +build basic_suite
 
 package integration
 
@@ -29,8 +29,8 @@ func testProxyNSMgrDeploy(t *testing.T, proxyNsmdPodFactory func(string, *v1.Nod
 
 	logrus.Print("Running NSMgr Deploy test")
 
-	k8s, err := kubetest.NewK8s(g, true)
-	defer k8s.Cleanup()
+	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResources)
+	defer k8s.Cleanup(t)
 
 	g.Expect(err).To(BeNil())
 	defer k8s.SaveTestArtifacts(t)
@@ -41,7 +41,7 @@ func testProxyNSMgrDeploy(t *testing.T, proxyNsmdPodFactory func(string, *v1.Nod
 	_, err = k8s.CreatePodsRaw(defaultTimeout, true, pnsmdTemplate)
 	g.Expect(err).To(BeNil())
 
-	k8s.Cleanup()
+	k8s.Cleanup(t)
 	count := 0
 	list, err := k8s.ListPods()
 	g.Expect(err).Should(BeNil())

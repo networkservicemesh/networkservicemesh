@@ -1,4 +1,4 @@
-// +build recover
+// +build recover_suite
 
 package integration
 
@@ -20,9 +20,9 @@ func TestUpdateConnectionOnNSEChange(t *testing.T) {
 		return
 	}
 
-	k8s, err := kubetest.NewK8s(g, true)
+	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResources)
 	g.Expect(err).To(BeNil())
-	defer k8s.Cleanup()
+	defer k8s.Cleanup(t)
 
 	nodesConf, err := kubetest.SetupNodes(k8s, 2, defaultTimeout)
 	g.Expect(err).To(BeNil())
@@ -57,9 +57,9 @@ func TestUpdateConnectionOnNSEUpdate(t *testing.T) {
 		return
 	}
 
-	k8s, err := kubetest.NewK8s(g, true)
+	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResources)
 	g.Expect(err).To(BeNil())
-	defer k8s.Cleanup()
+	defer k8s.Cleanup(t)
 
 	nodesConf, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
 	g.Expect(err).To(BeNil())

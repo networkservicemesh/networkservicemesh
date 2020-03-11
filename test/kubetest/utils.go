@@ -16,6 +16,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/test/kubetest/jaeger"
+
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/artifacts"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/security"
@@ -43,7 +45,6 @@ import (
 	nsmd2 "github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/serviceregistry"
 	"github.com/networkservicemesh/networkservicemesh/sdk/prefix_pool"
-	"github.com/networkservicemesh/networkservicemesh/test/kubetest/jaeger"
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 	nsmrbac "github.com/networkservicemesh/networkservicemesh/test/kubetest/rbac"
 )
@@ -112,34 +113,53 @@ func DeployCorefile(k8s *K8s, name, content string) error {
 	return err
 }
 
-// SetupNodesConfig - Setup NSMgr and Forwarder for particular number of nodes in cluster
-func SetupNodesConfig(k8s *K8s, nodesCount int, timeout time.Duration, conf []*pods.NSMgrPodConfig, namespace string) ([]*NodeConf, error) {
-	nodes := k8s.GetNodesWait(nodesCount, timeout)
-	k8s.g.Expect(len(nodes) >= nodesCount).To(Equal(true),
-		"At least one Kubernetes node is required for this test")
-	if artifacts.NeedToSave() {
-		if !jaeger.UseService.GetBooleanOrDefault(false) {
-			jaegerPod := k8s.CreatePod(pods.Jaeger())
-			jaeger.AgentHost.Set(jaegerPod.Status.PodIP)
-			k8s.WaitLogsContains(jaegerPod, jaegerPod.Spec.Containers[0].Name, "Starting HTTP server", timeout)
-		} else if jaeger.AgentHost.StringValue() == "" {
-			template := pods.Jaeger()
-			template.Spec.NodeSelector = map[string]string{
-				"kubernetes.io/hostname": nodes[0].Labels["kubernetes.io/hostname"],
+func reuseNsmNodes(k8s *K8s, nodes []v1.Node, nodeCount int) []*NodeConf {
+	var configs []*NodeConf
+	for i := 0; i < len(nodes); i++ {
+		nodePods := filterPods(k8s.g, k8s.pods, hasNodeName(nodes[i].Name))
+		forwarders := filterPods(k8s.g, nodePods, includePodByName("forwarder"))
+		nsmgrs := filterPods(k8s.g, nodePods, includePodByName("nsmgr", "nsmd"))
+		nsmgrs = filterPods(k8s.g, nsmgrs, excludePodByName("pnsmgr", "forwarder"))
+		if len(forwarders) == 1 && len(nsmgrs) == 1 {
+			configs = append(configs, &NodeConf{
+				Forwarder: forwarders[0],
+				Nsmd:      nsmgrs[0],
+				Node:      &nodes[i],
+			})
+			if len(configs) == nodeCount {
+				break
 			}
-			jaegerPod := k8s.CreatePod(template)
-			_, err := k8s.CreateService(pods.JaegerService(jaegerPod), k8s.namespace)
-			k8s.g.Expect(err).Should(BeNil())
-			jaeger.AgentHost.Set(getExternalOrInternalAddress(&nodes[0]))
-			jaeger.AgentPort.Set(jaeger.GetNodePort())
-			k8s.WaitLogsContains(jaegerPod, jaegerPod.Spec.Containers[0].Name, "Starting HTTP server", timeout)
 		}
 	}
+	return configs
+}
 
+// SetupNodesConfig - Setup NSMgr and Forwarder for particular number of nodes in cluster
+func SetupNodesConfig(k8s *K8s, nodeCount int, timeout time.Duration, conf []*pods.NSMgrPodConfig, namespace string) ([]*NodeConf, error) {
+	if k8s.clearOption == ReuseNSMResources && nodeCount < 2 {
+		nodeCount = 2
+	}
+	nodes := k8s.GetNodesWait(nodeCount, timeout)
+	k8s.g.Expect(len(nodes) >= nodeCount).To(Equal(true),
+		"At least one Kubernetes node is required for this test")
+	if artifacts.NeedToSave() {
+		deployJaeger(k8s, nodes, timeout)
+	}
+	if k8s.clearOption == ReuseNSMResources {
+		configs := reuseNsmNodes(k8s, nodes, nodeCount)
+		if len(configs) == nodeCount {
+			return configs, nil
+		}
+		k8s.DeletePodsByName("nsmd", "nsmgr", "forwarder")
+	}
+	return setupNodesConfig(k8s, nodes, nodeCount, timeout, conf, namespace)
+}
+
+func setupNodesConfig(k8s *K8s, nodes []v1.Node, nodeCount int, timeout time.Duration, conf []*pods.NSMgrPodConfig, namespace string) ([]*NodeConf, error) {
+	confs := make([]*NodeConf, nodeCount)
 	var wg sync.WaitGroup
-	confs := make([]*NodeConf, nodesCount)
 	var resultError error
-	for ii := 0; ii < nodesCount; ii++ {
+	for ii := 0; ii < nodeCount; ii++ {
 		wg.Add(1)
 		i := ii
 		go func() {
@@ -196,6 +216,25 @@ func SetupNodesConfig(k8s *K8s, nodesCount int, timeout time.Duration, conf []*p
 	}
 	wg.Wait()
 	return confs, resultError
+}
+
+func deployJaeger(k8s *K8s, nodes []v1.Node, timeout time.Duration) {
+	if !jaeger.UseService.GetBooleanOrDefault(false) {
+		jaegerPod := k8s.CreatePod(pods.Jaeger())
+		jaeger.AgentHost.Set(jaegerPod.Status.PodIP)
+		k8s.WaitLogsContains(jaegerPod, jaegerPod.Spec.Containers[0].Name, "Starting HTTP server", timeout)
+	} else if jaeger.AgentHost.StringValue() == "" {
+		template := pods.Jaeger()
+		template.Spec.NodeSelector = map[string]string{
+			"kubernetes.io/hostname": nodes[0].Labels["kubernetes.io/hostname"],
+		}
+		jaegerPod := k8s.CreatePod(template)
+		_, err := k8s.CreateService(pods.JaegerService(jaegerPod), k8s.namespace)
+		k8s.g.Expect(err).Should(BeNil())
+		jaeger.AgentHost.Set(getExternalOrInternalAddress(&nodes[0]))
+		jaeger.AgentPort.Set(jaeger.GetNodePort())
+		k8s.WaitLogsContains(jaegerPod, jaegerPod.Spec.Containers[0].Name, "Starting HTTP server", timeout)
+	}
 }
 
 func getExternalOrInternalAddress(n *v1.Node) string {
@@ -286,7 +325,7 @@ func RunProxyNSMgrService(k8s *K8s) func() {
 	k8s.g.Expect(err).To(BeNil())
 
 	return func() {
-		_ = k8s.DeleteService(svc, k8s.GetK8sNamespace())
+		_ = k8s.DeleteService(svc)
 	}
 }
 
@@ -562,7 +601,7 @@ func DeployAdmissionWebhook(k8s *K8s, name, image, namespace string, timeout tim
 // DeleteAdmissionWebhook - Delete admission webhook
 func DeleteAdmissionWebhook(k8s *K8s, secretName string,
 	awc *arv1beta1.MutatingWebhookConfiguration, awDeployment *appsv1.Deployment, awService *v1.Service, namespace string) {
-	err := k8s.DeleteService(awService, namespace)
+	err := k8s.DeleteService(awService)
 	k8s.g.Expect(err).To(BeNil())
 
 	err = k8s.DeleteDeployment(awDeployment, namespace)
@@ -1023,7 +1062,7 @@ func DeletePrometheus(k8s *K8s, roles []nsmrbac.Role, depl *appsv1.Deployment, s
 	_, err := k8s.DeleteRoles(roles)
 	k8s.g.Expect(err).To(BeNil())
 
-	err = k8s.DeleteService(svc, k8s.GetK8sNamespace())
+	err = k8s.DeleteService(svc)
 	k8s.g.Expect(err).To(BeNil())
 
 	err = k8s.DeleteDeployment(depl, k8s.GetK8sNamespace())
@@ -1076,7 +1115,7 @@ func DeployCrossConnectMonitor(k8s *K8s, image string) (*appsv1.Deployment, *v1.
 
 // DeleteCrossConnectMonitor deletes crossconnect-monitor deployment
 func DeleteCrossConnectMonitor(k8s *K8s, depl *appsv1.Deployment, svc *v1.Service) {
-	err := k8s.DeleteService(svc, k8s.GetK8sNamespace())
+	err := k8s.DeleteService(svc)
 	k8s.g.Expect(err).To(BeNil())
 
 	err = k8s.DeleteDeployment(depl, k8s.GetK8sNamespace())
@@ -1101,4 +1140,40 @@ func CreateCrossConnectMonitorService(k8s *K8s) *v1.Service {
 	k8s.g.Expect(err).To(BeNil())
 
 	return ccSvc
+}
+
+func hasNodeName(nodeName string) func(*v1.Pod) bool {
+	return func(p *v1.Pod) bool {
+		return p.Spec.NodeName == nodeName
+	}
+}
+func contains(n string, names []string) bool {
+	for i := 0; i < len(names); i++ {
+		if strings.Contains(n, names[i]) {
+			return true
+		}
+	}
+	return false
+}
+func excludePodByName(names ...string) func(*v1.Pod) bool {
+	return func(p *v1.Pod) bool {
+		return !contains(p.Name, names)
+	}
+}
+
+func includePodByName(names ...string) func(*v1.Pod) bool {
+	return func(p *v1.Pod) bool {
+		return contains(p.Name, names)
+	}
+}
+
+func filterPods(g *GomegaWithT, pods []*v1.Pod, matcher func(*v1.Pod) bool) []*v1.Pod {
+	g.Expect(matcher).ShouldNot(BeNil())
+	var result []*v1.Pod
+	for _, p := range pods {
+		if matcher(p) {
+			result = append(result, p)
+		}
+	}
+	return result
 }

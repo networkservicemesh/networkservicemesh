@@ -1,0 +1,17 @@
+---
+executions:
+  - name: "Single cluster recover suite"
+    env:
+      - ARTIFACTS_ARCHIVE=true
+    source:
+      tags:
+        - recover_suite
+    root: ./test/integration
+    timeout: 300
+    cluster-count: 1
+    cluster-env:
+      - KUBECONFIG
+    on_fail: |
+      make k8s-delete-nsm-namespaces
+    after: |
+      make k8s-delete-nsm-namespaces

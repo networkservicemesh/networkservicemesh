@@ -35,10 +35,10 @@ func TestSimpleMetrics(t *testing.T) {
 		t.Skip("Skip, please run without -short")
 		return
 	}
-	k8s, err := kubetest.NewK8s(g, true)
+	k8s, err := kubetest.NewK8s(g, kubetest.DefaultClear)
 	g.Expect(err).To(BeNil())
 
-	defer k8s.Cleanup()
+	defer k8s.Cleanup(t)
 
 	nodesCount := 1
 	requestPeriod := time.Second * 3

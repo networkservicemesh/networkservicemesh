@@ -1,4 +1,4 @@
-// +build basic
+// +build basic_suite
 
 package integration
 
@@ -23,8 +23,8 @@ func TestK8sExcludedPrefixes(t *testing.T) {
 		return
 	}
 
-	k8s, err := kubetest.NewK8s(g, true)
-	defer k8s.Cleanup()
+	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResources)
+	defer k8s.Cleanup(t)
 	g.Expect(err).To(BeNil())
 
 	clientset, err := k8s.GetClientSet()

@@ -25,11 +25,12 @@ func (w *Writer) Write(p []byte) (n int, err error) {
 	return len(str), nil
 }
 
-func (o *K8s) Exec(pod *v1.Pod, container string, command ...string) (string, string, error) {
+//Exec executes command in pod's container
+func (k8s *K8s) Exec(pod *v1.Pod, container string, command ...string) (string, string, error) {
 	var resp1, resp2 string
 	var err error
 	for retryCount := 0; retryCount < 10; retryCount++ {
-		resp1, resp2, err = o.doExec(pod, container, command...)
+		resp1, resp2, err = k8s.doExec(pod, container, command...)
 		if err != nil && strings.Contains(err.Error(), fmt.Sprintf("container not found (\"%v\")", container)) {
 			<-time.After(100 * time.Millisecond)
 			continue
@@ -38,9 +39,9 @@ func (o *K8s) Exec(pod *v1.Pod, container string, command ...string) (string, st
 	}
 	return resp1, resp2, err
 }
-func (o *K8s) doExec(pod *v1.Pod, container string, command ...string) (string, string, error) {
+func (k8s *K8s) doExec(pod *v1.Pod, container string, command ...string) (string, string, error) {
 	logrus.Infof("Executing: %v in pod %v:%v", command, pod.Name, container)
-	execRequest := o.clientset.CoreV1().RESTClient().Post().
+	execRequest := k8s.clientset.CoreV1().RESTClient().Post().
 		Resource("pods").
 		Name(pod.Name).
 		Namespace(pod.Namespace).
@@ -58,7 +59,7 @@ func (o *K8s) doExec(pod *v1.Pod, container string, command ...string) (string, 
 		execRequest = execRequest.Param("container", container)
 	}
 
-	exec, err := remotecommand.NewSPDYExecutor(o.config, "POST", execRequest.URL())
+	exec, err := remotecommand.NewSPDYExecutor(k8s.config, "POST", execRequest.URL())
 	if err != nil {
 		return "", "", err
 	}

@@ -1,4 +1,4 @@
-// +build usecase
+// +build usecase_suite
 
 package integration
 
@@ -81,8 +81,8 @@ func TestVPNNSCRemote(t *testing.T) {
 func testVPN(t *testing.T, ptnum, nodesCount int, affinity map[string]int, verbose bool) {
 	g := NewWithT(t)
 
-	k8s, err := kubetest.NewK8s(g, true)
-	defer k8s.Cleanup()
+	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResources)
+	defer k8s.Cleanup(t)
 
 	g.Expect(err).To(BeNil())
 

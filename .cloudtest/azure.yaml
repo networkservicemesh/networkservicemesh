@@ -3,7 +3,7 @@ version: 1.0
 providers:
   - name: "azure"
     kind: "shell"
-    instances: 6
+    instances: 4
     retry: 5
     node-count: 2
     enabled: false

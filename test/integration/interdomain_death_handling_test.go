@@ -55,9 +55,9 @@ func testInterdomainNSMDies(t *testing.T, clustersCount int, killSrc bool) {
 		kubeconfig := os.Getenv(fmt.Sprintf("KUBECONFIG_CLUSTER_%d", i+1))
 		g.Expect(len(kubeconfig)).ToNot(Equal(0))
 
-		k8s, err := kubetest.NewK8sForConfig(g, true, kubeconfig)
+		k8s, err := kubetest.NewK8sForConfig(g, kubetest.DefaultClear, kubeconfig)
 		g.Expect(err).To(BeNil())
-		defer k8s.Cleanup()
+		defer k8s.Cleanup(t)
 		defer k8s.SaveTestArtifacts(t)
 
 		nseNoHealPodConfig.Namespace = k8s.GetK8sNamespace()

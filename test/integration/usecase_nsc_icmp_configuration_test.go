@@ -1,4 +1,4 @@
-// +build usecase
+// +build usecase_suite
 
 package integration
 
@@ -16,17 +16,13 @@ func TestNSCAndICMPLocal(t *testing.T) {
 		t.Skip("Skip, please run without -short")
 		return
 	}
-
-	testNSCAndICMP(t, 1, false, false, "")
-}
-
-func TestNSCAndICMPRemote(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skip, please run without -short")
-		return
-	}
-
-	testNSCAndICMP(t, 2, false, false, "VXLAN")
+	testNSCAndICMP(&testNSCAndNSEParams{
+		t:            t,
+		nodeCount:    1,
+		useWebhook:   false,
+		disableVHost: false,
+		clearOption:  kubetest.ReuseNSMResources,
+	})
 }
 
 func TestNSCAndICMPWebhookLocal(t *testing.T) {
@@ -34,8 +30,13 @@ func TestNSCAndICMPWebhookLocal(t *testing.T) {
 		t.Skip("Skip, please run without -short")
 		return
 	}
-
-	testNSCAndICMP(t, 1, true, false, "")
+	testNSCAndICMP(&testNSCAndNSEParams{
+		t:            t,
+		nodeCount:    1,
+		useWebhook:   true,
+		disableVHost: false,
+		clearOption:  kubetest.ReuseNSMResources,
+	})
 }
 
 func TestNSCAndICMPWebhookRemote(t *testing.T) {
@@ -43,8 +44,13 @@ func TestNSCAndICMPWebhookRemote(t *testing.T) {
 		t.Skip("Skip, please run without -short")
 		return
 	}
-
-	testNSCAndICMP(t, 2, true, false, "")
+	testNSCAndICMP(&testNSCAndNSEParams{
+		t:            t,
+		nodeCount:    2,
+		useWebhook:   true,
+		disableVHost: false,
+		clearOption:  kubetest.ReuseNSMResources,
+	})
 }
 
 func TestNSCAndICMPLocalVeth(t *testing.T) {
@@ -52,17 +58,13 @@ func TestNSCAndICMPLocalVeth(t *testing.T) {
 		t.Skip("Skip, please run without -short")
 		return
 	}
-
-	testNSCAndICMP(t, 1, false, true, "")
-}
-
-func TestNSCAndICMPRemoteVeth(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skip, please run without -short")
-		return
-	}
-
-	testNSCAndICMP(t, 2, false, true, "VXLAN")
+	testNSCAndICMP(&testNSCAndNSEParams{
+		t:            t,
+		nodeCount:    2,
+		useWebhook:   false,
+		disableVHost: true,
+		clearOption:  kubetest.ReuseNSMResources,
+	})
 }
 
 func TestNSCAndICMPNeighbors(t *testing.T) {
@@ -73,8 +75,8 @@ func TestNSCAndICMPNeighbors(t *testing.T) {
 		return
 	}
 
-	k8s, err := kubetest.NewK8s(g, true)
-	defer k8s.Cleanup()
+	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResources)
+	defer k8s.Cleanup(t)
 	defer k8s.SaveTestArtifacts(t)
 	g.Expect(err).To(BeNil())
 

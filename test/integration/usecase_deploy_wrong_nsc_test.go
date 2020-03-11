@@ -1,4 +1,4 @@
-// +build usecase
+// +build usecase_suite
 
 package integration
 
@@ -21,8 +21,8 @@ func TestDeployWrongNsc(t *testing.T) {
 		return
 	}
 
-	k8s, err := kubetest.NewK8s(g, true)
-	defer k8s.Cleanup()
+	k8s, err := kubetest.NewK8s(g, kubetest.ReuseNSMResources)
+	defer k8s.Cleanup(t)
 	g.Expect(err).To(BeNil())
 
 	awc, awDeployment, awService := kubetest.DeployAdmissionWebhook(k8s, "nsm-admission-webhook", "networkservicemesh/admission-webhook", k8s.GetK8sNamespace(), defaultTimeout)

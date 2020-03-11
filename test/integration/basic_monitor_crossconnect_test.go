@@ -20,8 +20,8 @@ func TestSingleCrossConnect(t *testing.T) {
 		return
 	}
 
-	k8s, err := kubetest.NewK8s(g, true)
-	defer k8s.Cleanup()
+	k8s, err := kubetest.NewK8s(g, kubetest.DefaultClear)
+	defer k8s.Cleanup(t)
 	g.Expect(err).To(BeNil())
 
 	nodesCount := 2
@@ -70,8 +70,8 @@ func TestSingleCrossConnectMonitorBeforeXcons(t *testing.T) {
 		return
 	}
 
-	k8s, err := kubetest.NewK8s(g, true)
-	defer k8s.Cleanup()
+	k8s, err := kubetest.NewK8s(g, kubetest.DefaultClear)
+	defer k8s.Cleanup(t)
 	g.Expect(err).To(BeNil())
 
 	nodesCount := 2
@@ -106,8 +106,8 @@ func TestSeveralCrossConnects(t *testing.T) {
 		return
 	}
 
-	k8s, err := kubetest.NewK8s(g, true)
-	defer k8s.Cleanup()
+	k8s, err := kubetest.NewK8s(g, kubetest.DefaultClear)
+	defer k8s.Cleanup(t)
 	g.Expect(err).To(BeNil())
 
 	nodesCount := 2
@@ -142,8 +142,8 @@ func TestCrossConnectMonitorRestart(t *testing.T) {
 		return
 	}
 
-	k8s, err := kubetest.NewK8s(g, true)
-	defer k8s.Cleanup()
+	k8s, err := kubetest.NewK8s(g, kubetest.DefaultClear)
+	defer k8s.Cleanup(t)
 	g.Expect(err).To(BeNil())
 
 	nodesCount := 2

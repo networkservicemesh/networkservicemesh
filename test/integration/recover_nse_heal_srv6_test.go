@@ -34,10 +34,18 @@ func TestNSEHealRemoteSRv6ToLocal(t *testing.T) {
 
 	g := NewWithT(t)
 
-	testNSEHeal(t, 2, map[string]int{
-		"icmp-responder-nse-1": 1,
-		"icmp-responder-nse-2": 0,
-	}, kubetest.DefaultTestingPodFixture(g), "SRV6")
+	testNSEHeal(
+		&testNSEHealParameters{t: t,
+			nodesCount: 2,
+			affinity: map[string]int{
+				"icmp-responder-nse-1": 1,
+				"icmp-responder-nse-2": 0,
+			},
+			fixture:         kubetest.DefaultTestingPodFixture(g),
+			remoteMechanism: "SRV6",
+			clearOption:     kubetest.DefaultClear,
+		},
+	)
 }
 
 func TestNSEHealRemoteSRv6(t *testing.T) {
@@ -47,9 +55,16 @@ func TestNSEHealRemoteSRv6(t *testing.T) {
 	}
 
 	g := NewWithT(t)
-
-	testNSEHeal(t, 2, map[string]int{
-		"icmp-responder-nse-1": 1,
-		"icmp-responder-nse-2": 1,
-	}, kubetest.DefaultTestingPodFixture(g), "SRV6")
+	testNSEHeal(
+		&testNSEHealParameters{t: t,
+			nodesCount: 2,
+			affinity: map[string]int{
+				"icmp-responder-nse-1": 1,
+				"icmp-responder-nse-2": 1,
+			},
+			fixture:         kubetest.DefaultTestingPodFixture(g),
+			remoteMechanism: "SRV6",
+			clearOption:     kubetest.DefaultClear,
+		},
+	)
 }
