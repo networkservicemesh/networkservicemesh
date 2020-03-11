@@ -6,7 +6,7 @@ providers:
     instances: 6
     retry: 5
     node-count: 2
-    enabled: false
+    enabled: true
     timeout: 3600  # 30 minutes to start cluster
     env:
       - CLUSTER_RULES_PREFIX=azure
