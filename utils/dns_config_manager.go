@@ -18,7 +18,8 @@ import (
 )
 
 const anyDomain = "."
-const corednsPlugin = "forward"
+const plugin = "forward"
+const pluginAnyDomain = plugin + " " + anyDomain
 
 //DNSConfigManager provides API for storing/deleting dnsConfigs. Can represent the configs in caddyfile format.
 //Can be used from different goroutines
@@ -48,7 +49,7 @@ func parseDNSConfigsFromCaddyfile(p string, r io.Reader) []*connectioncontext.DN
 	config := new(connectioncontext.DNSConfig)
 	config.SearchDomains = d.RemainingArgs()
 	for {
-		if d.Val() == corednsPlugin {
+		if d.Val() == plugin {
 			config.DnsServerIps = d.RemainingArgs()[1:] // skip dot
 			configs = append(configs, config)
 			config = new(connectioncontext.DNSConfig)
@@ -111,12 +112,12 @@ func (m *DNSConfigManager) writeDNSConfig(c caddyfile_utils.Caddyfile, config *c
 	ips := strings.Join(config.DnsServerIps, " ")
 	if c.HasScope(scopeName) {
 		fanoutIndex := 1
-		ips += " " + c.GetOrCreate(scopeName).Records()[fanoutIndex].String()[len(corednsPlugin):]
+		ips += " " + c.GetOrCreate(scopeName).Records()[fanoutIndex].String()[len(pluginAnyDomain):]
 		c.Remove(scopeName)
 	}
 	scope := c.WriteScope(scopeName)
 
-	scope.Write("log").Write(fmt.Sprintf("%v . %v", corednsPlugin, removeDuplicates(ips)))
+	scope.Write("log").Write(fmt.Sprintf("%v %v", pluginAnyDomain, removeDuplicates(ips)))
 }
 
 func removeDuplicates(s string) string {
