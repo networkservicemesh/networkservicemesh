@@ -26,6 +26,8 @@ spec:
               value: jaeger.nsm-system
             - name: JAEGER_AGENT_PORT
               value: "6831"
+            - name: PREFERRED_REMOTE_MECHANISM
+              value: {{ .Values.preferredRemoteMechanism | quote }}
           ports:
             - containerPort: 5001
               hostPort: 5001
