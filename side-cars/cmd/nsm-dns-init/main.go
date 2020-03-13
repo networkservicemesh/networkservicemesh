@@ -17,10 +17,11 @@
 package main
 
 import (
+	"github.com/sirupsen/logrus"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
 	"github.com/networkservicemesh/networkservicemesh/utils"
 	"github.com/networkservicemesh/networkservicemesh/utils/caddyfile"
-	"github.com/sirupsen/logrus"
 )
 
 func main() {
