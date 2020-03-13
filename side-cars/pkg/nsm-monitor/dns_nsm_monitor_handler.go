@@ -2,6 +2,7 @@ package nsmmonitor
 
 import (
 	"github.com/networkservicemesh/networkservicemesh/utils"
+	"github.com/networkservicemesh/networkservicemesh/utils/caddyfile"
 
 	"github.com/sirupsen/logrus"
 
@@ -20,14 +21,20 @@ func (m *nsmDNSMonitorHandler) Updated(old, new *connection.Connection) {
 	logrus.Infof("Deleting config with id %v", old.Id)
 	m.manager.Delete(old.Id)
 	logrus.Infof("Adding config with id %v", new.Id)
-	m.manager.Store(new.Id, new.GetContext().GetDnsContext().GetConfigs())
+	m.manager.Store(new.Id, new.GetContext().GetDnsContext().GetConfigs()...)
 	m.reloadOp.Run()
 }
 
 //NewNsmDNSMonitorHandler creates new DNS monitor handler
 func NewNsmDNSMonitorHandler() Handler {
+	p := caddyfile.ParseCorefilePath()
+	mgr, err := utils.NewDNSConfigManagerFromPath(p)
+	if err != nil {
+		logrus.Fatalf("An error during parse corefile: %v", err)
+	}
 	m := &nsmDNSMonitorHandler{
-		manager: utils.NewDNSConfigManager(nil),
+		manager: mgr,
+		path:    p,
 	}
 	m.reloadOp = utils.NewSingleAsyncOperation(func() {
 		err := m.manager.Caddyfile(m.path).Save()
@@ -45,7 +52,7 @@ func (m *nsmDNSMonitorHandler) Connected(conns map[string]*connection.Connection
 		if err != nil {
 			logrus.Error(err)
 		}
-		m.manager.Store(conn.Id, conn.GetContext().GetDnsContext().GetConfigs())
+		m.manager.Store(conn.Id, conn.GetContext().GetDnsContext().GetConfigs()...)
 	}
 	m.reloadOp.Run()
 }

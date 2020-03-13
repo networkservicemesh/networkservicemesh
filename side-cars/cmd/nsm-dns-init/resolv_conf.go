@@ -31,6 +31,9 @@ func (r resolvConfFile) Options() []string {
 func (r resolvConfFile) ReplaceProperties(properties []resolvConfProperty) {
 	sb := strings.Builder{}
 	for _, property := range properties {
+		if len(property.values) == 0 {
+			continue
+		}
 		_, _ = sb.WriteString(property.name)
 		_, _ = sb.WriteString(" ")
 		_, _ = sb.WriteString(strings.Join(property.values, " "))
@@ -48,7 +51,7 @@ func (r resolvConfFile) readAllByProperty(propertyKey string) []string {
 		log.Printf("An error during ioutil.ReadFile... Path: %v, err: %v\n", r.path, err.Error())
 	}
 	source := string(bytes)
-	result := []string{}
+	var result []string
 	for _, line := range strings.Split(source, "\n") {
 		if strings.HasPrefix(line, propertyKey) {
 			result = append(result, strings.Split(line[len(propertyKey)+1:], " ")...)

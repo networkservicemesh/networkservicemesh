@@ -1,3 +1,4 @@
+// Package caddyfile provides API for creating and editing caddyfile
 package caddyfile
 
 import (

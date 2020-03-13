@@ -21,8 +21,10 @@ func createDNSPatch(tuple *podSpecAndMeta, annotationValue string) (patch []patc
 		[]corev1.Container{
 			{
 				Name:            "nsm-dns-monitor",
+				Command:         []string{"/bin/nsm-monitor"},
 				Image:           fmt.Sprintf("%s/%s:%s", getRepo(), "nsm-monitor", getTag()),
 				ImagePullPolicy: corev1.PullIfNotPresent,
+				Args:            []string{"-conf", "/etc/coredns/Corefile"},
 				Env: []corev1.EnvVar{
 					{
 						Name:  "MONITOR_DNS_CONFIGS",
@@ -64,6 +66,7 @@ func createDNSPatch(tuple *podSpecAndMeta, annotationValue string) (patch []patc
 				},
 			},
 		})...)
+
 	patch = append(patch, addVolume(tuple.spec,
 		[]corev1.Volume{{
 			Name: "nsm-coredns-volume",
@@ -129,8 +132,8 @@ func createNsmInitContainerPatch(target []corev1.Container, annotationValue stri
 		},
 	}
 	dnsNsmInitContainer := corev1.Container{
-		Name:            dnsInitContainerName,
-		Image:           fmt.Sprintf("%s/%s:%s", getRepo(), dnsInitContainerName, getTag()),
+		Name:            dnsInitContainerDefault,
+		Image:           fmt.Sprintf("%s/%s:%s", getRepo(), dnsInitContainerDefault, getTag()),
 		ImagePullPolicy: corev1.PullIfNotPresent,
 		Env:             envVals,
 		Resources: corev1.ResourceRequirements{
@@ -138,6 +141,13 @@ func createNsmInitContainerPatch(target []corev1.Container, annotationValue stri
 				"networkservicemesh.io/socket": resource.MustParse("1"),
 			},
 		},
+		Command: []string{"/bin/" + dnsInitContainerDefault},
+		Args:    []string{"-conf", "/etc/coredns/Corefile"},
+		VolumeMounts: []corev1.VolumeMount{{
+			ReadOnly:  false,
+			Name:      "nsm-coredns-volume",
+			MountPath: "/etc/coredns",
+		}},
 	}
 	value = append([]corev1.Container{dnsNsmInitContainer, nsmInitContainer}, target...)
 

@@ -19,12 +19,12 @@ func InjectCorednsWithSharedFolder(template *v1.Pod) {
 					"networkservicemesh.io/socket": resource.NewQuantity(1, resource.DecimalSI).DeepCopy(),
 				},
 			},
+			VolumeMounts: []v1.VolumeMount{{
+				ReadOnly:  false,
+				Name:      "empty-dir-volume",
+				MountPath: "/etc/coredns",
+			}},
 		}))
-	template.Spec.Containers[len(template.Spec.Containers)-1].VolumeMounts = []v1.VolumeMount{{
-		ReadOnly:  false,
-		Name:      "empty-dir-volume",
-		MountPath: "/etc/coredns",
-	}}
 	template.Spec.Containers[0].VolumeMounts = []v1.VolumeMount{{
 		ReadOnly:  false,
 		Name:      "empty-dir-volume",
@@ -39,6 +39,8 @@ func InjectCorednsWithSharedFolder(template *v1.Pod) {
 			},
 		},
 	})
+	c := newDNSInitContainer(nil)
+	template.Spec.InitContainers = append([]v1.Container{containerMod(&c)}, template.Spec.InitContainers...)
 }
 
 //InjectCoredns - Injects coredns container and configure the DnsConfig for template.

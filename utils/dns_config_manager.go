@@ -2,11 +2,19 @@ package utils
 
 import (
 	"fmt"
+	"io"
+	"os"
+	"path"
+	"path/filepath"
 	"strings"
 	"sync"
 
+	"github.com/sirupsen/logrus"
+
+	"github.com/caddyserver/caddy/caddyfile"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
-	"github.com/networkservicemesh/networkservicemesh/utils/caddyfile"
+	caddyfile_utils "github.com/networkservicemesh/networkservicemesh/utils/caddyfile"
 )
 
 const anyDomain = "."
@@ -19,10 +27,49 @@ type DNSConfigManager struct {
 	basicConfigs []*connectioncontext.DNSConfig
 }
 
+// NewDNSConfigManagerFromPath returns new dns config manager based on exist Caddyfile
+func NewDNSConfigManagerFromPath(p string) (*DNSConfigManager, error) {
+	f, err := os.Open(filepath.Clean(p))
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if err := f.Close(); err != nil {
+			logrus.Errorf("An error during close caddyfile: %v", err)
+		}
+	}()
+	return NewDNSConfigManager(parseDNSConfigsFromCaddyfile(p, f)...), nil
+}
+
+func parseDNSConfigsFromCaddyfile(p string, r io.Reader) []*connectioncontext.DNSConfig {
+	_, name := path.Split(p)
+	d := caddyfile.NewDispenser(name, r)
+	var configs []*connectioncontext.DNSConfig
+	config := new(connectioncontext.DNSConfig)
+	config.SearchDomains = d.RemainingArgs()
+	for {
+		if d.Val() == corednsPlugin {
+			config.DnsServerIps = d.RemainingArgs()[1:] // skip dot
+			configs = append(configs, config)
+			config = new(connectioncontext.DNSConfig)
+			for d.Next() {
+				config.SearchDomains = append([]string{d.Val()}, d.RemainingArgs()...)
+				if d.NextBlock() {
+					break
+				}
+			}
+			continue
+		}
+		if !d.Next() {
+			break
+		}
+	}
+	return configs
+}
+
 //NewDNSConfigManager creates new config manager
 func NewDNSConfigManager(basic ...*connectioncontext.DNSConfig) *DNSConfigManager {
 	return &DNSConfigManager{
-		configs:      sync.Map{},
 		basicConfigs: basic,
 	}
 }
@@ -38,8 +85,8 @@ func (m *DNSConfigManager) Delete(id string) {
 }
 
 //Caddyfile converts all configs to caddyfile
-func (m *DNSConfigManager) Caddyfile(path string) caddyfile.Caddyfile {
-	file := caddyfile.NewCaddyfile(path)
+func (m *DNSConfigManager) Caddyfile(path string) caddyfile_utils.Caddyfile {
+	file := caddyfile_utils.NewCaddyfile(path)
 	for _, c := range m.basicConfigs {
 		m.writeDNSConfig(file, c)
 	}
@@ -50,12 +97,12 @@ func (m *DNSConfigManager) Caddyfile(path string) caddyfile.Caddyfile {
 		}
 		return true
 	})
-	// TODO discuss with Coredns about the relaod plugin improvements
+	// NOTE discuss with Coredns about the relaod plugin improvements
 	file.GetOrCreate(anyDomain).Write("reload 2s")
 	return file
 }
 
-func (m *DNSConfigManager) writeDNSConfig(c caddyfile.Caddyfile, config *connectioncontext.DNSConfig) {
+func (m *DNSConfigManager) writeDNSConfig(c caddyfile_utils.Caddyfile, config *connectioncontext.DNSConfig) {
 	scopeName := strings.Join(config.SearchDomains, " ")
 	if scopeName == "" {
 		scopeName = anyDomain
@@ -69,7 +116,7 @@ func (m *DNSConfigManager) writeDNSConfig(c caddyfile.Caddyfile, config *connect
 	}
 	scope := c.WriteScope(scopeName)
 
-	scope.Write("log").Write(fmt.Sprintf("%v %v", corednsPlugin, removeDuplicates(ips)))
+	scope.Write("log").Write(fmt.Sprintf("%v . %v", corednsPlugin, removeDuplicates(ips)))
 }
 
 func removeDuplicates(s string) string {

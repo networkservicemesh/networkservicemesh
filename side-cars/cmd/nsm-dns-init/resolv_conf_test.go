@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"path/filepath"
 	"testing"
 )
 
@@ -80,7 +81,7 @@ options ndots:5
 	}
 	conf.ReplaceProperties(properties)
 
-	bytes, err := ioutil.ReadFile(path)
+	bytes, err := ioutil.ReadFile(filepath.Clean(path))
 	if err != nil {
 		println(err.Error())
 		t.FailNow()
