@@ -1,6 +1,6 @@
 ---
 executions:
-  - name: "Example-helm-icmp kernel-forwarder"
+  - name: "Example-helm-icmp kernel-forwarder wireguard"
     kind: shell
     timeout: 300
     env:
