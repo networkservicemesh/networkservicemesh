@@ -31,16 +31,6 @@ spire-install:
 		kubectl describe pod spire --namespace spire; \
 	fi
 
-# temporary workaround for azure
-.PHONY: spire-install-azure
-spire-install-azure:
-	helm install --name=spire \
-	--wait --timeout 300 \
-	--set org="${CONTAINER_REPO}",tag="${CONTAINER_TAG}" \
-	--set selfSignedCA="${selfSignedCA}",caDir="${CA_DIR}" \
-	--set azure.enabled=true \
-	deployments/helm/nsm/charts/spire
-
 .PHONY: spire-delete
 spire-delete:
 	helm delete --purge spire
