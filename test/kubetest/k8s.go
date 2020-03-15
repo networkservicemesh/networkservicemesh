@@ -718,6 +718,21 @@ func (k8s *K8s) DescribePod(pod *v1.Pod) {
 	}
 }
 
+//ShouldNotRestart checks that pod should not restart
+func (k8s *K8s) ShouldNotRestart(pod *v1.Pod, secondsForWait time.Duration) error {
+	containerStatuses := pod.Status.ContainerStatuses
+	for start := time.Now(); time.Since(start) < time.Second * secondsForWait; {
+		for _, container := range containerStatuses {
+			if container.State.Terminated != nil {
+				return errors.Errorf("The pod %v was restarted", pod.Name)
+			}
+		}
+		pod, _ = k8s.GetPod(pod)
+		containerStatuses = pod.Status.ContainerStatuses
+	}
+	return nil
+}
+
 //GetPullingImagesDuration returns pod images pulling duration
 func (k8s *K8s) GetPullingImagesDuration(pod *v1.Pod) time.Duration {
 	events := k8s.describePod(pod)

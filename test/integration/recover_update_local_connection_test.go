@@ -47,6 +47,10 @@ func TestUpdateConnectionOnNSEChange(t *testing.T) {
 
 	logrus.Infof("Waiting for NSMD to update NSC connection")
 	k8s.WaitLogsContains(nsc, "monitoring-nsc", "Connection updated", defaultTimeout)
+
+	logrus.Info("Waiting to verify that NSC was not restarted")
+	err = k8s.ShouldNotRestart(nsc, 5)
+	g.Expect(err).To(BeNil())
 }
 
 func TestUpdateConnectionOnNSEUpdate(t *testing.T) {
