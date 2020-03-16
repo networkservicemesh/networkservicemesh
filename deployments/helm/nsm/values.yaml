@@ -10,6 +10,7 @@ pullPolicy: IfNotPresent
 
 forwardingPlane: vpp
 insecure: false
+preferredRemoteMechanism:
 
 vpp:
   image: vppagent-forwarder

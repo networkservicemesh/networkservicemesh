@@ -24,6 +24,7 @@ METRICS_COLLECTOR_ENABLED?=true
 TEST_OPTS:=--atomic \
   --set org='${CONTAINER_REPO}',tag='${CONTAINER_TAG}' \
   --set forwardingPlane='${FORWARDING_PLANE}' \
+  --set preferredRemoteMechanism='${PREFERRED_REMOTE_MECHANISM}' \
   --set insecure='${INSECURE}' \
   --set networkservice='${NETWORK_SERVICE}' \
   --set prometheus='${PROMETHEUS}' \
