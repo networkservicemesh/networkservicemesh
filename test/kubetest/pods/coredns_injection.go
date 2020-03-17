@@ -39,8 +39,7 @@ func InjectCorednsWithSharedFolder(template *v1.Pod) {
 			},
 		},
 	})
-	c := newDNSInitContainer(nil)
-	template.Spec.InitContainers = append([]v1.Container{containerMod(&c)}, template.Spec.InitContainers...)
+	template.Spec.InitContainers = append([]v1.Container{newDNSInitContainer(nil)}, template.Spec.InitContainers...)
 }
 
 //InjectCoredns - Injects coredns container and configure the DnsConfig for template.
