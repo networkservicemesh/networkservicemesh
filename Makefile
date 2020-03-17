@@ -72,7 +72,7 @@ else
 HTTPSBUILD=--build-arg HTTPS_PROXY=$(HTTPS_PROXY)
 endif
 
-DOCKERBUILD=docker build ${HTTPBUILD} ${HTTPSBUILD}
+DOCKERBUILD=${RUNTIME} build ${HTTPBUILD} ${HTTPSBUILD}
 
 .PHONY: all check verify # docker-build docker-push
 

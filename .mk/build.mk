@@ -23,8 +23,10 @@ VPP_AGENT=ligato/vpp-agent:v3.0.1
 CGO_ENABLED=0
 GOOS=linux
 DOCKER=./build
-GO_BUILD_ENV = CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) 
+GO_BUILD_ENV = CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS)
 GO_BUILD = ${GO_BUILD_ENV} go build -ldflags "-extldflags '-static' -X  main.version=$(VERSION)"
+# Prefer docker, but fall back to podman for docker-compatible tooling depending on the container runtime available
+CONTAINER_TOOL = $(shell command -v docker || command -v podman)
 
 print:
 	echo $(modules)
@@ -45,9 +47,9 @@ $(module)-%-build:
 endef
 
 define docker_build
-	docker build --build-arg VPP_AGENT=$(VPP_AGENT) --build-arg ENTRY=$1 --network="host" -t $(ORG)/$1 -f $(DOCKER)/$2 $3; \
+	${CONTAINER_TOOL} build --build-arg VPP_AGENT=$(VPP_AGENT) --build-arg ENTRY=$1 --network="host" -t $(ORG)/$1 -f $(DOCKER)/$2 $3; \
 	if [ "x${CONTAINER_TAG}" != "x" ] ; then \
-		docker tag $(ORG)/$1 $(ORG)/$1:${CONTAINER_TAG} ;\
+		${CONTAINER_TOOL} tag $(ORG)/$1 $(ORG)/$1:${CONTAINER_TAG} ;\
 	fi
 endef
 
@@ -85,18 +87,18 @@ docker-save: $(addsuffix -save, $(addprefix docker-, $(images)))
 docker-%-save: docker-%-build
 	@echo "Saving $* to $(IMAGE_DIR)/$*.tar"
 	@mkdir -p $(IMAGE_DIR)
-	@docker save -o $(IMAGE_DIR)/$*.tar ${ORG}/$*:$(CONTAINER_TAG)
+	@${CONTAINER_TOOL} save -o $(IMAGE_DIR)/$*.tar ${ORG}/$*:$(CONTAINER_TAG)
 
 .PHONY: docker-%-push
 docker-%-push: docker-login docker-%-build
-	docker push ${ORG}/$*:${CONTAINER_TAG}
+	${CONTAINER_TOOL} push ${ORG}/$*:${CONTAINER_TAG}
 
 .PHONY: docker-push
 docker-push: $(addsuffix -push,$(addprefix docker-,$(images)));
 
 .PHONY: docker-login
 docker-login:
-	@echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
+	@echo "${DOCKER_PASSWORD}" | ${CONTAINER_TOOL} login -u "${DOCKER_USERNAME}" --password-stdin
 
 clean:
 	rm -rf $(BIN_DIR)
