@@ -60,22 +60,6 @@ type App interface {
 	Stop()
 }
 
-//EmptyNSMMonitorHandler has empty implementation of each method of interface Handler
-type EmptyNSMMonitorHandler struct {
-}
-
-//Connected occurs when the nsm-monitor connected
-func (h *EmptyNSMMonitorHandler) Connected(map[string]*connection.Connection) {}
-
-//Healing occurs when the healing started
-func (h *EmptyNSMMonitorHandler) Healing(conn *connection.Connection) {}
-
-//Closed occurs when the connection closed
-func (h *EmptyNSMMonitorHandler) Closed(conn *connection.Connection) {}
-
-//ProcessHealing occurs when the restore failed, the error pass as the second parameter
-func (h *EmptyNSMMonitorHandler) ProcessHealing(newConn *connection.Connection, e error) {}
-
 type nsmMonitorApp struct {
 	connections map[string]*connection.Connection
 	helper      Handler
