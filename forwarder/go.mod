@@ -16,10 +16,10 @@ require (
 	github.com/sirupsen/logrus v1.4.2
 	github.com/vishvananda/netlink v1.0.0
 	github.com/vishvananda/netns v0.0.0-20190625233234-7109fa855b0f
-	go.ligato.io/vpp-agent/v3 v3.0.1
+	go.ligato.io/vpp-agent/v3 v3.1.0
 	golang.zx2c4.com/wireguard v0.0.20200121
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20200114203027-fcfc50b29cbb
-	google.golang.org/grpc v1.27.0
+	google.golang.org/grpc v1.27.1
 )
 
 replace github.com/census-instrumentation/opencensus-proto v0.1.0-0.20181214143942-ba49f56771b8 => github.com/census-instrumentation/opencensus-proto v0.0.3-0.20181214143942-ba49f56771b8
