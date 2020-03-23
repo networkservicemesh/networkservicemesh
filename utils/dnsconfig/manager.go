@@ -1,4 +1,4 @@
-package utils
+package dnsconfig
 
 import (
 	"fmt"
@@ -18,19 +18,25 @@ import (
 )
 
 const anyDomain = "."
-const plugin = "forward"
-const pluginAnyDomain = plugin + " " + anyDomain
+const defaultPlugin = "forward"
+const conflictResolverPlugin = "fanout"
 
 //DNSConfigManager provides API for storing/deleting dnsConfigs. Can represent the configs in caddyfile format.
 //Can be used from different goroutines
-type DNSConfigManager struct {
+type Manager interface {
+	Caddyfile(string) caddyfile_utils.Caddyfile
+	Delete(string)
+	Store(string, ...*connectioncontext.DNSConfig)
+}
+
+type manager struct {
 	configs      sync.Map
 	basicConfigs []*connectioncontext.DNSConfig
 }
 
-// NewDNSConfigManagerFromPath returns new dns config manager based on exist Caddyfile
-func NewDNSConfigManagerFromPath(p string) (*DNSConfigManager, error) {
-	f, err := os.Open(filepath.Clean(p))
+// NewManagerFromCaddyfile returns new dns config manager based on exist Caddyfile
+func NewManagerFromCaddyfile(path string) (Manager, error) {
+	f, err := os.Open(filepath.Clean(path))
 	if err != nil {
 		return nil, err
 	}
@@ -39,17 +45,17 @@ func NewDNSConfigManagerFromPath(p string) (*DNSConfigManager, error) {
 			logrus.Errorf("An error during close caddyfile: %v", err)
 		}
 	}()
-	return NewDNSConfigManager(parseDNSConfigsFromCaddyfile(p, f)...), nil
+	return NewManager(parseDNSConfigsFromCaddyfile(path, f)...), nil
 }
 
-func parseDNSConfigsFromCaddyfile(p string, r io.Reader) []*connectioncontext.DNSConfig {
-	_, name := path.Split(p)
-	d := caddyfile.NewDispenser(name, r)
+func parseDNSConfigsFromCaddyfile(location string, reader io.Reader) []*connectioncontext.DNSConfig {
+	_, name := path.Split(location)
+	d := caddyfile.NewDispenser(name, reader)
 	var configs []*connectioncontext.DNSConfig
 	config := new(connectioncontext.DNSConfig)
 	config.SearchDomains = d.RemainingArgs()
 	for {
-		if d.Val() == plugin {
+		if d.Val() == defaultPlugin || d.Val() == conflictResolverPlugin {
 			config.DnsServerIps = d.RemainingArgs()[1:] // skip dot
 			configs = append(configs, config)
 			config = new(connectioncontext.DNSConfig)
@@ -68,25 +74,25 @@ func parseDNSConfigsFromCaddyfile(p string, r io.Reader) []*connectioncontext.DN
 	return configs
 }
 
-//NewDNSConfigManager creates new config manager
-func NewDNSConfigManager(basic ...*connectioncontext.DNSConfig) *DNSConfigManager {
-	return &DNSConfigManager{
+//NewManager creates new config manager
+func NewManager(basic ...*connectioncontext.DNSConfig) Manager {
+	return &manager{
 		basicConfigs: basic,
 	}
 }
 
 //Store stores new config with specific id
-func (m *DNSConfigManager) Store(id string, configs ...*connectioncontext.DNSConfig) {
+func (m *manager) Store(id string, configs ...*connectioncontext.DNSConfig) {
 	m.configs.Store(id, configs)
 }
 
 //Delete deletes dns config by id
-func (m *DNSConfigManager) Delete(id string) {
+func (m *manager) Delete(id string) {
 	m.configs.Delete(id)
 }
 
 //Caddyfile converts all configs to caddyfile
-func (m *DNSConfigManager) Caddyfile(path string) caddyfile_utils.Caddyfile {
+func (m *manager) Caddyfile(path string) caddyfile_utils.Caddyfile {
 	file := caddyfile_utils.NewCaddyfile(path)
 	for _, c := range m.basicConfigs {
 		m.writeDNSConfig(file, c)
@@ -98,26 +104,28 @@ func (m *DNSConfigManager) Caddyfile(path string) caddyfile_utils.Caddyfile {
 		}
 		return true
 	})
-	// NOTE discuss with Coredns about the relaod plugin improvements
+	// NOTE discuss with Coredns about the relaod defaultPlugin improvements
 	file.GetOrCreate(anyDomain).Write("reload 2s")
 	return file
 }
 
-func (m *DNSConfigManager) writeDNSConfig(c caddyfile_utils.Caddyfile, config *connectioncontext.DNSConfig) {
+func (m *manager) writeDNSConfig(c caddyfile_utils.Caddyfile, config *connectioncontext.DNSConfig) {
 	scopeName := strings.Join(config.SearchDomains, " ")
+	plugin := defaultPlugin
 	if scopeName == "" {
 		scopeName = anyDomain
 	}
-
 	ips := strings.Join(config.DnsServerIps, " ")
 	if c.HasScope(scopeName) {
 		fanoutIndex := 1
-		ips += " " + c.GetOrCreate(scopeName).Records()[fanoutIndex].String()[len(pluginAnyDomain):]
+		pluginName := strings.Split(c.GetOrCreate(scopeName).Records()[fanoutIndex].String(), " ")[0]
+		ips += " " + c.GetOrCreate(scopeName).Records()[fanoutIndex].String()[len(pluginName)+3:]
 		c.Remove(scopeName)
+		plugin = conflictResolverPlugin
 	}
 	scope := c.WriteScope(scopeName)
 
-	scope.Write("log").Write(fmt.Sprintf("%v %v", pluginAnyDomain, removeDuplicates(ips)))
+	scope.Write("log").Write(fmt.Sprintf("%v %v %v", plugin, anyDomain, removeDuplicates(ips)))
 }
 
 func removeDuplicates(s string) string {
@@ -128,9 +136,6 @@ func removeDuplicates(s string) string {
 	var result []string
 	set := make(map[string]bool)
 	for i := 0; i < len(words); i++ {
-		if words[i] == "" {
-			continue
-		}
 		if set[words[i]] {
 			continue
 		}

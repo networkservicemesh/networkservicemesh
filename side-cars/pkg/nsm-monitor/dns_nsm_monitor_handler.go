@@ -3,6 +3,7 @@ package nsmmonitor
 import (
 	"github.com/networkservicemesh/networkservicemesh/utils"
 	"github.com/networkservicemesh/networkservicemesh/utils/caddyfile"
+	"github.com/networkservicemesh/networkservicemesh/utils/dnsconfig"
 
 	"github.com/sirupsen/logrus"
 
@@ -12,7 +13,7 @@ import (
 //nsmDNSMonitorHandler implements Handler interface for handling dnsConfigs
 type nsmDNSMonitorHandler struct {
 	EmptyNSMMonitorHandler
-	manager  *utils.DNSConfigManager
+	manager  dnsconfig.Manager
 	reloadOp utils.Operation
 	path     string
 }
@@ -27,8 +28,8 @@ func (m *nsmDNSMonitorHandler) Updated(old, new *connection.Connection) {
 
 //NewNsmDNSMonitorHandler creates new DNS monitor handler
 func NewNsmDNSMonitorHandler() Handler {
-	p := caddyfile.ParseCorefilePath()
-	mgr, err := utils.NewDNSConfigManagerFromPath(p)
+	p := caddyfile.Path()
+	mgr, err := dnsconfig.NewManagerFromCaddyfile(p)
 	if err != nil {
 		logrus.Fatalf("An error during parse corefile: %v", err)
 	}

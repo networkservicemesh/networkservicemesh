@@ -19,8 +19,9 @@ package main
 import (
 	"github.com/sirupsen/logrus"
 
+	"github.com/networkservicemesh/networkservicemesh/utils/dnsconfig"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connectioncontext"
-	"github.com/networkservicemesh/networkservicemesh/utils"
 	"github.com/networkservicemesh/networkservicemesh/utils/caddyfile"
 )
 
@@ -43,8 +44,8 @@ func main() {
 		{optionsProperty, r.Options()},
 	}
 	r.ReplaceProperties(properties)
-	m := utils.NewDNSConfigManager(defaultDNSConfig...)
-	f := m.Caddyfile(caddyfile.ParseCorefilePath())
+	m := dnsconfig.NewManager(defaultDNSConfig...)
+	f := m.Caddyfile(caddyfile.Path())
 	err := f.Save()
 	if err != nil {
 		logrus.Fatalf("An error during save caddy file %v", err)

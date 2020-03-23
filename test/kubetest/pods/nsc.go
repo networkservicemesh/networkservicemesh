@@ -133,7 +133,6 @@ func newDNSInitContainer(env map[string]string) v1.Container {
 	initContainer := containerMod(&v1.Container{
 		Name:            "nsm-dns-init",
 		Image:           "networkservicemesh/nsm-dns-init:latest",
-		Args:            []string{"-conf", "/etc/coredns/Corefile"},
 		Command:         []string{"/bin/nsm-dns-init"},
 		ImagePullPolicy: v1.PullIfNotPresent,
 		Resources: v1.ResourceRequirements{

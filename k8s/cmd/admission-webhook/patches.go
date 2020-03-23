@@ -24,7 +24,6 @@ func createDNSPatch(tuple *podSpecAndMeta, annotationValue string) (patch []patc
 				Command:         []string{"/bin/nsm-monitor"},
 				Image:           fmt.Sprintf("%s/%s:%s", getRepo(), "nsm-monitor", getTag()),
 				ImagePullPolicy: corev1.PullIfNotPresent,
-				Args:            []string{"-conf", "/etc/coredns/Corefile"},
 				Env: []corev1.EnvVar{
 					{
 						Name:  "MONITOR_DNS_CONFIGS",
@@ -51,7 +50,7 @@ func createDNSPatch(tuple *podSpecAndMeta, annotationValue string) (patch []patc
 		[]corev1.Container{
 			{
 				Name:            "coredns",
-				Image:           "coredns/coredns:latest",
+				Image:           "networkservicemesh/coredns:master",
 				ImagePullPolicy: corev1.PullIfNotPresent,
 				Args:            []string{"-conf", "/etc/coredns/Corefile"},
 				VolumeMounts: []corev1.VolumeMount{{
@@ -142,7 +141,6 @@ func createNsmInitContainerPatch(target []corev1.Container, annotationValue stri
 			},
 		},
 		Command: []string{"/bin/" + dnsInitContainerDefault},
-		Args:    []string{"-conf", "/etc/coredns/Corefile"},
 		VolumeMounts: []corev1.VolumeMount{{
 			ReadOnly:  false,
 			Name:      "nsm-coredns-volume",

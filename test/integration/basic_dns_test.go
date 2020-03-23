@@ -50,7 +50,7 @@ func TestDNSMonitoringNsc(t *testing.T) {
 
 	k8s, err := kubetest.NewK8s(assert, true)
 	assert.Expect(err).Should(gomega.BeNil())
-	//defer k8s.Cleanup()
+	defer k8s.Cleanup()
 
 	nseCorefileContent := `. {
     hosts {
@@ -112,7 +112,7 @@ func TestNsmCorednsNotBreakDefaultK8sDNS(t *testing.T) {
 	assert := gomega.NewWithT(t)
 	k8s, err := kubetest.NewK8s(assert, true)
 	assert.Expect(err).Should(gomega.BeNil())
-	//	defer k8s.Cleanup()
+	defer k8s.Cleanup()
 	configs, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
 	assert.Expect(err).To(gomega.BeNil())
 	defer k8s.SaveTestArtifacts(t)

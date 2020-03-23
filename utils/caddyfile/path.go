@@ -21,8 +21,8 @@ import (
 	"os"
 )
 
-// ParseCorefilePath parses corefile path from arguments
-func ParseCorefilePath() string {
+// Path parses corefile path from argument1s or returns default value
+func Path() string {
 	cl := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 	p := cl.String("conf", "/etc/coredns/Corefile", "")
 	_ = cl.Parse(os.Args[1:])
