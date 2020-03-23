@@ -196,8 +196,10 @@ func (c *nsmMonitorApp) readEvents(monitorClient connection.MonitorConnection_Mo
 
 func (c *nsmMonitorApp) updateConnection(conn *connection.Connection) {
 	if existingConn, exists := c.connections[conn.GetId()]; exists {
+		if c.helper != nil {
+			c.helper.Updated(existingConn, conn)
+		}
 		logrus.Infof(nsmMonitorLogWithParamFormat, "Connection updated", fmt.Sprintf("%v %v", existingConn, conn))
-		c.helper.Updated(existingConn, conn)
 	} else {
 		logrus.Infof(nsmMonitorLogWithParamFormat, "Initial connection accepted", conn)
 	}
