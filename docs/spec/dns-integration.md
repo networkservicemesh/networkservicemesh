@@ -28,7 +28,7 @@ data:
   Corefile: |
     {domain} {
         log
-        forward {IP addresses}
+        forward . {IP addresses}
         ...
     }
 ```
@@ -81,8 +81,26 @@ See an example of usage `nsm-dns-monitor` in `test/applications/cmd/monitoring-d
 ### Using coredns and nsm-dns-monitor without changing the client's deployment configuration
 To inject the `coredns` and `nsm-dns-monitor` containers into a client's pod during deployment, you can simply deploy the [admission webhook](https://github.com/networkservicemesh/networkservicemesh/blob/master/docs/spec/admission.md). `Admission webhook` will automatically append the DNS specific containers to your `Network Service Client`.  When using the admission webhook there is no way to disable the insertion of these additional containers.
 
+### Plugin fanout
+For resolving conflicts of zones using the external plugin [fanout](https://github.com/networkservicemesh/fanout).
+
+### Example of resolving conflicts
+In general, each [dns config](https://github.com/networkservicemesh/networkservicemesh/blob/master/controlplane/api/connectioncontext/connectioncontext.proto#L66) received from NSE can be represented to Corefile configuration:
+```Corefile
+{search_domains} {
+    forward . {dns_server_ips}
+}
+```
+In case of DNS monitor receives dns config with search domains which already in use then Corefile configuration will be changed to
+```Corefile
+{search_domains} {
+    fanout . {dns_server_ips1} {dns_server_ips2}
+}
+```
+Also, see the example unit test `TestDnsConfigManagerMergeConfigs`.
+
 ## NSE Requirements
-In order for the application pod to try multiple DNS servers the NSEs must populate the DNScontext.
+In order for the application pod to try multiple DNS servers the NSEs must populate the DNSContext.
 The SDK provides functions that the NSE can call to populate the DNScontext.  An example of how this is done using environmental variables is available here: [icmp-responder](test/applications/cmd/icmp-responder-nse/main.go). The environmental variables used are DNS_SEARCH_DOMAINS and DNS_SERVER_IPS.
 
 Example usage (optional)
