@@ -20,10 +20,10 @@
 package remote
 
 import (
-	"sync"
-
 	"github.com/pkg/errors"
-	wg "golang.zx2c4.com/wireguard/device"
+	"github.com/sirupsen/logrus"
+
+	sdk "github.com/networkservicemesh/networkservicemesh/forwarder/sdk/wireguard"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
@@ -38,24 +38,24 @@ const (
 
 // Connect - struct with remote mechanism interfaces creation and deletion methods
 type Connect struct {
-	wireguardDevicesMutex sync.Mutex
-	wireguardDevices      map[string]*wg.Device
+	*sdk.DeviceManager
 }
 
 // NewConnect - creates instance of remote Connect
 func NewConnect() *Connect {
 	return &Connect{
-		wireguardDevices: make(map[string]*wg.Device),
+		DeviceManager: sdk.NewWireguardDeviceManager(false),
 	}
 }
 
 // CreateInterface - creates interface to remote connection
 func (c *Connect) CreateInterface(ifaceName string, remoteConnection *connection.Connection, direction uint8) error {
+	logrus.Infof("Create interface for %v", remoteConnection)
 	switch remoteConnection.GetMechanism().GetType() {
 	case vxlan.MECHANISM:
 		return c.createVXLANInterface(ifaceName, remoteConnection, direction)
 	case wireguard.MECHANISM:
-		return c.createWireguardInterface(ifaceName, remoteConnection, direction)
+		return c.CreateWireguardDevice(ifaceName, remoteConnection, direction == INCOMING)
 	}
 	return errors.Errorf("unknown remote mechanism - %v", remoteConnection.GetMechanism().GetType())
 }
@@ -66,7 +66,8 @@ func (c *Connect) DeleteInterface(ifaceName string, remoteConnection *connection
 	case vxlan.MECHANISM:
 		return c.deleteVXLANInterface(ifaceName)
 	case wireguard.MECHANISM:
-		return c.deleteWireguardInterface(ifaceName)
+		c.DeleteWireguardDevice(ifaceName)
+		return nil
 	}
 	return errors.Errorf("unknown remote mechanism - %v", remoteConnection.GetMechanism().GetType())
 }

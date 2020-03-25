@@ -14,11 +14,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package remote
+package wireguard
 
 import (
 	"fmt"
 	"net"
+	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -32,10 +33,31 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/wireguard"
 )
 
-// CreateVXLANInterface creates a VXLAN interface
-func (c *Connect) createWireguardInterface(ifaceName string, remoteConnection *connection.Connection, direction uint8) error {
-	c.wireguardDevicesMutex.Lock()
-	defer c.wireguardDevicesMutex.Unlock()
+// DeviceManager manages wireguard devices
+type DeviceManager struct {
+	devices map[string]*device.Device
+	mutex   sync.Mutex
+	wrapper func(tun.Device) tun.Device
+}
+
+// NewWireguardDeviceManager creates new wireguard manager. Can create wireguard devices with L2 mode
+func NewWireguardDeviceManager(allowL2Traffic bool) *DeviceManager {
+	r := &DeviceManager{
+		devices: make(map[string]*device.Device),
+	}
+	r.wrapper = func(t tun.Device) tun.Device {
+		if allowL2Traffic {
+			return &tunL2Adapter{original: t}
+		}
+		return t
+	}
+	return r
+}
+
+// CreateWireguardDevice creates a new wireguard device
+func (w *DeviceManager) CreateWireguardDevice(ifaceName string, remoteConnection *connection.Connection, incoming bool) error {
+	w.mutex.Lock()
+	defer w.mutex.Unlock()
 	mechanism := wireguard.ToMechanism(remoteConnection.GetMechanism())
 
 	/* Create interface - host namespace */
@@ -45,7 +67,7 @@ func (c *Connect) createWireguardInterface(ifaceName string, remoteConnection *c
 	var remotePort int
 	var dstIPStr string
 	var err error
-	if direction == INCOMING {
+	if incoming {
 		if localPrivateKeyStr, err = mechanism.DstPrivateKey(); err != nil {
 			return err
 		}
@@ -89,18 +111,19 @@ func (c *Connect) createWireguardInterface(ifaceName string, remoteConnection *c
 		return errors.Errorf("failed to parse remote public key: %v", err)
 	}
 
-	wgDevice, err := createWireguardDevice(ifaceName)
+	wgDevice, err := w.createWireguardDevice(ifaceName)
 	if err != nil {
 		return errors.Errorf("Wireguard error: %v", err)
 	}
-	c.wireguardDevices[ifaceName] = wgDevice
-	uapi, err := startWireguardAPI(ifaceName, wgDevice)
+
+	w.devices[ifaceName] = wgDevice
+	api, err := startWireguardAPI(ifaceName, wgDevice)
+
 	if err != nil {
-		wgDevice.Close()
 		return errors.Errorf("Wireguard error: %v", err)
 	}
 	defer func() {
-		if uapiErr := uapi.Close(); uapiErr != nil {
+		if uapiErr := api.Close(); uapiErr != nil {
 			logrus.Errorf("Wireguard error: failed to close API client %v", uapiErr)
 		}
 	}()
@@ -110,29 +133,27 @@ func (c *Connect) createWireguardInterface(ifaceName string, remoteConnection *c
 		wgDevice.Close()
 		return errors.Errorf("Wireguard error: %v", err)
 	}
-
 	return nil
 }
 
-func (c *Connect) deleteWireguardInterface(ifaceName string) error {
-	c.wireguardDevicesMutex.Lock()
-	defer c.wireguardDevicesMutex.Unlock()
-	if wgDevice, ok := c.wireguardDevices[ifaceName]; ok {
+// DeleteWireguardDevice creates a wireguard device
+func (w *DeviceManager) DeleteWireguardDevice(ifaceName string) {
+	w.mutex.Lock()
+	defer w.mutex.Unlock()
+	if wgDevice, ok := w.devices[ifaceName]; ok {
 		wgDevice.Close()
-		delete(c.wireguardDevices, ifaceName)
+		delete(w.devices, ifaceName)
 	}
-
-	return nil
 }
 
-func createWireguardDevice(ifaceName string) (*device.Device, error) {
+func (w *DeviceManager) createWireguardDevice(ifaceName string) (*device.Device, error) {
 	tunIface, err := tun.CreateTUN(ifaceName, device.DefaultMTU)
 	if err != nil {
 		return nil, errors.Errorf("failed to create tun: %v", err)
 	}
 
 	logger := device.NewLogger(device.LogLevelDebug, fmt.Sprintf("Wireguard Error (%s): ", ifaceName))
-	return device.NewDevice(tunIface, logger), nil
+	return device.NewDevice(w.wrapper(tunIface), logger), nil
 }
 
 func startWireguardAPI(ifaceName string, wgDevice *device.Device) (net.Listener, error) {
@@ -175,7 +196,7 @@ func configureWireguardDevice(ifaceName string, localPrivateKey, remotePublicKey
 		return errors.Errorf("failed to configure device: %v", err)
 	}
 	err = client.ConfigureDevice(ifaceName, wgtypes.Config{
-		ListenPort: intPtr(localPort),
+		ListenPort: &localPort,
 		PrivateKey: &localPrivateKey,
 		Peers: []wgtypes.PeerConfig{
 			{
@@ -192,8 +213,4 @@ func configureWireguardDevice(ifaceName string, localPrivateKey, remotePublicKey
 	})
 
 	return errors.Wrapf(err, "failed to configure device: %v", err)
-}
-
-func intPtr(v int) *int {
-	return &v
 }
