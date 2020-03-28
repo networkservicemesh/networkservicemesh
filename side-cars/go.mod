@@ -3,7 +3,6 @@ module github.com/networkservicemesh/networkservicemesh/side-cars
 go 1.13
 
 require (
-	github.com/caddyserver/caddy v1.0.5
 	github.com/networkservicemesh/networkservicemesh/controlplane v0.3.0
 	github.com/networkservicemesh/networkservicemesh/controlplane/api v0.3.0
 	github.com/networkservicemesh/networkservicemesh/pkg v0.3.0
