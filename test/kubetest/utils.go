@@ -327,14 +327,14 @@ func DeployICMP(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1
 	)
 }
 
-// DeployICMPAndCoredns deploys 'icmp-responder-nse' pod with '-routes', '-dns' flag set. Also injected nsm-coredns server.
+// DeployICMPAndCoredns deploys 'icmp-responder-nse' pod with '-routes', '-dns' flag set. Also injected coredns server.
 func DeployICMPAndCoredns(k8s *K8s, node *v1.Node, name, corednsConfigName string, timeout time.Duration) *v1.Pod {
 	flags := flags.ICMPResponderFlags{
 		Routes: true,
 		DNS:    true,
 	}
 	return deployICMP(k8s, nodeName(node), name, timeout,
-		pods.InjectNSMCoredns(pods.TestCommonPod(name, flags.Commands(), node, defaultICMPEnv(k8s.UseIPv6()), pods.NSEServiceAccount), corednsConfigName),
+		pods.InjectCoredns(pods.TestCommonPod(name, flags.Commands(), node, defaultICMPEnv(k8s.UseIPv6()), pods.NSEServiceAccount), corednsConfigName),
 	)
 }
 
@@ -378,23 +378,22 @@ func DeployUpdatingNSE(k8s *K8s, node *v1.Node, name string, timeout time.Durati
 	)
 }
 
-//DeployMonitoringNSCAndCoredns deploys pod of nsm-dns-monitoring-nsc and nsm-coredns
+//DeployMonitoringNSCAndCoredns deploys pod of nsm-dns-monitoring-nsc and coredns
 func DeployMonitoringNSCAndCoredns(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
 	envs := defaultNSCEnv()
-	envs["UPDATE_API_CLIENT_SOCKET"] = "/etc/coredns/client.sock"
 	template := pods.TestCommonPod(name, []string{"/bin/monitoring-dns-nsc"}, node, envs, pods.NSCServiceAccount)
-	pods.InjectNSMCorednsWithSharedFolder(template)
+	pods.InjectCorednsWithSharedFolder(template)
 	result := deployNSC(k8s, nodeName(node), name, "nsc", timeout, template)
-	k8s.WaitLogsContains(result, "nsm-coredns", "CoreDNS-", timeout)
+	k8s.WaitLogsContains(result, "coredns", "CoreDNS-", timeout)
 	return result
 }
 
-// DeployNscAndNsmCoredns deploys pod of default client and nsm-coredns
+// DeployNscAndNsmCoredns deploys pod of default client and coredns
 func DeployNscAndNsmCoredns(k8s *K8s, node *v1.Node, name, corefileName string, timeout time.Duration) *v1.Pod {
 	envs := defaultNSCEnv()
 	envs["UPDATE_API_CLIENT_SOCKET"] = "/etc/coredns/client.sock"
 	return deployNSC(k8s, nodeName(node), name, "nsm-init", timeout,
-		pods.InjectNSMCoredns(pods.NSCPod(name, node, defaultNSCEnv()), corefileName),
+		pods.InjectCoredns(pods.NSCPod(name, node, defaultNSCEnv()), corefileName),
 	)
 }
 

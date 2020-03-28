@@ -129,6 +129,33 @@ func newAlpineContainer() v1.Container {
 	}
 }
 
+func newDNSInitContainer(env map[string]string) v1.Container {
+	initContainer := containerMod(&v1.Container{
+		Name:            "nsm-dns-init",
+		Image:           "networkservicemesh/nsm-dns-init:latest",
+		Command:         []string{"/bin/nsm-dns-init"},
+		ImagePullPolicy: v1.PullIfNotPresent,
+		Resources: v1.ResourceRequirements{
+			Limits: v1.ResourceList{
+				"networkservicemesh.io/socket": resource.NewQuantity(1, resource.DecimalSI).DeepCopy(),
+			},
+		},
+		VolumeMounts: []v1.VolumeMount{{
+			ReadOnly:  false,
+			Name:      "empty-dir-volume",
+			MountPath: "/etc/coredns",
+		}},
+	})
+	for k, v := range env {
+		initContainer.Env = append(initContainer.Env,
+			v1.EnvVar{
+				Name:  k,
+				Value: v,
+			})
+	}
+	return initContainer
+}
+
 func newInitContainer(env map[string]string) v1.Container {
 	initContainer := containerMod(&v1.Container{
 		Name:            "nsm-init",

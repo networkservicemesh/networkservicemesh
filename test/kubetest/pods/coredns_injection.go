@@ -3,40 +3,28 @@ package pods
 import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
-
-	"github.com/networkservicemesh/networkservicemesh/k8s/cmd/nsm-coredns/env"
 )
 
-//InjectNSMCorednsWithSharedFolder - Injects nsm-coredns container and configure the DnsConfig for template.
-//Also makes shared folder between nsm-coredns container and first container of template
-func InjectNSMCorednsWithSharedFolder(template *v1.Pod) {
+//InjectCorednsWithSharedFolder - Injects coredns container and configure the DnsConfig for template.
+//Also makes shared folder between coredns container and first container of template
+func InjectCorednsWithSharedFolder(template *v1.Pod) {
 	template.Spec.Containers = append(template.Spec.Containers,
-		containerMod(&v1.Container{
-			Name:            "nsm-coredns",
-			Image:           "networkservicemesh/nsm-coredns:latest",
+		v1.Container{
+			Name:            "coredns",
+			Image:           "networkservicemesh/coredns:master",
 			ImagePullPolicy: v1.PullIfNotPresent,
 			Args:            []string{"-conf", "/etc/coredns/Corefile"},
-			Env: []v1.EnvVar{
-				{
-					Name:  env.UseUpdateAPIEnv.Name(),
-					Value: "true",
-				},
-				{
-					Name:  env.UpdateAPIClientSock.Name(),
-					Value: "/etc/coredns/client.sock",
-				},
-			},
 			Resources: v1.ResourceRequirements{
 				Limits: v1.ResourceList{
 					"networkservicemesh.io/socket": resource.NewQuantity(1, resource.DecimalSI).DeepCopy(),
 				},
 			},
-		}))
-	template.Spec.Containers[len(template.Spec.Containers)-1].VolumeMounts = []v1.VolumeMount{{
-		ReadOnly:  false,
-		Name:      "empty-dir-volume",
-		MountPath: "/etc/coredns",
-	}}
+			VolumeMounts: []v1.VolumeMount{{
+				ReadOnly:  false,
+				Name:      "empty-dir-volume",
+				MountPath: "/etc/coredns",
+			}},
+		})
 	template.Spec.Containers[0].VolumeMounts = []v1.VolumeMount{{
 		ReadOnly:  false,
 		Name:      "empty-dir-volume",
@@ -51,14 +39,15 @@ func InjectNSMCorednsWithSharedFolder(template *v1.Pod) {
 			},
 		},
 	})
+	template.Spec.InitContainers = append([]v1.Container{newDNSInitContainer(nil)}, template.Spec.InitContainers...)
 }
 
-//InjectNSMCoredns - Injects nsm-coredns container and configure the DnsConfig for template.
-func InjectNSMCoredns(pod *v1.Pod, corednsConfigName string) *v1.Pod {
+//InjectCoredns - Injects coredns container and configure the DnsConfig for template.
+func InjectCoredns(pod *v1.Pod, corednsConfigName string) *v1.Pod {
 	pod.Spec.Containers = append(pod.Spec.Containers,
-		containerMod(&v1.Container{
-			Name:            "nsm-coredns",
-			Image:           "networkservicemesh/nsm-coredns:latest",
+		v1.Container{
+			Name:            "coredns",
+			Image:           "networkservicemesh/coredns:master",
 			ImagePullPolicy: v1.PullIfNotPresent,
 			Args:            []string{"-conf", "/etc/coredns/Corefile"},
 			VolumeMounts: []v1.VolumeMount{{
@@ -71,7 +60,7 @@ func InjectNSMCoredns(pod *v1.Pod, corednsConfigName string) *v1.Pod {
 					"networkservicemesh.io/socket": resource.NewQuantity(1, resource.DecimalSI).DeepCopy(),
 				},
 			},
-		}))
+		})
 
 	pod.Spec.Volumes = append(pod.Spec.Volumes, v1.Volume{
 		Name: "config-volume",

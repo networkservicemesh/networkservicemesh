@@ -1,62 +1,65 @@
 package nsmmonitor
 
 import (
-	"context"
-
 	"github.com/networkservicemesh/networkservicemesh/utils"
+	"github.com/networkservicemesh/networkservicemesh/utils/caddyfile"
+	"github.com/networkservicemesh/networkservicemesh/utils/dnsconfig"
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/networkservicemesh/k8s/api/nsm-coredns/update"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
-
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-)
-
-const (
-	//UpdateAPIClientSock means path to client socket for dns context update server
-	UpdateAPIClientSock = utils.EnvVar("UPDATE_API_CLIENT_SOCKET")
 )
 
 //nsmDNSMonitorHandler implements Handler interface for handling dnsConfigs
 type nsmDNSMonitorHandler struct {
 	EmptyNSMMonitorHandler
-	dnsConfigUpdateClient update.DNSConfigServiceClient
+	manager  dnsconfig.Manager
+	reloadOp utils.Operation
+	path     string
 }
 
-func (h *nsmDNSMonitorHandler) Updated(old, new *connection.Connection) {
+func (m *nsmDNSMonitorHandler) Updated(old, new *connection.Connection) {
 	logrus.Infof("Deleting config with id %v", old.Id)
-	_, _ = h.dnsConfigUpdateClient.RemoveDNSContext(context.Background(), &update.RemoveDNSContextMessage{ConnectionID: old.Id})
+	m.manager.Delete(old.Id)
 	logrus.Infof("Adding config with id %v", new.Id)
-	_, _ = h.dnsConfigUpdateClient.AddDNSContext(context.Background(), &update.AddDNSContextMessage{ConnectionID: new.Id, Context: new.Context.DnsContext})
+	m.manager.Store(new.Id, new.GetContext().GetDnsContext().GetConfigs()...)
+	m.reloadOp.Run()
 }
 
 //NewNsmDNSMonitorHandler creates new DNS monitor handler
 func NewNsmDNSMonitorHandler() Handler {
-	clientSock := UpdateAPIClientSock.StringValue()
-	if clientSock == "" {
-		logrus.Fatalf("unable to create Handler instance. Expect %v is not empty", UpdateAPIClientSock.Name())
-	}
-	conn, err := tools.DialUnix(clientSock)
+	p := caddyfile.Path()
+	mgr, err := dnsconfig.NewManagerFromCaddyfile(p)
 	if err != nil {
-		logrus.Fatalf("An error during dial unix socket by path %v, error: %v", clientSock, err.Error())
+		logrus.Fatalf("An error during parse corefile: %v", err)
 	}
-	return &nsmDNSMonitorHandler{
-		dnsConfigUpdateClient: update.NewDNSConfigServiceClient(conn),
+	m := &nsmDNSMonitorHandler{
+		manager: mgr,
+		path:    p,
 	}
-}
-
-func (h *nsmDNSMonitorHandler) Connected(conns map[string]*connection.Connection) {
-	for _, conn := range conns {
-		if conn.Context == nil || conn.Context.DnsContext == nil {
-			continue
+	m.reloadOp = utils.NewSingleAsyncOperation(func() {
+		err := m.manager.Caddyfile(m.path).Save()
+		if err != nil {
+			logrus.Error(err)
 		}
-		logrus.Info(conn.Context.DnsContext)
-		_, _ = h.dnsConfigUpdateClient.AddDNSContext(context.Background(), &update.AddDNSContextMessage{ConnectionID: conn.Id, Context: conn.Context.DnsContext})
-	}
+	})
+	return m
 }
 
-func (h *nsmDNSMonitorHandler) Closed(conn *connection.Connection) {
+func (m *nsmDNSMonitorHandler) Connected(conns map[string]*connection.Connection) {
+	for _, conn := range conns {
+		logrus.Info(conn.Context.DnsContext)
+		err := m.manager.Caddyfile(m.path).Save()
+		if err != nil {
+			logrus.Error(err)
+		}
+		m.manager.Store(conn.Id, conn.GetContext().GetDnsContext().GetConfigs()...)
+	}
+	m.reloadOp.Run()
+}
+
+func (m *nsmDNSMonitorHandler) Closed(conn *connection.Connection) {
 	logrus.Infof("Deleting config with id %v", conn.Id)
-	_, _ = h.dnsConfigUpdateClient.RemoveDNSContext(context.Background(), &update.RemoveDNSContextMessage{ConnectionID: conn.Id})
+	m.manager.Delete(conn.Id)
+	m.reloadOp.Run()
 }

@@ -6,8 +6,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 
-	nsmcorednsenv "github.com/networkservicemesh/networkservicemesh/k8s/cmd/nsm-coredns/env"
-
 	"github.com/networkservicemesh/networkservicemesh/sdk/client"
 )
 
@@ -23,6 +21,7 @@ func createDNSPatch(tuple *podSpecAndMeta, annotationValue string) (patch []patc
 		[]corev1.Container{
 			{
 				Name:            "nsm-dns-monitor",
+				Command:         []string{"/bin/nsm-monitor"},
 				Image:           fmt.Sprintf("%s/%s:%s", getRepo(), "nsm-monitor", getTag()),
 				ImagePullPolicy: corev1.PullIfNotPresent,
 				Env: []corev1.EnvVar{
@@ -30,9 +29,6 @@ func createDNSPatch(tuple *podSpecAndMeta, annotationValue string) (patch []patc
 						Name:  "MONITOR_DNS_CONFIGS",
 						Value: "true",
 					},
-					{
-						Name:  nsmcorednsenv.UpdateAPIClientSock.Name(),
-						Value: "/etc/coredns/client.sock"},
 					{
 						Name:  client.AnnotationEnv,
 						Value: annotationValue,
@@ -53,8 +49,8 @@ func createDNSPatch(tuple *podSpecAndMeta, annotationValue string) (patch []patc
 	patch = append(patch, addContainer(tuple.spec,
 		[]corev1.Container{
 			{
-				Name:            "nsm-coredns",
-				Image:           fmt.Sprintf("%s/%s:%s", getRepo(), "nsm-coredns", getTag()),
+				Name:            "coredns",
+				Image:           "networkservicemesh/coredns:master",
 				ImagePullPolicy: corev1.PullIfNotPresent,
 				Args:            []string{"-conf", "/etc/coredns/Corefile"},
 				VolumeMounts: []corev1.VolumeMount{{
@@ -62,16 +58,6 @@ func createDNSPatch(tuple *podSpecAndMeta, annotationValue string) (patch []patc
 					Name:      "nsm-coredns-volume",
 					MountPath: "/etc/coredns",
 				}},
-				Env: []corev1.EnvVar{
-					{
-						Name:  nsmcorednsenv.UseUpdateAPIEnv.Name(),
-						Value: "true",
-					},
-					{
-						Name:  nsmcorednsenv.UpdateAPIClientSock.Name(),
-						Value: "/etc/coredns/client.sock",
-					},
-				},
 				Resources: corev1.ResourceRequirements{
 					Limits: corev1.ResourceList{
 						"networkservicemesh.io/socket": resource.MustParse("1"),
@@ -79,6 +65,7 @@ func createDNSPatch(tuple *podSpecAndMeta, annotationValue string) (patch []patc
 				},
 			},
 		})...)
+
 	patch = append(patch, addVolume(tuple.spec,
 		[]corev1.Volume{{
 			Name: "nsm-coredns-volume",
@@ -143,8 +130,24 @@ func createNsmInitContainerPatch(target []corev1.Container, annotationValue stri
 			},
 		},
 	}
-
-	value = append([]corev1.Container{nsmInitContainer}, target...)
+	dnsNsmInitContainer := corev1.Container{
+		Name:            dnsInitContainerDefault,
+		Image:           fmt.Sprintf("%s/%s:%s", getRepo(), dnsInitContainerDefault, getTag()),
+		ImagePullPolicy: corev1.PullIfNotPresent,
+		Env:             envVals,
+		Resources: corev1.ResourceRequirements{
+			Limits: corev1.ResourceList{
+				"networkservicemesh.io/socket": resource.MustParse("1"),
+			},
+		},
+		Command: []string{"/bin/" + dnsInitContainerDefault},
+		VolumeMounts: []corev1.VolumeMount{{
+			ReadOnly:  false,
+			Name:      "nsm-coredns-volume",
+			MountPath: "/etc/coredns",
+		}},
+	}
+	value = append([]corev1.Container{dnsNsmInitContainer, nsmInitContainer}, target...)
 
 	patch = append(patch, patchOperation{
 		Op:    "add",

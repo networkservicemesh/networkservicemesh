@@ -32,10 +32,6 @@
 ## NSM-MONITOR
 * *MONITOR_DNS_CONFIGS* - Means boolean flag. If the flag is true then nsm-monitor will monitor DNS configs.
 
-## NSM-COREDNS
-* *USE_UPDATE_API* - Means boolean flag. If the flag is true then nsm-coredns will accept dns configs to dynamically change Corefile. With this flag, nsm-coredns can be deployed without corefile.
-* *UPDATE_API_CLIENT_SOCKET* - Represents the path to the client socket.
-
 ##NSM-ADMISSION-WEBHOOK
 * *DNS_SEARCH_DOMAINS* - Represents a list of strings. Uses for configuring DNS Search domains patch.
 
