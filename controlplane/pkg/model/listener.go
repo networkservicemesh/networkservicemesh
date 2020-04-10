@@ -41,4 +41,5 @@ func (ListenerImpl) ClientConnectionAdded(ctx context.Context, clientConnection 
 func (ListenerImpl) ClientConnectionUpdated(ctx context.Context, old, new *ClientConnection) {}
 
 // ClientConnectionDeleted will be called when ClientConnection in model is deleted
-func (ListenerImpl) ClientConnectionDeleted(ctx context.Context, clientConnection *ClientConnection) {}
+func (ListenerImpl) ClientConnectionDeleted(ctx context.Context, clientConnection *ClientConnection) {
+}

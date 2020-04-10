@@ -19,9 +19,10 @@ limitations under the License.
 package v1alpha1
 
 import (
+	rest "k8s.io/client-go/rest"
+
 	v1alpha1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1alpha1"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned/scheme"
-	rest "k8s.io/client-go/rest"
 )
 
 type NetworkserviceV1alpha1Interface interface {
