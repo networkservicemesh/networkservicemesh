@@ -19,6 +19,8 @@ limitations under the License.
 package fake
 
 import (
+	"context"
+
 	v1alpha1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
@@ -39,7 +41,7 @@ var networkservicemanagersResource = schema.GroupVersionResource{Group: "network
 var networkservicemanagersKind = schema.GroupVersionKind{Group: "networkservice", Version: "v1alpha1", Kind: "NetworkServiceManager"}
 
 // Get takes name of the networkServiceManager, and returns the corresponding networkServiceManager object, and an error if there is any.
-func (c *FakeNetworkServiceManagers) Get(name string, options v1.GetOptions) (result *v1alpha1.NetworkServiceManager, err error) {
+func (c *FakeNetworkServiceManagers) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.NetworkServiceManager, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(networkservicemanagersResource, c.ns, name), &v1alpha1.NetworkServiceManager{})
 
@@ -50,7 +52,7 @@ func (c *FakeNetworkServiceManagers) Get(name string, options v1.GetOptions) (re
 }
 
 // List takes label and field selectors, and returns the list of NetworkServiceManagers that match those selectors.
-func (c *FakeNetworkServiceManagers) List(opts v1.ListOptions) (result *v1alpha1.NetworkServiceManagerList, err error) {
+func (c *FakeNetworkServiceManagers) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.NetworkServiceManagerList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(networkservicemanagersResource, networkservicemanagersKind, c.ns, opts), &v1alpha1.NetworkServiceManagerList{})
 
@@ -72,14 +74,14 @@ func (c *FakeNetworkServiceManagers) List(opts v1.ListOptions) (result *v1alpha1
 }
 
 // Watch returns a watch.Interface that watches the requested networkServiceManagers.
-func (c *FakeNetworkServiceManagers) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeNetworkServiceManagers) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(networkservicemanagersResource, c.ns, opts))
 
 }
 
 // Create takes the representation of a networkServiceManager and creates it.  Returns the server's representation of the networkServiceManager, and an error, if there is any.
-func (c *FakeNetworkServiceManagers) Create(networkServiceManager *v1alpha1.NetworkServiceManager) (result *v1alpha1.NetworkServiceManager, err error) {
+func (c *FakeNetworkServiceManagers) Create(ctx context.Context, networkServiceManager *v1alpha1.NetworkServiceManager, opts v1.CreateOptions) (result *v1alpha1.NetworkServiceManager, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(networkservicemanagersResource, c.ns, networkServiceManager), &v1alpha1.NetworkServiceManager{})
 
@@ -90,7 +92,7 @@ func (c *FakeNetworkServiceManagers) Create(networkServiceManager *v1alpha1.Netw
 }
 
 // Update takes the representation of a networkServiceManager and updates it. Returns the server's representation of the networkServiceManager, and an error, if there is any.
-func (c *FakeNetworkServiceManagers) Update(networkServiceManager *v1alpha1.NetworkServiceManager) (result *v1alpha1.NetworkServiceManager, err error) {
+func (c *FakeNetworkServiceManagers) Update(ctx context.Context, networkServiceManager *v1alpha1.NetworkServiceManager, opts v1.UpdateOptions) (result *v1alpha1.NetworkServiceManager, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateAction(networkservicemanagersResource, c.ns, networkServiceManager), &v1alpha1.NetworkServiceManager{})
 
@@ -102,7 +104,7 @@ func (c *FakeNetworkServiceManagers) Update(networkServiceManager *v1alpha1.Netw
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeNetworkServiceManagers) UpdateStatus(networkServiceManager *v1alpha1.NetworkServiceManager) (*v1alpha1.NetworkServiceManager, error) {
+func (c *FakeNetworkServiceManagers) UpdateStatus(ctx context.Context, networkServiceManager *v1alpha1.NetworkServiceManager, opts v1.UpdateOptions) (*v1alpha1.NetworkServiceManager, error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateSubresourceAction(networkservicemanagersResource, "status", c.ns, networkServiceManager), &v1alpha1.NetworkServiceManager{})
 
@@ -113,7 +115,7 @@ func (c *FakeNetworkServiceManagers) UpdateStatus(networkServiceManager *v1alpha
 }
 
 // Delete takes name of the networkServiceManager and deletes it. Returns an error if one occurs.
-func (c *FakeNetworkServiceManagers) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeNetworkServiceManagers) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewDeleteAction(networkservicemanagersResource, c.ns, name), &v1alpha1.NetworkServiceManager{})
 
@@ -121,15 +123,15 @@ func (c *FakeNetworkServiceManagers) Delete(name string, options *v1.DeleteOptio
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeNetworkServiceManagers) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(networkservicemanagersResource, c.ns, listOptions)
+func (c *FakeNetworkServiceManagers) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(networkservicemanagersResource, c.ns, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1alpha1.NetworkServiceManagerList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched networkServiceManager.
-func (c *FakeNetworkServiceManagers) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.NetworkServiceManager, err error) {
+func (c *FakeNetworkServiceManagers) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.NetworkServiceManager, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(networkservicemanagersResource, c.ns, name, pt, data, subresources...), &v1alpha1.NetworkServiceManager{})
 

@@ -19,6 +19,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
 	time "time"
 
 	networkservicev1alpha1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1alpha1"
@@ -61,13 +62,13 @@ func NewFilteredNetworkServiceManagerInformer(client versioned.Interface, namesp
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.NetworkserviceV1alpha1().NetworkServiceManagers(namespace).List(options)
+				return client.NetworkserviceV1alpha1().NetworkServiceManagers(namespace).List(context.TODO(), options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.NetworkserviceV1alpha1().NetworkServiceManagers(namespace).Watch(options)
+				return client.NetworkserviceV1alpha1().NetworkServiceManagers(namespace).Watch(context.TODO(), options)
 			},
 		},
 		&networkservicev1alpha1.NetworkServiceManager{},
