@@ -1,6 +1,7 @@
 package prefixcollector
 
 import (
+	"context"
 	"os"
 	"strings"
 
@@ -49,7 +50,7 @@ func getExcludedPrefixesFromEnv() []string {
 func getExcludedPrefixesFromConfigMap(clientset *kubernetes.Clientset) ([]string, error) {
 	kubeadmConfig, err := clientset.CoreV1().
 		ConfigMaps("kube-system").
-		Get("kubeadm-config", metav1.GetOptions{})
+		Get(context.TODO(), "kubeadm-config", metav1.GetOptions{})
 	if err != nil {
 		logrus.Error(err)
 		return nil, err
