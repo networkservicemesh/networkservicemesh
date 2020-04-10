@@ -3,6 +3,7 @@
 package integration
 
 import (
+	"context"
 	"strings"
 	"testing"
 
@@ -29,7 +30,7 @@ func TestK8sExcludedPrefixes(t *testing.T) {
 
 	clientset, err := k8s.GetClientSet()
 	g.Expect(err).To(BeNil())
-	cm, err := clientset.CoreV1().ConfigMaps("kube-system").Get("kubeadm-config", metav1.GetOptions{})
+	cm, err := clientset.CoreV1().ConfigMaps("kube-system").Get(context.TODO(), "kubeadm-config", metav1.GetOptions{})
 
 	if cm == nil || err != nil {
 		t.Skip("Skip, no kubeadm-config")
@@ -53,12 +54,12 @@ func TestK8sExcludedPrefixes(t *testing.T) {
 
 	icmp := kubetest.DeployICMP(k8s, nodes[0].Node, "icmp-responder-nse-1", defaultTimeout)
 
-	nsc, err := clientset.CoreV1().Pods(k8s.GetK8sNamespace()).Create(pods.NSCPod("nsc", nodes[0].Node,
+	nsc, err := clientset.CoreV1().Pods(k8s.GetK8sNamespace()).Create(context.TODO(), pods.NSCPod("nsc", nodes[0].Node,
 		map[string]string{
 			"CLIENT_LABELS":          "app=icmp",
 			"CLIENT_NETWORK_SERVICE": "icmp-responder",
 		},
-	))
+	), metav1.CreateOptions{})
 
 	defer k8s.DeletePods(nsc)
 

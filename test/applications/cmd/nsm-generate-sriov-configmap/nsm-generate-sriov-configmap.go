@@ -15,6 +15,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -407,7 +408,7 @@ func generateConfigMap(discoveredVFs *VFs) error {
 	if err != nil {
 		return fmt.Errorf("failed to get hostname of a node with error: %+v", err)
 	}
-	_, err = k8s.CoreV1().Nodes().Get(hostName, metav1.GetOptions{})
+	_, err = k8s.CoreV1().Nodes().Get(context.TODO(), hostName, metav1.GetOptions{})
 	if err != nil {
 		return fmt.Errorf("hostname %s does not appear to be a valid node name in kuebrnetes cluster, error: %+v", hostName, err)
 	}
