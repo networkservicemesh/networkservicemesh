@@ -187,7 +187,7 @@ func lookForNSMServers() {
 
 	nsmNamespace := namespace.GetNamespace()
 	for !closing {
-		result, err := nsmClientSet.NetworkservicemeshV1alpha1().NetworkServiceManagers(nsmNamespace).List(metav1.ListOptions{})
+		result, err := nsmClientSet.NetworkserviceV1alpha1().NetworkServiceManagers(nsmNamespace).List(metav1.ListOptions{})
 		if err != nil {
 			logrus.Fatalln("Unable to find NSMs", err)
 		}

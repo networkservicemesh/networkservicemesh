@@ -77,7 +77,7 @@ func (c *NetworkServiceEndpointCache) Start(f SharedInformerFactory, init ...v1.
 }
 
 func (c *NetworkServiceEndpointCache) StartWithResync(f SharedInformerFactory, cs *versioned.Clientset) (func(), error) {
-	l, err := cs.NetworkservicemeshV1alpha1().NetworkServiceEndpoints(namespace.GetNamespace()).List(v12.ListOptions{})
+	l, err := cs.NetworkserviceV1alpha1().NetworkServiceEndpoints(namespace.GetNamespace()).List(v12.ListOptions{})
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to list NSEs for cache initialization")
 	}

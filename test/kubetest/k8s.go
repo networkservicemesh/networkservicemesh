@@ -690,21 +690,21 @@ func (k8s *K8s) ListPodsByNs(ns string) []v1.Pod {
 // CleanupCRDs cleans up CRDs
 func (k8s *K8s) CleanupCRDs() {
 	// Clean up Network Services
-	services, _ := k8s.versionedClientSet.NetworkservicemeshV1alpha1().NetworkServices(k8s.namespace).List(metaV1.ListOptions{})
+	services, _ := k8s.versionedClientSet.NetworkserviceV1alpha1().NetworkServices(k8s.namespace).List(metaV1.ListOptions{})
 	for _, service := range services.Items {
-		_ = k8s.versionedClientSet.NetworkservicemeshV1alpha1().NetworkServices(k8s.namespace).Delete(service.Name, &metaV1.DeleteOptions{})
+		_ = k8s.versionedClientSet.NetworkserviceV1alpha1().NetworkServices(k8s.namespace).Delete(service.Name, &metaV1.DeleteOptions{})
 	}
 
 	// Clean up Network Service Endpoints
-	endpoints, _ := k8s.versionedClientSet.NetworkservicemeshV1alpha1().NetworkServiceEndpoints(k8s.namespace).List(metaV1.ListOptions{})
+	endpoints, _ := k8s.versionedClientSet.NetworkserviceV1alpha1().NetworkServiceEndpoints(k8s.namespace).List(metaV1.ListOptions{})
 	for _, ep := range endpoints.Items {
-		_ = k8s.versionedClientSet.NetworkservicemeshV1alpha1().NetworkServiceEndpoints(k8s.namespace).Delete(ep.Name, &metaV1.DeleteOptions{})
+		_ = k8s.versionedClientSet.NetworkserviceV1alpha1().NetworkServiceEndpoints(k8s.namespace).Delete(ep.Name, &metaV1.DeleteOptions{})
 	}
 
 	// Clean up Network Service Managers
-	managers, _ := k8s.versionedClientSet.NetworkservicemeshV1alpha1().NetworkServiceManagers(k8s.namespace).List(metaV1.ListOptions{})
+	managers, _ := k8s.versionedClientSet.NetworkserviceV1alpha1().NetworkServiceManagers(k8s.namespace).List(metaV1.ListOptions{})
 	for _, mgr := range managers.Items {
-		_ = k8s.versionedClientSet.NetworkservicemeshV1alpha1().NetworkServiceManagers(k8s.namespace).Delete(mgr.Name, &metaV1.DeleteOptions{})
+		_ = k8s.versionedClientSet.NetworkserviceV1alpha1().NetworkServiceManagers(k8s.namespace).Delete(mgr.Name, &metaV1.DeleteOptions{})
 	}
 }
 
@@ -764,9 +764,9 @@ func (k8s *K8s) PrintImageVersion(pod *v1.Pod) {
 
 // CleanupEndpointsCRDs clean Network Service Endpoints from registry
 func (k8s *K8s) CleanupEndpointsCRDs() {
-	endpoints, _ := k8s.versionedClientSet.NetworkservicemeshV1alpha1().NetworkServiceEndpoints(k8s.namespace).List(metaV1.ListOptions{})
+	endpoints, _ := k8s.versionedClientSet.NetworkserviceV1alpha1().NetworkServiceEndpoints(k8s.namespace).List(metaV1.ListOptions{})
 	for i := range endpoints.Items {
-		_ = k8s.versionedClientSet.NetworkservicemeshV1alpha1().NetworkServiceEndpoints(k8s.namespace).Delete(endpoints.Items[i].Name, &metaV1.DeleteOptions{})
+		_ = k8s.versionedClientSet.NetworkserviceV1alpha1().NetworkServiceEndpoints(k8s.namespace).Delete(endpoints.Items[i].Name, &metaV1.DeleteOptions{})
 	}
 }
 
@@ -1508,7 +1508,7 @@ func (k8s *K8s) GetForwardingPlane() string {
 
 // GetNSEs returns existing 'nse' resources
 func (k8s *K8s) GetNSEs() ([]v1alpha1.NetworkServiceEndpoint, error) {
-	nseList, err := k8s.versionedClientSet.NetworkservicemeshV1alpha1().NetworkServiceEndpoints(k8s.namespace).List(metaV1.ListOptions{})
+	nseList, err := k8s.versionedClientSet.NetworkserviceV1alpha1().NetworkServiceEndpoints(k8s.namespace).List(metaV1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -1517,7 +1517,7 @@ func (k8s *K8s) GetNSEs() ([]v1alpha1.NetworkServiceEndpoint, error) {
 
 // GetNSMs returns existing 'nse' resources
 func (k8s *K8s) GetNSMList() ([]v1alpha1.NetworkServiceManager, error) {
-	nsmList, err := k8s.versionedClientSet.NetworkservicemeshV1alpha1().NetworkServiceManagers(k8s.namespace).List(metaV1.ListOptions{})
+	nsmList, err := k8s.versionedClientSet.NetworkserviceV1alpha1().NetworkServiceManagers(k8s.namespace).List(metaV1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -1526,7 +1526,7 @@ func (k8s *K8s) GetNSMList() ([]v1alpha1.NetworkServiceManager, error) {
 
 // DeleteNSEs deletes 'nse' resources by names
 func (k8s *K8s) DeleteNSEs(names ...string) error {
-	nseClient := k8s.versionedClientSet.NetworkservicemeshV1alpha1().NetworkServiceEndpoints(k8s.namespace)
+	nseClient := k8s.versionedClientSet.NetworkserviceV1alpha1().NetworkServiceEndpoints(k8s.namespace)
 	for _, name := range names {
 		if err := nseClient.Delete(name, &metaV1.DeleteOptions{}); err != nil {
 			return err
@@ -1537,7 +1537,7 @@ func (k8s *K8s) DeleteNSEs(names ...string) error {
 
 // GetNetworkServices returns existing 'networkservice' resources
 func (k8s *K8s) GetNetworkServices() ([]v1alpha1.NetworkService, error) {
-	networkServiceList, err := k8s.versionedClientSet.NetworkservicemeshV1alpha1().NetworkServices(k8s.namespace).List(metaV1.ListOptions{})
+	networkServiceList, err := k8s.versionedClientSet.NetworkserviceV1alpha1().NetworkServices(k8s.namespace).List(metaV1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -1546,7 +1546,7 @@ func (k8s *K8s) GetNetworkServices() ([]v1alpha1.NetworkService, error) {
 
 // DeleteNetworkServices deletes 'networkservice' resources by names
 func (k8s *K8s) DeleteNetworkServices(names ...string) error {
-	networkServiceClient := k8s.versionedClientSet.NetworkservicemeshV1alpha1().NetworkServices(k8s.namespace)
+	networkServiceClient := k8s.versionedClientSet.NetworkserviceV1alpha1().NetworkServices(k8s.namespace)
 	for _, name := range names {
 		if err := networkServiceClient.Delete(name, &metaV1.DeleteOptions{}); err != nil {
 			return err

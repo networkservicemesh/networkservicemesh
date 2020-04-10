@@ -55,7 +55,7 @@ func (c *NetworkServiceCache) Start(f SharedInformerFactory, init ...v1.NetworkS
 }
 
 func (c *NetworkServiceCache) StartWithResync(f SharedInformerFactory, cs *versioned.Clientset) (func(), error) {
-	l, err := cs.NetworkservicemeshV1alpha1().NetworkServices(namespace.GetNamespace()).List(v12.ListOptions{})
+	l, err := cs.NetworkserviceV1alpha1().NetworkServices(namespace.GetNamespace()).List(v12.ListOptions{})
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to list NSs for cache initialization: %v")
 	}
