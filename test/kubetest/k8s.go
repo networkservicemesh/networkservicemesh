@@ -116,13 +116,13 @@ func (k8s *K8s) createAndBlock(client kubernetes.Interface, namespace string, ti
 
 			// Let's fetch more information about pod created
 
-			updated_pod, err := client.CoreV1().Pods(namespace).Get(ctx, pod.Name, metaV1.GetOptions{})
+			updatedPod, err := client.CoreV1().Pods(namespace).Get(ctx, pod.Name, metaV1.GetOptions{})
 			if err != nil {
 				logrus.Errorf("Failed to Get endpoint. Cause: %v pod: %v", err, pod.Name)
 				resultChan <- &PodDeployResult{pod, err}
 				return
 			}
-			resultChan <- &PodDeployResult{updated_pod, nil}
+			resultChan <- &PodDeployResult{updatedPod, nil}
 		}(pod)
 	}
 
@@ -312,7 +312,7 @@ func waitFor(timeout time.Duration, condition func() bool) error {
 	}
 }
 
-func blockUntilPodWorking(client kubernetes.Interface, ctx context.Context, pod *v1.Pod) error {
+func blockUntilPodWorking(ctx context.Context, client kubernetes.Interface, pod *v1.Pod) error {
 	exists := make(chan error)
 	go func() {
 		for {
@@ -511,7 +511,7 @@ func (k8s *K8s) deletePodForce(pod *v1.Pod) error {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), podDeleteTimeout)
 	defer cancel()
-	err = blockUntilPodWorking(k8s.clientset, ctx, pod)
+	err = blockUntilPodWorking(ctx, k8s.clientset, pod)
 	if err != nil {
 		return err
 	}
@@ -620,7 +620,7 @@ func (k8s *K8s) deletePods(pods ...*v1.Pod) error {
 			}
 			c, cancel := context.WithTimeout(context.Background(), podDeleteTimeout)
 			defer cancel()
-			err := blockUntilPodWorking(k8s.clientset, c, pod)
+			err := blockUntilPodWorking(c, k8s.clientset, pod)
 			if err != nil {
 				err = k8s.deletePodForce(pod)
 				if err != nil {

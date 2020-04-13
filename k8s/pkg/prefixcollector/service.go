@@ -92,7 +92,7 @@ func updateExcludedPrefixesConfigmap(configMaps v1.ConfigMapInterface, prefixes 
 		return false
 	}
 	cm.Data[prefix_pool.PrefixesFile] = buildPrefixesYaml(prefixes)
-	cm, err = configMaps.Update(context.TODO(), cm, metav1.UpdateOptions{})
+	_, err = configMaps.Update(context.TODO(), cm, metav1.UpdateOptions{})
 	if err != nil {
 		logrus.Errorf("Failed to update ConfigMap: %v", err)
 		return false
