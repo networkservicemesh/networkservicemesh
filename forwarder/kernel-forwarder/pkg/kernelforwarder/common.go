@@ -157,40 +157,8 @@ func setupLinkInNs(link *LinkData, inject bool) error {
 		return err
 	}
 	if inject {
-		var addr *netlink.Addr
-		/* Rename back the interface in case there was a naming conflict */
-		if link.tempName != "" {
-			if err = netlink.LinkSetName(l, link.tempName); err != nil {
-				logrus.Errorf("common: failed to rename link %s -> %s: %v",
-					link.Name, link.tempName, err)
-				return err
-			}
-			link.Name = link.tempName
-		}
-		/* Parse the IP address */
-		addr, err = netlink.ParseAddr(link.IP)
-		if err != nil {
-			logrus.Errorf("common: failed to parse IP %q: %v", link.IP, err)
-			return err
-		}
-		/* Set IP address */
-		if err = netlink.AddrAdd(l, addr); err != nil {
-			logrus.Errorf("common: failed to set IP %q: %v", link.IP, err)
-			return err
-		}
-		/* Bring the interface UP */
-		if err = netlink.LinkSetUp(l); err != nil {
-			logrus.Errorf("common: failed to bring %q up: %v", link.Name, err)
-			return err
-		}
-		/* Add routes */
-		if err = addRoutes(l, addr, link.routes); err != nil {
-			logrus.Error("common: failed adding routes:", err)
-			return err
-		}
-		/* Add neighbors - applicable only for source side */
-		if err = addNeighbors(l, link.neighbors); err != nil {
-			logrus.Error("common: failed adding neighbors:", err)
+		if err = setupLink(l, link); err != nil {
+			logrus.Errorf("common: failed to setup link %s: %v", link.Name, err)
 			return err
 		}
 	} else {
@@ -206,6 +174,48 @@ func setupLinkInNs(link *LinkData, inject bool) error {
 		}
 	}
 	return nil
+}
+
+// setupLink configures the link - name, IP, routes, etc.
+func setupLink(l netlink.Link, link *LinkData) error {
+	var err error
+	var addr *netlink.Addr
+	/* Rename back the interface in case there was a naming conflict */
+	if link.tempName != "" {
+		if err = netlink.LinkSetName(l, link.tempName); err != nil {
+			logrus.Errorf("common: failed to rename link %s -> %s: %v",
+				link.Name, link.tempName, err)
+			return err
+		}
+		link.Name = link.tempName
+	}
+	/* Parse the IP address */
+	addr, err = netlink.ParseAddr(link.IP)
+	if err != nil {
+		logrus.Errorf("common: failed to parse IP %q: %v", link.IP, err)
+		return err
+	}
+	/* Set IP address */
+	if err = netlink.AddrAdd(l, addr); err != nil {
+		logrus.Errorf("common: failed to set IP %q: %v", link.IP, err)
+		return err
+	}
+	/* Bring the interface UP */
+	if err = netlink.LinkSetUp(l); err != nil {
+		logrus.Errorf("common: failed to bring %q up: %v", link.Name, err)
+		return err
+	}
+	/* Add routes */
+	if err = addRoutes(l, addr, link.routes); err != nil {
+		logrus.Error("common: failed adding routes:", err)
+		return err
+	}
+	/* Add neighbors - applicable only for source side */
+	if err = addNeighbors(l, link.neighbors); err != nil {
+		logrus.Error("common: failed adding neighbors:", err)
+		return err
+	}
+	return err
 }
 
 // addRoutes adds routes
