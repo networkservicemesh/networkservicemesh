@@ -16,7 +16,10 @@
 package kernelforwarder
 
 import (
+	"fmt"
+	"math/rand"
 	"runtime"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -56,24 +59,42 @@ func (k *KernelForwarder) createLocalConnection(crossConnect *crossconnect.Cross
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	srcName := crossConnect.GetSource().GetMechanism().GetParameters()[common.InterfaceNameKey]
-	dstName := crossConnect.GetDestination().GetMechanism().GetParameters()[common.InterfaceNameKey]
+	rand.Seed(time.Now().UnixNano())
+
+	var err error
+	var tempName string
 	var srcNetNsInode string
 	var dstNetNsInode string
-	var err error
+	srcName := crossConnect.GetSource().GetMechanism().GetParameters()[common.InterfaceNameKey]
+	dstName := crossConnect.GetDestination().GetMechanism().GetParameters()[common.InterfaceNameKey]
+
+	/* In case source and destination names are the same, use temporary values during the setup of the VETH interfaces */
+	if dstName == srcName {
+		tempName = srcName
+		srcName = fmt.Sprintf("nsm%d", rand.Uint32())
+		dstName = fmt.Sprintf("nsm%d", rand.Uint32())
+		logrus.Infof("local: Source and destination use the same name - %s, the configuration will proceed with temporary names: %s, %s", tempName, srcName, dstName)
+	}
+
+	logrus.Infof("local: Creating connection for: %s, %s", srcName, dstName)
 
 	if err = k.localConnect.CreateInterfaces(srcName, dstName); err != nil {
 		logrus.Errorf("local: %v", err)
 		return nil, err
 	}
 
-	if srcNetNsInode, err = SetupInterface(srcName, crossConnect.GetSource(), false); err != nil {
+	if srcNetNsInode, err = SetupInterface(srcName, tempName, crossConnect.GetSource(), false); err != nil {
 		return nil, err
 	}
 
 	crossConnect.GetDestination().GetContext().IpContext = crossConnect.GetSource().GetContext().GetIpContext()
-	if dstNetNsInode, err = SetupInterface(dstName, crossConnect.GetDestination(), true); err != nil {
+	if dstNetNsInode, err = SetupInterface(dstName, tempName, crossConnect.GetDestination(), true); err != nil {
 		return nil, err
+	}
+
+	/* Return to desired names in case of name conflict, for ex. src and dst name are both eth10 */
+	if tempName != "" {
+		srcName, dstName = tempName, tempName
 	}
 
 	logrus.Infof("local: creation completed for devices - source: %s, destination: %s", srcName, dstName)
