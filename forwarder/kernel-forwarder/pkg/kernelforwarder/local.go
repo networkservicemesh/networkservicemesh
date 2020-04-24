@@ -73,10 +73,10 @@ func (k *KernelForwarder) createLocalConnection(crossConnect *crossconnect.Cross
 		tempName = srcName
 		srcName = fmt.Sprintf("nsm%d", rand.Uint32())
 		dstName = fmt.Sprintf("nsm%d", rand.Uint32())
-		logrus.Infof("local: Source and destination use the same name - %s, the configuration will proceed with temporary names: %s, %s", tempName, srcName, dstName)
+		logrus.Infof("local: source and destination use the same name - %s, the configuration will proceed with temporary names: %s, %s", tempName, srcName, dstName)
 	}
 
-	logrus.Infof("local: Creating connection for: %s, %s", srcName, dstName)
+	logrus.Infof("local: creating connection for: %s, %s", srcName, dstName)
 
 	if err = k.localConnect.CreateInterfaces(srcName, dstName); err != nil {
 		logrus.Errorf("local: %v", err)
