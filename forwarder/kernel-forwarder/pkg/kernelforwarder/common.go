@@ -32,9 +32,9 @@ import (
 // LinkData instance
 type LinkData struct {
 	nsHandle  netns.NsHandle // Desired namespace handler
-	Name      string
+	name      string
 	tempName  string // Used in case src and dst name are the same causing the VETH creation to fail
-	IP        string
+	ip        string
 	routes    []*connectioncontext.Route
 	neighbors []*connectioncontext.IpNeighbor
 }
@@ -42,14 +42,14 @@ type LinkData struct {
 // SetupInterface - setup interface to namespace
 func SetupInterface(ifaceName, tempName string, conn *connection.Connection, isDst bool) (string, error) {
 	var err error
-	link := &LinkData{Name: ifaceName, tempName: tempName}
+	link := &LinkData{name: ifaceName, tempName: tempName}
 	netNsInode := conn.GetMechanism().GetParameters()[common.NetNsInodeKey]
 	link.neighbors = conn.GetContext().GetIpContext().GetIpNeighbors()
 	if isDst {
-		link.IP = conn.GetContext().GetIpContext().GetDstIpAddr()
+		link.ip = conn.GetContext().GetIpContext().GetDstIpAddr()
 		link.routes = conn.GetContext().GetIpContext().GetSrcRoutes()
 	} else {
-		link.IP = conn.GetContext().GetIpContext().GetSrcIpAddr()
+		link.ip = conn.GetContext().GetIpContext().GetSrcIpAddr()
 		link.routes = conn.GetContext().GetIpContext().GetDstRoutes()
 	}
 
@@ -70,7 +70,7 @@ func SetupInterface(ifaceName, tempName string, conn *connection.Connection, isD
 
 	/* Setup interface - source namespace */
 	if err = setupLinkInNs(link, true); err != nil {
-		logrus.Errorf("local: failed to setup interface - source - %q: %v", link.Name, err)
+		logrus.Errorf("local: failed to setup interface - source - %q: %v", link.name, err)
 		return netNsInode, err
 	}
 
@@ -80,9 +80,9 @@ func SetupInterface(ifaceName, tempName string, conn *connection.Connection, isD
 // ClearInterfaceSetup - deletes interface setup
 func ClearInterfaceSetup(ifaceName string, conn *connection.Connection) (string, error) {
 	var err error
-	link := &LinkData{Name: ifaceName}
+	link := &LinkData{name: ifaceName}
 	netNsInode := conn.GetMechanism().GetParameters()[common.NetNsInodeKey]
-	link.IP = conn.GetContext().GetIpContext().GetSrcIpAddr()
+	link.ip = conn.GetContext().GetIpContext().GetSrcIpAddr()
 
 	/* Get namespace handler - source */
 	link.nsHandle, err = fs.GetNsHandleFromInode(netNsInode)
@@ -100,7 +100,7 @@ func ClearInterfaceSetup(ifaceName string, conn *connection.Connection) (string,
 
 	/* Extract interface - source namespace */
 	if err = setupLinkInNs(link, false); err != nil {
-		return "", errors.Errorf("failed to extract interface - source - %q: %v", link.Name, err)
+		return "", errors.Errorf("failed to extract interface - source - %q: %v", link.name, err)
 	}
 
 	return netNsInode, nil
@@ -110,14 +110,14 @@ func ClearInterfaceSetup(ifaceName string, conn *connection.Connection) (string,
 func setupLinkInNs(link *LinkData, inject bool) error {
 	if inject {
 		/* Get a link object for the interface */
-		ifaceLink, err := netlink.LinkByName(link.Name)
+		ifaceLink, err := netlink.LinkByName(link.name)
 		if err != nil {
-			logrus.Errorf("common: failed to get link for %q - %v", link.Name, err)
+			logrus.Errorf("common: failed to get link for %q - %v", link.name, err)
 			return err
 		}
 		/* Inject the interface into the desired namespace */
 		if err = netlink.LinkSetNsFd(ifaceLink, int(link.nsHandle)); err != nil {
-			logrus.Errorf("common: failed to inject %q in namespace - %v", link.Name, err)
+			logrus.Errorf("common: failed to inject %q in namespace - %v", link.name, err)
 			return err
 		}
 	}
@@ -151,25 +151,25 @@ func setupLinkInNs(link *LinkData, inject bool) error {
 	}()
 
 	/* Get a link for the interface name */
-	l, err := netlink.LinkByName(link.Name)
+	l, err := netlink.LinkByName(link.name)
 	if err != nil {
-		logrus.Errorf("common: failed to lookup %q, %v", link.Name, err)
+		logrus.Errorf("common: failed to lookup %q, %v", link.name, err)
 		return err
 	}
 	if inject {
 		if err = setupLink(l, link); err != nil {
-			logrus.Errorf("common: failed to setup link %s: %v", link.Name, err)
+			logrus.Errorf("common: failed to setup link %s: %v", link.name, err)
 			return err
 		}
 	} else {
 		/* Bring the interface DOWN */
 		if err = netlink.LinkSetDown(l); err != nil {
-			logrus.Errorf("common: failed to bring %q down: %v", link.Name, err)
+			logrus.Errorf("common: failed to bring %q down: %v", link.name, err)
 			return err
 		}
 		/* Inject the interface back to current namespace */
 		if err = netlink.LinkSetNsFd(l, int(hostNs)); err != nil {
-			logrus.Errorf("common: failed to inject %q back to host namespace - %v", link.Name, err)
+			logrus.Errorf("common: failed to inject %q back to host namespace - %v", link.name, err)
 			return err
 		}
 	}
@@ -184,25 +184,25 @@ func setupLink(l netlink.Link, link *LinkData) error {
 	if link.tempName != "" {
 		if err = netlink.LinkSetName(l, link.tempName); err != nil {
 			logrus.Errorf("common: failed to rename link %s -> %s: %v",
-				link.Name, link.tempName, err)
+				link.name, link.tempName, err)
 			return err
 		}
-		link.Name = link.tempName
+		link.name = link.tempName
 	}
 	/* Parse the IP address */
-	addr, err = netlink.ParseAddr(link.IP)
+	addr, err = netlink.ParseAddr(link.ip)
 	if err != nil {
-		logrus.Errorf("common: failed to parse IP %q: %v", link.IP, err)
+		logrus.Errorf("common: failed to parse IP %q: %v", link.ip, err)
 		return err
 	}
 	/* Set IP address */
 	if err = netlink.AddrAdd(l, addr); err != nil {
-		logrus.Errorf("common: failed to set IP %q: %v", link.IP, err)
+		logrus.Errorf("common: failed to set IP %q: %v", link.ip, err)
 		return err
 	}
 	/* Bring the interface UP */
 	if err = netlink.LinkSetUp(l); err != nil {
-		logrus.Errorf("common: failed to bring %q up: %v", link.Name, err)
+		logrus.Errorf("common: failed to bring %q up: %v", link.name, err)
 		return err
 	}
 	/* Add routes */
