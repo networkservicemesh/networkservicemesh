@@ -1,8 +1,10 @@
 package memifproxy
 
 import (
+	"io/ioutil"
 	"net"
 	"os"
+	"path"
 	"testing"
 	"time"
 
@@ -12,7 +14,10 @@ import (
 
 func TestClosingOpeningMemifProxy(t *testing.T) {
 	g := NewWithT(t)
-	proxy, err := newCustomProxy("source.sock", "target.sock", "unix", nil)
+	tmpFolder, cleanup := genResourceFolder(t.Name())
+	defer cleanup()
+	sourceSocket, targetSocket := path.Join(tmpFolder, "source.sock"), path.Join(tmpFolder, "target.sock")
+	proxy, err := newCustomProxy(sourceSocket, targetSocket, "unix", nil)
 	g.Expect(err).Should(BeNil())
 	for i := 0; i < 10; i++ {
 		err = proxy.Start()
@@ -24,18 +29,21 @@ func TestClosingOpeningMemifProxy(t *testing.T) {
 
 func TestTransferBetweenMemifProxies(t *testing.T) {
 	g := NewWithT(t)
+	tmpFolder, cleanup := genResourceFolder(t.Name())
+	defer cleanup()
+	sourceSocket, targetSocket := path.Join(tmpFolder, "source.sock"), path.Join(tmpFolder, "target.sock")
 	for i := 0; i < 10; i++ {
-		proxy1, err := newCustomProxy("source.sock", "target.sock", "unix", nil)
+		proxy1, err := newCustomProxy(sourceSocket, targetSocket, "unix", nil)
 		g.Expect(err).Should(BeNil())
-		proxy2, err := newCustomProxy("target.sock", "source.sock", "unix", nil)
+		proxy2, err := newCustomProxy(targetSocket, sourceSocket, "unix", nil)
 		g.Expect(err).Should(BeNil())
 		err = proxy1.Start()
 		g.Expect(err).To(BeNil())
 		err = proxy2.Start()
 		g.Expect(err).To(BeNil())
-		err = connectAndSendMsg("source.sock")
+		err = connectAndSendMsg(sourceSocket)
 		g.Expect(err).To(BeNil())
-		err = connectAndSendMsg("target.sock")
+		err = connectAndSendMsg(targetSocket)
 		g.Expect(err).To(BeNil())
 		err = proxy1.Stop()
 		g.Expect(err).To(BeNil())
@@ -47,7 +55,10 @@ func TestTransferBetweenMemifProxies(t *testing.T) {
 func TestProxyListenerCalled(t *testing.T) {
 	proxyStopped := false
 	g := NewWithT(t)
-	proxy, err := newCustomProxy("source.sock", "target.sock", "unix", StopListenerAdapter(func() {
+	tmpFolder, cleanup := genResourceFolder(t.Name())
+	defer cleanup()
+	sourceSocket, targetSocket := path.Join(tmpFolder, "source.sock"), path.Join(tmpFolder, "target.sock")
+	proxy, err := newCustomProxy(sourceSocket, targetSocket, "unix", StopListenerAdapter(func() {
 		proxyStopped = true
 	}))
 	g.Expect(err).Should(BeNil())
@@ -66,15 +77,18 @@ func TestProxyListenerCalled(t *testing.T) {
 func TestProxyListenerCalledOnDestroySocketFile(t *testing.T) {
 	proxyStopped := false
 	g := NewWithT(t)
-	proxy, err := newCustomProxy("source.sock", "target.sock", "unix", StopListenerAdapter(func() {
+	tmpFolder, cleanup := genResourceFolder(t.Name())
+	defer cleanup()
+	sourceSocket, targetSocket := path.Join(tmpFolder, "source.sock"), path.Join(tmpFolder, "target.sock")
+	proxy, err := newCustomProxy(sourceSocket, targetSocket, "unix", StopListenerAdapter(func() {
 		proxyStopped = true
 	}))
 	g.Expect(err).Should(BeNil())
 	err = proxy.Start()
 	g.Expect(err).To(BeNil())
-	err = connectAndSendMsg("source.sock")
+	err = connectAndSendMsg(sourceSocket)
 	g.Expect(err).To(BeNil())
-	err = os.Remove("source.sock")
+	err = os.Remove(sourceSocket)
 	g.Expect(err).To(BeNil())
 	for t := time.Now(); time.Since(t) < time.Second; {
 		if proxyStopped {
@@ -86,9 +100,12 @@ func TestProxyListenerCalledOnDestroySocketFile(t *testing.T) {
 
 func TestStartProxyIfSocketFileIsExist(t *testing.T) {
 	g := NewWithT(t)
-	_, err := os.Create("source.sock")
+	tmpFolder, cleanup := genResourceFolder(t.Name())
+	defer cleanup()
+	sourceSocket, targetSocket := path.Join(tmpFolder, "source.sock"), path.Join(tmpFolder, "target.sock")
+	_, err := os.Create(sourceSocket)
 	g.Expect(err).Should(BeNil())
-	proxy, err := newCustomProxy("source.sock", "target.sock", "unix", nil)
+	proxy, err := newCustomProxy(sourceSocket, targetSocket, "unix", nil)
 	g.Expect(err).Should(BeNil())
 	err = proxy.Start()
 	g.Expect(err).To(BeNil())
@@ -119,4 +136,11 @@ func connectAndSendMsg(sock string) error {
 		return err
 	}
 	return nil
+}
+
+func genResourceFolder(name string) (string, func()) {
+	dir, _ := ioutil.TempDir("", name)
+	return dir, func() {
+		_ = os.RemoveAll(dir)
+	}
 }
