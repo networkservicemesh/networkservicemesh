@@ -19,6 +19,8 @@
 package fake
 
 import (
+	"context"
+
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -31,16 +33,16 @@ import (
 
 // FakeNetworkServiceEndpoints implements NetworkServiceEndpointInterface
 type FakeNetworkServiceEndpoints struct {
-	Fake *FakeNetworkservicemeshV1alpha1
+	Fake *FakeNetworkserviceV1alpha1
 	ns   string
 }
 
-var networkserviceendpointsResource = schema.GroupVersionResource{Group: "networkservicemesh.io", Version: "v1alpha1", Resource: "networkserviceendpoints"}
+var networkserviceendpointsResource = schema.GroupVersionResource{Group: "networkservice", Version: "v1alpha1", Resource: "networkserviceendpoints"}
 
-var networkserviceendpointsKind = schema.GroupVersionKind{Group: "networkservicemesh.io", Version: "v1alpha1", Kind: "NetworkServiceEndpoint"}
+var networkserviceendpointsKind = schema.GroupVersionKind{Group: "networkservice", Version: "v1alpha1", Kind: "NetworkServiceEndpoint"}
 
 // Get takes name of the networkServiceEndpoint, and returns the corresponding networkServiceEndpoint object, and an error if there is any.
-func (c *FakeNetworkServiceEndpoints) Get(name string, options v1.GetOptions) (result *v1alpha1.NetworkServiceEndpoint, err error) {
+func (c *FakeNetworkServiceEndpoints) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.NetworkServiceEndpoint, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(networkserviceendpointsResource, c.ns, name), &v1alpha1.NetworkServiceEndpoint{})
 
@@ -51,7 +53,7 @@ func (c *FakeNetworkServiceEndpoints) Get(name string, options v1.GetOptions) (r
 }
 
 // List takes label and field selectors, and returns the list of NetworkServiceEndpoints that match those selectors.
-func (c *FakeNetworkServiceEndpoints) List(opts v1.ListOptions) (result *v1alpha1.NetworkServiceEndpointList, err error) {
+func (c *FakeNetworkServiceEndpoints) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.NetworkServiceEndpointList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(networkserviceendpointsResource, networkserviceendpointsKind, c.ns, opts), &v1alpha1.NetworkServiceEndpointList{})
 
@@ -73,14 +75,14 @@ func (c *FakeNetworkServiceEndpoints) List(opts v1.ListOptions) (result *v1alpha
 }
 
 // Watch returns a watch.Interface that watches the requested networkServiceEndpoints.
-func (c *FakeNetworkServiceEndpoints) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeNetworkServiceEndpoints) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(networkserviceendpointsResource, c.ns, opts))
 
 }
 
 // Create takes the representation of a networkServiceEndpoint and creates it.  Returns the server's representation of the networkServiceEndpoint, and an error, if there is any.
-func (c *FakeNetworkServiceEndpoints) Create(networkServiceEndpoint *v1alpha1.NetworkServiceEndpoint) (result *v1alpha1.NetworkServiceEndpoint, err error) {
+func (c *FakeNetworkServiceEndpoints) Create(ctx context.Context, networkServiceEndpoint *v1alpha1.NetworkServiceEndpoint, opts v1.CreateOptions) (result *v1alpha1.NetworkServiceEndpoint, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(networkserviceendpointsResource, c.ns, networkServiceEndpoint), &v1alpha1.NetworkServiceEndpoint{})
 
@@ -91,7 +93,7 @@ func (c *FakeNetworkServiceEndpoints) Create(networkServiceEndpoint *v1alpha1.Ne
 }
 
 // Update takes the representation of a networkServiceEndpoint and updates it. Returns the server's representation of the networkServiceEndpoint, and an error, if there is any.
-func (c *FakeNetworkServiceEndpoints) Update(networkServiceEndpoint *v1alpha1.NetworkServiceEndpoint) (result *v1alpha1.NetworkServiceEndpoint, err error) {
+func (c *FakeNetworkServiceEndpoints) Update(ctx context.Context, networkServiceEndpoint *v1alpha1.NetworkServiceEndpoint, opts v1.UpdateOptions) (result *v1alpha1.NetworkServiceEndpoint, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateAction(networkserviceendpointsResource, c.ns, networkServiceEndpoint), &v1alpha1.NetworkServiceEndpoint{})
 
@@ -103,7 +105,7 @@ func (c *FakeNetworkServiceEndpoints) Update(networkServiceEndpoint *v1alpha1.Ne
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeNetworkServiceEndpoints) UpdateStatus(networkServiceEndpoint *v1alpha1.NetworkServiceEndpoint) (*v1alpha1.NetworkServiceEndpoint, error) {
+func (c *FakeNetworkServiceEndpoints) UpdateStatus(ctx context.Context, networkServiceEndpoint *v1alpha1.NetworkServiceEndpoint, opts v1.UpdateOptions) (*v1alpha1.NetworkServiceEndpoint, error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateSubresourceAction(networkserviceendpointsResource, "status", c.ns, networkServiceEndpoint), &v1alpha1.NetworkServiceEndpoint{})
 
@@ -114,7 +116,7 @@ func (c *FakeNetworkServiceEndpoints) UpdateStatus(networkServiceEndpoint *v1alp
 }
 
 // Delete takes name of the networkServiceEndpoint and deletes it. Returns an error if one occurs.
-func (c *FakeNetworkServiceEndpoints) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeNetworkServiceEndpoints) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewDeleteAction(networkserviceendpointsResource, c.ns, name), &v1alpha1.NetworkServiceEndpoint{})
 
@@ -122,15 +124,15 @@ func (c *FakeNetworkServiceEndpoints) Delete(name string, options *v1.DeleteOpti
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeNetworkServiceEndpoints) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(networkserviceendpointsResource, c.ns, listOptions)
+func (c *FakeNetworkServiceEndpoints) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(networkserviceendpointsResource, c.ns, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1alpha1.NetworkServiceEndpointList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched networkServiceEndpoint.
-func (c *FakeNetworkServiceEndpoints) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.NetworkServiceEndpoint, err error) {
+func (c *FakeNetworkServiceEndpoints) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.NetworkServiceEndpoint, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(networkserviceendpointsResource, c.ns, name, pt, data, subresources...), &v1alpha1.NetworkServiceEndpoint{})
 

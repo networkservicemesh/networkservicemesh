@@ -16,6 +16,8 @@
 package rbac
 
 import (
+	"context"
+
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -39,13 +41,13 @@ type ClusterRole struct {
 
 // Create creates ClusterRole from clientset
 func (r *ClusterRole) Create(clientset kubernetes.Interface) error {
-	_, err := clientset.RbacV1().ClusterRoles().Create(&r.ClusterRole)
+	_, err := clientset.RbacV1().ClusterRoles().Create(context.TODO(), &r.ClusterRole, metav1.CreateOptions{})
 	return err
 }
 
 // Delete deletes ClusterRole based on name
 func (r *ClusterRole) Delete(clientset kubernetes.Interface, name string) error {
-	return clientset.RbacV1().ClusterRoles().Delete(name, &metav1.DeleteOptions{})
+	return clientset.RbacV1().ClusterRoles().Delete(context.TODO(), name, metav1.DeleteOptions{})
 }
 
 // GetName returns ClusterRole name
@@ -61,13 +63,13 @@ type ClusterRoleBinding struct {
 
 // Create creates ClusterRoleBinding from clientset
 func (r *ClusterRoleBinding) Create(clientset kubernetes.Interface) error {
-	_, err := clientset.RbacV1().ClusterRoleBindings().Create(&r.ClusterRoleBinding)
+	_, err := clientset.RbacV1().ClusterRoleBindings().Create(context.TODO(), &r.ClusterRoleBinding, metav1.CreateOptions{})
 	return err
 }
 
 // Delete deletes ClusterRoleBinding based on name
 func (r *ClusterRoleBinding) Delete(clientset kubernetes.Interface, name string) error {
-	return clientset.RbacV1().ClusterRoleBindings().Delete(name, &metav1.DeleteOptions{})
+	return clientset.RbacV1().ClusterRoleBindings().Delete(context.TODO(), name, metav1.DeleteOptions{})
 }
 
 // GetName returns ClusterRoleBinding name

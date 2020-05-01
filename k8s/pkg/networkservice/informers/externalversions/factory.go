@@ -173,9 +173,9 @@ type SharedInformerFactory interface {
 	ForResource(resource schema.GroupVersionResource) (GenericInformer, error)
 	WaitForCacheSync(stopCh <-chan struct{}) map[reflect.Type]bool
 
-	Networkservicemesh() networkservice.Interface
+	Networkservice() networkservice.Interface
 }
 
-func (f *sharedInformerFactory) Networkservicemesh() networkservice.Interface {
+func (f *sharedInformerFactory) Networkservice() networkservice.Interface {
 	return networkservice.New(f, f.namespace, f.tweakListOptions)
 }

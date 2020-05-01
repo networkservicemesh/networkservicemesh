@@ -16,6 +16,7 @@
 package crds
 
 import (
+	"context"
 	"os"
 
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -35,32 +36,32 @@ type NSCRD struct {
 
 func (nscrd *NSCRD) Create(obj *nsapiv1.NetworkService) (*nsapiv1.NetworkService, error) {
 	var result nsapiv1.NetworkService
-	err := nscrd.clientset.NetworkservicemeshV1alpha1().RESTClient().Post().
+	err := nscrd.clientset.NetworkserviceV1alpha1().RESTClient().Post().
 		Namespace(nscrd.namespace).Resource(nscrd.resource).
-		Body(obj).Do().Into(&result)
+		Body(obj).Do(context.TODO()).Into(&result)
 	return &result, err
 }
 
 func (nscrd *NSCRD) Update(obj *nsapiv1.NetworkService) (*nsapiv1.NetworkService, error) {
 	var result nsapiv1.NetworkService
-	err := nscrd.clientset.NetworkservicemeshV1alpha1().RESTClient().Put().
+	err := nscrd.clientset.NetworkserviceV1alpha1().RESTClient().Put().
 		Namespace(nscrd.namespace).Resource(nscrd.resource).
-		Body(obj).Do().Into(&result)
+		Body(obj).Do(context.TODO()).Into(&result)
 	return &result, err
 }
 
 func (nscrd *NSCRD) Delete(name string, options *metaV1.DeleteOptions) error {
-	return nscrd.clientset.NetworkservicemeshV1alpha1().RESTClient().Delete().
+	return nscrd.clientset.NetworkserviceV1alpha1().RESTClient().Delete().
 		Namespace(nscrd.namespace).Resource(nscrd.resource).
-		Name(name).Body(options).Do().
+		Name(name).Body(options).Do(context.TODO()).
 		Error()
 }
 
 func (nscrd *NSCRD) Get(name string) (*nsapiv1.NetworkService, error) {
 	var result nsapiv1.NetworkService
-	err := nscrd.clientset.NetworkservicemeshV1alpha1().RESTClient().Get().
+	err := nscrd.clientset.NetworkserviceV1alpha1().RESTClient().Get().
 		Namespace(nscrd.namespace).Resource(nscrd.resource).
-		Name(name).Do().Into(&result)
+		Name(name).Do(context.TODO()).Into(&result)
 	return &result, err
 }
 

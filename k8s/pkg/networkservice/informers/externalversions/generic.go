@@ -19,12 +19,12 @@
 package externalversions
 
 import (
-	schema "k8s.io/apimachinery/pkg/runtime/schema"
-	cache "k8s.io/client-go/tools/cache"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/tools/cache"
 
 	"github.com/pkg/errors"
 
-	v1alpha1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1alpha1"
+	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/apis/networkservice/v1alpha1"
 )
 
 // GenericInformer is type of SharedIndexInformer which will locate and delegate to other
@@ -53,13 +53,13 @@ func (f *genericInformer) Lister() cache.GenericLister {
 // TODO extend this to unknown resources with a client pool
 func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource) (GenericInformer, error) {
 	switch resource {
-	// Group=networkservicemesh.io, Version=v1alpha1
+	// Group=networkservice, Version=v1alpha1
 	case v1alpha1.SchemeGroupVersion.WithResource("networkservices"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Networkservicemesh().V1alpha1().NetworkServices().Informer()}, nil
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Networkservice().V1alpha1().NetworkServices().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("networkserviceendpoints"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Networkservicemesh().V1alpha1().NetworkServiceEndpoints().Informer()}, nil
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Networkservice().V1alpha1().NetworkServiceEndpoints().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("networkservicemanagers"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Networkservicemesh().V1alpha1().NetworkServiceManagers().Informer()}, nil
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Networkservice().V1alpha1().NetworkServiceManagers().Informer()}, nil
 
 	}
 

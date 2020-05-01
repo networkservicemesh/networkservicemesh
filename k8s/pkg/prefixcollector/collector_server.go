@@ -1,6 +1,7 @@
 package prefixcollector
 
 import (
+	"context"
 	"net"
 
 	"github.com/pkg/errors"
@@ -31,7 +32,7 @@ type keyFunc func(event watch.Event) (string, error)
 type subnetFunc func(event watch.Event) (*net.IPNet, error)
 
 func WatchPodCIDR(clientset *kubernetes.Clientset) (*SubnetWatcher, error) {
-	nodeWatcher, err := clientset.CoreV1().Nodes().Watch(metav1.ListOptions{})
+	nodeWatcher, err := clientset.CoreV1().Nodes().Watch(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		logrus.Error(err)
 		return nil, err
@@ -125,7 +126,7 @@ func newServiceWatcher(cs *kubernetes.Clientset) (watch.Interface, error) {
 	stopCh := make(chan struct{})
 
 	for _, n := range ns {
-		w, err := cs.CoreV1().Services(n).Watch(metav1.ListOptions{})
+		w, err := cs.CoreV1().Services(n).Watch(context.TODO(), metav1.ListOptions{})
 		if err != nil {
 			logrus.Errorf("Unable to watch services in %v namespace: %v", n, err)
 			close(stopCh)
@@ -151,7 +152,7 @@ func newServiceWatcher(cs *kubernetes.Clientset) (watch.Interface, error) {
 }
 
 func getNamespaces(cs *kubernetes.Clientset) ([]string, error) {
-	ns, err := cs.CoreV1().Namespaces().List(metav1.ListOptions{})
+	ns, err := cs.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}

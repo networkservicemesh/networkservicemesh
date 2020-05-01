@@ -3,9 +3,11 @@
 package integration
 
 import (
+	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
+	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/prefixcollector"
@@ -59,12 +61,12 @@ func TestExcludePrefixCheck(t *testing.T) {
 	clientset, err := k8s.GetClientSet()
 	g.Expect(err).To(BeNil())
 
-	nsc, err := clientset.CoreV1().Pods(k8s.GetK8sNamespace()).Create(pods.NSCPod("nsc", nodes[0].Node,
+	nsc, err := clientset.CoreV1().Pods(k8s.GetK8sNamespace()).Create(context.TODO(), pods.NSCPod("nsc", nodes[0].Node,
 		map[string]string{
 			"CLIENT_LABELS":          "app=icmp",
 			"CLIENT_NETWORK_SERVICE": "icmp-responder",
 		},
-	))
+	), metaV1.CreateOptions{})
 
 	defer k8s.DeletePods(nsc)
 

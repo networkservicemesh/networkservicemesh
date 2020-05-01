@@ -25,25 +25,25 @@ import (
 	v1alpha1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned/typed/networkservice/v1alpha1"
 )
 
-type FakeNetworkservicemeshV1alpha1 struct {
+type FakeNetworkserviceV1alpha1 struct {
 	*testing.Fake
 }
 
-func (c *FakeNetworkservicemeshV1alpha1) NetworkServices(namespace string) v1alpha1.NetworkServiceInterface {
+func (c *FakeNetworkserviceV1alpha1) NetworkServices(namespace string) v1alpha1.NetworkServiceInterface {
 	return &FakeNetworkServices{c, namespace}
 }
 
-func (c *FakeNetworkservicemeshV1alpha1) NetworkServiceEndpoints(namespace string) v1alpha1.NetworkServiceEndpointInterface {
+func (c *FakeNetworkserviceV1alpha1) NetworkServiceEndpoints(namespace string) v1alpha1.NetworkServiceEndpointInterface {
 	return &FakeNetworkServiceEndpoints{c, namespace}
 }
 
-func (c *FakeNetworkservicemeshV1alpha1) NetworkServiceManagers(namespace string) v1alpha1.NetworkServiceManagerInterface {
+func (c *FakeNetworkserviceV1alpha1) NetworkServiceManagers(namespace string) v1alpha1.NetworkServiceManagerInterface {
 	return &FakeNetworkServiceManagers{c, namespace}
 }
 
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
-func (c *FakeNetworkservicemeshV1alpha1) RESTClient() rest.Interface {
+func (c *FakeNetworkserviceV1alpha1) RESTClient() rest.Interface {
 	var ret *rest.RESTClient
 	return ret
 }
