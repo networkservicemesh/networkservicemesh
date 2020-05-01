@@ -141,6 +141,6 @@ func connectAndSendMsg(sock string) error {
 func genResourceFolder(name string) (string, func()) {
 	dir, _ := ioutil.TempDir("", name)
 	return dir, func() {
-		_ = os.Remove(dir)
+		_ = os.RemoveAll(dir)
 	}
 }
