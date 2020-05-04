@@ -19,6 +19,8 @@
 package fake
 
 import (
+	"context"
+
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -31,16 +33,16 @@ import (
 
 // FakeNetworkServices implements NetworkServiceInterface
 type FakeNetworkServices struct {
-	Fake *FakeNetworkservicemeshV1alpha1
+	Fake *FakeNetworkserviceV1alpha1
 	ns   string
 }
 
-var networkservicesResource = schema.GroupVersionResource{Group: "networkservicemesh.io", Version: "v1alpha1", Resource: "networkservices"}
+var networkservicesResource = schema.GroupVersionResource{Group: "networkservice", Version: "v1alpha1", Resource: "networkservices"}
 
-var networkservicesKind = schema.GroupVersionKind{Group: "networkservicemesh.io", Version: "v1alpha1", Kind: "NetworkService"}
+var networkservicesKind = schema.GroupVersionKind{Group: "networkservice", Version: "v1alpha1", Kind: "NetworkService"}
 
 // Get takes name of the networkService, and returns the corresponding networkService object, and an error if there is any.
-func (c *FakeNetworkServices) Get(name string, options v1.GetOptions) (result *v1alpha1.NetworkService, err error) {
+func (c *FakeNetworkServices) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.NetworkService, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(networkservicesResource, c.ns, name), &v1alpha1.NetworkService{})
 
@@ -51,7 +53,7 @@ func (c *FakeNetworkServices) Get(name string, options v1.GetOptions) (result *v
 }
 
 // List takes label and field selectors, and returns the list of NetworkServices that match those selectors.
-func (c *FakeNetworkServices) List(opts v1.ListOptions) (result *v1alpha1.NetworkServiceList, err error) {
+func (c *FakeNetworkServices) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.NetworkServiceList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(networkservicesResource, networkservicesKind, c.ns, opts), &v1alpha1.NetworkServiceList{})
 
@@ -73,14 +75,14 @@ func (c *FakeNetworkServices) List(opts v1.ListOptions) (result *v1alpha1.Networ
 }
 
 // Watch returns a watch.Interface that watches the requested networkServices.
-func (c *FakeNetworkServices) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeNetworkServices) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(networkservicesResource, c.ns, opts))
 
 }
 
 // Create takes the representation of a networkService and creates it.  Returns the server's representation of the networkService, and an error, if there is any.
-func (c *FakeNetworkServices) Create(networkService *v1alpha1.NetworkService) (result *v1alpha1.NetworkService, err error) {
+func (c *FakeNetworkServices) Create(ctx context.Context, networkService *v1alpha1.NetworkService, opts v1.CreateOptions) (result *v1alpha1.NetworkService, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(networkservicesResource, c.ns, networkService), &v1alpha1.NetworkService{})
 
@@ -91,7 +93,7 @@ func (c *FakeNetworkServices) Create(networkService *v1alpha1.NetworkService) (r
 }
 
 // Update takes the representation of a networkService and updates it. Returns the server's representation of the networkService, and an error, if there is any.
-func (c *FakeNetworkServices) Update(networkService *v1alpha1.NetworkService) (result *v1alpha1.NetworkService, err error) {
+func (c *FakeNetworkServices) Update(ctx context.Context, networkService *v1alpha1.NetworkService, opts v1.UpdateOptions) (result *v1alpha1.NetworkService, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateAction(networkservicesResource, c.ns, networkService), &v1alpha1.NetworkService{})
 
@@ -102,7 +104,7 @@ func (c *FakeNetworkServices) Update(networkService *v1alpha1.NetworkService) (r
 }
 
 // Delete takes name of the networkService and deletes it. Returns an error if one occurs.
-func (c *FakeNetworkServices) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeNetworkServices) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewDeleteAction(networkservicesResource, c.ns, name), &v1alpha1.NetworkService{})
 
@@ -110,15 +112,15 @@ func (c *FakeNetworkServices) Delete(name string, options *v1.DeleteOptions) err
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeNetworkServices) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(networkservicesResource, c.ns, listOptions)
+func (c *FakeNetworkServices) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(networkservicesResource, c.ns, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1alpha1.NetworkServiceList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched networkService.
-func (c *FakeNetworkServices) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.NetworkService, err error) {
+func (c *FakeNetworkServices) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.NetworkService, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(networkservicesResource, c.ns, name, pt, data, subresources...), &v1alpha1.NetworkService{})
 

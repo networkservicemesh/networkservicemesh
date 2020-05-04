@@ -26,8 +26,8 @@ import (
 	"k8s.io/client-go/testing"
 
 	clientset "github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned"
-	networkservicemeshv1alpha1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned/typed/networkservice/v1alpha1"
-	fakenetworkservicemeshv1alpha1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned/typed/networkservice/v1alpha1/fake"
+	networkservicev1alpha1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned/typed/networkservice/v1alpha1"
+	fakenetworkservicev1alpha1 "github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned/typed/networkservice/v1alpha1/fake"
 )
 
 // NewSimpleClientset returns a clientset that will respond with the provided objects.
@@ -77,7 +77,7 @@ func (c *Clientset) Tracker() testing.ObjectTracker {
 
 var _ clientset.Interface = &Clientset{}
 
-// NetworkservicemeshV1alpha1 retrieves the NetworkservicemeshV1alpha1Client
-func (c *Clientset) NetworkservicemeshV1alpha1() networkservicemeshv1alpha1.NetworkservicemeshV1alpha1Interface {
-	return &fakenetworkservicemeshv1alpha1.FakeNetworkservicemeshV1alpha1{Fake: &c.Fake}
+// NetworkserviceV1alpha1 retrieves the NetworkserviceV1alpha1Client
+func (c *Clientset) NetworkserviceV1alpha1() networkservicev1alpha1.NetworkserviceV1alpha1Interface {
+	return &fakenetworkservicev1alpha1.FakeNetworkserviceV1alpha1{Fake: &c.Fake}
 }

@@ -1,7 +1,8 @@
 package proxyregistryserver
 
 import (
-	"golang.org/x/net/context"
+	"context"
+
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -30,7 +31,7 @@ func NewK8sClusterInfoService(config *rest.Config) (clusterinfo.ClusterInfoServe
 }
 
 func (k *k8sClusterInfo) GetNodeIPConfiguration(ctx context.Context, nodeIPConfiguration *clusterinfo.NodeIPConfiguration) (*clusterinfo.NodeIPConfiguration, error) {
-	nodes, err := k.clientset.CoreV1().Nodes().List(metav1.ListOptions{})
+	nodes, err := k.clientset.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}

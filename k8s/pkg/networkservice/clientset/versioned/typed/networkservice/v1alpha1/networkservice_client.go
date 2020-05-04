@@ -25,32 +25,32 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/k8s/pkg/networkservice/clientset/versioned/scheme"
 )
 
-type NetworkservicemeshV1alpha1Interface interface {
+type NetworkserviceV1alpha1Interface interface {
 	RESTClient() rest.Interface
 	NetworkServicesGetter
 	NetworkServiceEndpointsGetter
 	NetworkServiceManagersGetter
 }
 
-// NetworkservicemeshV1alpha1Client is used to interact with features provided by the networkservicemesh.io group.
-type NetworkservicemeshV1alpha1Client struct {
+// NetworkserviceV1alpha1Client is used to interact with features provided by the networkservice group.
+type NetworkserviceV1alpha1Client struct {
 	restClient rest.Interface
 }
 
-func (c *NetworkservicemeshV1alpha1Client) NetworkServices(namespace string) NetworkServiceInterface {
+func (c *NetworkserviceV1alpha1Client) NetworkServices(namespace string) NetworkServiceInterface {
 	return newNetworkServices(c, namespace)
 }
 
-func (c *NetworkservicemeshV1alpha1Client) NetworkServiceEndpoints(namespace string) NetworkServiceEndpointInterface {
+func (c *NetworkserviceV1alpha1Client) NetworkServiceEndpoints(namespace string) NetworkServiceEndpointInterface {
 	return newNetworkServiceEndpoints(c, namespace)
 }
 
-func (c *NetworkservicemeshV1alpha1Client) NetworkServiceManagers(namespace string) NetworkServiceManagerInterface {
+func (c *NetworkserviceV1alpha1Client) NetworkServiceManagers(namespace string) NetworkServiceManagerInterface {
 	return newNetworkServiceManagers(c, namespace)
 }
 
-// NewForConfig creates a new NetworkservicemeshV1alpha1Client for the given config.
-func NewForConfig(c *rest.Config) (*NetworkservicemeshV1alpha1Client, error) {
+// NewForConfig creates a new NetworkserviceV1alpha1Client for the given config.
+func NewForConfig(c *rest.Config) (*NetworkserviceV1alpha1Client, error) {
 	config := *c
 	if err := setConfigDefaults(&config); err != nil {
 		return nil, err
@@ -59,12 +59,12 @@ func NewForConfig(c *rest.Config) (*NetworkservicemeshV1alpha1Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &NetworkservicemeshV1alpha1Client{client}, nil
+	return &NetworkserviceV1alpha1Client{client}, nil
 }
 
-// NewForConfigOrDie creates a new NetworkservicemeshV1alpha1Client for the given config and
+// NewForConfigOrDie creates a new NetworkserviceV1alpha1Client for the given config and
 // panics if there is an error in the config.
-func NewForConfigOrDie(c *rest.Config) *NetworkservicemeshV1alpha1Client {
+func NewForConfigOrDie(c *rest.Config) *NetworkserviceV1alpha1Client {
 	client, err := NewForConfig(c)
 	if err != nil {
 		panic(err)
@@ -72,9 +72,9 @@ func NewForConfigOrDie(c *rest.Config) *NetworkservicemeshV1alpha1Client {
 	return client
 }
 
-// New creates a new NetworkservicemeshV1alpha1Client for the given RESTClient.
-func New(c rest.Interface) *NetworkservicemeshV1alpha1Client {
-	return &NetworkservicemeshV1alpha1Client{c}
+// New creates a new NetworkserviceV1alpha1Client for the given RESTClient.
+func New(c rest.Interface) *NetworkserviceV1alpha1Client {
+	return &NetworkserviceV1alpha1Client{c}
 }
 
 func setConfigDefaults(config *rest.Config) error {
@@ -92,7 +92,7 @@ func setConfigDefaults(config *rest.Config) error {
 
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
-func (c *NetworkservicemeshV1alpha1Client) RESTClient() rest.Interface {
+func (c *NetworkserviceV1alpha1Client) RESTClient() rest.Interface {
 	if c == nil {
 		return nil
 	}

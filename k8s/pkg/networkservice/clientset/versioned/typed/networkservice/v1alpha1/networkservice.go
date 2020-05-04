@@ -19,6 +19,7 @@
 package v1alpha1
 
 import (
+	"context"
 	"time"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -38,14 +39,14 @@ type NetworkServicesGetter interface {
 
 // NetworkServiceInterface has methods to work with NetworkService resources.
 type NetworkServiceInterface interface {
-	Create(*v1alpha1.NetworkService) (*v1alpha1.NetworkService, error)
-	Update(*v1alpha1.NetworkService) (*v1alpha1.NetworkService, error)
-	Delete(name string, options *v1.DeleteOptions) error
-	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
-	Get(name string, options v1.GetOptions) (*v1alpha1.NetworkService, error)
-	List(opts v1.ListOptions) (*v1alpha1.NetworkServiceList, error)
-	Watch(opts v1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.NetworkService, err error)
+	Create(ctx context.Context, networkService *v1alpha1.NetworkService, opts v1.CreateOptions) (*v1alpha1.NetworkService, error)
+	Update(ctx context.Context, networkService *v1alpha1.NetworkService, opts v1.UpdateOptions) (*v1alpha1.NetworkService, error)
+	Delete(ctx context.Context, name string, opts v1.DeleteOptions) error
+	DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error
+	Get(ctx context.Context, name string, opts v1.GetOptions) (*v1alpha1.NetworkService, error)
+	List(ctx context.Context, opts v1.ListOptions) (*v1alpha1.NetworkServiceList, error)
+	Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.NetworkService, err error)
 	NetworkServiceExpansion
 }
 
@@ -56,7 +57,7 @@ type networkServices struct {
 }
 
 // newNetworkServices returns a NetworkServices
-func newNetworkServices(c *NetworkservicemeshV1alpha1Client, namespace string) *networkServices {
+func newNetworkServices(c *NetworkserviceV1alpha1Client, namespace string) *networkServices {
 	return &networkServices{
 		client: c.RESTClient(),
 		ns:     namespace,
@@ -64,20 +65,20 @@ func newNetworkServices(c *NetworkservicemeshV1alpha1Client, namespace string) *
 }
 
 // Get takes name of the networkService, and returns the corresponding networkService object, and an error if there is any.
-func (c *networkServices) Get(name string, options v1.GetOptions) (result *v1alpha1.NetworkService, err error) {
+func (c *networkServices) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.NetworkService, err error) {
 	result = &v1alpha1.NetworkService{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("networkservices").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // List takes label and field selectors, and returns the list of NetworkServices that match those selectors.
-func (c *networkServices) List(opts v1.ListOptions) (result *v1alpha1.NetworkServiceList, err error) {
+func (c *networkServices) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.NetworkServiceList, err error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -88,13 +89,13 @@ func (c *networkServices) List(opts v1.ListOptions) (result *v1alpha1.NetworkSer
 		Resource("networkservices").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested networkServices.
-func (c *networkServices) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *networkServices) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -105,71 +106,74 @@ func (c *networkServices) Watch(opts v1.ListOptions) (watch.Interface, error) {
 		Resource("networkservices").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Watch()
+		Watch(ctx)
 }
 
 // Create takes the representation of a networkService and creates it.  Returns the server's representation of the networkService, and an error, if there is any.
-func (c *networkServices) Create(networkService *v1alpha1.NetworkService) (result *v1alpha1.NetworkService, err error) {
+func (c *networkServices) Create(ctx context.Context, networkService *v1alpha1.NetworkService, opts v1.CreateOptions) (result *v1alpha1.NetworkService, err error) {
 	result = &v1alpha1.NetworkService{}
 	err = c.client.Post().
 		Namespace(c.ns).
 		Resource("networkservices").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(networkService).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Update takes the representation of a networkService and updates it. Returns the server's representation of the networkService, and an error, if there is any.
-func (c *networkServices) Update(networkService *v1alpha1.NetworkService) (result *v1alpha1.NetworkService, err error) {
+func (c *networkServices) Update(ctx context.Context, networkService *v1alpha1.NetworkService, opts v1.UpdateOptions) (result *v1alpha1.NetworkService, err error) {
 	result = &v1alpha1.NetworkService{}
 	err = c.client.Put().
 		Namespace(c.ns).
 		Resource("networkservices").
 		Name(networkService.Name).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(networkService).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Delete takes name of the networkService and deletes it. Returns an error if one occurs.
-func (c *networkServices) Delete(name string, options *v1.DeleteOptions) error {
+func (c *networkServices) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("networkservices").
 		Name(name).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *networkServices) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+func (c *networkServices) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
 	var timeout time.Duration
-	if listOptions.TimeoutSeconds != nil {
-		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	if listOpts.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
 	}
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("networkservices").
-		VersionedParams(&listOptions, scheme.ParameterCodec).
+		VersionedParams(&listOpts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // Patch applies the patch and returns the patched networkService.
-func (c *networkServices) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.NetworkService, err error) {
+func (c *networkServices) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.NetworkService, err error) {
 	result = &v1alpha1.NetworkService{}
 	err = c.client.Patch(pt).
 		Namespace(c.ns).
 		Resource("networkservices").
-		SubResource(subresources...).
 		Name(name).
+		SubResource(subresources...).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(data).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }

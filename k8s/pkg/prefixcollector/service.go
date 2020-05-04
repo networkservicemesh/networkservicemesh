@@ -1,6 +1,7 @@
 package prefixcollector
 
 import (
+	"context"
 	"strings"
 	"sync"
 	"time"
@@ -85,13 +86,13 @@ func (ps *prefixService) monitorExcludedPrefixes(clientset *kubernetes.Clientset
 }
 
 func updateExcludedPrefixesConfigmap(configMaps v1.ConfigMapInterface, prefixes []string) bool {
-	cm, err := configMaps.Get(configMapName, metav1.GetOptions{})
+	cm, err := configMaps.Get(context.TODO(), configMapName, metav1.GetOptions{})
 	if err != nil {
 		logrus.Errorf("Failed to get ConfigMap '%s/%s': %v", common.GetNamespace(), configMapName, err)
 		return false
 	}
 	cm.Data[prefix_pool.PrefixesFile] = buildPrefixesYaml(prefixes)
-	cm, err = configMaps.Update(cm)
+	_, err = configMaps.Update(context.TODO(), cm, metav1.UpdateOptions{})
 	if err != nil {
 		logrus.Errorf("Failed to update ConfigMap: %v", err)
 		return false
