@@ -125,12 +125,19 @@ func (rs *nseRegistryService) BulkRegisterNSE(srv registry.NetworkServiceRegistr
 
 	remoteRegistry := nsmd.NewServiceRegistryAt(nsmrsURL)
 	defer remoteRegistry.Stop()
+	const maxReconnectAttempts = 10
+	attempt := 0
 
 	for {
 		stream, err := requestBulkRegisterNSEStream(ctx, remoteRegistry, nsmrsURL)
 		if err != nil {
 			logger.Warnf("Cannot connect to Registry Server %s : %v", nsmrsURL, err)
-			<-time.After(NSMRSReconnectInterval)
+			if attempt+1 == maxReconnectAttempts {
+				return err
+			} else {
+				<-time.After(NSMRSReconnectInterval)
+			}
+			attempt++
 			continue
 		}
 
