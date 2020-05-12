@@ -134,9 +134,8 @@ func (rs *nseRegistryService) BulkRegisterNSE(srv registry.NetworkServiceRegistr
 			logger.Warnf("Cannot connect to Registry Server %s : %v", nsmrsURL, err)
 			if attempt+1 == maxReconnectAttempts {
 				return err
-			} else {
-				<-time.After(NSMRSReconnectInterval)
 			}
+			<-time.After(NSMRSReconnectInterval)
 			attempt++
 			continue
 		}
