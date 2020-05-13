@@ -143,7 +143,13 @@ func StartNSMDTracking(ctx context.Context, rc *nseRegistryCache) {
 	go func() {
 		for {
 			<-time.After(rc.nseExpirationTimeout / 2)
+			rc.RLock()
+			var endpoints = map[string]*registry.NSERegistration{}
 			for endpointName, endpoint := range rc.endpoints {
+				endpoints[endpointName] = endpoint
+			}
+			rc.RUnlock()
+			for endpointName, endpoint := range endpoints {
 				if endpoint.NetworkServiceManager.ExpirationTime.Seconds < time.Now().Unix() {
 					nse, err := rc.DeleteNetworkServiceEndpoint(endpointName)
 					if err != nil {
