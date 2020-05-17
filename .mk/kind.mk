@@ -23,7 +23,7 @@ kind-config:
 
 .PHONY: kind-install
 kind-install:
-	GO111MODULE="on" go get -u sigs.k8s.io/kind@master
+	GO111MODULE="on" go get -u sigs.k8s.io/kind@v0.8.1
 
 .PHONY: kind-start
 kind-start: kind-config
