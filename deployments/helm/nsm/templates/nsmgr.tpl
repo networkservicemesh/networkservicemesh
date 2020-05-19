@@ -51,6 +51,8 @@ spec:
               value: jaeger.nsm-system
             - name: JAEGER_AGENT_PORT
               value: "6831"
+            - name: PREFERRED_REMOTE_MECHANISM
+              value: {{ .Values.preferredRemoteMechanism | quote }}
           volumeMounts:
             - name: nsm-socket
               mountPath: /var/lib/networkservicemesh
