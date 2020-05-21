@@ -21,10 +21,12 @@ import (
 	"sync"
 
 	"github.com/sirupsen/logrus"
+
+	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
+
 	"google.golang.org/grpc"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/networkservice"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
 
 // NsmConnection is a NSM manager connection
