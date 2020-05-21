@@ -42,14 +42,14 @@ type NsmClientList struct {
 }
 
 // Connect will create new interfaces with the specified name and mechanism
-func (nsmcl *NsmClientList) Connect(ctx context.Context, name, mechanism, description string) error {
-	return nsmcl.ConnectRetry(ctx, name, mechanism, description, 0, 0)
+func (l *NsmClientList) Connect(ctx context.Context, name, mechanism, description string) error {
+	return l.ConnectRetry(ctx, name, mechanism, description, 0, 0)
 }
 
 // Connect will create new interfaces with the specified name and mechanism
-func (nsmcl *NsmClientList) ConnectRetry(ctx context.Context, name, mechanism, description string, retryCount int, retryDelay time.Duration) error {
-	for idx := range nsmcl.clients {
-		entry := &nsmcl.clients[idx]
+func (l *NsmClientList) ConnectRetry(ctx context.Context, name, mechanism, description string, retryCount int, retryDelay time.Duration) error {
+	for idx := range l.clients {
+		entry := &l.clients[idx]
 		if entry.client.NsmConnection.Configuration.PodName != "" &&
 			entry.client.ClientLabels[connection.PodNameKey] == "" {
 			entry.client.ClientLabels[connection.PodNameKey] = entry.client.NsmConnection.Configuration.PodName
@@ -68,9 +68,9 @@ func (nsmcl *NsmClientList) ConnectRetry(ctx context.Context, name, mechanism, d
 }
 
 // Close terminates all connections establised by Connect
-func (nsmcl *NsmClientList) Close(ctx context.Context) error {
-	for i := range nsmcl.clients {
-		entry := &nsmcl.clients[i]
+func (l *NsmClientList) Close(ctx context.Context) error {
+	for i := range l.clients {
+		entry := &l.clients[i]
 		for _, connection := range entry.connections {
 			err := entry.client.Close(ctx, connection)
 			if err != nil {
@@ -82,10 +82,10 @@ func (nsmcl *NsmClientList) Close(ctx context.Context) error {
 }
 
 // Destroy terminates all clients
-func (nsmcl *NsmClientList) Destroy(ctx context.Context) error {
+func (l *NsmClientList) Destroy(ctx context.Context) error {
 	var err error
-	for i := range nsmcl.clients {
-		entry := &nsmcl.clients[i]
+	for i := range l.clients {
+		entry := &l.clients[i]
 		derr := entry.client.Destroy(ctx)
 		if derr != nil {
 			err = pkgerrors.Wrap(err, derr.Error())
@@ -129,4 +129,13 @@ func NewNSMClientList(ctx context.Context, configuration *common.NSConfiguration
 	return &NsmClientList{
 		clients: clients,
 	}, nil
+}
+
+// Clients returns NsmClients of NsmClientList
+func (l *NsmClientList) Clients() []*NsmClient {
+	var result []*NsmClient
+	for _, c := range l.clients {
+		result = append(result, c.client)
+	}
+	return result
 }

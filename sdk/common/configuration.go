@@ -119,16 +119,13 @@ func (configuration *NSConfiguration) FromEnv() *NSConfiguration {
 	return configuration
 }
 
-func FromNSUrl(url *tools.NSUrl) *NSConfiguration {
-	return (&NSConfiguration{}).FromNSUrl(url)
-}
-
 func (configuration *NSConfiguration) FromNSUrl(url *tools.NSUrl) *NSConfiguration {
-	if configuration == nil {
-		return nil
+	var result NSConfiguration
+	if configuration != nil {
+		result = *configuration
 	}
-	configuration.ClientNetworkService = url.NsName
-	configuration.NscInterfaceName = url.Intf
+	result.ClientNetworkService = url.NsName
+	result.NscInterfaceName = url.Intf
 	var labels strings.Builder
 	separator := false
 	for k, v := range url.Params {
@@ -141,8 +138,8 @@ func (configuration *NSConfiguration) FromNSUrl(url *tools.NSUrl) *NSConfigurati
 		labels.WriteRune('=')
 		labels.WriteString(v[0])
 	}
-	configuration.ClientLabels = labels.String()
-	return configuration
+	result.ClientLabels = labels.String()
+	return &result
 }
 
 func GetNamespace() string {
