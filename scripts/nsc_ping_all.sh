@@ -91,4 +91,4 @@ done
 
 echo
 echo "Done, $ERR_COUNT errors"
-exit ${ERR_COUNT}
+exit "${ERR_COUNT}"
