@@ -4,8 +4,8 @@
 make k8s-deconfig
 read -r -a HELM_TEST_OPTS < <(make helm-test-opts)
 
-helm install deployments/helm/nsm "${HELM_TEST_OPTS[@]}" || exit $?
-helm install deployments/helm/vpn "${HELM_TEST_OPTS[@]}" || exit $?
+helm install nsm deployments/helm/nsm "${HELM_TEST_OPTS[@]}" || exit $?
+helm install vpn deployments/helm/vpn "${HELM_TEST_OPTS[@]}" || exit $?
 
 make k8s-vpn-check || exit $?
 
