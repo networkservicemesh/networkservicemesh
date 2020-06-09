@@ -125,6 +125,9 @@ issues:
     - path: cloudtest/pkg/utils/process.go
       linters:
         - gosec
+    - path: client/clientlist.go
+      linters:
+        - prealloc  # go allows using nil slice for appending. We should ignore the linter warning.
     - path: cloudtest/pkg/commands/main.go
       linters:
         - gosec

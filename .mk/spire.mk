@@ -18,11 +18,11 @@ else
 selfSignedCA = false
 endif
 
-.PHONY: spire-install
-spire-install:
+define spire_install
 	$(info Self Signed CA = $(selfSignedCA))
-	@if ! helm install --name=spire \
-	--wait --timeout 600 \
+	@kubectl get ns spire > /dev/null 2>&1 || kubectl create ns spire
+	if ! helm install spire --namespace spire \
+	--atomic $1 \
 	--set org="${CONTAINER_REPO}",tag="${CONTAINER_TAG}" \
 	--set selfSignedCA="${selfSignedCA}",caDir="${CA_DIR}" \
 	deployments/helm/nsm/charts/spire ; then \
@@ -30,17 +30,17 @@ spire-install:
 		kubectl get pods --all-namespaces; \
 		kubectl describe pod spire --namespace spire; \
 	fi
+endef
+
+.PHONY: spire-install
+spire-install:
+	$(call spire_install)
 
 # temporary workaround for azure
 .PHONY: spire-install-azure
 spire-install-azure:
-	helm install --name=spire \
-	--wait --timeout 300 \
-	--set org="${CONTAINER_REPO}",tag="${CONTAINER_TAG}" \
-	--set selfSignedCA="${selfSignedCA}",caDir="${CA_DIR}" \
-	--set azure.enabled=true \
-	deployments/helm/nsm/charts/spire
+	$(call spire_install, --set azure=true)
 
 .PHONY: spire-delete
 spire-delete:
-	helm delete --purge spire
+	helm uninstall spire --namespace spire

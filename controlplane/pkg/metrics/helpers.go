@@ -25,10 +25,10 @@ import (
 
 // GetMetricsIdentifiers returns source and destination
 // of the metrics specified with `pod` name and `namespace`
-func GetMetricsIdentifiers(crossConnect *crossconnect.CrossConnect) (map[string]string, error) {
+func GetMetricsIdentifiers(crossConnect *crossconnect.CrossConnect) (string, map[string]string, error) {
 	srcPod, srcNamespace, dstPod, dstNamespace := "", "", "", ""
 	if crossConnect.GetSource() == nil {
-		return nil, errors.Errorf("error: crossConnect should have at least one source, %v", crossConnect)
+		return "", nil, errors.Errorf("error: crossConnect should have at least one source, %v", crossConnect)
 	}
 
 	ccSrcLabels := crossConnect.GetSource().GetLabels()
@@ -36,7 +36,7 @@ func GetMetricsIdentifiers(crossConnect *crossconnect.CrossConnect) (map[string]
 	srcNamespace = ccSrcLabels[connection.NamespaceKey]
 
 	if crossConnect.GetDestination() == nil {
-		return nil, errors.Errorf("error: crossConnect should have at least one destination, %v", crossConnect)
+		return "", nil, errors.Errorf("error: crossConnect should have at least one destination, %v", crossConnect)
 	}
 
 	ccDstLabels := crossConnect.GetDestination().GetLabels()
@@ -50,5 +50,5 @@ func GetMetricsIdentifiers(crossConnect *crossconnect.CrossConnect) (map[string]
 		DstNamespaceKey: dstNamespace,
 	}
 
-	return res, nil
+	return crossConnect.Id, res, nil
 }

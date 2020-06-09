@@ -4,10 +4,10 @@
 make k8s-deconfig
 read -r -a HELM_TEST_OPTS < <(make helm-test-opts)
 
-helm install deployments/helm/nsm "${HELM_TEST_OPTS[@]}" || exit $?
-helm install deployments/helm/endpoint "${HELM_TEST_OPTS[@]}" || exit $?
-helm install deployments/helm/client "${HELM_TEST_OPTS[@]}" || exit $?
-helm install deployments/helm/crossconnect-monitor "${HELM_TEST_OPTS[@]}" || exit $?
+helm install nsm deployments/helm/nsm "${HELM_TEST_OPTS[@]}" || exit $?
+helm install endpoint deployments/helm/endpoint "${HELM_TEST_OPTS[@]}" || exit $?
+helm install client deployments/helm/client "${HELM_TEST_OPTS[@]}" || exit $?
+helm install crossconnect-monitor deployments/helm/crossconnect-monitor "${HELM_TEST_OPTS[@]}" || exit $?
 
 make k8s-crossconnect-monitor-check || exit $?
 

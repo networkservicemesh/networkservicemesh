@@ -41,7 +41,7 @@ spec:
             - name: TAG
               value: "{{ .Values.tag }}"
             - name: NSM_NAMESPACE
-              value: "nsm-system"
+              value: "{{ .Values.clientNamespace }}"
             - name: TRACER_ENABLED
               value: {{ .Values.global.JaegerTracing | default false | quote }}
             - name: JAEGER_AGENT_HOST

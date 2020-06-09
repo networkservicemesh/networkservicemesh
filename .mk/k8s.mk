@@ -54,11 +54,12 @@ k8s-%-load-images:  k8s-start $(CLUSTER_RULES_PREFIX)-%-load-images
 
 .PHONY: k8s-config
 k8s-config:
-	helm --namespace ${NSM_NAMESPACE} install --name config deployments/helm/nsm/charts/config
+	@$(kubectl) get ns ${NSM_NAMESPACE} > /dev/null 2>&1 || $(kubectl) create ns ${NSM_NAMESPACE}
+	helm --namespace ${NSM_NAMESPACE} install config deployments/helm/nsm/charts/config
 
 .PHONY: k8s-deconfig
 k8s-deconfig:
-	helm delete config --purge || true
+	helm uninstall config --namespace ${NSM_NAMESPACE} || true
 
 .PHONY: k8s-start
 k8s-start: $(CLUSTER_RULES_PREFIX)-start

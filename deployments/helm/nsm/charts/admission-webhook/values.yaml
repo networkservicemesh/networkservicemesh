@@ -7,3 +7,4 @@ registry: docker.io
 org: networkservicemesh
 tag: master
 pullPolicy: IfNotPresent
+clientNamespace: nsm-system

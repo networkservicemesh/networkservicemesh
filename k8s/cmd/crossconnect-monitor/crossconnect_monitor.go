@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -28,7 +27,7 @@ import (
 var closing = false
 var managers = map[string]string{}
 
-func monitorCrossConnects(address string, continuousMonitor bool) {
+func monitorCrossConnects(address string, continuousMonitor bool, cache map[string]string) {
 	var err error
 	logrus.Infof("Starting CrossConnections Monitor on %s", address)
 	conn, err := tools.DialTCP(address)
@@ -46,6 +45,11 @@ func monitorCrossConnects(address string, continuousMonitor bool) {
 		logrus.Warningf("Error: %+v.", err)
 		return
 	}
+
+	if _, ok := cache["prometheus"]; !ok {
+		cache["prometheus"] = "off"
+	}
+
 	t := proto.TextMarshaler{}
 	for {
 		event, err := stream.Recv()
@@ -62,16 +66,8 @@ func monitorCrossConnects(address string, continuousMonitor bool) {
 		}
 		println(data)
 
-		prom, err := tools.ReadEnvBool(metricspkg.PrometheusEnv, metricspkg.PrometheusDefault)
-		if err == nil && prom && event.Type == crossconnect.CrossConnectEventType_UPDATE {
-			metrics, metricsIdentifiers, errm := getMetrics(event)
-			if errm != nil {
-				logrus.Infof("failed to get metrics: %v", err)
-			} else {
-				servePrometheus(metricsIdentifiers, metrics)
-			}
-		} else {
-			logrus.Infof("failed to serve prometheus: env PROMETHEUS=%t, err: %v", prom, err)
+		if event.Type == crossconnect.CrossConnectEventType_UPDATE && cache["prometheus"] == "on" {
+			trackMetrics(event)
 		}
 		if !continuousMonitor {
 			logrus.Infof("Monitoring of server: %s. is complete...", address)
@@ -96,36 +92,46 @@ func servePrometheus(metricsIdentifiers map[string]string, metricsData *crosscon
 	}
 }
 
-func getMetrics(event *crossconnect.CrossConnectEvent) (*crossconnect.Metrics, map[string]string, error) {
+func getCrossConnectMetricsMap(event *crossconnect.CrossConnectEvent) map[string]map[string]string {
+	crossConnectMetricsMap := map[string]map[string]string{}
+	for _, cc := range event.CrossConnects {
+		ccID, metricsIdentifiers, err := metricspkg.GetMetricsIdentifiers(cc)
+
+		if err != nil {
+			logrus.Warningf("failed to get metric identifier: %v", err)
+		}
+		crossConnectMetricsMap[ccID] = metricsIdentifiers
+	}
+	return crossConnectMetricsMap
+}
+
+func trackMetrics(event *crossconnect.CrossConnectEvent) {
+	crossConnectMetricsMap := getCrossConnectMetricsMap(event)
+	if len(crossConnectMetricsMap) == 0 {
+		logrus.Infof("failed to get cross-connect metrics map from event: %v", event)
+	}
+
 	// event Metrics contain single key-value of type
 	// SRC/DTS + cross connect Id and metrics map
 	for metricName, metrics := range event.Metrics {
 		// Specifying cross connect by `crossConnectID`, parsed from `metricName`.
 		// `communicationSide` can be 'SRC' or 'DST' in order to apply metrics
 		// data to the cross connection source or destination respectively.
-		crossConnectID, communicationSide, err := parseMetricName(metricName)
+		ccID, communicationSide, err := parseMetricName(metricName)
 		if err != nil {
-			return nil, nil, errors.Errorf("failed to get metrics: %v", err)
-		}
-
-		metricsIdentifiers := map[string]string{}
-		for _, cc := range event.CrossConnects {
-			if cc.Id == crossConnectID {
-				metricsIdentifiers, err = metricspkg.GetMetricsIdentifiers(cc)
-				if err != nil {
-					logrus.Infof("Failed to get metric identifier: %v", err)
-				}
-			}
-		}
-		if len(metricsIdentifiers) == 0 {
-			return nil, nil, errors.Errorf("failed to find crossConnect for metrics: %s", metricName)
+			logrus.Warningf("error parsing metric name: %v", errors.Errorf("failed to get metrics: %v", err))
 		}
 
 		switch communicationSide {
 		case "SRC":
+			servePrometheus(crossConnectMetricsMap[ccID], metrics)
 			continue
 		case "DST":
-			originalMetricsIdentifiers := metricsIdentifiers
+			originalMetricsIdentifiers := map[string]string{}
+			for k, v := range crossConnectMetricsMap[ccID] {
+				originalMetricsIdentifiers[k] = v
+			}
+
 			// In cross connect source/destination represent client/endpoint.
 			// When metrics are attached to event, they represent specific
 			// cross connect by Id and client or endpoint by "SRC" or "DST" respectively.
@@ -133,16 +139,16 @@ func getMetrics(event *crossconnect.CrossConnectEvent) (*crossconnect.Metrics, m
 			// for specific connection, as people would consider src/dst as src/dst of a
 			// connection traffic. This is why we want to track the metrics from the user
 			// perspective and when they are from "DST" to apply that as traffic source.
-			metricsIdentifiers[metricspkg.SrcPodKey] = originalMetricsIdentifiers[metricspkg.DstPodKey]
-			metricsIdentifiers[metricspkg.SrcNamespaceKey] = originalMetricsIdentifiers[metricspkg.DstNamespaceKey]
-			metricsIdentifiers[metricspkg.DstPodKey] = originalMetricsIdentifiers[metricspkg.SrcPodKey]
-			metricsIdentifiers[metricspkg.DstNamespaceKey] = originalMetricsIdentifiers[metricspkg.SrcNamespaceKey]
+			crossConnectMetricsMap[ccID][metricspkg.SrcPodKey] = originalMetricsIdentifiers[metricspkg.DstPodKey]
+			crossConnectMetricsMap[ccID][metricspkg.SrcNamespaceKey] = originalMetricsIdentifiers[metricspkg.DstNamespaceKey]
+			crossConnectMetricsMap[ccID][metricspkg.DstPodKey] = originalMetricsIdentifiers[metricspkg.SrcPodKey]
+			crossConnectMetricsMap[ccID][metricspkg.DstNamespaceKey] = originalMetricsIdentifiers[metricspkg.SrcNamespaceKey]
+			servePrometheus(crossConnectMetricsMap[ccID], metrics)
 		default:
-			return nil, nil, errors.Errorf("error: communication side should be 'SRC' or 'DST', but got %s", communicationSide)
+			logrus.Warningf("error parsing metric: %v", errors.Errorf("error: communication side should be 'SRC' or 'DST', but got %s", communicationSide))
 		}
-		return metrics, metricsIdentifiers, nil
 	}
-	return nil, nil, errors.Errorf("no metrics available in event: %v", event)
+	logrus.Infof("no metrics available in event: %v", event)
 }
 
 func parseMetricName(metricName string) (string, string, error) {
@@ -152,9 +158,6 @@ func parseMetricName(metricName string) (string, string, error) {
 	}
 	if metricNameSlice[0] != "SRC" && metricNameSlice[0] != "DST" {
 		return "", "", errors.Errorf("metric key should be SRC or DST, but got: %s", metricNameSlice[0])
-	}
-	if _, err := strconv.Atoi(metricNameSlice[1]); err != nil {
-		return "", "", errors.Errorf("cross connect id should be integer number, but got: %s", metricNameSlice[1])
 	}
 	// Returning crossConnect id and SRC/DST
 	return metricNameSlice[1], metricNameSlice[0], nil
@@ -185,6 +188,14 @@ func lookForNSMServers() {
 		logrus.Fatalln("Unable to initialize nsmd-k8s", err)
 	}
 
+	cache := map[string]string{}
+	prom, err := tools.ReadEnvBool(metricspkg.PrometheusEnv, metricspkg.PrometheusDefault)
+	if err != nil {
+		logrus.Warningf("failed to serve prometheus: env PROMETHEUS=%t, err: %v", prom, err)
+	} else if prom {
+		cache["prometheus"] = "on"
+	}
+
 	nsmNamespace := namespace.GetNamespace()
 	for !closing {
 		result, err := nsmClientSet.NetworkserviceV1alpha1().NetworkServiceManagers(nsmNamespace).List(context.TODO(), metav1.ListOptions{})
@@ -196,7 +207,7 @@ func lookForNSMServers() {
 			if _, ok := managers[mgr.Spec.URL]; !ok {
 				logrus.Printf("Adding manager: %s at %s", mgr.Name, mgr.Spec.URL)
 				managers[mgr.Spec.URL] = "true"
-				go monitorCrossConnects(mgr.Spec.URL, true)
+				go monitorCrossConnects(mgr.Spec.URL, true, cache)
 			}
 		}
 		time.Sleep(time.Second)

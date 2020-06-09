@@ -75,6 +75,7 @@ func (rc *nseRegistryCache) AddNetworkServiceEndpoint(entry *registry.NSERegistr
 }
 
 func (rc *nseRegistryCache) addNetworkServiceEndpoint(entry *registry.NSERegistration) (*registry.NSERegistration, error) {
+	logrus.Infof("Start adding network service endpoint %v", entry)
 	if endpoint, ok := rc.endpoints[entry.NetworkServiceEndpoint.Name]; ok {
 		return nil, errors.Errorf("network service endpoint with name %s already exists: old: %v; new: %v", endpoint.NetworkServiceEndpoint.Name, endpoint, entry)
 	}
@@ -104,7 +105,10 @@ func (rc *nseRegistryCache) UpdateNetworkServiceEndpoint(nse *registry.NSERegist
 		if endpoint.NetworkServiceManager.Name != nse.NetworkServiceManager.Name {
 			return nil, errors.Errorf("network service endpoint with name %s already registered from different NSM: old: %v; new: %v", endpoint.NetworkServiceEndpoint.Name, endpoint, nse)
 		}
-		endpoint.NetworkServiceManager.ExpirationTime = &timestamp.Timestamp{Seconds: time.Now().Add(rc.nseExpirationTimeout).Unix()}
+		before := endpoint.NetworkServiceManager.ExpirationTime
+		after := &timestamp.Timestamp{Seconds: time.Now().Add(rc.nseExpirationTimeout).Unix()}
+		endpoint.NetworkServiceManager.ExpirationTime = after
+		logrus.Infof("Updated expiration time %v -> %v for entry %v.", before, after, endpoint)
 		return endpoint, nil
 	}
 
@@ -143,7 +147,14 @@ func StartNSMDTracking(ctx context.Context, rc *nseRegistryCache) {
 	go func() {
 		for {
 			<-time.After(rc.nseExpirationTimeout / 2)
+			rc.RLock()
+			var endpoints = map[string]*registry.NSERegistration{}
 			for endpointName, endpoint := range rc.endpoints {
+				logrus.Infof("Preparing endpoint: %v", endpoint)
+				endpoints[endpointName] = endpoint
+			}
+			rc.RUnlock()
+			for endpointName, endpoint := range endpoints {
 				if endpoint.NetworkServiceManager.ExpirationTime.Seconds < time.Now().Unix() {
 					nse, err := rc.DeleteNetworkServiceEndpoint(endpointName)
 					if err != nil {
