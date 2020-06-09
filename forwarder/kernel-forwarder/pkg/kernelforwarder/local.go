@@ -71,8 +71,8 @@ func (k *KernelForwarder) createLocalConnection(crossConnect *crossconnect.Cross
 	/* In case source and destination names are the same, use temporary values during the setup of the VETH interfaces */
 	if dstName == srcName {
 		tempName = srcName
-		srcName = fmt.Sprintf("%s%d", srcName, rand.Uint32())
-		dstName = fmt.Sprintf("%s%d", dstName, rand.Uint32())
+		srcName = fmt.Sprintf("nsm%d", rand.Uint32())
+		dstName = fmt.Sprintf("nsm%d", rand.Uint32())
 		logrus.Infof("local: source and destination use the same name - %s, the configuration will proceed with temporary names: %s, %s", tempName, srcName, dstName)
 	}
 
