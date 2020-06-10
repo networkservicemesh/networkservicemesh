@@ -89,7 +89,7 @@ func (k *KernelForwarder) createRemoteConnection(connID string, localConnection,
 		return nil, err
 	}
 
-	if nsInode, err = SetupInterface(ifaceName, localConnection, direction == INCOMING); err != nil {
+	if nsInode, err = SetupInterface(ifaceName, "", localConnection, direction == INCOMING); err != nil {
 		logrus.Errorf("remote: %v", err)
 		return nil, err
 	}
