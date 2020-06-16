@@ -38,7 +38,7 @@ func TestFloatingInterdomainFewClientsWithDelay(t *testing.T) {
 	}
 
 	g := NewWithT(t)
-
+	clustersCount := 2
 	k8ss := []*kubetest.ExtK8s{}
 	for i := 0; i < clustersCount; i++ {
 		kubeconfig := os.Getenv(fmt.Sprintf("KUBECONFIG_CLUSTER_%d", i+1))
