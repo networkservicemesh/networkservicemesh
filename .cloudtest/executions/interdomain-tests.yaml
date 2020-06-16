@@ -6,7 +6,7 @@ executions:
       - USE_JAEGER_SERVICE=true
     source:
       tags:
-        - interdomain
+        - issuecheck
     root: ./test/integration
     timeout: 600
     cluster-count: 2
@@ -25,7 +25,7 @@ executions:
       - USE_JAEGER_SERVICE=true
     source:
       tags:
-        - interdomain
+        - issuecheck
     root: ./test/integration
     timeout: 600
     cluster-count: 2
@@ -44,7 +44,7 @@ executions:
       - USE_JAEGER_SERVICE=true
     source:
       tags:
-        - interdomain
+        - issuecheck
     root: ./test/integration
     timeout: 600
     cluster-count: 2
@@ -63,7 +63,7 @@ executions:
       - USE_JAEGER_SERVICE=true
     source:
       tags:
-        - interdomain
+        - issuecheck
     root: ./test/integration
     timeout: 600
     cluster-count: 2
