@@ -99,7 +99,7 @@ func TestFloatingInterdomainFewClientsWithDelay(t *testing.T) {
 	kubetest.CheckNSC(k8ss[0].K8s, nsc1)
 	<-time.After(time.Minute * 5)
 
-	nsc2 := kubetest.DeployNSCWithEnv(k8ss[0].K8s, k8ss[0].NodesSetup[0].Node, "nsc-1", defaultTimeout, map[string]string{
+	nsc2 := kubetest.DeployNSCWithEnv(k8ss[0].K8s, k8ss[0].NodesSetup[0].Node, "nsc-2", defaultTimeout, map[string]string{
 		"CLIENT_LABELS":          "app=icmp",
 		"CLIENT_NETWORK_SERVICE": fmt.Sprintf("icmp-responder@%s", nsmrsExternalIP),
 	})
