@@ -192,7 +192,8 @@ func parseNSUrl(urlString string) (*NSUrl, error) {
 		}
 		result.Intf = path[1]
 	}
-	result.NsName = path[0]
+	// Remove possible leading spaces from network service name
+	result.NsName = strings.Trim(path[0], " ")
 	result.Params = url.Query()
 	return result, nil
 }
