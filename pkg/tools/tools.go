@@ -177,7 +177,7 @@ type NSUrl struct {
 
 func parseNSUrl(urlString string) (*NSUrl, error) {
 	result := &NSUrl{}
-
+	// Remove possible leading spaces from network service name
 	urlString = strings.Trim(urlString, " ")
 	url, err := url.Parse(urlString)
 	if err != nil {
@@ -193,7 +193,6 @@ func parseNSUrl(urlString string) (*NSUrl, error) {
 		}
 		result.Intf = path[1]
 	}
-	// Remove possible leading spaces from network service name
 	result.NsName = path[0]
 	result.Params = url.Query()
 	return result, nil
