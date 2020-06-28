@@ -22,6 +22,10 @@ import (
 	"fmt"
 	"os"
 	"testing"
+	"time"
+
+	"github.com/networkservicemesh/networkservicemesh/applications/nsmrs/pkg/serviceregistryserver"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/nsmd"
 
 	. "github.com/onsi/gomega"
 
@@ -30,18 +34,14 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 )
 
-func TestFloatingInterdomain(t *testing.T) {
+func TestFloatingInterdomainFewClientsWithDelay(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
 	}
 
-	testFloatingInterdomain(t, 2)
-}
-
-func testFloatingInterdomain(t *testing.T, clustersCount int) {
 	g := NewWithT(t)
-
+	clustersCount := 2
 	k8ss := []*kubetest.ExtK8s{}
 	for i := 0; i < clustersCount; i++ {
 		kubeconfig := os.Getenv(fmt.Sprintf("KUBECONFIG_CLUSTER_%d", i+1))
@@ -60,7 +60,9 @@ func testFloatingInterdomain(t *testing.T, clustersCount int) {
 	}
 
 	nsmrsNode := &k8ss[clustersCount-1].K8s.GetNodesWait(2, defaultTimeout)[1]
-	nsmrsPod := kubetest.DeployNSMRS(k8ss[clustersCount-1].K8s, nsmrsNode, "nsmrs", defaultTimeout, pods.DefaultNSMRS())
+	nsmrsPod := kubetest.DeployNSMRS(k8ss[clustersCount-1].K8s, nsmrsNode, "nsmrs", defaultTimeout, map[string]string{
+		serviceregistryserver.NSEExpirationTimeoutEnv.Name(): "30s",
+	})
 
 	nsmrsExternalIP, err := kubetest.GetNodeExternalIP(nsmrsNode)
 	if err != nil {
@@ -73,7 +75,16 @@ func testFloatingInterdomain(t *testing.T, clustersCount int) {
 	for i := 0; i < clustersCount; i++ {
 		k8s := k8ss[i].K8s
 
-		nodesSetup, err := kubetest.SetupNodes(k8s, 1, defaultTimeout)
+		nodesSetup, err := kubetest.SetupNodesConfig(k8s, 1, defaultTimeout, []*pods.NSMgrPodConfig{
+			{
+				Variables: map[string]string{
+					nsmd.NSETrackingIntervalSecondsEnv.Name(): "10s",
+					nsmd.PublicAPIAddressEnv.Name():           "127.0.0.1:5001",
+				},
+				Namespace:          k8s.GetK8sNamespace(),
+				ForwarderVariables: kubetest.DefaultForwarderVariables(k8s.GetForwardingPlane()),
+			},
+		}, k8s.GetK8sNamespace())
 		g.Expect(err).To(BeNil())
 
 		k8ss[i].NodesSetup = nodesSetup
@@ -84,6 +95,7 @@ func testFloatingInterdomain(t *testing.T, clustersCount int) {
 			Namespace: k8s.GetK8sNamespace(),
 		}
 		proxyNSMgrConfig.Variables[proxyregistryserver.NSMRSAddressEnv] = nsmrsInternalIP + ":80"
+		proxyNSMgrConfig.Variables[nsmd.PublicAPIAddressEnv.Name()] = "127.0.0.1:5001"
 		_, err = kubetest.DeployProxyNSMgrWithConfig(k8s, nodesSetup[0].Node, pnsmdName, defaultTimeout, proxyNSMgrConfig)
 		g.Expect(err).To(BeNil())
 
@@ -94,10 +106,17 @@ func testFloatingInterdomain(t *testing.T, clustersCount int) {
 	_ = kubetest.DeployICMP(k8ss[clustersCount-1].K8s, k8ss[clustersCount-1].NodesSetup[0].Node, "icmp-responder-nse-1", defaultTimeout)
 	k8ss[clustersCount-1].K8s.WaitLogsContains(nsmrsPod, "nsmrs", "Registered NSE entry", defaultTimeout)
 
-	nscPodNode := kubetest.DeployNSCWithEnv(k8ss[0].K8s, k8ss[0].NodesSetup[0].Node, "nsc-1", defaultTimeout, map[string]string{
+	nsc1 := kubetest.DeployNSCWithEnv(k8ss[0].K8s, k8ss[0].NodesSetup[0].Node, "nsc-1", defaultTimeout, map[string]string{
 		"CLIENT_LABELS":          "app=icmp",
 		"CLIENT_NETWORK_SERVICE": fmt.Sprintf("icmp-responder@%s", nsmrsExternalIP),
 	})
 
-	kubetest.CheckNSC(k8ss[0].K8s, nscPodNode)
+	kubetest.CheckNSC(k8ss[0].K8s, nsc1)
+	<-time.After(time.Second * 35)
+
+	nsc2 := kubetest.DeployNSCWithEnv(k8ss[0].K8s, k8ss[0].NodesSetup[0].Node, "nsc-1", defaultTimeout, map[string]string{
+		"CLIENT_LABELS":          "app=icmp",
+		"CLIENT_NETWORK_SERVICE": fmt.Sprintf("icmp-responder@%s", nsmrsExternalIP),
+	})
+	kubetest.CheckNSC(k8ss[0].K8s, nsc2)
 }

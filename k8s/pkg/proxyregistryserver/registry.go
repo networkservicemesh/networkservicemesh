@@ -150,7 +150,7 @@ func (rs *nseRegistryService) BulkRegisterNSE(srv registry.NetworkServiceRegistr
 
 			nodeConfiguration, cErr := rs.clusterInfoService.GetNodeIPConfiguration(span.Context(), &clusterinfo.NodeIPConfiguration{NodeName: request.NetworkServiceManager.Name})
 			if cErr != nil {
-				err := errors.Wrapf(cErr, "cannot get Network Service Manager's IP address: %s", cErr)
+				err = errors.Wrapf(cErr, "cannot get Network Service Manager's IP address: %s", cErr)
 				logger.Errorf("%s: %v", NSRegistryForwarderLogPrefix, err)
 				return err
 			}

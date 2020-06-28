@@ -72,7 +72,7 @@ func testFloatingInterdomainMonitor(t *testing.T, killPod string) {
 	}
 
 	nsmrsNode := &k8ss[1].K8s.GetNodesWait(2, defaultTimeout)[1]
-	nsmrsPod := kubetest.DeployNSMRS(k8ss[1].K8s, nsmrsNode, "nsmrs", defaultTimeout)
+	nsmrsPod := kubetest.DeployNSMRS(k8ss[1].K8s, nsmrsNode, "nsmrs", defaultTimeout, pods.DefaultNSMRS())
 
 	nsmrsExternalIP, err := kubetest.GetNodeExternalIP(nsmrsNode)
 	if err != nil {
@@ -105,12 +105,12 @@ func testFloatingInterdomainMonitor(t *testing.T, killPod string) {
 	switch killPod {
 	case "nsmrs":
 		k8ss[1].K8s.DeletePods(nsmrsPod)
-		nsmrsPod := kubetest.DeployNSMRS(k8ss[1].K8s, nsmrsNode, "nsmrs-recovered", defaultTimeout)
+		nsmrsPod := kubetest.DeployNSMRS(k8ss[1].K8s, nsmrsNode, "nsmrs-recovered", defaultTimeout, pods.DefaultNSMRS())
 		k8ss[1].K8s.WaitLogsContains(nsmrsPod, "nsmrs", "Registered NSE entry", defaultTimeout)
 	case "proxy-nsmgr":
 		k8ss[0].K8s.DeletePods(proxyNSMGRPod)
 		k8ss[1].K8s.DeletePods(nsmrsPod)
-		nsmrsPod := kubetest.DeployNSMRS(k8ss[1].K8s, nsmrsNode, "nsmrs", defaultTimeout)
+		nsmrsPod := kubetest.DeployNSMRS(k8ss[1].K8s, nsmrsNode, "nsmrs", defaultTimeout, pods.DefaultNSMRS())
 		startProxyNSMGRPod(g, pnsmdName+"-recovered", k8ss[0].K8s, k8ss[0].NodesSetup, nsmrsExternalIP)
 		k8ss[1].K8s.WaitLogsContains(nsmrsPod, "nsmrs", "Registered NSE entry", defaultTimeout)
 	}

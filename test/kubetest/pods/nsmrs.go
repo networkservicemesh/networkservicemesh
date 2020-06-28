@@ -32,9 +32,9 @@ type NSMRSPodConfig struct {
 }
 
 // NSMRSPod - create NSMRS pod with default config
-func NSMRSPod(name string, node *v1.Node) *v1.Pod {
+func NSMRSPod(name string, node *v1.Node, variables map[string]string) *v1.Pod {
 	return NSMRSPodWithConfig(name, node, &NSMgrPodConfig{
-		Variables: DefaultNSMRS(),
+		Variables: variables,
 	})
 }
 
