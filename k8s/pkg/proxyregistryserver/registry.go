@@ -148,6 +148,24 @@ func (rs *nseRegistryService) BulkRegisterNSE(srv registry.NetworkServiceRegistr
 				return err
 			}
 
+			nodeConfiguration, cErr := rs.clusterInfoService.GetNodeIPConfiguration(span.Context(), &clusterinfo.NodeIPConfiguration{NodeName: request.NetworkServiceManager.Name})
+			if cErr != nil {
+				err = errors.Wrapf(cErr, "cannot get Network Service Manager's IP address: %s", cErr)
+				logger.Errorf("%s: %v", NSRegistryForwarderLogPrefix, err)
+				return err
+			}
+
+			externalIP := nodeConfiguration.ExternalIP
+			if externalIP == "" {
+				externalIP = nodeConfiguration.InternalIP
+			}
+			// Swapping IP address to external (keep port)
+			url := request.NetworkServiceManager.Url
+			if idx := strings.Index(url, ":"); idx > -1 {
+				externalIP += url[idx:]
+			}
+			request.NetworkServiceManager.Url = externalIP
+
 			logger.Infof("%s: Forward BulkRegisterNSE request: %v", NSRegistryForwarderLogPrefix, request)
 			err = stream.Send(request)
 			if err != nil {

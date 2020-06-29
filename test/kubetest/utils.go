@@ -291,9 +291,9 @@ func RunProxyNSMgrService(k8s *K8s) func() {
 }
 
 // DeployNSMRS - Setup NSMRS on Cluster with default config
-func DeployNSMRS(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
+func DeployNSMRS(k8s *K8s, node *v1.Node, name string, timeout time.Duration, variables map[string]string) *v1.Pod {
 	return deployNSMRS(k8s, nodeName(node), name, timeout,
-		pods.NSMRSPod(name, node),
+		pods.NSMRSPod(name, node, variables),
 	)
 }
 

@@ -8,6 +8,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/utils"
+
 	"github.com/pkg/errors"
 
 	"github.com/sirupsen/logrus"
@@ -33,6 +35,8 @@ const (
 	// NsmDevicePluginEnv is the name of the env variable to configure enabled device plugin name
 	NsmDevicePluginEnv     = "NSM_DEVICE_PLUGIN"
 	registryConnectTimeout = time.Second * 30
+	// PublicAPIAddressEnv sets nsmd public API address
+	PublicAPIAddressEnv utils.EnvVar = "NSMD_PUBLIC_API"
 )
 
 type apiRegistry struct {
@@ -147,7 +151,7 @@ func (impl *nsmdServiceRegistry) NsmRegistryClient(ctx context.Context) (registr
 }
 
 func (impl *nsmdServiceRegistry) GetPublicAPI() string {
-	return GetLocalIPAddress() + ":5001"
+	return PublicAPIAddressEnv.GetStringOrDefault(GetLocalIPAddress() + ":5001")
 }
 
 func (impl *nsmdServiceRegistry) DiscoveryClient(ctx context.Context) (registry.NetworkServiceDiscoveryClient, error) {
