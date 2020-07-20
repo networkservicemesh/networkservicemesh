@@ -71,17 +71,16 @@ func (d *discoveryService) FindNetworkService(ctx context.Context, request *regi
 			return nil, dErr
 		}
 		for _, nsm := range response.NetworkServiceManagers {
-			if url, err := d.currentDomainNSMgrURL(ctx, d.clusterInfoService, nsm.Url); err == nil && nsm.Url == url {
+			if url, urlErr := d.currentDomainNSMgrURL(ctx, d.clusterInfoService, nsm.Url); urlErr == nil && nsm.Url == url {
 				return d.handleLocalFindCase(response, url), nil
-			} else {
-				nsm.Name = fmt.Sprintf("%s@%s", nsm.Name, nsm.Url)
-				nsmURL := os.Getenv(ProxyNsmdAPIAddressEnv)
-				if strings.TrimSpace(nsmURL) == "" {
-					nsmURL = ProxyNsmdAPIAddressDefaults
-				}
-				nsm.Url = nsmURL
-				response.NetworkService.Name = originNetworkService
 			}
+			nsm.Name = fmt.Sprintf("%s@%s", nsm.Name, nsm.Url)
+			nsmURL := os.Getenv(ProxyNsmdAPIAddressEnv)
+			if strings.TrimSpace(nsmURL) == "" {
+				nsmURL = ProxyNsmdAPIAddressDefaults
+			}
+			nsm.Url = nsmURL
+			response.NetworkService.Name = originNetworkService
 		}
 
 		logrus.Infof("Received response: %v", response)
