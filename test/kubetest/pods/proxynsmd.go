@@ -72,6 +72,16 @@ func ProxyNSMgrPodWithConfig(name string, node *v1.Node, config *NSMgrPodConfig)
 							ContainerPort: 5005,
 						},
 					},
+					Env: []v1.EnvVar{
+						{
+							Name: "NODE_NAME",
+							ValueFrom: &v1.EnvVarSource{
+								FieldRef: &v1.ObjectFieldSelector{
+									FieldPath: "spec.nodeName",
+								},
+							},
+						},
+					},
 					VolumeMounts: []v1.VolumeMount{spireVolumeMount()},
 				}),
 			},
