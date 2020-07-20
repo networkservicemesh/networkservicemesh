@@ -35,8 +35,7 @@ func readEnvBool(env string, value bool) (bool, error) {
 	return strconv.ParseBool(str)
 }
 
-type emptyCloser struct {
-}
+type emptyCloser struct{}
 
 func (*emptyCloser) Close() error {
 	// Ignore
