@@ -1,16 +1,13 @@
 #!/usr/bin/env bash
-
 readonly AZURE_RESOURCE_GROUP=$1
 readonly AZURE_CLUSTER_NAME=$2
 readonly AZURE_CREDENTIALS_PATH=$3
 readonly AZURE_SERVICE_PRINCIPAL=$4
 readonly AZURE_SERVICE_PRINCIPAL_SECRET=$5
-
 if [[ -z "$1" ]] || [[ -z "$2" ]] || [[ -z "$3" ]]; then
     echo "Usage: create-aks-cluster.sh <resource-group> <cluster-name> <kube-config-path> [<service-principal> <password>]"
     exit 1
 fi
-
 function register_feature {
     echo "Registering feature $1 in namespace $2..."
     REQUEST="az feature register --namespace $2 -n $1 --query properties.state -o tsv"
@@ -19,15 +16,12 @@ function register_feature {
     done
     echo "Registered"
 }
-
 # Prepare azure for Public IP enabling
-az extension add --name aks-preview
+# az extension add --name aks-preview
 register_feature VMSSPreview Microsoft.ContainerService
 register_feature NodePublicIPPreview Microsoft.ContainerService
 az provider register -n Microsoft.ContainerService
-
 echo -n "Creating AKS cluster '$AZURE_CLUSTER_NAME'..."
-
 if (az aks show --resource-group "$AZURE_RESOURCE_GROUP" --name "$AZURE_CLUSTER_NAME" > /dev/null 2>&1); then
     echo "already exists"
 else
@@ -50,12 +44,13 @@ else
                 \"location\": \"centralus\",
                 \"properties\":
                 {
-                    \"kubernetesVersion\": \"\",
+                    \"kubernetesVersion\": \"1.15.11\",
                     \"dnsPrefix\": \"${AZURE_CLUSTER_NAME::10}-${AZURE_RESOURCE_GROUP}\",
                     \"agentPoolProfiles\":
                     [{
                         \"name\": \"nodepool1\",
                         \"count\": 2,
+                        \"orchestratorVersion\": \"1.15.11\",
                         \"vmSize\": \"Standard_B2s\",
                         \"osType\": \"Linux\",
                         \"enableNodePublicIP\": true,
@@ -75,14 +70,12 @@ else
         echo "done" || exit 1
     fi
 fi
-
 echo "Waiting for deploy to complete..."
 az aks wait  \
    	--name "$AZURE_CLUSTER_NAME" \
    	--resource-group "$AZURE_RESOURCE_GROUP" \
 	--created > /dev/null && \
 echo "done" || exit 1
-
 echo "Creating Inbound traffic rule"
 NODE_RESOURCE_GROUP=$(az aks show -g "$AZURE_RESOURCE_GROUP" -n "$AZURE_CLUSTER_NAME" --query nodeResourceGroup -o tsv)
 NSG_NAME=$(az network nsg list -g "$NODE_RESOURCE_GROUP" --query "[].name" -o tsv)
@@ -99,7 +92,6 @@ az network nsg rule create --name "${NSG_NAME}-rule" \
     --source-address-prefixes Internet \
     --source-port-ranges '*' && \
 echo "done" || exit 1
-
 mkdir -p "$(dirname "$AZURE_CREDENTIALS_PATH")"
 az aks get-credentials \
    	--name "$AZURE_CLUSTER_NAME" \
