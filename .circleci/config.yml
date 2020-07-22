@@ -30,53 +30,53 @@ jobs:
       - run:
           name: Run Shellcheck
           command: make check
-      - run:
-          name: Run Error Usage Check
-          command: ./scripts/check_errors.sh
-      - skip_on_pattern
-      - run:
-          command: |
-            sudo apt-get install python-pip python3-pkg-resources
-            pip install --user yamllint
-      - run: yamllint -c .yamllint.yml --strict .
-      - run: go version
-      - run:
-          name: Download Go Dependencies
-          command: |
-            ./scripts/for-each-module.sh "$(pwd)/scripts/go-mod-download.sh"
-      - run:
-          name: Check code formatting
-          command: |
-            make install-formatter
-            make format
-            git diff --exit-code || (echo 'Seems like your Go files are not properly formatted. Run `make format` in your branch and commit the changes.' && exit 1)
-      - run: ./scripts/prepare-generate.sh
-      - run: sudo ./scripts/install-protoc.sh
-      - run: ./scripts/for-each-module.sh "go generate ./..."
-      - run: git diff --exit-code || (echo 'Seems like your generated files are not actual. Run `go generate ./...` for each module in your branch and commit the changes.' && exit 1)
-      - run: make vet
-      - run: ./scripts/for-each-module.sh "go build ./..."
-      - run: ./scripts/check_dependencies.sh
-      - run:
-          name: Integration tests
-          command: |
-            pushd test
-            go test ./integration --list .* -tags basic recover usecase
-            popd
-      - run: mkdir -p ~/junit/
-      - run:
-          command: |
-            export CONTAINER_TAG="ci_${CIRCLE_WORKFLOW_ID}_${CIRCLE_SHA1:8:8}"
-            export CONTAINER_REPO="networkservicemeshci"
-            export CONTAINER_FORCE_PULL="true"
-            export INSECURE="true"
-            ./scripts/run_unit_tests.sh
-      - store_test_results:
-          path: ~/junit
-      - store_artifacts:
-          path: ~/junit
-    environment:
-      GO111MODULE: "on"
+#      - run:
+#          name: Run Error Usage Check
+#          command: ./scripts/check_errors.sh
+#      - skip_on_pattern
+#      - run:
+#          command: |
+#            sudo apt-get install python-pip python3-pkg-resources
+#            pip install --user yamllint
+#      - run: yamllint -c .yamllint.yml --strict .
+#      - run: go version
+#      - run:
+#          name: Download Go Dependencies
+#          command: |
+#            ./scripts/for-each-module.sh "$(pwd)/scripts/go-mod-download.sh"
+#      - run:
+#          name: Check code formatting
+#          command: |
+#            make install-formatter
+#            make format
+#            git diff --exit-code || (echo 'Seems like your Go files are not properly formatted. Run `make format` in your branch and commit the changes.' && exit 1)
+#      - run: ./scripts/prepare-generate.sh
+#      - run: sudo ./scripts/install-protoc.sh
+#      - run: ./scripts/for-each-module.sh "go generate ./..."
+#      - run: git diff --exit-code || (echo 'Seems like your generated files are not actual. Run `go generate ./...` for each module in your branch and commit the changes.' && exit 1)
+#      - run: make vet
+#      - run: ./scripts/for-each-module.sh "go build ./..."
+#      - run: ./scripts/check_dependencies.sh
+#      - run:
+#          name: Integration tests
+#          command: |
+#            pushd test
+#            go test ./integration --list .* -tags basic recover usecase
+#            popd
+#      - run: mkdir -p ~/junit/
+#      - run:
+#          command: |
+#            export CONTAINER_TAG="ci_${CIRCLE_WORKFLOW_ID}_${CIRCLE_SHA1:8:8}"
+#            export CONTAINER_REPO="networkservicemeshci"
+#            export CONTAINER_FORCE_PULL="true"
+#            export INSECURE="true"
+#            ./scripts/run_unit_tests.sh
+#      - store_test_results:
+#          path: ~/junit
+#      - store_artifacts:
+#          path: ~/junit
+#    environment:
+#      GO111MODULE: "on"
 
 # code analysis
   test-static-code-analysis:

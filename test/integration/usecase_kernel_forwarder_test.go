@@ -14,8 +14,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build usecase
+//TODO rename wireguad_usecase to usecase
 
+// +build usecase_wireguard
 package integration
 
 import (
@@ -28,53 +29,72 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/test/kubetest/pods"
 )
 
-func TestKernelNSCAndICMPLocal(t *testing.T) {
+func TestKernelForwarderLocal(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
 	}
 
-	testKernelNSCAndICMP(t, 2, "")
+	testGenericForwarderNSCAndICMP(t, 2, pods.EnvForwardingPlaneKernel, "", kubetest.DefaultTestingPodFixture(NewWithT(t)))
 }
 
-func TestKernelNSCAndICMPRemoteVXLAN(t *testing.T) {
+func TestKernelForwarder_RemoteVXLAN(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
 	}
-
-	testKernelNSCAndICMP(t, 2, "VXLAN")
+	testGenericForwarderNSCAndICMP(t, 2, pods.EnvForwardingPlaneKernel, "VXLAN", kubetest.DefaultTestingPodFixture(NewWithT(t)))
 }
 
-func TestKernelNSCAndICMPRemoteWireguard(t *testing.T) {
+func TestKernelForwarder_RemoteWireguard(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skip, please run without -short")
 		return
 	}
-
-	testKernelNSCAndICMP(t, 2, "WIREGUARD")
+	testGenericForwarderNSCAndICMP(t, 2, pods.EnvForwardingPlaneKernel, "WIREGUARD", kubetest.DefaultTestingPodFixture(NewWithT(t)))
 }
 
-func testKernelNSCAndICMP(t *testing.T, nodesCount int, remoteMechanism string) {
+func TestVPPAgentForwarder_TAP_RemoteWireguard(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+	testGenericForwarderNSCAndICMP(t, 2, "vpp", "WIREGUARD", kubetest.DefaultTestingPodFixture(NewWithT(t)))
+}
+
+func TestVPPAgentForwarder_MEMIF_RemoteWireguard(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skip, please run without -short")
+		return
+	}
+	testGenericForwarderNSCAndICMP(t, 2, "vpp", "WIREGUARD", kubetest.VppAgentTestingPodFixture(NewWithT(t)))
+}
+
+func TestVPPAgentForwarder_WIREGUARD_KernelForwarder(t *testing.T) {
 	g := NewWithT(t)
 
 	k8s, err := kubetest.NewK8s(g, true)
 	g.Expect(err).To(BeNil())
 
+	const nodesCount = 2
+
 	defer k8s.Cleanup()
 	defer k8s.SaveTestArtifacts(t)
 
-	err = k8s.SetForwardingPlane(pods.EnvForwardingPlaneKernel)
-	g.Expect(err).To(BeNil())
+	var planes = []string{"vpp", pods.EnvForwardingPlaneKernel}
+	var config []*pods.NSMgrPodConfig
 
-	config := []*pods.NSMgrPodConfig{}
+	fixture := kubetest.DefaultTestingPodFixture(g)
+
 	for i := 0; i < nodesCount; i++ {
 		cfg := &pods.NSMgrPodConfig{
 			Variables: pods.DefaultNSMD(),
 		}
-		cfg.Variables[remote.PreferredRemoteMechanism.Name()] = remoteMechanism
+		err = k8s.SetForwardingPlane(planes[i])
+		g.Expect(err).To(BeNil())
+		cfg.Variables[remote.PreferredRemoteMechanism.Name()] = "WIREGUARD"
 		cfg.Namespace = k8s.GetK8sNamespace()
-		cfg.ForwarderVariables = kubetest.DefaultForwarderVariables(pods.EnvForwardingPlaneKernel)
+		cfg.ForwarderVariables = kubetest.DefaultForwarderVariables(planes[i])
 		config = append(config, cfg)
 	}
 	nodesSetup, err := kubetest.SetupNodesConfig(k8s, nodesCount, defaultTimeout, config, k8s.GetK8sNamespace())
@@ -83,10 +103,47 @@ func testKernelNSCAndICMP(t *testing.T, nodesCount int, remoteMechanism string) 
 	// Run ICMP on latest node
 	_ = kubetest.DeployICMP(k8s, nodesSetup[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
 
-	// Check mechanism parameters selection on two clients
-	nscPodNode := kubetest.DeployNSC(k8s, nodesSetup[0].Node, "nsc-1", defaultTimeout)
-	nsc2PodNode := kubetest.DeployNSC(k8s, nodesSetup[0].Node, "nsc-2", defaultTimeout)
+	//Check mechanism parameters selection on two clients
+	nscPodNode1 := fixture.DeployNsc(k8s, nodesSetup[0].Node, "nsc-1", defaultTimeout)
+	nscPodNode2 := fixture.DeployNsc(k8s, nodesSetup[0].Node, "nsc-2", defaultTimeout)
 
-	kubetest.CheckNSC(k8s, nscPodNode)
-	kubetest.CheckNSC(k8s, nsc2PodNode)
+	fixture.CheckNsc(k8s, nscPodNode1)
+	fixture.CheckNsc(k8s, nscPodNode2)
+
+}
+
+func testGenericForwarderNSCAndICMP(t *testing.T, nodesCount int, forwarderPlane, remoteMechanism string, fixture kubetest.TestingPodFixture) {
+	g := NewWithT(t)
+
+	k8s, err := kubetest.NewK8s(g, true)
+	g.Expect(err).To(BeNil())
+
+	defer k8s.Cleanup()
+	defer k8s.SaveTestArtifacts(t)
+
+	err = k8s.SetForwardingPlane(forwarderPlane)
+	g.Expect(err).To(BeNil())
+
+	var config []*pods.NSMgrPodConfig
+	for i := 0; i < nodesCount; i++ {
+		cfg := &pods.NSMgrPodConfig{
+			Variables: pods.DefaultNSMD(),
+		}
+		cfg.Variables[remote.PreferredRemoteMechanism.Name()] = remoteMechanism
+		cfg.Namespace = k8s.GetK8sNamespace()
+		cfg.ForwarderVariables = kubetest.DefaultForwarderVariables(forwarderPlane)
+		config = append(config, cfg)
+	}
+	nodesSetup, err := kubetest.SetupNodesConfig(k8s, nodesCount, defaultTimeout, config, k8s.GetK8sNamespace())
+	g.Expect(err).To(BeNil())
+
+	// Run ICMP on latest node
+	_ = kubetest.DeployICMP(k8s, nodesSetup[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
+
+	//Check mechanism parameters selection on two clients
+	nscPodNode1 := fixture.DeployNsc(k8s, nodesSetup[0].Node, "nsc-1", defaultTimeout)
+	nscPodNode2 := fixture.DeployNsc(k8s, nodesSetup[0].Node, "nsc-2", defaultTimeout)
+
+	fixture.CheckNsc(k8s, nscPodNode1)
+	fixture.CheckNsc(k8s, nscPodNode2)
 }

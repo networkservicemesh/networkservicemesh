@@ -24,11 +24,27 @@ go-kernel-forwarder-build: go-%-build:
 	popd
 
 .PHONY: go-vppagent-forwarder-build
-go-vppagent-forwarder-build: go-%-build:
+go-vppagent-forwarder-build: go-%-build: download-remote-dep
 	$(info ----------------------  Building forwarder::$* via Cross compile ----------------------)
 	@pushd ./forwarder && \
 	${GO_BUILD} -o $(BIN_DIR)/$*/$* ./vppagent/cmd/ && \
 	popd
+
+.PHONY: download-remote-dep
+download-remote-dep:
+	@if [ ! -e ./forwarder/vpp-agent ]; then \
+	    echo "Starting download remote dependency for vppagent forwarder"; \
+	    pushd ./forwarder; \
+	    git clone https://github.com/glazychev-art/vpp-agent.git; \
+	    pushd ./vpp-agent; \
+	    git remote add fork https://github.com/glazychev-art/vpp-agent.git; \
+	    git fetch fork; \
+	    git checkout fork/wg; \
+	    popd; \
+	    echo "" >> go.mod; \
+	    echo "replace go.ligato.io/vpp-agent/v3 => ./vpp-agent" >> go.mod; \
+	    popd; \
+	fi
 
 docker-vppagent-forwarder-prepare: docker-%-prepare: go-%-build
 	$(info Preparing files for docker...)

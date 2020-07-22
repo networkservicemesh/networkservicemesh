@@ -35,6 +35,7 @@ import (
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/memif"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/srv6"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/vxlan"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/wireguard"
 	"github.com/networkservicemesh/networkservicemesh/forwarder/api/forwarder"
 	"github.com/networkservicemesh/networkservicemesh/forwarder/pkg/common"
 	sdk "github.com/networkservicemesh/networkservicemesh/forwarder/sdk/vppagent"
@@ -69,6 +70,7 @@ func (v *VPPAgent) CreateForwarderServer(config *common.ForwarderConfig) forward
 		sdk.DirectMemifInterfaces(config.NSMBaseDir),
 		sdk.Connect(v.endpoint()),
 		sdk.KernelInterfaces(config.NSMBaseDir),
+		sdk.NewWgInterfaces(),
 		sdk.UseEthernetContext(),
 		sdk.ClearMechanisms(config.NSMBaseDir),
 		sdk.Commit(v.downstreamResync))
@@ -410,6 +412,12 @@ func (v *VPPAgent) configureVPPAgent() error {
 				Type: vxlan.MECHANISM,
 				Parameters: map[string]string{
 					vxlan.SrcIP: v.common.EgressInterface.SrcIPNet().IP.String(),
+				},
+			},
+			{
+				Type: wireguard.MECHANISM,
+				Parameters: map[string]string{
+					wireguard.SrcIP: v.common.EgressInterface.SrcIPNet().IP.String(),
 				},
 			},
 		},
