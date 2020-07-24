@@ -150,21 +150,21 @@ func getArpEntries() ([]*ARPEntry, error) {
 }
 
 // NewEgressInterface creates a new egress interface object
-func NewEgressInterface(srcIP net.IP) (EgressInterfaceType, error) {
+func NewEgressInterface(srcIP net.IP) (EgressInterfaceType, net.IP, error) {
 	ifaces, err := net.Interfaces()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	outgoingInterface, gw, err := findDefaultGateway4()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	arpEntries, err := getArpEntries()
 	if err != nil {
 		if !os.IsNotExist(err) {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
@@ -172,7 +172,7 @@ func NewEgressInterface(srcIP net.IP) (EgressInterfaceType, error) {
 		addrs, err := iface.Addrs()
 		logrus.Infof("INTERFACE: %v : %v", iface.Name, addrs)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		var v6 *net.IPNet
@@ -196,7 +196,10 @@ func NewEgressInterface(srcIP net.IP) (EgressInterfaceType, error) {
 		for _, addr := range addrs {
 			switch v := addr.(type) {
 			case *net.IPNet:
-				if v.IP.Equal(srcIP) {
+				ipAddr := v.IP
+				mask := v.Mask
+				ipMask := ipAddr.Mask(mask)
+				if v.IP.Equal(srcIP) || ipMask.Equal(srcIP) {
 					if v6 != nil && localSID == nil {
 						localSID = v6.IP
 						v6.IP = make(net.IP, len(v6.IP))
@@ -213,14 +216,14 @@ func NewEgressInterface(srcIP net.IP) (EgressInterfaceType, error) {
 						defaultGateway:    gw,
 						outgoingInterface: outgoingInterface,
 						arpEntries:        arpEntries,
-					}, nil
+					}, v.IP, nil
 				}
 			default:
-				return nil, errors.New("type of addr not net.IPNET")
+				return nil, nil, errors.New("type of addr not net.IPNET")
 			}
 		}
 	}
-	return nil, errors.Errorf("unable to find interface with IP: %s", srcIP)
+	return nil, nil, errors.Errorf("unable to find interface with IP: %s", srcIP)
 }
 
 func (e *egressInterface) SrcIPNet() *net.IPNet {

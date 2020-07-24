@@ -21,6 +21,7 @@ import (
 	"net"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/spanhelper"
@@ -158,14 +159,26 @@ func createForwarderConfig(ctx context.Context, forwarderGoals *ForwarderProbeGo
 	} else {
 		forwarderGoals.SetSrcIPReady()
 	}
-	cfg.SrcIP = net.ParseIP(srcIPStr)
-	if cfg.SrcIP == nil {
-		span.Logger().Fatalf("Env variable %s must be set to a valid IP address, was set to %s", ForwarderSrcIPKey, srcIPStr)
-	} else {
-		forwarderGoals.SetValidIPReady()
-	}
+
+	var srcIP net.IP
 	var err error
-	cfg.EgressInterface, err = NewEgressInterface(cfg.SrcIP)
+	if strings.Contains(srcIPStr, "/") {
+		srcIP, _, err = net.ParseCIDR(srcIPStr)
+		if err != nil {
+			span.Logger().Fatalf("Env variable %s must be set to a valid IP CIDR, was set to %s", ForwarderSrcIPKey, srcIPStr)
+		} else {
+			forwarderGoals.SetValidIPReady()
+		}
+	} else {
+		srcIP = net.ParseIP(srcIPStr)
+		if srcIP == nil {
+			span.Logger().Fatalf("Env variable %s must be set to a valid IP address, was set to %s", ForwarderSrcIPKey, srcIPStr)
+		} else {
+			forwarderGoals.SetValidIPReady()
+		}
+	}
+
+	cfg.EgressInterface, cfg.SrcIP, err = NewEgressInterface(srcIP)
 	if err != nil {
 		span.Logger().Fatalf("Unable to find egress Interface: %s", err)
 	} else {
