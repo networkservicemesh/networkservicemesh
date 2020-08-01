@@ -20,7 +20,6 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
-	"regexp"
 	"strconv"
 	"strings"
 	"syscall"
@@ -33,8 +32,6 @@ import (
 const (
 	// location of network namespace for a process
 	netnsfile = "/proc/self/ns/net"
-	// MaxSymLink is maximum length of Symbolic Link
-	MaxSymLink = 8192
 )
 
 type addrImpl struct {
@@ -50,7 +47,7 @@ func (a *addrImpl) Network() string {
 	return a.network
 }
 
-//NewAddr returns new net.Addr with network and address
+// NewAddr returns new net.Addr with network and address
 func NewAddr(network, addr string) net.Addr {
 	return &addrImpl{
 		network: network,
@@ -60,18 +57,15 @@ func NewAddr(network, addr string) net.Addr {
 
 // GetCurrentNS discovers the namespace of a running process and returns in a string.
 func GetCurrentNS() (string, error) {
-	buf := make([]byte, MaxSymLink)
-	numBytes, err := syscall.Readlink(netnsfile, buf)
+	fileinfo, err := os.Stat(netnsfile)
 	if err != nil {
-		return "", err
+		return "", errors.Wrap(err, "namespace is not found")
 	}
-	link := string(buf[0:numBytes])
-	nsRegExp := regexp.MustCompile("net:\\[(.*)\\]")
-	submatches := nsRegExp.FindStringSubmatch(link)
-	if len(submatches) >= 1 {
-		return submatches[1], nil
+	stat, ok := fileinfo.Sys().(*syscall.Stat_t)
+	if !ok {
+		return "", errors.New("not a stat_t")
 	}
-	return "", errors.New("namespace is not found")
+	return strconv.FormatUint(stat.Ino, 10), nil
 }
 
 // GetCurrentPodNameFromHostname returns pod name a container is running in
