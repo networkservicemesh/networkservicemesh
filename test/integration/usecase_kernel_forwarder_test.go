@@ -95,7 +95,7 @@ func testGenericForwarderNSCAndICMP(t *testing.T, nodesCount int, forwarderPlane
 	g.Expect(err).To(BeNil())
 
 	// Run ICMP on latest node
-	_ = kubetest.DeployICMP(k8s, nodesSetup[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
+	_ = fixture.DeployNse(k8s, nodesSetup[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
 
 	// Check mechanism parameters selection on two clients
 	nscPodNode1 := fixture.DeployNsc(k8s, nodesSetup[0].Node, "nsc-1", defaultTimeout)
