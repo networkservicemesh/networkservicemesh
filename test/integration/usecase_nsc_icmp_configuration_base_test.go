@@ -36,7 +36,7 @@ func testNSCAndICMP(t *testing.T, nodesCount int, useWebhook, disableVHost bool,
 	g := NewWithT(t)
 
 	k8s, err := kubetest.NewK8s(g, true)
-	defer k8s.Cleanup()
+	//defer k8s.Cleanup()
 	defer k8s.SaveTestArtifacts(t)
 	g.Expect(err).To(BeNil())
 

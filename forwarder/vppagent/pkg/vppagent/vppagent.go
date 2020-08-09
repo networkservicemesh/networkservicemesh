@@ -242,10 +242,29 @@ func (v *VPPAgent) programMgmtInterface() error {
 						},
 					},
 				},
+				//Rule NSMmgmtInterfaceACL permit wireguard dst
+				{
+					Action: vpp_acl.ACL_Rule_PERMIT,
+					IpRule: &vpp_acl.ACL_Rule_IpRule{
+						Ip: &vpp_acl.ACL_Rule_IpRule_Ip{
+							DestinationNetwork: v.common.EgressInterface.SrcIPNet().IP.String() + "/32",
+							SourceNetwork:      "0.0.0.0/0",
+						},
+						Udp: &vpp_acl.ACL_Rule_IpRule_Udp{
+							DestinationPortRange: &vpp_acl.ACL_Rule_IpRule_PortRange{
+								LowerPort: 51820,
+								UpperPort: 52000,
+							},
+							SourcePortRange: &vpp_acl.ACL_Rule_IpRule_PortRange{
+								LowerPort: 0,
+								UpperPort: 65535,
+							},
+						},
+					},
+				},
 			},
 		},
 	}
-
 	v.extendProgramMgmtInterfaceDataRequestForSRv6(dataRequest)
 
 	logrus.Infof("Setting up Mgmt Interface %v", dataRequest)

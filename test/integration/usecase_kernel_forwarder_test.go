@@ -17,6 +17,7 @@
 //TODO rename wireguad_usecase to usecase
 
 // +build usecase_wireguard
+
 package integration
 
 import (
@@ -48,7 +49,7 @@ func TestKernelForwarder_RemoteVXLAN(t *testing.T) {
 
 func TestKernelForwarder_RemoteWireguard(t *testing.T) {
 	if testing.Short() {
-		t.Skip("Skip, please run without -short")
+		t.Skip("Skip, please run without -goshort")
 		return
 	}
 	testGenericForwarderNSCAndICMP(t, 2, pods.EnvForwardingPlaneKernel, "WIREGUARD", kubetest.DefaultTestingPodFixture(NewWithT(t)))
@@ -59,7 +60,7 @@ func TestVPPAgentForwarder_TAP_RemoteWireguard(t *testing.T) {
 		t.Skip("Skip, please run without -short")
 		return
 	}
-	testGenericForwarderNSCAndICMP(t, 2, "vpp", "WIREGUARD", kubetest.DefaultTestingPodFixture(NewWithT(t)))
+	testGenericForwarderNSCAndICMP(t, 2, pods.EnvForwardingPlaneVPP, "WIREGUARD", kubetest.DefaultTestingPodFixture(NewWithT(t)))
 }
 
 func TestVPPAgentForwarder_MEMIF_RemoteWireguard(t *testing.T) {
@@ -67,7 +68,7 @@ func TestVPPAgentForwarder_MEMIF_RemoteWireguard(t *testing.T) {
 		t.Skip("Skip, please run without -short")
 		return
 	}
-	testGenericForwarderNSCAndICMP(t, 2, "vpp", "WIREGUARD", kubetest.VppAgentTestingPodFixture(NewWithT(t)))
+	testGenericForwarderNSCAndICMP(t, 2, pods.EnvForwardingPlaneVPP, "WIREGUARD", kubetest.VppAgentTestingPodFixture(NewWithT(t)))
 }
 
 func TestVPPAgentForwarder_WIREGUARD_KernelForwarder(t *testing.T) {
@@ -78,20 +79,21 @@ func TestVPPAgentForwarder_WIREGUARD_KernelForwarder(t *testing.T) {
 
 	const nodesCount = 2
 
-	defer k8s.Cleanup()
+	//defer k8s.Cleanup()
 	defer k8s.SaveTestArtifacts(t)
 
-	var planes = []string{"vpp", pods.EnvForwardingPlaneKernel}
+	var planes = []string{ pods.EnvForwardingPlaneVPP, pods.EnvForwardingPlaneKernel }
 	var config []*pods.NSMgrPodConfig
-
-	fixture := kubetest.DefaultTestingPodFixture(g)
+	//
+	fixture := kubetest.VppAgentTestingPodFixture(g)
 
 	for i := 0; i < nodesCount; i++ {
 		cfg := &pods.NSMgrPodConfig{
 			Variables: pods.DefaultNSMD(),
+			ForwarderPlane: &planes[i],
 		}
-		err = k8s.SetForwardingPlane(planes[i])
-		g.Expect(err).To(BeNil())
+		//err = k8s.SetForwardingPlane(planes[i])
+		//g.Expect(err).To(BeNil())
 		cfg.Variables[remote.PreferredRemoteMechanism.Name()] = "WIREGUARD"
 		cfg.Namespace = k8s.GetK8sNamespace()
 		cfg.ForwarderVariables = kubetest.DefaultForwarderVariables(planes[i])
@@ -104,11 +106,12 @@ func TestVPPAgentForwarder_WIREGUARD_KernelForwarder(t *testing.T) {
 	_ = kubetest.DeployICMP(k8s, nodesSetup[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
 
 	//Check mechanism parameters selection on two clients
+	//nscPodNode1 := kubetest.DeployVppAgentNSC(k8s, nodesSetup[0].Node, "nsc-1", defaultTimeout)
 	nscPodNode1 := fixture.DeployNsc(k8s, nodesSetup[0].Node, "nsc-1", defaultTimeout)
-	nscPodNode2 := fixture.DeployNsc(k8s, nodesSetup[0].Node, "nsc-2", defaultTimeout)
+	//nscPodNode2 := fixture.DeployNsc(k8s, nodesSetup[0].Node, "nsc-2", defaultTimeout)
 
+	//kubetest.CheckNSC(k8s, nscPodNode1)
 	fixture.CheckNsc(k8s, nscPodNode1)
-	fixture.CheckNsc(k8s, nscPodNode2)
 
 }
 
@@ -118,7 +121,7 @@ func testGenericForwarderNSCAndICMP(t *testing.T, nodesCount int, forwarderPlane
 	k8s, err := kubetest.NewK8s(g, true)
 	g.Expect(err).To(BeNil())
 
-	defer k8s.Cleanup()
+	//defer k8s.Cleanup()
 	defer k8s.SaveTestArtifacts(t)
 
 	err = k8s.SetForwardingPlane(forwarderPlane)
@@ -138,12 +141,12 @@ func testGenericForwarderNSCAndICMP(t *testing.T, nodesCount int, forwarderPlane
 	g.Expect(err).To(BeNil())
 
 	// Run ICMP on latest node
-	_ = kubetest.DeployICMP(k8s, nodesSetup[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
+	_ = fixture.DeployNse(k8s, nodesSetup[nodesCount-1].Node, "icmp-responder-nse-1", defaultTimeout)
 
 	//Check mechanism parameters selection on two clients
 	nscPodNode1 := fixture.DeployNsc(k8s, nodesSetup[0].Node, "nsc-1", defaultTimeout)
-	nscPodNode2 := fixture.DeployNsc(k8s, nodesSetup[0].Node, "nsc-2", defaultTimeout)
+	//nscPodNode2 := fixture.DeployNsc(k8s, nodesSetup[0].Node, "nsc-2", defaultTimeout)
 
 	fixture.CheckNsc(k8s, nscPodNode1)
-	fixture.CheckNsc(k8s, nscPodNode2)
+	//fixture.CheckNsc(k8s, nscPodNode2)
 }

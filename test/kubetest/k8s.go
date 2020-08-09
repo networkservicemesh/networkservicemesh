@@ -421,6 +421,7 @@ func NewK8sForConfig(g *WithT, prepare bool, kubeconfig string) (*K8s, error) {
 
 // NewK8sWithoutRoles - Creates a new K8s Clientset for the default config
 func NewK8sWithoutRoles(g *WithT, prepare bool) (*K8s, error) {
+	os.Setenv("KUBECONFIG", "/home/art/.kube/config")
 	path := os.Getenv("KUBECONFIG")
 	if len(path) == 0 {
 		path = os.Getenv("HOME") + "/.kube/config"

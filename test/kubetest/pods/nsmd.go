@@ -59,6 +59,8 @@ type NSMgrPodConfig struct {
 	ForwarderVariables  map[string]string
 	liveness, readiness *v1.Probe
 	Namespace           string
+
+	ForwarderPlane 		*string
 }
 
 func NSMgrDevConfig(nsmd NSMgrContainerMode, nsmdp NSMgrContainerMode, nsmdk8s NSMgrContainerMode, namespace string) *NSMgrPodConfig {

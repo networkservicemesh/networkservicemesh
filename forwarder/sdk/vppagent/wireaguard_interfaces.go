@@ -19,26 +19,17 @@ package vppagent
 import (
 	"context"
 	"fmt"
-	"strings"
-
-	vpp_interfaces "go.ligato.io/vpp-agent/v3/proto/ligato/vpp/interfaces"
-
-	vpp_l2 "go.ligato.io/vpp-agent/v3/proto/ligato/vpp/l2"
-
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-
-	"go.ligato.io/vpp-agent/v3/proto/ligato/vpp"
-
-	"github.com/networkservicemesh/networkservicemesh/forwarder/kernel-forwarder/pkg/kernelforwarder/remote"
-
-	"go.ligato.io/vpp-agent/v3/proto/ligato/configurator"
-
-	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/wireguard"
-
 	"github.com/golang/protobuf/ptypes/empty"
-
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/wireguard"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
 	"github.com/networkservicemesh/networkservicemesh/forwarder/api/forwarder"
+	"github.com/networkservicemesh/networkservicemesh/forwarder/kernel-forwarder/pkg/kernelforwarder/remote"
+	"go.ligato.io/vpp-agent/v3/proto/ligato/configurator"
+	"go.ligato.io/vpp-agent/v3/proto/ligato/vpp"
+	vpp_interfaces "go.ligato.io/vpp-agent/v3/proto/ligato/vpp/interfaces"
+	vpp_l3 "go.ligato.io/vpp-agent/v3/proto/ligato/vpp/l3"
+	"strings"
 )
 
 type wgInterfaces struct{}
@@ -93,13 +84,15 @@ func (w *wgInterfaces) appendInterfaces(rv *configurator.Config, id string, r *c
 
 	mech := wireguard.ToMechanism(r.Mechanism)
 	var (
-		remoteIP   string
-		srcIP      string
-		privateKey string
-		publicKey  string
-		port       int
-		remotePort int
-		err        error
+		remoteIP      string
+		srcIP         string
+		tunRemoteIP   string
+		tunSrcIP      string
+		privateKey    string
+		publicKey     string
+		port          int
+		remotePort    int
+		err           error
 	)
 	if dst == remote.INCOMING {
 		privateKey, err = mech.DstPrivateKey()
@@ -118,8 +111,18 @@ func (w *wgInterfaces) appendInterfaces(rv *configurator.Config, id string, r *c
 		if err != nil {
 			return err
 		}
-		srcIP = r.Context.IpContext.DstIpAddr
-		remoteIP = r.Context.IpContext.SrcIpAddr
+		remoteIP, err = mech.SrcIP()
+		if err != nil {
+			return err
+		}
+		srcIP, err = mech.DstIP()
+		if err != nil {
+			return err
+		}
+
+		tunSrcIP = r.Context.IpContext.DstIpAddr
+		tunRemoteIP = r.Context.IpContext.SrcIpAddr
+
 	} else {
 		privateKey, err = mech.SrcPrivateKey()
 		if err != nil {
@@ -137,8 +140,17 @@ func (w *wgInterfaces) appendInterfaces(rv *configurator.Config, id string, r *c
 		if err != nil {
 			return err
 		}
-		srcIP = r.Context.IpContext.SrcIpAddr
-		remoteIP = r.Context.IpContext.DstIpAddr
+		remoteIP, err = mech.DstIP()
+		if err != nil {
+			return err
+		}
+		srcIP, err = mech.SrcIP()
+		if err != nil {
+			return err
+		}
+
+		tunSrcIP = r.Context.IpContext.SrcIpAddr
+		tunRemoteIP = r.Context.IpContext.DstIpAddr
 	}
 
 	rv.VppConfig.WgDevice = &vpp.WgDevice{
@@ -152,11 +164,11 @@ func (w *wgInterfaces) appendInterfaces(rv *configurator.Config, id string, r *c
 		TunInterface:        vppWgName,
 		Port:                uint32(remotePort),
 		PersistentKeepalive: 10,
-		AllowedIp:           strings.Split(remoteIP, "/")[0],
+		AllowedIp:           strings.Split(tunRemoteIP, "/")[0],
 	})
 	rv.VppConfig.Interfaces = append(rv.VppConfig.Interfaces, &vpp.Interface{
 		Name:        vppWgName,
-		IpAddresses: []string{srcIP},
+		IpAddresses: []string{tunSrcIP},
 		Enabled:     true,
 		Link: &vpp_interfaces.Interface_Ipip{Ipip: &vpp_interfaces.IPIPLink{
 			TunnelMode: 0,
@@ -165,13 +177,28 @@ func (w *wgInterfaces) appendInterfaces(rv *configurator.Config, id string, r *c
 		}},
 		Type: vpp_interfaces.Interface_IPIP_TUNNEL,
 	})
-	rv.VppConfig.XconnectPairs = append(rv.VppConfig.XconnectPairs, &vpp_l2.XConnectPair{
-		ReceiveInterface:  vppWgName,
-		TransmitInterface: name,
+
+	rv.VppConfig.L3Xconnects = append(rv.VppConfig.L3Xconnects, &vpp_l3.L3XConnect{
+		Interface: vppWgName,
+		Protocol: vpp_l3.L3XConnect_IPV4,
+		Paths: []*vpp_l3.L3XConnect_Path{
+			{
+				NextHopAddr: strings.Split(tunSrcIP, "/")[0],
+				OutgoingInterface: name,
+				Preference: 0,
+			},
+		},
 	})
-	rv.VppConfig.XconnectPairs = append(rv.VppConfig.XconnectPairs, &vpp_l2.XConnectPair{
-		ReceiveInterface:  name,
-		TransmitInterface: vppWgName,
+	rv.VppConfig.L3Xconnects = append(rv.VppConfig.L3Xconnects, &vpp_l3.L3XConnect{
+		Interface: name,
+		Protocol: vpp_l3.L3XConnect_IPV4,
+		Paths: []*vpp_l3.L3XConnect_Path{
+			{
+				NextHopAddr: strings.Split(tunRemoteIP, "/")[0],
+				OutgoingInterface: vppWgName,
+				Preference: 0,
+			},
+		},
 	})
 	return nil
 }
