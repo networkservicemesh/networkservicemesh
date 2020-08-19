@@ -161,11 +161,14 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 
 	// Process static routes
 	var routes []*connectioncontext.Route
+	var ipAddress string
 	switch c.conversionParameters.Side {
 	case SOURCE:
 		routes = c.Connection.GetContext().GetIpContext().GetDstRoutes()
+		ipAddress = extractCleanIPAddress(c.Connection.GetContext().GetIpContext().GetDstIpAddr())
 	case DESTINATION:
 		routes = c.Connection.GetContext().GetIpContext().GetSrcRoutes()
+		ipAddress = extractCleanIPAddress(c.Connection.GetContext().GetIpContext().GetSrcIpAddr())
 	}
 
 	duplicatedPrefixes := make(map[string]bool)
@@ -176,7 +179,7 @@ func (c *KernelConnectionConverter) ToDataRequest(rv *configurator.Config, conne
 				DstNetwork:        route.Prefix,
 				OutgoingInterface: c.conversionParameters.Name,
 				Scope:             linux_l3.Route_GLOBAL,
-				GwAddr:            extractCleanIPAddress(c.Connection.GetContext().GetIpContext().GetDstIpAddr()),
+				GwAddr:            ipAddress,
 			})
 		}
 	}
