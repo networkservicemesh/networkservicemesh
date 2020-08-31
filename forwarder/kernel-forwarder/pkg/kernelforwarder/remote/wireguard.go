@@ -131,7 +131,7 @@ func createWireguardDevice(ifaceName string) (*device.Device, error) {
 		return nil, errors.Errorf("failed to create tun: %v", err)
 	}
 
-	logger := device.NewLogger(device.LogLevelDebug, fmt.Sprintf("Wireguard Error (%s): ", ifaceName))
+	logger := device.NewLogger(device.LogLevelDebug, fmt.Sprintf("Wireguard Device (%s): ", ifaceName))
 	return device.NewDevice(tunIface, logger), nil
 }
 
