@@ -6,7 +6,7 @@ providers:
     instances: 1
     node-count: 3
     retry: 10
-    enabled: false
+    enabled: true
     timeout: 300  # 5 minutes to start cluster
     stop-delay: 10
     env:

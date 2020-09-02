@@ -7,12 +7,12 @@ statistics:
   enabled: true
   interval: 60  # 60 seconds for statistics
 import:
-  - .cloudtest/packet.yaml
-  - .cloudtest/gke.yaml
+  # - .cloudtest/packet.yaml
+  # - .cloudtest/gke.yaml
   - .cloudtest/kind.yaml
-  - .cloudtest/vagrant.yaml
-  - .cloudtest/aws.yaml
-  - .cloudtest/azure.yaml
+  # - .cloudtest/vagrant.yaml
+  # - .cloudtest/aws.yaml
+  # - .cloudtest/azure.yaml
   - .cloudtest/executions/.*
 
 retest:  # Allow to do test re-run if some kind of failures are detected, line CNI network plugin errors.
