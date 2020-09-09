@@ -17,13 +17,12 @@ data:
       trust_domain = "test.com"
       data_dir = "/run/spire/data"
       log_level = "DEBUG"
-      svid_ttl = "1h"
-      upstream_bundle = true
+      default_svid_ttl = "1h"
       registration_uds_path = "/run/spire/sockets/registration.sock"
       ca_subject = {
-        Country = ["US"],
-        Organization = ["SPIFFE"],
-        CommonName = "",
+        country = ["US"],
+        organization = ["SPIFFE"],
+        common_name = "",
       }
     }
     plugins {
@@ -53,7 +52,7 @@ data:
         }
       }
       {{- if not .Values.selfSignedCA }}
-      UpstreamCA "disk" {
+      UpstreamAuthority "disk" {
         plugin_data {
           ttl = "12h"
           key_file_path = "/run/spire/secret/bootstrap.key"
