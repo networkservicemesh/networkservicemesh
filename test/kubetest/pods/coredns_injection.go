@@ -17,6 +17,8 @@ func InjectCorednsWithSharedFolder(template *v1.Pod) {
 			Resources: v1.ResourceRequirements{
 				Limits: v1.ResourceList{
 					"networkservicemesh.io/socket": resource.NewQuantity(1, resource.DecimalSI).DeepCopy(),
+					v1.ResourceCPU:                 resource.MustParse(corednsCPULimit),
+					v1.ResourceMemory:              resource.MustParse(corednsMemoryLimit),
 				},
 			},
 			VolumeMounts: []v1.VolumeMount{{
@@ -58,6 +60,8 @@ func InjectCoredns(pod *v1.Pod, corednsConfigName string) *v1.Pod {
 			Resources: v1.ResourceRequirements{
 				Limits: v1.ResourceList{
 					"networkservicemesh.io/socket": resource.NewQuantity(1, resource.DecimalSI).DeepCopy(),
+					v1.ResourceCPU:                 resource.MustParse(corednsCPULimit),
+					v1.ResourceMemory:              resource.MustParse(corednsMemoryLimit),
 				},
 			},
 		})
