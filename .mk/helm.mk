@@ -20,6 +20,7 @@ HELM_TIMEOUT?=300
 INSECURE?=false
 PROMETHEUS?=true
 METRICS_COLLECTOR_ENABLED?=true
+ENFORCE_LIMITS?=false
 
 TEST_OPTS:=--atomic \
   --set org='${CONTAINER_REPO}',tag='${CONTAINER_TAG}' \
@@ -31,7 +32,7 @@ TEST_OPTS:=--atomic \
   --set metricsCollectorEnabled='${METRICS_COLLECTOR_ENABLED}' \
   --set global.JaegerTracing='true' \
   --set spire.enabled='${SPIRE_ENABLED}',spire.org='${CONTAINER_REPO}',spire.tag='${CONTAINER_TAG}' \
-  --set admission-webhook.org='${CONTAINER_REPO}',admission-webhook.tag='${CONTAINER_TAG}' \
+  --set admission-webhook.org='${CONTAINER_REPO}',admission-webhook.tag='${CONTAINER_TAG}',admission-webhook.enforceLimits='${ENFORCE_LIMITS}' \
   --set prefix-service.org='${CONTAINER_REPO}',prefix-service.tag='${CONTAINER_TAG}' \
   --namespace '${NSM_NAMESPACE}'
 

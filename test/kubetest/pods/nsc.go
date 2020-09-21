@@ -68,6 +68,12 @@ func WrongNSCPodWebhook(name string, node *v1.Node) *v1.Pod {
 					Name:            "nsm-init",
 					Image:           "nsm-init:latest",
 					ImagePullPolicy: v1.PullIfNotPresent,
+					Resources: v1.ResourceRequirements{
+						Limits: v1.ResourceList{
+							v1.ResourceCPU:    resource.MustParse(nsmInitCPULimit),
+							v1.ResourceMemory: resource.MustParse(nsmInitMemoryLimit),
+						},
+					},
 				},
 			},
 		},
@@ -138,6 +144,8 @@ func newDNSInitContainer(env map[string]string) v1.Container {
 		Resources: v1.ResourceRequirements{
 			Limits: v1.ResourceList{
 				"networkservicemesh.io/socket": resource.NewQuantity(1, resource.DecimalSI).DeepCopy(),
+				v1.ResourceCPU:                 resource.MustParse(nsmDNSInitCPULimit),
+				v1.ResourceMemory:              resource.MustParse(nsmDNSInitMemoryLimit),
 			},
 		},
 		VolumeMounts: []v1.VolumeMount{{
@@ -164,6 +172,8 @@ func newInitContainer(env map[string]string) v1.Container {
 		Resources: v1.ResourceRequirements{
 			Limits: v1.ResourceList{
 				"networkservicemesh.io/socket": resource.NewQuantity(1, resource.DecimalSI).DeepCopy(),
+				v1.ResourceCPU:                 resource.MustParse(nsmInitCPULimit),
+				v1.ResourceMemory:              resource.MustParse(nsmInitMemoryLimit),
 			},
 		},
 	})
@@ -184,6 +194,8 @@ func newMonitorContainer(env map[string]string) v1.Container {
 		Resources: v1.ResourceRequirements{
 			Limits: v1.ResourceList{
 				"networkservicemesh.io/socket": resource.NewQuantity(1, resource.DecimalSI).DeepCopy(),
+				v1.ResourceCPU:                 resource.MustParse(nsmMonitorCPULimit),
+				v1.ResourceMemory:              resource.MustParse(nsmMonitorMemoryLimit),
 			},
 		},
 	})

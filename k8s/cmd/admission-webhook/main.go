@@ -99,3 +99,7 @@ func getJaegerHost() string {
 func getJaegerPort() string {
 	return os.Getenv(jaegerPortEnv)
 }
+
+func getEnforceLimits() bool {
+	return utils.EnvVar(enforceLimitsEnv).GetBooleanOrDefault(false)
+}

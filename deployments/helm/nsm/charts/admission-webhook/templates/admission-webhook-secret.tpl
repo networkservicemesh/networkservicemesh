@@ -48,6 +48,8 @@ spec:
               value: jaeger.nsm-system
             - name: JAEGER_AGENT_PORT
               value: "6831"
+            - name: ENFORCE_LIMITS
+              value: {{ .Values.enforceLimits | quote }}
           volumeMounts:
             - name: webhook-certs
               mountPath: /etc/webhook/certs

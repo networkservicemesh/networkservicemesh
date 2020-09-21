@@ -28,6 +28,20 @@ const (
 	NSMRSServiceAccount = "nsmrs-acc"
 	// ForwardPlaneServiceAccount service account for Forwarding Plane
 	ForwardPlaneServiceAccount = "forward-plane-acc"
+
+	// Keep in sync with ../../../k8s/cmd/admission-webhook/const.go.
+	// Limits for 'nsm-monitor' container.
+	nsmMonitorCPULimit    = "100m"
+	nsmMonitorMemoryLimit = "15Mi"
+	// Limits for 'coredns' container.
+	corednsCPULimit    = "100m"
+	corednsMemoryLimit = "15Mi"
+	// Limits for 'nsm-init' container.
+	nsmInitCPULimit    = "500m"
+	nsmInitMemoryLimit = "20Mi"
+	// Limits for 'nsm-dns-init' container.
+	nsmDNSInitCPULimit    = "500m"
+	nsmDNSInitMemoryLimit = "15Mi"
 )
 
 // ForwardingPlane - Wrapper for getting a forwarding plane pod

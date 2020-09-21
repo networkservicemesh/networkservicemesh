@@ -14,6 +14,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	qosv1 "k8s.io/kubernetes/pkg/apis/core/v1/helper/qos"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 )
@@ -126,4 +127,23 @@ func readRequest(r *http.Request) ([]byte, error) {
 		return nil, errors.New(msg)
 	}
 	return body, nil
+}
+
+func needToImposeLimits(metaAndSpec *podSpecAndMeta) bool {
+	if getEnforceLimits() {
+		logrus.Infof("Running in CI, so impose limits on additional containers unconditionally")
+		return true
+	}
+
+	pod := corev1.Pod{
+		ObjectMeta: *metaAndSpec.meta,
+		Spec:       *metaAndSpec.spec,
+	}
+
+	if qosv1.GetPodQOS(&pod) == corev1.PodQOSGuaranteed {
+		logrus.Infof("The pod has a Guaranteed QOS class, so impose limits on additional containers")
+		return true
+	}
+
+	return false
 }

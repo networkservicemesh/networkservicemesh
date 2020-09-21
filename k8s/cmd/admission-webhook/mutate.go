@@ -27,8 +27,9 @@ func (s *nsmAdmissionWebhook) mutate(request *v1beta1.AdmissionRequest) *v1beta1
 	if err = checkNsmInitContainerDuplication(metaAndSpec.spec); err != nil {
 		return errorReviewResponse(err)
 	}
-	patch := createNsmInitContainerPatch(metaAndSpec.spec.InitContainers, value)
-	patch = append(patch, createDNSPatch(metaAndSpec, value)...)
+	imposeLimits := needToImposeLimits(metaAndSpec)
+	patch := createNsmInitContainerPatch(metaAndSpec.spec.InitContainers, value, imposeLimits)
+	patch = append(patch, createDNSPatch(metaAndSpec, value, imposeLimits)...)
 	//append another patches
 	applyDeploymentKind(patch, request.Kind.Kind)
 	patchBytes, err := json.Marshal(patch)

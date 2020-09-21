@@ -15,56 +15,60 @@ type patchOperation struct {
 	Value interface{} `json:"value,omitempty"`
 }
 
-func createDNSPatch(tuple *podSpecAndMeta, annotationValue string) (patch []patchOperation) {
+func createDNSPatch(tuple *podSpecAndMeta, annotationValue string, imposeLimits bool) (patch []patchOperation) {
 	// TODO: now order of containers is important since nsmdp assign proper workspace only to the first container
-	patch = append(patch, addContainer(tuple.spec,
-		[]corev1.Container{
+	nsmDNSMonitorContainer := corev1.Container{
+		Name:            "nsm-dns-monitor",
+		Command:         []string{"/bin/nsm-monitor"},
+		Image:           fmt.Sprintf("%s/%s:%s", getRepo(), "nsm-monitor", getTag()),
+		ImagePullPolicy: corev1.PullIfNotPresent,
+		Env: []corev1.EnvVar{
 			{
-				Name:            "nsm-dns-monitor",
-				Command:         []string{"/bin/nsm-monitor"},
-				Image:           fmt.Sprintf("%s/%s:%s", getRepo(), "nsm-monitor", getTag()),
-				ImagePullPolicy: corev1.PullIfNotPresent,
-				Env: []corev1.EnvVar{
-					{
-						Name:  "MONITOR_DNS_CONFIGS",
-						Value: "true",
-					},
-					{
-						Name:  client.AnnotationEnv,
-						Value: annotationValue,
-					},
-				},
-				VolumeMounts: []corev1.VolumeMount{{
-					ReadOnly:  false,
-					Name:      "nsm-coredns-volume",
-					MountPath: "/etc/coredns",
-				}},
-				Resources: corev1.ResourceRequirements{
-					Limits: corev1.ResourceList{
-						"networkservicemesh.io/socket": resource.MustParse("1"),
-					},
-				},
+				Name:  "MONITOR_DNS_CONFIGS",
+				Value: "true",
 			},
-		})...)
-	patch = append(patch, addContainer(tuple.spec,
-		[]corev1.Container{
 			{
-				Name:            "coredns",
-				Image:           "networkservicemesh/coredns:master",
-				ImagePullPolicy: corev1.PullIfNotPresent,
-				Args:            []string{"-conf", "/etc/coredns/Corefile"},
-				VolumeMounts: []corev1.VolumeMount{{
-					ReadOnly:  false,
-					Name:      "nsm-coredns-volume",
-					MountPath: "/etc/coredns",
-				}},
-				Resources: corev1.ResourceRequirements{
-					Limits: corev1.ResourceList{
-						"networkservicemesh.io/socket": resource.MustParse("1"),
-					},
-				},
+				Name:  client.AnnotationEnv,
+				Value: annotationValue,
 			},
-		})...)
+		},
+		VolumeMounts: []corev1.VolumeMount{{
+			ReadOnly:  false,
+			Name:      "nsm-coredns-volume",
+			MountPath: "/etc/coredns",
+		}},
+		Resources: corev1.ResourceRequirements{
+			Limits: corev1.ResourceList{
+				"networkservicemesh.io/socket": resource.MustParse("1"),
+			},
+		},
+	}
+
+	corednsContainer := corev1.Container{
+		Name:            "coredns",
+		Image:           "networkservicemesh/coredns:master",
+		ImagePullPolicy: corev1.PullIfNotPresent,
+		Args:            []string{"-conf", "/etc/coredns/Corefile"},
+		VolumeMounts: []corev1.VolumeMount{{
+			ReadOnly:  false,
+			Name:      "nsm-coredns-volume",
+			MountPath: "/etc/coredns",
+		}},
+		Resources: corev1.ResourceRequirements{
+			Limits: corev1.ResourceList{
+				"networkservicemesh.io/socket": resource.MustParse("1"),
+			},
+		},
+	}
+
+	if imposeLimits {
+		applyLimits(&nsmDNSMonitorContainer, nsmMonitorCPULimit, nsmMonitorMemoryLimit)
+		applyLimits(&corednsContainer, corednsCPULimit, corednsMemoryLimit)
+	}
+
+	patch = append(patch, addContainer(tuple.spec, []corev1.Container{nsmDNSMonitorContainer})...)
+
+	patch = append(patch, addContainer(tuple.spec, []corev1.Container{corednsContainer})...)
 
 	patch = append(patch, addVolume(tuple.spec,
 		[]corev1.Volume{{
@@ -79,7 +83,7 @@ func createDNSPatch(tuple *podSpecAndMeta, annotationValue string) (patch []patc
 	return patch
 }
 
-func createNsmInitContainerPatch(target []corev1.Container, annotationValue string) []patchOperation {
+func createNsmInitContainerPatch(target []corev1.Container, annotationValue string, imposeLimits bool) []patchOperation {
 	var patch []patchOperation
 
 	namespace := getNamespace()
@@ -147,6 +151,12 @@ func createNsmInitContainerPatch(target []corev1.Container, annotationValue stri
 			MountPath: "/etc/coredns",
 		}},
 	}
+
+	if imposeLimits {
+		applyLimits(&nsmInitContainer, nsmInitCPULimit, nsmInitMemoryLimit)
+		applyLimits(&dnsNsmInitContainer, nsmDNSInitCPULimit, nsmDNSInitMemoryLimit)
+	}
+
 	value = append([]corev1.Container{dnsNsmInitContainer, nsmInitContainer}, target...)
 
 	patch = append(patch, patchOperation{
@@ -197,4 +207,9 @@ func addContainer(spec *corev1.PodSpec, containers []corev1.Container) (patch []
 	}
 
 	return patch
+}
+
+func applyLimits(dst *corev1.Container, cpu, memory string) {
+	dst.Resources.Limits[corev1.ResourceCPU] = resource.MustParse(cpu)
+	dst.Resources.Limits[corev1.ResourceMemory] = resource.MustParse(memory)
 }

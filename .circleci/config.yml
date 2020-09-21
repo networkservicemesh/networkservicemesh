@@ -155,6 +155,7 @@ jobs:
             export CONTAINER_TAG="ci_${CIRCLE_WORKFLOW_ID}_${CIRCLE_SHA1:8:8}"
             export REPO="networkservicemeshci"
             export CONTAINER_REPO=${REPO}
+            export ENFORCE_LIMITS="true"
             echo "CONTAINER_REPO=${CONTAINER_REPO}"
             if [ "${CIRCLE_BRANCH}" == "master" ]; then
               export ARTIFACTS_SAVE_ALWAYS=true
