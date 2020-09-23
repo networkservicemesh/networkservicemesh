@@ -44,7 +44,7 @@ else
                 \"location\": \"centralus\",
                 \"properties\":
                 {
-                    \"kubernetesVersion\": \"1.15.11\",
+                    \"kubernetesVersion\": \"1.17.8\",
                     \"dnsPrefix\": \"${AZURE_CLUSTER_NAME::10}-${AZURE_RESOURCE_GROUP}\",
                     \"agentPoolProfiles\":
                     [{
