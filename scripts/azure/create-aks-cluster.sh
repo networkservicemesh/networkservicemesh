@@ -50,7 +50,7 @@ else
                     [{
                         \"name\": \"nodepool1\",
                         \"count\": 2,
-                        \"orchestratorVersion\": \"1.15.11\",
+                        \"orchestratorVersion\": \"1.17.8\",
                         \"vmSize\": \"Standard_B2s\",
                         \"osType\": \"Linux\",
                         \"enableNodePublicIP\": true,
