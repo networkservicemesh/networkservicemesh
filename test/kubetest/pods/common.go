@@ -37,10 +37,10 @@ const (
 	corednsCPULimit    = "100m"
 	corednsMemoryLimit = "15Mi"
 	// Limits for 'nsm-init' container.
-	nsmInitCPULimit    = "500m"
+	nsmInitCPULimit    = "200m"
 	nsmInitMemoryLimit = "20Mi"
 	// Limits for 'nsm-dns-init' container.
-	nsmDNSInitCPULimit    = "500m"
+	nsmDNSInitCPULimit    = "200m"
 	nsmDNSInitMemoryLimit = "15Mi"
 )
 
