@@ -95,7 +95,7 @@ func (impl *testConnectionModelListener) WaitUpdate(count int, duration time.Dur
 		impl.RUnlock()
 
 		if time.Since(st) > duration {
-			t.Fatalf("Failed to wait for add events.. %d timeout happened...", count)
+			t.Fatalf("Failed to wait for update events.. %d timeout happened...", count)
 			break
 		}
 		logrus.Warnf("Waiting for updates: %d to match %d", impl.updates, count)
@@ -110,7 +110,7 @@ func (impl *testConnectionModelListener) WaitDelete(count int, duration time.Dur
 			break
 		}
 		if time.Since(st) > duration {
-			t.Fatalf("Failed to wait for add events.. %d timeout happened...", count)
+			t.Fatalf("Failed to wait for delete events.. %d timeout happened...", count)
 			break
 		}
 		logrus.Warnf("Waiting for deletions: %d to match %d", impl.deletions, count)
@@ -126,10 +126,10 @@ func (impl *testConnectionModelListener) WaitEndpoints(count int, duration time.
 		}
 		impl.Unlock()
 		if time.Since(st) > duration {
-			t.Fatalf("Failed to wait for add events.. %d timeout happened...", count)
+			t.Fatalf("Failed to wait for endpoint events.. %d timeout happened...", count)
 			break
 		}
-		logrus.Warnf("Waiting for deletions: %d to match %d", impl.deletions, count)
+		logrus.Warnf("Waiting for endpoints: %d to match %d", impl.endpoints, count)
 	}
 }
 func newTestConnectionModelListener() *testConnectionModelListener {
