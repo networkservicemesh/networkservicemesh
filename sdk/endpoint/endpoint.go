@@ -21,6 +21,7 @@ import (
 	"io"
 	"net"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools/jaeger"
@@ -44,13 +45,28 @@ type NsmEndpoint interface {
 	Delete() error
 }
 
+// Registration stores parameters that NsmEndpoint passes to the RegisterNSE
+// gRPC call.
+type Registration struct {
+	Name   string
+	Labels map[string]string
+}
+
+// Option is an option that can be given to a NsmEndpoint on construction.
+type Option func(*nsmEndpoint)
+
 type nsmEndpoint struct {
 	*common.NsmConnection
 	service        networkservice.NetworkServiceServer
 	grpcServer     *grpc.Server
 	registryClient registry.NetworkServiceRegistryClient
-	endpointName   string
+	registrations  []registration
 	tracerCloser   io.Closer
+}
+
+type registration struct {
+	Registration
+	registeredName string
 }
 
 func (nsme *nsmEndpoint) setupNSEServerConnection() (net.Listener, error) {
@@ -84,7 +100,6 @@ func (nsme *nsmEndpoint) Start() error {
 	unified.RegisterNetworkServiceServer(nsme.grpcServer, nsme)
 
 	listener, err := nsme.setupNSEServerConnection()
-
 	if err != nil {
 		logrus.Errorf("Unable to setup NSE")
 		return err
@@ -97,58 +112,75 @@ func (nsme *nsmEndpoint) Start() error {
 		return err
 	}
 
-	// spawn the listnening thread
+	// spawn the listening thread
 	nsme.serve(listener)
 
-	span := spanhelper.FromContext(nsme.Context, fmt.Sprintf("Endpoint-%v-Start", nsme.Configuration.EndpointNetworkService))
-	span.LogObject("labels", nsme.Configuration.EndpointLabels)
+	nsme.registryClient = registry.NewNetworkServiceRegistryClient(nsme.GrpcClient)
+	for i := range nsme.registrations {
+		nsme.register(&nsme.registrations[i])
+	}
+
+	return nil
+}
+
+func (nsme *nsmEndpoint) register(r *registration) {
+	span := spanhelper.FromContext(nsme.Context, fmt.Sprintf("Endpoint-%v-Start", r.Name))
+	span.LogObject("labels", r.Labels)
 	defer span.Finish()
 
 	// Registering NSE API, it will listen for Connection requests from NSM and return information
 	// needed for NSE's forwarder programming.
 	nse := &registry.NetworkServiceEndpoint{
-		NetworkServiceName: nsme.Configuration.EndpointNetworkService,
+		NetworkServiceName: r.Name,
 		Payload:            "IP",
-		Labels:             tools.ParseKVStringToMap(nsme.Configuration.EndpointLabels, ",", "="),
+		Labels:             r.Labels,
 	}
 	registration := &registry.NSERegistration{
 		NetworkService: &registry.NetworkService{
-			Name:    nsme.Configuration.EndpointNetworkService,
+			Name:    r.Name,
 			Payload: "IP",
 		},
 		NetworkServiceEndpoint: nse,
 	}
 	span.LogObject("nse-request", registration)
 
-	nsme.registryClient = registry.NewNetworkServiceRegistryClient(nsme.GrpcClient)
 	registeredNSE, err := nsme.registryClient.RegisterNSE(span.Context(), registration)
 	if err != nil {
 		span.Logger().Fatalln("unable to register endpoint", err)
 	}
-	nsme.endpointName = registeredNSE.GetNetworkServiceEndpoint().GetName()
-	span.LogObject("endpoint-name", nsme.endpointName)
+	r.registeredName = registeredNSE.GetNetworkServiceEndpoint().GetName()
+	span.LogObject("endpoint-name", r.registeredName)
 	span.Logger().Infof("NSE registered: %v", registeredNSE)
 	span.Logger().Infof("NSE: channel has been successfully advertised, waiting for connection from NSM...")
-
-	return nil
 }
 
-func (nsme *nsmEndpoint) Delete() error {
-	span := spanhelper.FromContext(context.Background(), fmt.Sprintf("Endpoint-%v-Delete", nsme.Configuration.EndpointNetworkService))
+func (nsme *nsmEndpoint) unregister(r *registration) error {
+	span := spanhelper.FromContext(context.Background(), fmt.Sprintf("Endpoint-%v-Delete", r.Name))
 	defer span.Finish()
 	// prepare and defer removing of the advertised endpoint
 	removeNSE := &registry.RemoveNSERequest{
-		NetworkServiceEndpointName: nsme.endpointName,
+		NetworkServiceEndpointName: r.registeredName,
 	}
 	span.LogObject("delete-request", removeNSE)
 	_, err := nsme.registryClient.RemoveNSE(span.Context(), removeNSE)
 	if err != nil {
 		span.Logger().Errorf("Failed removing NSE: %v, with %v", removeNSE, err)
 	}
+	return err
+}
+
+func (nsme *nsmEndpoint) Delete() error {
+	var result error
+	for i := range nsme.registrations {
+		err := nsme.unregister(&nsme.registrations[i])
+		if err != nil {
+			result = multierror.Append(result, err)
+		}
+	}
 	nsme.grpcServer.Stop()
 	_ = nsme.tracerCloser.Close()
 
-	return err
+	return result
 }
 
 func (nsme *nsmEndpoint) Request(ctx context.Context, request *networkservice.NetworkServiceRequest) (*connection.Connection, error) {
@@ -180,8 +212,10 @@ func (nsme *nsmEndpoint) Close(ctx context.Context, incomingConnection *connecti
 	return &empty.Empty{}, nil
 }
 
-// NewNSMEndpoint creates a new NSM endpoint
-func NewNSMEndpoint(ctx context.Context, configuration *common.NSConfiguration, service networkservice.NetworkServiceServer) (NsmEndpoint, error) {
+// NewNSMEndpoint creates a new NSM endpoint.
+// By default, the new endpoint performs a single registration specified by the
+// passed configuration. Use WithRegistrations to override this.
+func NewNSMEndpoint(ctx context.Context, configuration *common.NSConfiguration, service networkservice.NetworkServiceServer, opts ...Option) (NsmEndpoint, error) {
 	if configuration == nil {
 		configuration = &common.NSConfiguration{}
 	}
@@ -199,7 +233,35 @@ func NewNSMEndpoint(ctx context.Context, configuration *common.NSConfiguration, 
 	endpoint := &nsmEndpoint{
 		NsmConnection: nsmConnection,
 		service:       service,
+		registrations: []registration{
+			{Registration: MakeRegistration(configuration)},
+		},
+	}
+
+	for _, opt := range opts {
+		opt(endpoint)
 	}
 
 	return endpoint, nil
+}
+
+// WithRegistrations returns Option for specifying a list of registrations.
+// When not specified, a single registration is performed.
+func WithRegistrations(registrations ...Registration) Option {
+	return func(nsme *nsmEndpoint) {
+		nsme.registrations = make([]registration, len(registrations))
+		for i := range registrations {
+			nsme.registrations[i] = registration{
+				Registration: registrations[i],
+			}
+		}
+	}
+}
+
+// MakeRegistration extracts Registration from the configuration.
+func MakeRegistration(configuration *common.NSConfiguration) Registration {
+	return Registration{
+		Name:   configuration.EndpointNetworkService,
+		Labels: tools.ParseKVStringToMap(configuration.EndpointLabels, ",", "="),
+	}
 }
