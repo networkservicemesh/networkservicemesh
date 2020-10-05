@@ -70,9 +70,13 @@ func (d *discoveryService) FindNetworkService(ctx context.Context, request *regi
 		if dErr != nil {
 			return nil, dErr
 		}
-		for _, nsm := range response.NetworkServiceManagers {
+		managers := make(map[string]*registry.NetworkServiceManager)
+		for key, nsm := range response.NetworkServiceManagers {
+			managers[key] = nsm
 			if url, urlErr := d.currentDomainNSMgrURL(ctx, d.clusterInfoService, nsm.Url); urlErr == nil && nsm.Url == url {
 				d.handleLocalFindCase(response, nsm, url)
+				delete(managers, key)
+				managers[nsm.Name] = nsm
 				continue
 			}
 			nsm.Name = fmt.Sprintf("%s@%s", nsm.Name, nsm.Url)
@@ -83,7 +87,7 @@ func (d *discoveryService) FindNetworkService(ctx context.Context, request *regi
 			nsm.Url = nsmURL
 			response.NetworkService.Name = originNetworkService
 		}
-
+		response.NetworkServiceManagers = managers
 		logrus.Infof("Received response: %v", response)
 		return response, nil
 	}
