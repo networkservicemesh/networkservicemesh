@@ -127,6 +127,22 @@ func (nsm *nsmServer) RequestClientConnection(ctx context.Context, request *nsmd
 
 	span.Logger().Infof("Requested client connection to nsmd : %+v", request)
 
+	nsm.Lock()
+	workspace, ok := nsm.workspaces[request.Workspace]
+	nsm.Unlock()
+	if ok {
+		span.Logger().Infof("workspace %s already exists. reusing it.", request.Workspace)
+		reply := &nsmdapi.ClientConnectionReply{
+			Workspace:       workspace.Name(),
+			HostBasedir:     workspace.locationProvider.HostBaseDir(),
+			ClientBaseDir:   workspace.locationProvider.ClientBaseDir(),
+			NsmServerSocket: workspace.locationProvider.NsmServerSocket(),
+			NsmClientSocket: workspace.locationProvider.NsmClientSocket(),
+		}
+		span.LogObject("ClientConnectionReply", reply)
+		return reply, nil
+	}
+
 	workspace, err := NewWorkSpace(span.Context(), nsm, request.Workspace, false)
 	if err != nil {
 		span.LogError(err)
