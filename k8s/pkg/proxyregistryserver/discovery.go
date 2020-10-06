@@ -72,13 +72,12 @@ func (d *discoveryService) FindNetworkService(ctx context.Context, request *regi
 		}
 		managers := make(map[string]*registry.NetworkServiceManager)
 		for key, nsm := range response.NetworkServiceManagers {
-			managers[key] = nsm
 			if url, urlErr := d.currentDomainNSMgrURL(ctx, d.clusterInfoService, nsm.Url); urlErr == nil && nsm.Url == url {
-				d.handleLocalFindCase(response, nsm, url)
-				delete(managers, key)
+				d.localizeNSMgr(response, nsm, url)
 				managers[nsm.Name] = nsm
 				continue
 			}
+			managers[key] = nsm
 			nsm.Name = fmt.Sprintf("%s@%s", nsm.Name, nsm.Url)
 			nsmURL := os.Getenv(ProxyNsmdAPIAddressEnv)
 			if strings.TrimSpace(nsmURL) == "" {
@@ -120,7 +119,7 @@ func (d *discoveryService) FindNetworkService(ctx context.Context, request *regi
 	return response, err
 }
 
-func (d *discoveryService) handleLocalFindCase(response *registry.FindNetworkServiceResponse, m *registry.NetworkServiceManager, url string) {
+func (d *discoveryService) localizeNSMgr(response *registry.FindNetworkServiceResponse, m *registry.NetworkServiceManager, url string) {
 	logrus.Infof("Handle local find case for mgr: %v of response %v, url: %v", m, response, url)
 	m.Name = d.nodeName
 
