@@ -70,10 +70,14 @@ func (d *discoveryService) FindNetworkService(ctx context.Context, request *regi
 		if dErr != nil {
 			return nil, dErr
 		}
-		for _, nsm := range response.NetworkServiceManagers {
+		managers := make(map[string]*registry.NetworkServiceManager)
+		for key, nsm := range response.NetworkServiceManagers {
 			if url, urlErr := d.currentDomainNSMgrURL(ctx, d.clusterInfoService, nsm.Url); urlErr == nil && nsm.Url == url {
-				return d.handleLocalFindCase(response, url), nil
+				d.localizeNSMgr(response, nsm, url)
+				managers[nsm.Name] = nsm
+				continue
 			}
+			managers[key] = nsm
 			nsm.Name = fmt.Sprintf("%s@%s", nsm.Name, nsm.Url)
 			nsmURL := os.Getenv(ProxyNsmdAPIAddressEnv)
 			if strings.TrimSpace(nsmURL) == "" {
@@ -82,7 +86,7 @@ func (d *discoveryService) FindNetworkService(ctx context.Context, request *regi
 			nsm.Url = nsmURL
 			response.NetworkService.Name = originNetworkService
 		}
-
+		response.NetworkServiceManagers = managers
 		logrus.Infof("Received response: %v", response)
 		return response, nil
 	}
@@ -115,33 +119,17 @@ func (d *discoveryService) FindNetworkService(ctx context.Context, request *regi
 	return response, err
 }
 
-func (d *discoveryService) handleLocalFindCase(r *registry.FindNetworkServiceResponse, url string) *registry.FindNetworkServiceResponse {
-	logrus.Infof("Handle local node case for %v, url: %v", r, url)
-	var nsmgrs = make(map[string]*registry.NetworkServiceManager)
-	var endpoints []*registry.NetworkServiceEndpoint
-
-	for _, nsmgr := range r.NetworkServiceManagers {
-		if nsmgr.Url == url {
-			nsmgr.Name = d.nodeName
-			nsmgrs[nsmgr.Name] = nsmgr
-		}
-	}
-
-	r.NetworkServiceManagers = nsmgrs
+func (d *discoveryService) localizeNSMgr(response *registry.FindNetworkServiceResponse, m *registry.NetworkServiceManager, url string) {
+	logrus.Infof("Handle local find case for mgr: %v of response %v, url: %v", m, response, url)
+	m.Name = d.nodeName
 
 	normalizedURL := strings.ReplaceAll(url, ":", "_")
 
-	for _, nse := range r.NetworkServiceEndpoints {
+	for _, nse := range response.NetworkServiceEndpoints {
 		if strings.Contains(nse.NetworkServiceManagerName, normalizedURL) {
 			nse.NetworkServiceManagerName = d.nodeName
-			endpoints = append(endpoints, nse)
 		}
 	}
-
-	r.NetworkServiceManagers = nsmgrs
-	r.NetworkServiceEndpoints = endpoints
-
-	return r
 }
 
 func (d *discoveryService) currentDomainNSMgrURL(ctx context.Context, clusterInfoService clusterinfo.ClusterInfoServer, u string) (string, error) {
