@@ -2,7 +2,6 @@ package tests
 
 import (
 	"context"
-	"os"
 	"testing"
 	"time"
 
@@ -37,7 +36,6 @@ func TestRestoreConnectionState(t *testing.T) {
 
 func TestRestoreConnectionShouldNotPanic(t *testing.T) {
 	g := NewWithT(t)
-	os.Setenv("INSECURE", "true")
 	storage := NewSharedStorage()
 	srv := NewNSMDFullServer(Master, storage)
 	defer srv.Stop()

@@ -1,15 +1,12 @@
 package tests
 
 import (
-	"os"
 	"testing"
 	"time"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/pkg/model"
 
 	"github.com/networkservicemesh/networkservicemesh/sdk/prefix_pool"
-
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
 
@@ -120,7 +117,6 @@ func TestHealRemoteNSE(t *testing.T) {
 
 func TestDeleteNSCAfterWaitNSEWhenHeal(t *testing.T) {
 	g := NewWithT(t)
-	_ = os.Setenv(tools.InsecureEnv, "true")
 
 	storage := NewSharedStorage()
 	healStartedChannel := make(chan struct{})
@@ -223,7 +219,6 @@ func TestDeleteNSCAfterWaitNSEWhenHeal(t *testing.T) {
 
 func TestDeleteNSCBeforeWaitNSEWhenHeal(t *testing.T) {
 	g := NewWithT(t)
-	_ = os.Setenv(tools.InsecureEnv, "true")
 
 	storage := NewSharedStorage()
 	healBeginChannel := make(chan struct{})

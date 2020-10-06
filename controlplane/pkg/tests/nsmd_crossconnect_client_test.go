@@ -18,12 +18,10 @@ package tests
 
 import (
 	"context"
-	"os"
 	"testing"
 	"time"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 
 	. "github.com/onsi/gomega"
 
@@ -57,7 +55,6 @@ func TestCCServerEmpty(t *testing.T) {
 	g.Expect(events[0].CrossConnects["cc1"].Payload).To(Equal("json_data"))
 }
 func TestNSMDCrossConnectClientRemote(t *testing.T) {
-	_ = os.Setenv(tools.InsecureEnv, "true")
 	g := NewWithT(t)
 
 	storage := NewSharedStorage()
@@ -122,7 +119,6 @@ func TestNSMDCrossConnectClientRemote(t *testing.T) {
 }
 
 func TestNSMDCrossConnectClientLocal(t *testing.T) {
-	_ = os.Setenv(tools.InsecureEnv, "true")
 	g := NewWithT(t)
 
 	storage := NewSharedStorage()
