@@ -31,9 +31,9 @@ See our full documentation at the [docs](/docs/README.md) folder.
 ## Get involved
 
 * Weekly meetings
-  * [PR Review - Weekly Zoom meeting](https://zoom.us/j/562817928) - every Tuesday at 7:30 - 8:00 AM PT
-  * [General - Weekly Zoom meeting](https://zoom.us/my/networkservicemeshwg) - every Tuesday at 8:00 - 9:00 AM PT
-  * [General - Biweekly Zoom meeting](https://zoom.us/my/networkservicemeshwg) - every other Tuesday at 10:00 - 11:00 AM CET
+  * [PR Review - Weekly Zoom meeting](https://docs.google.com/document/d/1C9NKjo0PWNWypROEO9-Y6haw5h9Xmurvl14SXpciz2Y/edit#heading=h.m0os04xwq7am) - every Tuesday at 7:30 - 8:00 AM PT
+  * [General - Weekly Zoom meeting](https://docs.google.com/document/d/1C9NKjo0PWNWypROEO9-Y6haw5h9Xmurvl14SXpciz2Y/edit#heading=h.almmgb8eh15x) - every Tuesday at 8:00 - 9:00 AM PT
+  * [General - Biweekly Zoom meeting](https://docs.google.com/document/d/1C9NKjo0PWNWypROEO9-Y6haw5h9Xmurvl14SXpciz2Y/edit#heading=h.almmgb8eh15x) - every other Tuesday at 10:00 - 11:00 AM CET
   * [General - Meeting minutes](https://docs.google.com/document/d/1C9NKjo0PWNWypROEO9-Y6haw5h9Xmurvl14SXpciz2Y/edit#heading=h.rc9df0a6n3ng)
   * [Calendar](https://calendar.google.com/calendar/embed?src=iae5pl3qbf2g5ehm6jb2h7gv08%40group.calendar.google.com&ctz=America%2FLos_Angeles)
   * [Recordings](https://www.youtube.com/playlist?list=PLj6h78yzYM2Ob01WuF-mqMxd8a_wAuppb)
