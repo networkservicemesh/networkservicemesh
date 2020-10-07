@@ -2,11 +2,8 @@ package nsmmonitor
 
 import (
 	"context"
-	"os"
 	"testing"
 	"time"
-
-	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 
 	"github.com/networkservicemesh/networkservicemesh/sdk/common"
 
@@ -37,7 +34,6 @@ func (h *nsmHelper) Healing(conn *connection.Connection) {
 }
 
 func TestNSMMonitorInit(t *testing.T) {
-	_ = os.Setenv(tools.InsecureEnv, "true")
 	g := NewWithT(t)
 
 	storage := tests.NewSharedStorage()

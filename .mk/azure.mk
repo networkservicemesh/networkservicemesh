@@ -35,7 +35,7 @@ azure-cli-check:
 .PHONY: azure-group-check
 azure-group-check: azure-cli-check
 	@echo -n "Checking for resource group $(AZURE_RESOURCE_GROUP)..."
-	@if [ `az group exists --name $(AZURE_RESOURCE_GROUP)` == "true" ]; then \
+	@if [ "$$(az group exists --name $(AZURE_RESOURCE_GROUP))" = "true" ]; then \
 		echo "exists"; \
 	else \
 		echo "not found"; \
