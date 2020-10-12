@@ -32,7 +32,7 @@ And if you are using the Kind machinery to run your K8s cluster (described a bit
 make k8s-save
 ```
 
-because ```make k8s-save``` will build your containers and save them in `scripts/vagrant/images` where they can be loaded by the Kins K8s cluster.
+because ```make k8s-save``` will build your containers and save them in `scripts/vagrant/images` where they can be loaded by the Kind K8s cluster.
 
 You can also selectively rebuild any component, say the `nsmd`, with ```make k8s-nsmd-save```
 
