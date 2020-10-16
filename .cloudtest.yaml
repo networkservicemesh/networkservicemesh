@@ -13,7 +13,7 @@ import:
   - .cloudtest/vagrant.yaml
   - .cloudtest/aws.yaml
   - .cloudtest/azure.yaml
-  - .cloudtest/executions/.*
+  - .cloudtest/executions/single-cluster-tests-wireguard.yaml
 
 retest:  # Allow to do test re-run if some kind of failures are detected, line CNI network plugin errors.
   count: 5  # Allow 5 times to do restart

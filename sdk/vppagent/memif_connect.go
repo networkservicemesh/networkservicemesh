@@ -116,6 +116,7 @@ func appendMemifInterface(rv *configurator.Config, connection *connection.Connec
 			Memif: &interfaces.MemifLink{
 				Master:         master,
 				SocketFilename: socketFilename,
+				Mode:           interfaces.MemifLink_IP,
 			},
 		},
 	})

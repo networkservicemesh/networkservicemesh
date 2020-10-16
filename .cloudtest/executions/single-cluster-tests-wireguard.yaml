@@ -1,0 +1,15 @@
+---
+executions:
+  - name: "Just run wireguard tests"
+    env:
+      - ARTIFACTS_ARCHIVE=true
+    source:
+      tags:
+        - usecase_wireguard
+    root: ./test/integration
+    timeout: 300
+    cluster-count: 1
+    cluster-env:
+      - KUBECONFIG
+    on-fail: |
+      make k8s-reset
