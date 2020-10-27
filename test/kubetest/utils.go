@@ -63,7 +63,7 @@ type NSCCheckInfo struct {
 }
 
 // PodSupplier - Type to pass supplier of pod
-type PodSupplier = func(*K8s, *v1.Node, string, time.Duration) *v1.Pod
+type PodSupplier = func(*K8s, *v1.Node, string, time.Duration, ...v1.EnvVar) *v1.Pod
 
 // NsePinger - Type to pass pinger for pod
 type NsePinger = func(k8s *K8s, from *v1.Pod) bool
@@ -318,7 +318,7 @@ func deployNSMRS(k8s *K8s, nodeName, name string, timeout time.Duration, templat
 }
 
 // DeployICMP deploys 'icmp-responder-nse' pod with '-routes' flag set
-func DeployICMP(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
+func DeployICMP(k8s *K8s, node *v1.Node, name string, timeout time.Duration, envs ...v1.EnvVar) *v1.Pod {
 	flags := flags.ICMPResponderFlags{
 		Routes: true,
 	}
@@ -398,7 +398,7 @@ func DeployNscAndNsmCoredns(k8s *K8s, node *v1.Node, name, corefileName string, 
 }
 
 // DeployNSC - Setup Default Client
-func DeployNSC(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
+func DeployNSC(k8s *K8s, node *v1.Node, name string, timeout time.Duration, envs ...v1.EnvVar) *v1.Pod {
 	return deployNSC(k8s, nodeName(node), name, "nsm-init", timeout,
 		pods.NSCPod(name, node, defaultNSCEnv()),
 	)

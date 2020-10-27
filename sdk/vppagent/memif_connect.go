@@ -107,6 +107,15 @@ func appendMemifInterface(rv *configurator.Config, connection *connection.Connec
 		rv.VppConfig = &vpp.ConfigData{}
 	}
 
+	mode, err := memif.ToMechanism(connection.GetMechanism()).GetMode()
+	memifMode := interfaces.MemifLink_MemifMode(mode)
+
+	// MemifLink_ETHERNET by default
+	if err != nil ||
+		(memifMode != interfaces.MemifLink_ETHERNET && memifMode != interfaces.MemifLink_IP) {
+		memifMode = interfaces.MemifLink_ETHERNET
+	}
+
 	rv.VppConfig.Interfaces = append(rv.VppConfig.Interfaces, &vpp.Interface{
 		Name:        name,
 		Type:        interfaces.Interface_MEMIF,
@@ -116,6 +125,7 @@ func appendMemifInterface(rv *configurator.Config, connection *connection.Connec
 			Memif: &interfaces.MemifLink{
 				Master:         master,
 				SocketFilename: socketFilename,
+				Mode:           memifMode,
 			},
 		},
 	})

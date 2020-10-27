@@ -78,6 +78,15 @@ func (c *MemifInterfaceConverter) ToDataRequest(rv *configurator.Config, connect
 		return nil, errors.New("ConnnectionConversionParameters.Name cannot be empty")
 	}
 
+	mode, err := memif.ToMechanism(c.Connection.GetMechanism()).GetMode()
+	memifMode := vpp_interfaces.MemifLink_MemifMode(mode)
+
+	// MemifLink_ETHERNET by default
+	if err != nil ||
+		(memifMode != vpp_interfaces.MemifLink_ETHERNET && memifMode != vpp_interfaces.MemifLink_IP) {
+		memifMode = vpp_interfaces.MemifLink_ETHERNET
+	}
+
 	rv.VppConfig.Interfaces = append(rv.VppConfig.Interfaces, &vpp.Interface{
 		Name:        c.conversionParameters.Name,
 		Type:        vpp_interfaces.Interface_MEMIF,
@@ -87,6 +96,7 @@ func (c *MemifInterfaceConverter) ToDataRequest(rv *configurator.Config, connect
 			Memif: &vpp_interfaces.MemifLink{
 				Master:         isMaster,
 				SocketFilename: path.Join(fullyQualifiedSocketFilename),
+				Mode:           memifMode,
 			},
 		},
 	})

@@ -9,8 +9,8 @@ import (
 
 // TestingPodFixture - Tool for help testing pods
 type TestingPodFixture interface {
-	DeployNsc(*K8s, *v1.Node, string, time.Duration) *v1.Pod
-	DeployNse(*K8s, *v1.Node, string, time.Duration) *v1.Pod
+	DeployNsc(*K8s, *v1.Node, string, time.Duration, ...v1.EnvVar) *v1.Pod
+	DeployNse(*K8s, *v1.Node, string, time.Duration, ...v1.EnvVar) *v1.Pod
 	CheckNsc(*K8s, *v1.Pod) *NSCCheckInfo
 }
 
@@ -42,13 +42,13 @@ type testingPodFixtureImpl struct {
 }
 
 //DeployNsc - Deploys network service mesh client with a specific name and node
-func (f *testingPodFixtureImpl) DeployNsc(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
-	return f.deployNscFunc(k8s, node, name, timeout)
+func (f *testingPodFixtureImpl) DeployNsc(k8s *K8s, node *v1.Node, name string, timeout time.Duration, envs ...v1.EnvVar) *v1.Pod {
+	return f.deployNscFunc(k8s, node, name, timeout, envs...)
 }
 
 //DeployNse - Deploys network service mesh endpoint with a specific name and node
-func (f *testingPodFixtureImpl) DeployNse(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
-	return f.deployNseFunc(k8s, node, name, timeout)
+func (f *testingPodFixtureImpl) DeployNse(k8s *K8s, node *v1.Node, name string, timeout time.Duration, envs ...v1.EnvVar) *v1.Pod {
+	return f.deployNseFunc(k8s, node, name, timeout, envs...)
 }
 
 //CheckNsc - Perform default check for the client to NSE operations

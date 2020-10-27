@@ -21,6 +21,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/memif"
+
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/teris-io/shortid"
 
@@ -36,6 +38,7 @@ import (
 // ConnectionEndpoint makes basic Mechanism selection for the incoming connection
 type ConnectionEndpoint struct {
 	mechanismType string
+	memifMode     string
 	// TODO - id doesn't seem to be used, and should be
 	id *shortid.Shortid
 }
@@ -55,6 +58,7 @@ func (cce *ConnectionEndpoint) Request(ctx context.Context, request *networkserv
 		Log(ctx).Errorf("Mechanism not created: %v", err)
 		return nil, err
 	}
+	mechanism.Parameters[memif.Mode] = cce.memifMode
 
 	request.GetConnection().Mechanism = mechanism
 
@@ -99,6 +103,7 @@ func NewConnectionEndpoint(configuration *common.NSConfiguration) *ConnectionEnd
 	self := &ConnectionEndpoint{
 		mechanismType: configuration.MechanismType,
 		id:            shortid.MustNew(1, shortid.DefaultABC, rand.Uint64()),
+		memifMode:     configuration.MemifMode,
 	}
 	if self.mechanismType == "" {
 		self.mechanismType = kernel.MECHANISM

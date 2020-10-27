@@ -17,6 +17,10 @@
 package memif
 
 import (
+	"strconv"
+
+	"github.com/pkg/errors"
+
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection"
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/common"
 )
@@ -25,6 +29,7 @@ type Mechanism interface {
 	GetSocketFilename() string
 	GetWorkspace() string
 	GetNetNsInode() string
+	GetMode() (uint32, error)
 }
 
 type mechanism struct {
@@ -59,4 +64,26 @@ func (m *mechanism) GetNetNsInode() string {
 		return ""
 	}
 	return m.GetParameters()[common.NetNsInodeKey]
+}
+
+// GetMode returns memif connection mode
+func (m *mechanism) GetMode() (uint32, error) {
+	if m == nil {
+		return 0, errors.New("mechanism cannot be nil")
+	}
+
+	if m.GetParameters() == nil {
+		return 0, errors.Errorf("mechanism.Parameters cannot be nil: %v", m)
+	}
+
+	modeStr, ok := m.GetParameters()[Mode]
+	if !ok {
+		return 0, errors.Errorf("mechanism.Type %s requires mechanism.Parameters[%s]", m.GetType(), Mode)
+	}
+
+	mode, err := strconv.ParseUint(modeStr, 10, 64)
+	if err != nil {
+		return 0, errors.Wrapf(err, "mechanism.Parameters[%s] must be a valid", Mode)
+	}
+	return uint32(mode), nil
 }

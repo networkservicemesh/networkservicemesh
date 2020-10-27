@@ -21,6 +21,8 @@ import (
 	"io"
 	"time"
 
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/memif"
+
 	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/cls"
@@ -54,6 +56,7 @@ type NsmClient struct {
 	ClientLabels         map[string]string
 	OutgoingConnections  []*connection.Connection
 	NscInterfaceName     string
+	memifMode            string
 	tracerCloser         io.Closer
 }
 
@@ -85,6 +88,7 @@ func (nsmc *NsmClient) ConnectRetry(ctx context.Context, name, mechanism, descri
 		span.LogError(err)
 		return nil, err
 	}
+	outgoingMechanism.Parameters[memif.Mode] = nsmc.memifMode
 
 	routes := []*connectioncontext.Route{}
 	for _, r := range nsmc.Configuration.Routes {
@@ -197,6 +201,7 @@ func NewNSMClient(ctx context.Context, configuration *common.NSConfiguration) (*
 		ClientNetworkService: configuration.ClientNetworkService,
 		ClientLabels:         tools.ParseKVStringToMap(configuration.ClientLabels, ",", "="),
 		NscInterfaceName:     configuration.NscInterfaceName,
+		memifMode:            configuration.MemifMode,
 	}
 
 	client.tracerCloser = jaeger.InitJaeger("nsm-client")

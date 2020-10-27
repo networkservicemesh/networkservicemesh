@@ -32,6 +32,7 @@ const (
 	ipAddressEnv              = "IP_ADDRESS"
 	routesEnv                 = "ROUTES"
 	podNameEnv                = "POD_NAME"
+	memifModeEnv              = "MEMIF_MODE"
 )
 
 // NSConfiguration contains the full configuration used in the SDK
@@ -49,6 +50,7 @@ type NSConfiguration struct {
 	Routes                 []string
 	PodName                string
 	Namespace              string
+	MemifMode              string
 }
 
 // FromEnv creates a new NSConfiguration and fills all unset options from the env variables
@@ -108,6 +110,10 @@ func (configuration *NSConfiguration) FromEnv() *NSConfiguration {
 
 	if configuration.Namespace == "" {
 		configuration.Namespace = getEnv(namespaceEnv, "Namespace", false)
+	}
+
+	if configuration.MemifMode == "" {
+		configuration.MemifMode = getEnv(memifModeEnv, "Memif mode (L2/L3)", false)
 	}
 
 	if len(configuration.Routes) == 0 {
