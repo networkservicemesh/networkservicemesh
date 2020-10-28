@@ -150,17 +150,23 @@ func SetupNodesConfig(k8s *K8s, nodesCount int, timeout time.Duration, conf []*p
 			forwarderName := fmt.Sprintf("nsmd-forwarder-%s", node.Name)
 			var corePod *v1.Pod
 			var forwarderPod *v1.Pod
+			var forwarderPlane string = k8s.GetForwardingPlane()
+
+			if len(conf) > i && conf[i].ForwarderPlane != nil {
+				forwarderPlane = *conf[i].ForwarderPlane
+			}
+
 			debug := false
 			if i >= len(conf) {
 				corePod = pods.NSMgrPod(nsmdName, node, k8s.GetK8sNamespace())
-				forwarderPod = pods.ForwardingPlaneWithConfig(forwarderName, node, DefaultForwarderVariables(k8s.GetForwardingPlane()), k8s.GetForwardingPlane())
+				forwarderPod = pods.ForwardingPlaneWithConfig(forwarderName, node, DefaultForwarderVariables(forwarderPlane), forwarderPlane)
 			} else {
 				conf[i].Namespace = namespace
 				if conf[i].Nsmd == pods.NSMgrContainerDebug || conf[i].NsmdK8s == pods.NSMgrContainerDebug || conf[i].NsmdP == pods.NSMgrContainerDebug {
 					debug = true
 				}
 				corePod = pods.NSMgrPodWithConfig(nsmdName, node, conf[i])
-				forwarderPod = pods.ForwardingPlaneWithConfig(forwarderName, node, conf[i].ForwarderVariables, k8s.GetForwardingPlane())
+				forwarderPod = pods.ForwardingPlaneWithConfig(forwarderName, node, conf[i].ForwarderVariables, forwarderPlane)
 			}
 			corePods, err := k8s.CreatePodsRaw(PodStartTimeout, true, corePod, forwarderPod)
 
