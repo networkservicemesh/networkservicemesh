@@ -46,7 +46,7 @@ func createDNSPatch(tuple *podSpecAndMeta, annotationValue string, imposeLimits 
 
 	corednsContainer := corev1.Container{
 		Name:            "coredns",
-		Image:           "networkservicemesh/coredns:master",
+		Image:           fmt.Sprintf("%s/coredns:master", getRepo()),
 		ImagePullPolicy: corev1.PullIfNotPresent,
 		Args:            []string{"-conf", "/etc/coredns/Corefile"},
 		VolumeMounts: []corev1.VolumeMount{{
