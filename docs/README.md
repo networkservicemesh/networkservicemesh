@@ -35,6 +35,6 @@ Technical Demonstrations
 Guides
 -------
 
-* [Quick Start guide to deploy Network Service Mesh on your machine with Kind](/docs/kind-guide.md)
+* [Quick Start guide to deploy Network Service Mesh on your machine with Kind](/docs/guide-kind.md)
 * [Detailed guide to build and deploy Network Service Mesh](/docs/guide-build.md)
 * [Debugging](/docs/guide-debug.md)
