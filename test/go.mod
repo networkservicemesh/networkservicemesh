@@ -3,9 +3,9 @@ module github.com/networkservicemesh/networkservicemesh/test
 go 1.13
 
 require (
-	github.com/fsnotify/fsnotify v1.4.7
+	github.com/fsnotify/fsnotify v1.4.9
 	github.com/ghodss/yaml v1.0.0
-	github.com/golang/protobuf v1.3.3
+	github.com/golang/protobuf v1.4.2
 	github.com/networkservicemesh/networkservicemesh/applications/nsmrs v0.3.0
 	github.com/networkservicemesh/networkservicemesh/controlplane v0.3.0
 	github.com/networkservicemesh/networkservicemesh/controlplane/api v0.3.0
@@ -17,14 +17,14 @@ require (
 	github.com/networkservicemesh/networkservicemesh/sdk v0.3.0
 	github.com/networkservicemesh/networkservicemesh/side-cars v0.3.0
 	github.com/networkservicemesh/networkservicemesh/utils v0.3.0
-	github.com/onsi/gomega v1.7.0
+	github.com/onsi/gomega v1.10.3
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.1.0
-	github.com/sirupsen/logrus v1.4.2
+	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/viper v1.5.0
 	github.com/spiffe/go-spiffe v0.0.0-20191104192205-d29ac0a1ba99
-	go.ligato.io/vpp-agent/v3 v3.1.0
-	google.golang.org/grpc v1.27.1
+	go.ligato.io/vpp-agent/v3 v3.2.0
+	google.golang.org/grpc v1.29.1
 	k8s.io/api v0.18.1
 	k8s.io/apimachinery v0.18.1
 	k8s.io/client-go v11.0.0+incompatible
