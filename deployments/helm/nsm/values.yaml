@@ -14,6 +14,7 @@ preferredRemoteMechanism:
 
 vpp:
   image: vppagent-forwarder
+  additionalVppConf: ""
 
 kernel:
   image: kernel-forwarder

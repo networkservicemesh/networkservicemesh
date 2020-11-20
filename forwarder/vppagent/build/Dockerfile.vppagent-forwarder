@@ -21,6 +21,6 @@ RUN CGO_ENABLED=0 GOOS=linux go build ${VENDORING} -ldflags "-extldflags '-stati
 FROM ${VPP_AGENT} as runtime
 COPY --from=build /go/bin/vppagent-forwarder /bin/vppagent-forwarder
 RUN rm /opt/vpp-agent/dev/etcd.conf; echo 'Endpoint: "localhost:9111"' > /opt/vpp-agent/dev/grpc.conf;echo "disabled: true" > /opt/vpp-agent/dev/telemetry.conf
-COPY forwarder/vppagent/conf/vpp/startup.conf /etc/vpp/vpp.conf
+COPY forwarder/vppagent/conf/vpp/run-vpp.sh /etc/vpp/run-vpp.sh
 COPY forwarder/vppagent/conf/supervisord/supervisord.conf /opt/vpp-agent/dev/supervisor.conf
 

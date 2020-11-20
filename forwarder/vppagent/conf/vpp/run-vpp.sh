@@ -1,4 +1,6 @@
+#!/bin/sh
 
+cat > /tmp/vpp.conf << EOF
 unix {
   nodaemon
   log /var/log/vpp/vpp.log
@@ -155,3 +157,13 @@ cpu {
 plugins {
 	plugin dpdk_plugin.so { disable }
 }
+
+buffers {
+   buffers-per-numa 65535
+}
+
+# User-provided changes below this line
+$NSM_ADDITIONAL_VPP_CONF
+EOF
+
+exec vpp -c /tmp/vpp.conf
