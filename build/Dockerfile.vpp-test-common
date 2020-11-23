@@ -4,6 +4,7 @@ RUN rm /opt/vpp-agent/dev/etcd.conf; echo "disabled: true" > /opt/vpp-agent/dev/
 RUN  mkdir -p /run/vpp
 COPY run-vpp.sh /etc/vpp/run-vpp.sh
 RUN  rm /etc/vpp/startup.conf /etc/vpp/vpp.conf
+ENV  NSM_ADDITIONAL_VPP_CONF="buffers { buffers-per-numa 16384 }"
 COPY supervisord.conf /opt/vpp-agent/dev/supervisor.conf
 RUN  mkdir -p /etc/govpp
 COPY govpp.conf /etc/govpp/govpp.conf
