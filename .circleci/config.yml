@@ -36,6 +36,7 @@ jobs:
       - skip_on_pattern
       - run:
           command: |
+            sudo apt-get update
             sudo apt-get install python-pip python3-pkg-resources
             pip install --user yamllint
       - run: yamllint -c .yamllint.yml --strict .
