@@ -44,13 +44,13 @@ else
                 \"location\": \"centralus\",
                 \"properties\":
                 {
-                    \"kubernetesVersion\": \"1.17.9\",
+                    \"kubernetesVersion\": \"1.18.14\",
                     \"dnsPrefix\": \"${AZURE_CLUSTER_NAME::10}-${AZURE_RESOURCE_GROUP}\",
                     \"agentPoolProfiles\":
                     [{
                         \"name\": \"nodepool1\",
                         \"count\": 2,
-                        \"orchestratorVersion\": \"1.17.9\",
+                        \"orchestratorVersion\": \"1.18.14\",
                         \"vmSize\": \"Standard_B2s\",
                         \"osType\": \"Linux\",
                         \"enableNodePublicIP\": true,
