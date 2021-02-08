@@ -19,7 +19,10 @@ func NewGrpcHealth(s *grpc.Server, addr net.Addr, timeout time.Duration, opts ..
 		func() error {
 			ctx, closeFn := context.WithTimeout(context.Background(), timeout)
 			defer closeFn()
+
 			conn, err := tools.DialContext(ctx, addr, opts...)
+			defer func() { _ = conn.Close() }()
+
 			if err != nil {
 				return err
 			}
