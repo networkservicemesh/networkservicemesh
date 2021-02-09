@@ -31,13 +31,17 @@ func (nsem *nseManager) GetEndpoint(ctx context.Context, requestConnection *conn
 	span.LogObject("ignores", ignoreEndpoints)
 	// Handle case we are remote NSM and asked for particular endpoint to connect to.
 	targetEndpoint := requestConnection.GetNetworkServiceEndpointName()
+	myNsemName := nsem.model.GetNsm().GetName()
+	targetNsemName := requestConnection.GetDestinationNetworkServiceManagerName()
 	span.LogObject("targetEndpoint", targetEndpoint)
 	if len(targetEndpoint) > 0 {
-		endpoint := nsem.model.GetEndpoint(targetEndpoint)
-		if endpoint != nil && ignoreEndpoints[endpoint.Endpoint.GetEndpointNSMName()] == nil {
-			return endpoint.Endpoint, nil
-		} else {
-			return nil, errors.Errorf("Could not find endpoint with name: %s at local registry", targetEndpoint)
+		if len(targetNsemName) > 0 && myNsemName == targetNsemName {
+			endpoint := nsem.model.GetEndpoint(targetEndpoint)
+			if endpoint != nil && ignoreEndpoints[endpoint.Endpoint.GetEndpointNSMName()] == nil {
+				return endpoint.Endpoint, nil
+			} else {
+				return nil, errors.Errorf("Could not find endpoint with name: %s at local registry", targetEndpoint)
+			}
 		}
 	}
 
