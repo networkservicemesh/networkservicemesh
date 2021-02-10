@@ -36,8 +36,6 @@ func (nsem *nseManager) GetEndpoint(ctx context.Context, requestConnection *conn
 		endpoint := nsem.model.GetEndpoint(targetEndpoint)
 		if endpoint != nil && ignoreEndpoints[endpoint.Endpoint.GetEndpointNSMName()] == nil {
 			return endpoint.Endpoint, nil
-		} else {
-			return nil, errors.Errorf("Could not find endpoint with name: %s at local registry", targetEndpoint)
 		}
 	}
 
@@ -66,9 +64,23 @@ func (nsem *nseManager) GetEndpoint(ctx context.Context, requestConnection *conn
 		return nil, err
 	}
 
-	endpoint := nsem.model.GetSelector().SelectEndpoint(requestConnection, endpointResponse.GetNetworkService(), endpoints)
+	endpointSelect := func() *registry.NetworkServiceEndpoint {
+		if len(targetEndpoint) > 0 {
+			for _, endpoint := range endpoints {
+				if endpoint.GetName() == targetEndpoint {
+					return endpoint
+				}
+			}
+
+			return nil
+		}
+
+		return nsem.model.GetSelector().SelectEndpoint(requestConnection, endpointResponse.GetNetworkService(), endpoints)
+	}
+
+	endpoint := endpointSelect()
 	if endpoint == nil {
-		err = errors.Errorf("failed to find NSE for NetworkService %s. Checked: %d of total NSEs: %d",
+		err = errors.Errorf("failed to select NSE for NetworkService %s. Checked: %d of total NSEs: %d",
 			requestConnection.GetNetworkService(), len(ignoreEndpoints), len(endpoints))
 		span.LogError(err)
 		return nil, err
