@@ -20,6 +20,62 @@ import (
 
 // Below only tests
 
+func TestNSMDRequestClientRemoteEndpoint(t *testing.T) {
+	g := NewWithT(t)
+
+	storage := NewSharedStorage()
+	srv := NewNSMDFullServer(Master, storage)
+	srv2 := NewNSMDFullServer(Worker, storage)
+	defer srv.Stop()
+	defer srv2.Stop()
+
+	srv.TestModel.AddForwarder(context.Background(), testForwarder1)
+	srv2.TestModel.AddForwarder(context.Background(), testForwarder2)
+
+	nseReg := srv.registerFakeEndpointWithName("fake_service", "test", Worker, "fake_service_endpoint1")
+	srv.TestModel.AddEndpoint(context.Background(), nseReg)
+	nseReg = srv2.registerFakeEndpointWithName("fake_service", "test", Worker, "fake_service_endpoint2")
+	srv2.TestModel.AddEndpoint(context.Background(), nseReg)
+	nseReg = srv2.registerFakeEndpointWithName("fake_service", "test", Worker, "fake_service_endpoint3")
+	srv2.TestModel.AddEndpoint(context.Background(), nseReg)
+
+	nsmClient, conn := srv.requestNSMConnection("nsm-1")
+	defer func() { _ = conn.Close() }()
+
+	request := &networkservice.NetworkServiceRequest{
+		Connection: &connection.Connection{
+			NetworkService:             "fake_service",
+			NetworkServiceEndpointName: "fake_service_endpoint2",
+			Context: &connectioncontext.ConnectionContext{
+				IpContext: &connectioncontext.IPContext{
+					DstIpRequired: true,
+					SrcIpRequired: true,
+				},
+			},
+			Labels: make(map[string]string),
+		},
+		MechanismPreferences: []*connection.Mechanism{
+			{
+				Type: kernel.MECHANISM,
+				Parameters: map[string]string{
+					common.NetNsInodeKey:    "10",
+					common.InterfaceNameKey: "icmp-responder1",
+				},
+			},
+		},
+	}
+
+	nsmResponse, err := nsmClient.Request(context.Background(), request)
+	g.Expect(err).To(BeNil())
+	g.Expect(nsmResponse.GetNetworkService()).To(Equal("fake_service"))
+	g.Expect(nsmResponse.GetNetworkServiceEndpointName()).To(Equal("fake_service_endpoint2"))
+
+	// We need to check for cross connections.
+	crossConnections := srv2.serviceRegistry.testForwarderConnection.connections
+	g.Expect(len(crossConnections)).To(Equal(1))
+	logrus.Print("End of test")
+}
+
 func TestNSMDRequestClientRemoteNSMD(t *testing.T) {
 	g := NewWithT(t)
 
