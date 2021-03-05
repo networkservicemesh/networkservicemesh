@@ -33,7 +33,7 @@ spec:
               readOnly: true
 
         - name: spire-server
-          image: gcr.io/spiffe-io/spire-server:0.11.0
+          image: gcr.io/spiffe-io/spire-server:0.11.3
           args:
             - -config
             - /run/spire/config/server.conf
