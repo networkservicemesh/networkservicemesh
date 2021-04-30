@@ -16,6 +16,21 @@ function register_feature {
     done
     echo "Registered"
 }
+function nsg_polling {
+    ((end_time=SECONDS+1200))
+    REQUEST="az network nsg list -g $1 --query [].name -o tsv"
+    while ((SECONDS < end_time)); do
+      RESULT=$(az network nsg list -g "$1" --query [].name -o tsv)
+      if [ -z "$RESULT" ]
+      then
+        sleep 60
+      else
+        echo "$RESULT"
+        break
+      fi
+    done
+}
+
 # Prepare azure for Public IP enabling
 # az extension add --name aks-preview
 register_feature VMSSPreview Microsoft.ContainerService
@@ -78,7 +93,7 @@ az aks wait  \
 echo "done" || exit 1
 echo "Creating Inbound traffic rule"
 NODE_RESOURCE_GROUP=$(az aks show -g "$AZURE_RESOURCE_GROUP" -n "$AZURE_CLUSTER_NAME" --query nodeResourceGroup -o tsv)
-NSG_NAME=$(az network nsg list -g "$NODE_RESOURCE_GROUP" --query "[].name" -o tsv)
+NSG_NAME=$(nsg_polling "$NODE_RESOURCE_GROUP")
 az network nsg rule create --name "${NSG_NAME}-rule" \
     --nsg-name "$NSG_NAME" \
     --priority 100 \
