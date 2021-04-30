@@ -62,7 +62,7 @@ jobs:
           name: Integration tests
           command: |
             pushd test
-            go test ./integration --list .* -tags basic recover usecase
+            go test ./integration --list .* -tags="basic recover usecase"
             popd
       - run: mkdir -p ~/junit/
       - run:

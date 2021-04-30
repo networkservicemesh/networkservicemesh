@@ -15,19 +15,28 @@ import (
 )
 
 // DeployVppAgentICMP - Setup VPP Agent based ICMP responder NSE
-func DeployVppAgentICMP(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
+func DeployVppAgentICMP(k8s *K8s, node *v1.Node, name string, timeout time.Duration, envs ...v1.EnvVar) *v1.Pod {
+	envVars := defaultICMPEnv(k8s.UseIPv6())
+	for _, env := range envs {
+		envVars[env.Name] = env.Value
+	}
+
 	return deployICMP(k8s, nodeName(node), name, timeout,
 		pods.VppTestCommonPod("vppagent-icmp-responder-nse", name, "icmp-responder-nse", node,
-			defaultICMPEnv(k8s.UseIPv6()), pods.NSEServiceAccount,
+			envVars, pods.NSEServiceAccount,
 		),
 	)
 }
 
 // DeployVppAgentNSC - Setup Default VPP Based Client
-func DeployVppAgentNSC(k8s *K8s, node *v1.Node, name string, timeout time.Duration) *v1.Pod {
+func DeployVppAgentNSC(k8s *K8s, node *v1.Node, name string, timeout time.Duration, envs ...v1.EnvVar) *v1.Pod {
+	envVars := defaultNSCEnv()
+	for _, env := range envs {
+		envVars[env.Name] = env.Value
+	}
 	return deployNSC(k8s, nodeName(node), name, "vppagent-nsc", timeout,
 		pods.VppTestCommonPod("vppagent-nsc", name, "vppagent-nsc", node,
-			defaultNSCEnv(), pods.NSCServiceAccount,
+			envVars, pods.NSCServiceAccount,
 		),
 	)
 }

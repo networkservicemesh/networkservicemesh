@@ -4,22 +4,22 @@ go 1.13
 
 require (
 	github.com/gogo/protobuf v1.2.2-0.20190723190241-65acae22fc9d
-	github.com/golang/protobuf v1.3.3
+	github.com/golang/protobuf v1.4.2
 	github.com/networkservicemesh/networkservicemesh/controlplane/api v0.3.0
 	github.com/networkservicemesh/networkservicemesh/forwarder/api v0.3.0
 	github.com/networkservicemesh/networkservicemesh/pkg v0.3.0
 	github.com/networkservicemesh/networkservicemesh/sdk v0.3.0
 	github.com/networkservicemesh/networkservicemesh/utils v0.3.0
-	github.com/onsi/gomega v1.7.0
+	github.com/onsi/gomega v1.10.3
 	github.com/pkg/errors v0.9.1
 	github.com/rs/xid v1.2.1
-	github.com/sirupsen/logrus v1.4.2
+	github.com/sirupsen/logrus v1.6.0
 	github.com/vishvananda/netlink v1.0.0
 	github.com/vishvananda/netns v0.0.0-20190625233234-7109fa855b0f
-	go.ligato.io/vpp-agent/v3 v3.1.0
+	go.ligato.io/vpp-agent/v3 v3.2.0
 	golang.zx2c4.com/wireguard v0.0.20200121
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20200114203027-fcfc50b29cbb
-	google.golang.org/grpc v1.27.1
+	google.golang.org/grpc v1.29.1
 )
 
 replace github.com/census-instrumentation/opencensus-proto v0.1.0-0.20181214143942-ba49f56771b8 => github.com/census-instrumentation/opencensus-proto v0.0.3-0.20181214143942-ba49f56771b8

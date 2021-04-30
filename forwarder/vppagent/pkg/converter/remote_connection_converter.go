@@ -21,6 +21,7 @@ import (
 	vpp_l3 "go.ligato.io/vpp-agent/v3/proto/ligato/vpp/l3"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/srv6"
+	"github.com/networkservicemesh/networkservicemesh/controlplane/api/connection/mechanisms/wireguard"
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -53,7 +54,7 @@ func NewRemoteConnectionConverter(c *connection.Connection, name, tapName string
 }
 
 func (c *RemoteConnectionConverter) checkMechanism() bool {
-	mechanisms := []string{vxlan.MECHANISM, srv6.MECHANISM}
+	mechanisms := []string{vxlan.MECHANISM, srv6.MECHANISM, wireguard.MECHANISM}
 	for _, m := range mechanisms {
 		if m == c.GetMechanism().GetType() {
 			return true
