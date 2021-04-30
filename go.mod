@@ -51,13 +51,3 @@ replace (
 	github.com/networkservicemesh/networkservicemesh/test => ./test
 	github.com/networkservicemesh/networkservicemesh/utils => ./utils
 )
-
-require (
-	github.com/alessio/shellescape v1.2.2 // indirect
-	github.com/pelletier/go-toml v1.7.0 // indirect
-	github.com/spf13/cobra v1.0.0 // indirect
-	golang.org/x/sys v0.0.0-20200420163511-1957bb5e6d1f // indirect
-	gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c // indirect
-	k8s.io/apimachinery v0.18.2 // indirect
-	sigs.k8s.io/kind v0.7.1-0.20200423025344-b2d239c37a84 // indirect
-)

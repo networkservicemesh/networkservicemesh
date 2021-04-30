@@ -8,6 +8,8 @@ import (
 	"go.ligato.io/vpp-agent/v3/proto/ligato/configurator"
 	vpp_interfaces "go.ligato.io/vpp-agent/v3/proto/ligato/vpp/interfaces"
 
+	"github.com/google/go-cmp/cmp"
+
 	"github.com/networkservicemesh/networkservicemesh/pkg/tools"
 
 	"github.com/networkservicemesh/networkservicemesh/controlplane/api/crossconnect"
@@ -46,6 +48,7 @@ func (m *MetricsCollector) collect(monitor metrics.MetricsMonitor, endpoint stri
 }
 
 func (m *MetricsCollector) startListenNotifications(monitor metrics.MetricsMonitor, client configurator.StatsPollerServiceClient) {
+	var prevStats = make(map[string]*vpp_interfaces.InterfaceStats)
 	req := &configurator.PollStatsRequest{
 		PeriodSec: uint32(m.requestPeriod.Seconds()),
 	}
@@ -64,6 +67,10 @@ func (m *MetricsCollector) startListenNotifications(monitor metrics.MetricsMonit
 		} else {
 			vppStats := resp.GetStats().GetVppStats()
 			if vppStats.Interface != nil {
+				if v, ok := prevStats[vppStats.Interface.Name]; ok && cmp.Equal(v, vppStats.Interface) {
+					continue
+				}
+				prevStats[vppStats.Interface.Name] = vppStats.Interface
 				monitor.HandleMetrics(convertStatistics(vppStats.Interface))
 			}
 			logrus.Infof("MetricsCollector: GetStats(): %v", vppStats)
