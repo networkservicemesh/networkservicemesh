@@ -150,6 +150,11 @@ else
   exit 1
 fi
 
+if (! kubectl get namespace | grep -q "$NSM_NAMESPACE" ); then
+  echo "Creating namespace: $NSM_NAMESPACE"
+  kubectl create namespace "$NSM_NAMESPACE"
+fi
+
 set -o xtrace
 # shellcheck disable=SC2086
 $HELM install $VERSION_SPECIFIC_OPTS \
