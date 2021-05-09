@@ -1,4 +1,4 @@
-# Register inside Google Cloud Platform
+# Register inside Amazon Web Services (AWS)
 
 ## Create New Access Key
 
