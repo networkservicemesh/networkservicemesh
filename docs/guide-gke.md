@@ -27,7 +27,7 @@ source ./.env/gke.env
 [Authentication](https://cloud.google.com/sdk/gcloud/reference/auth/login)
 
 ```shell
-google auth login
+gcloud auth login
 ```
  
 ## 1. Select a project.
