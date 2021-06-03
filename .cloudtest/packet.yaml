@@ -3,7 +3,7 @@ version: 1.0
 providers:
   - name: "packet"
     kind: "packet"
-    instances: 6
+    instances: 1
     retry: 5
     node-count: 2
     enabled: true
