@@ -51,3 +51,8 @@ replace (
 	github.com/networkservicemesh/networkservicemesh/test => ./test
 	github.com/networkservicemesh/networkservicemesh/utils => ./utils
 )
+
+require (
+	github.com/networkservicemesh/integration-tests v0.0.0-20210603051136-a09f0b1d7094
+	github.com/stretchr/testify v1.7.0
+)

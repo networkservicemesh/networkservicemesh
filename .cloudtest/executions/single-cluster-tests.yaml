@@ -8,7 +8,7 @@ executions:
         - basic
         - recover
         - usecase
-    root: ./test/integration
+    root: .
     timeout: 300
     cluster-count: 1
     cluster-env:

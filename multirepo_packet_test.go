@@ -16,7 +16,7 @@
 
 // +build multirepo_packet_test
 
-package integration_test
+package nsm_monorepo_test
 
 import (
 	"testing"
