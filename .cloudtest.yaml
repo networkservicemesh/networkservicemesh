@@ -8,12 +8,7 @@ statistics:
   interval: 60  # 60 seconds for statistics
 import:
   - .cloudtest/packet.yaml
-  - .cloudtest/gke.yaml
-  - .cloudtest/kind.yaml
-  - .cloudtest/vagrant.yaml
-  - .cloudtest/aws.yaml
-  - .cloudtest/azure.yaml
-  - .cloudtest/executions/.*
+  - .cloudtest/executions/multirepo-packet-test.yaml
 
 retest:  # Allow to do test re-run if some kind of failures are detected, line CNI network plugin errors.
   count: 5  # Allow 5 times to do restart
