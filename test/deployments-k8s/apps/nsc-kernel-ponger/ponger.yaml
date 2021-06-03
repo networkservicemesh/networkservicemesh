@@ -1,0 +1,42 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ponger
+  labels:
+    app: ponger
+spec:
+  selector:
+    matchLabels:
+      app: ponger
+  template:
+    metadata:
+      labels:
+        app: ponger
+    spec:
+      hostNetwork: true
+      containers:
+        - name: ponger
+          image: frolvlad/alpine-bash:latest
+          imagePullPolicy: IfNotPresent
+          command: ["bin/bash", "root/scripts/pong.sh", "eno4", "172.16.1.100/32", "172.16.1.101/32"]
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - name: scripts
+              mountPath: /root/scripts
+              readOnly: true
+          # We don't actually need SR-IOV resources for ponger, but we need to be sure that it is going to be deployed
+          # on the correct node.
+          resources:
+            limits:
+              memory: 10Mi
+              cpu: 10m
+              # We expect SR-IOV forwarders on the nodes to be configured:
+              # master - provides PCI functions targeted to the worker.domain/10G
+              # worker - provides PCI functions targeted to the master.domain/10G
+              master.domain/10G: 1
+      volumes:
+        - name: scripts
+          configMap:
+            name: ponger

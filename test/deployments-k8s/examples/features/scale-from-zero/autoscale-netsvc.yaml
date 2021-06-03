@@ -1,0 +1,17 @@
+---
+apiVersion: networkservicemesh.io/v1
+kind: NetworkService
+metadata:
+  name: autoscale-icmp-responder
+  namespace: nsm-system
+spec:
+  payload: ETHERNET
+  name: autoscale-icmp-responder
+  matches:
+    - source_selector:
+      routes:
+        - destination_selector:
+            app: nse-icmp-responder
+            NodeNameKey: "{{.NodeNameKey}}"
+        - destination_selector:
+            app: icmp-responder-supplier

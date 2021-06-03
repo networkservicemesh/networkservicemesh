@@ -1,0 +1,43 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ponger
+data:
+  pong.sh: |
+    #!/bin/bash +x
+    # shellcheck disable=SC2064,SC2086
+
+    function prefix_to_ip_addr() {
+      echo "$1" | sed -E 's/(.*)\/.*/\1/g'
+    }
+
+    function delete_IP_route() {
+      addr="$1"
+      route="$2"
+
+      ip route del ${route}
+      ip addr del ${addr}
+    }
+
+    link="$1"
+    dst_ip_subnet="$2"
+    src_ip_subnet="$3"
+
+    dst_ip_addr="$(echo "${dst_ip_subnet}" | sed -E 's/(.*)\/.*/\1/g')"
+
+    addr="dev ${link} ${dst_ip_subnet}"
+    route="${src_ip_subnet} via ${dst_ip_addr} dev ${link}"
+
+    # Don't forget to delete IP address on exit
+    trap "delete_IP_route \"${addr}\" \"${route}\"" err exit
+
+    # Add IP address and wake up the link
+    ip addr add ${addr}
+    ip link set dev "${link}" up || exit 2
+
+    # Add IP route
+    ip route add ${route}
+
+    # Wait for exit
+    sleep 60m

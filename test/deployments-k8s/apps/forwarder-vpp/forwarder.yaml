@@ -1,0 +1,65 @@
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: forwarder-vpp
+  labels:
+    app: forwarder-vpp
+spec:
+  selector:
+    matchLabels:
+      app: forwarder-vpp
+  template:
+    metadata:
+      labels:
+        app: forwarder-vpp
+    spec:
+      hostNetwork: true
+      containers:
+        - image: networkservicemeshci/cmd-forwarder-vpp:06dd8aeb
+          imagePullPolicy: IfNotPresent
+          name: forwarder-vpp
+          securityContext:
+            privileged: true
+          env:
+            - name: SPIFFE_ENDPOINT_SOCKET
+              value: unix:///run/spire/sockets/agent.sock
+            - name: NSM_TUNNEL_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: NSM_CONNECT_TO
+              value: unix:///var/lib/networkservicemesh/nsm.io.sock
+            - name: NSM_LISTEN_ON
+              value: unix:///listen.on.sock
+            - name: NSM_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          volumeMounts:
+            - name: spire-agent-socket
+              mountPath: /run/spire/sockets
+              readOnly: true
+            - name: nsm-socket
+              mountPath: /var/lib/networkservicemesh
+          resources:
+            requests:
+              cpu: 150m
+            limits:
+              memory: 400Mi
+              cpu: 500m
+          readinessProbe:
+            exec:
+              command: ["/bin/grpc-health-probe", "-spiffe", "-addr=unix:///listen.on.sock"]
+          livenessProbe:
+            exec:
+              command: ["/bin/grpc-health-probe", "-spiffe", "-addr=unix:///listen.on.sock"]
+      volumes:
+        - name: spire-agent-socket
+          hostPath:
+            path: /run/spire/sockets
+            type: Directory
+        - name: nsm-socket
+          hostPath:
+            path: /var/lib/networkservicemesh
+            type: DirectoryOrCreate

@@ -1,0 +1,12 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - crd-nse.yaml
+  - crd-ns.yaml
+  - sa.yaml
+  - binding.yaml
+  - role.yaml
+  - registry-service.yaml
+  - registry-k8s.yaml

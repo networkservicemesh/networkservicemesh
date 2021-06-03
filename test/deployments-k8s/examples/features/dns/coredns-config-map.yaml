@@ -1,0 +1,14 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: coredns
+data:
+  Corefile: |
+    . {
+        log
+        hosts {
+            no_recursive
+            172.16.1.100 my.coredns.service.
+        }
+    }

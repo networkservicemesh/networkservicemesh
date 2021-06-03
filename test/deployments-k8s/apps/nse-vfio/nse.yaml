@@ -1,0 +1,79 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nse-vfio
+  labels:
+    app: nse-vfio
+spec:
+  selector:
+    matchLabels:
+      app: nse-vfio
+  template:
+    metadata:
+      labels:
+        app: nse-vfio
+    spec:
+      hostNetwork: true
+      containers:
+        - name: ponger
+          # https://github.com/Bolodya1997/docker-dpdk
+          image: rrandom312/dpdk-pingpong:latest
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/bash", "/root/scripts/pong.sh", "eno4", "31"]
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - name: scripts
+              mountPath: /root/scripts
+              readOnly: true
+            - name: vfio
+              mountPath: /dev/vfio
+
+        - name: sidecar
+          image: networkservicemeshci/cmd-nse-vfio:73a23c27
+          imagePullPolicy: Always
+          env:
+            - name: SPIFFE_ENDPOINT_SOCKET
+              value: unix:///run/spire/sockets/agent.sock
+            - name: NSE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: NSE_CONNECT_TO
+              value: unix:///var/lib/networkservicemesh/nsm.io.sock
+            - name: NSE_SERVICES
+              value: "pingpong@worker.domain: { addr: 0a:55:44:33:22:11 }"
+          volumeMounts:
+            - name: spire-agent-socket
+              mountPath: /run/spire/sockets
+              readOnly: true
+            - name: nsm
+              mountPath: /var/lib/networkservicemesh
+          # We don't actually need SR-IOV resources for NSE, but we need to be sure that it is going to be deployed
+          # on the correct node.
+          resources:
+            limits:
+              memory: 20Mi
+              cpu: 100m
+              # We expect SR-IOV forwarders on the nodes to be configured:
+              # master - provides PCI functions targeted to the worker.domain/10G
+              # worker - provides PCI functions targeted to the master.domain/10G
+              master.domain/10G: 1
+
+      volumes:
+        - name: scripts
+          configMap:
+            name: nse-vfio
+        - name: spire-agent-socket
+          hostPath:
+            path: /run/spire/sockets
+            type: Directory
+        - name: nsm
+          hostPath:
+            path: /var/lib/networkservicemesh
+            type: Directory
+        - name: vfio
+          hostPath:
+            path: /dev/vfio
+            type: DirectoryOrCreate

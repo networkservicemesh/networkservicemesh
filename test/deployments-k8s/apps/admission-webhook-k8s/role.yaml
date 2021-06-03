@@ -1,0 +1,13 @@
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: admission-webhook-role
+  labels:
+    rbac.authorization.k8s.io/aggregate-to-admin: "true"
+    rbac.authorization.k8s.io/aggregate-to-edit: "true"
+rules:
+  - apiGroups: ["admissionregistration.k8s.io"]
+    resources:
+      - "mutatingwebhookconfigurations"
+    verbs: ["*"]

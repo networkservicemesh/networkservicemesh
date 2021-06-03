@@ -1,0 +1,69 @@
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: nsmgr
+  labels:
+    app: nsmgr
+spec:
+  selector:
+    matchLabels:
+      app: nsmgr
+  template:
+    metadata:
+      labels:
+        app: nsmgr
+    spec:
+      containers:
+        - image: networkservicemeshci/cmd-nsmgr:07422f6d
+          imagePullPolicy: IfNotPresent
+          name: nsmgr
+          ports:
+            - containerPort: 5001
+              hostPort: 5001
+          env:
+            - name: SPIFFE_ENDPOINT_SOCKET
+              value: unix:///run/spire/sockets/agent.sock
+            - name: NSM_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: NSM_REGISTRY_URL
+              value: "nsm-registry-svc:5002"
+            #            - name: DLV_LISTEN_NSMGR
+            #              value: :40000
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: NSM_LISTEN_ON
+              value: unix:///var/lib/networkservicemesh/nsm.io.sock,tcp://:5001
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          volumeMounts:
+            - name: spire-agent-socket
+              mountPath: /run/spire/sockets
+              readOnly: true
+            - name: nsm-socket
+              mountPath: /var/lib/networkservicemesh
+          resources:
+            limits:
+              memory: 60Mi
+              cpu: 200m
+          readinessProbe:
+            exec:
+              command: ["/bin/grpc-health-probe", "-spiffe", "-addr=:5001"]
+          livenessProbe:
+            exec:
+              command: ["/bin/grpc-health-probe", "-spiffe", "-addr=:5001"]
+      volumes:
+        - name: spire-agent-socket
+          hostPath:
+            path: /run/spire/sockets
+            type: Directory
+        - name: nsm-socket
+          hostPath:
+            path: /var/lib/networkservicemesh
+            type: DirectoryOrCreate

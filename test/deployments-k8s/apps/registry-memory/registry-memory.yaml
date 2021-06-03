@@ -1,0 +1,46 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nsm-registry
+  labels:
+    app: nsm-registry
+spec:
+  selector:
+    matchLabels:
+      app: nsm-registry
+  template:
+    metadata:
+      labels:
+        app: nsm-registry
+    spec:
+      containers:
+        - image: networkservicemeshci/cmd-registry-memory:6572a37d
+          env:
+            - name: SPIFFE_ENDPOINT_SOCKET
+              value: unix:///run/spire/sockets/agent.sock
+            - name: REGISTRY_MEMORY_LISTEN_ON
+              value: tcp://:5002
+            - name: REGISTRY_MEMORY_PROXY_REGISTRY_URL
+              value: nsm-registry-proxy-dns-svc:5003
+          imagePullPolicy: IfNotPresent
+          name: nsm-registry
+          ports:
+            - containerPort: 5002
+              hostPort: 5002
+          volumeMounts:
+            - name: spire-agent-socket
+              mountPath: /run/spire/sockets
+          resources:
+            limits:
+              memory: 20Mi
+              cpu: 100m
+      volumes:
+        - name: spire-agent-socket
+          hostPath:
+            path: /run/spire/sockets
+            type: Directory
+        - name: nsm-socket
+          hostPath:
+            path: /var/lib/networkservicemesh
+            type: DirectoryOrCreate

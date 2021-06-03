@@ -1,0 +1,51 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nsc-memif
+  labels:
+    app: nsc-memif
+spec:
+  selector:
+    matchLabels:
+      app: nsc-memif
+  template:
+    metadata:
+      labels:
+        app: nsc-memif
+    spec:
+      containers:
+        - name: nsc
+          image: networkservicemeshci/cmd-nsc-vpp:4cdbd1a7
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: NSM_REQUEST_TIMEOUT
+              value: 1m
+            - name: SPIFFE_ENDPOINT_SOCKET
+              value: unix:///run/spire/sockets/agent.sock
+            - name: NSM_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          volumeMounts:
+            - name: spire-agent-socket
+              mountPath: /run/spire/sockets
+              readOnly: true
+            - name: nsm-socket
+              mountPath: /var/lib/networkservicemesh
+              readOnly: true
+          resources:
+            requests:
+              cpu: 150m
+            limits:
+              memory: 400Mi
+              cpu: 500m
+      volumes:
+        - name: spire-agent-socket
+          hostPath:
+            path: /run/spire/sockets
+            type: Directory
+        - name: nsm-socket
+          hostPath:
+            path: /var/lib/networkservicemesh
+            type: DirectoryOrCreate

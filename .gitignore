@@ -45,7 +45,7 @@ scripts/vagrant/.kube/
 
 ./cloudtest
 vendor
-examples/
+/examples/
 !docs/examples/
 
 # Helm

@@ -1,0 +1,45 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: admission-webhook-k8s
+  labels:
+    app: admission-webhook-k8s
+spec:
+  selector:
+    matchLabels:
+      app: admission-webhook-k8s
+  template:
+    metadata:
+      labels:
+        app: admission-webhook-k8s
+    spec:
+      serviceAccount: admission-webhook-sa
+      containers:
+        - name: admission-webhook-k8s
+          image: networkservicemeshci/cmd-admission-webhook-k8s:1e7335c0
+          imagePullPolicy: IfNotPresent
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 443
+              scheme: HTTPS
+          env:
+            - name: SPIFFE_ENDPOINT_SOCKET
+              value: unix:///run/spire/sockets/agent.sock
+            - name: NSM_SERVICE_NAME
+              value: admission-webhook-svc
+            - name: NSM_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: NSM_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: NSM_ANNOTATION
+              value: networkservicemesh.io
+            - name: NSM_CONTAINER_IMAGES
+              value: networkservicemeshci/cmd-nsc:c893c84c
+            - name: NSM_INIT_CONTAINER_IMAGES
+              value: networkservicemeshci/cmd-nsc-init:3bc147a8

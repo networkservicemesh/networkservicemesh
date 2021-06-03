@@ -1,0 +1,63 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nse-vfio
+data:
+  pong.sh: |
+    #!/bin/bash
+    # shellcheck disable=SC2064
+
+    function softlink_target() {
+      softlink="$1"
+
+      raw_target="$(stat -c %N "${softlink}")"
+      test $? -eq 0 || return 1
+
+      target=$(echo "${raw_target}" | sed -E "s/(.*\/)(.*)'/\2/g")
+      test $? -eq 0 || return 2
+
+      echo "${target}"
+      return 0
+    }
+
+    function bind_driver() {
+      pci_addr="$1"
+      driver="$2"
+
+      echo "${pci_addr}" > "/sys/bus/pci/devices/${pci_addr}/driver/unbind"
+      echo "${pci_addr}" > "/sys/bus/pci/drivers/${driver}/bind"
+      test $? -eq 0 || return 1
+
+      return 0
+    }
+
+    ##
+    ## Begin
+    ##
+
+    pf_link="$1"
+    vf_num="$2"
+
+    device="/sys/class/net/${pf_link}/device/virtfn${vf_num}"
+
+    pci_addr=$(softlink_target "${device}")
+    test $? -eq 0 || exit 1
+
+    if driver=$(softlink_target "${device}/driver"); then
+      # Don't forget to set driver back on exit
+      trap "bind_driver '${pci_addr}' '${driver}'" err exit
+    fi
+
+    # Bind VFIO driver
+    bind_driver "${pci_addr}" "vfio-pci"
+    test $? -eq 0 || exit 3
+
+    # Run dpdk-pingpong (server)
+    /root/dpdk-pingpong/build/app/pingpong \
+      --no-huge \
+      --pci-whitelist="${pci_addr}" \
+      -- \
+      -n 50 \
+      -s \
+      -S 0a:55:44:33:22:11

@@ -1,0 +1,71 @@
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: forwarder-sriov
+  labels:
+    app: forwarder-sriov
+spec:
+  selector:
+    matchLabels:
+      app: forwarder-sriov
+  template:
+    metadata:
+      labels:
+        app: forwarder-sriov
+    spec:
+      hostNetwork: true
+      containers:
+        - image: networkservicemeshci/cmd-forwarder-sriov:72aafbff
+          imagePullPolicy: IfNotPresent
+          name: forwarder-sriov
+          securityContext:
+            privileged: true
+          env:
+            - name: NSM_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: SPIFFE_ENDPOINT_SOCKET
+              value: unix:///run/spire/sockets/agent.sock
+            - name: NSM_CONNECT_TO
+              value: unix:///var/lib/networkservicemesh/nsm.io.sock
+            - name: NSM_SRIOV_CONFIG_FILE
+              value: /var/lib/networkservicemesh/sriov.config
+          volumeMounts:
+            - name: spire-agent-socket
+              mountPath: /run/spire/sockets
+              readOnly: true
+            - name: nsm
+              mountPath: /var/lib/networkservicemesh
+            - name: kubelet-socket
+              mountPath: /var/lib/kubelet
+            - name: cgroup
+              mountPath: /host/sys/fs/cgroup
+            - name: vfio
+              mountPath: /host/dev/vfio
+          resources:
+            limits:
+              memory: 40Mi
+              cpu: 200m
+      volumes:
+        - name: spire-agent-socket
+          hostPath:
+            path: /run/spire/sockets
+            type: Directory
+        - name: nsm
+          hostPath:
+            path: /var/lib/networkservicemesh
+            type: Directory
+        - name: kubelet-socket
+          hostPath:
+            path: /var/lib/kubelet
+            type: Directory
+        - name: cgroup
+          hostPath:
+            path: /sys/fs/cgroup
+            type: Directory
+        - name: vfio
+          hostPath:
+            path: /dev/vfio
+            type: DirectoryOrCreate

@@ -1,0 +1,50 @@
+---
+apiVersion: apps/v1
+kind: Pod
+metadata:
+  name: nse-icmp-responder
+  labels:
+    app: nse-icmp-responder
+spec:
+  restartPolicy: Never
+  containers:
+    - name: nse-icmp-responder
+      image: networkservicemeshci/cmd-nse-icmp-responder:3f68ee3e
+      imagePullPolicy: IfNotPresent
+      env:
+        - name: SPIFFE_ENDPOINT_SOCKET
+          value: unix:///run/spire/sockets/agent.sock
+        - name: NSE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: NSE_CONNECT_TO
+          value: unix:///var/lib/networkservicemesh/nsm.io.sock
+        - name: NSE_CIDR_PREFIX
+          value: 169.254.0.0/16
+        - name: NSE_SERVICE_NAME
+          value: autoscale-icmp-responder
+        - name: NSE_LABELS
+          value: app:nse-icmp-responder
+        - name: NSE_IDLE_TIMEOUT
+          value: 15s
+      volumeMounts:
+        - name: spire-agent-socket
+          mountPath: /run/spire/sockets
+          readOnly: true
+        - name: nsm-socket
+          mountPath: /var/lib/networkservicemesh
+          readOnly: true
+      resources:
+        limits:
+          memory: 20Mi
+          cpu: 100m
+  volumes:
+    - name: spire-agent-socket
+      hostPath:
+        path: /run/spire/sockets
+        type: Directory
+    - name: nsm-socket
+      hostPath:
+        path: /var/lib/networkservicemesh
+        type: DirectoryOrCreate

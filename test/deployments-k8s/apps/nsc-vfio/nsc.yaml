@@ -1,0 +1,68 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nsc-vfio
+  labels:
+    app: nsc-vfio
+spec:
+  selector:
+    matchLabels:
+      app: nsc-vfio
+  template:
+    metadata:
+      labels:
+        app: nsc-vfio
+    spec:
+      containers:
+        - name: pinger
+          # https://github.com/Bolodya1997/docker-dpdk
+          image: rrandom312/dpdk-pingpong:latest
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/bash", "-c", "sleep 60m"]
+          volumeMounts:
+            - name: vfio
+              mountPath: /dev/vfio
+
+        - name: sidecar
+          image: networkservicemeshci/cmd-nsc:c893c84c
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: SPIFFE_ENDPOINT_SOCKET
+              value: unix:///run/spire/sockets/agent.sock
+            - name: NSM_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: NSM_CONNECT_TO
+              value: unix:///var/lib/networkservicemesh/nsm.io.sock
+            - name: NSM_NETWORK_SERVICES
+              value: vfio://pingpong?sriovToken=worker.domain/10G
+          volumeMounts:
+            - name: spire-agent-socket
+              mountPath: /run/spire/sockets
+              readOnly: true
+            - name: nsm
+              mountPath: /var/lib/networkservicemesh
+            - name: vfio
+              mountPath: /dev/vfio
+          resources:
+            limits:
+              memory: 15Mi
+              cpu: 100m
+              # We expect SR-IOV forwarders on the nodes to be configured:
+              # master - provides PCI functions targeted to the worker.domain/10G
+              # worker - provides PCI functions targeted to the master.domain/10G
+              worker.domain/10G: 1
+
+      volumes:
+        - name: vfio
+          emptyDir: {}
+        - name: spire-agent-socket
+          hostPath:
+            path: /run/spire/sockets
+            type: Directory
+        - name: nsm
+          hostPath:
+            path: /var/lib/networkservicemesh
+            type: Directory

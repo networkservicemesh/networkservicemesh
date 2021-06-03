@@ -1,0 +1,4 @@
+**/kustomization.yaml
+**/patch-nsc.yaml
+**/patch-nse.yaml
+**/patch-supplier.yaml
