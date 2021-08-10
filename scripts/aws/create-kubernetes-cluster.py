@@ -4,7 +4,6 @@ import boto3
 import os
 import tempfile
 import time
-import yaml
 
 from botocore.exceptions import ClientError
 
