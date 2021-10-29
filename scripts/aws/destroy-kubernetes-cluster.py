@@ -3,9 +3,7 @@
 import boto3
 import os
 import sys
-import tempfile
 import time
-import yaml
 
 from botocore.exceptions import ClientError
 from threading import Thread
