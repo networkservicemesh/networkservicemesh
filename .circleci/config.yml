@@ -243,37 +243,22 @@ jobs:
           command: |
             .circleci/helm/test-charts.sh
 
+  cleanup-images:
+    docker:
+      - image: circleci/golang:1.13-stretch
+    steps:
+      - checkout
+      - run:
+          name: Cleanup old CI images from DockerHub
+          command: |
+            CONTAINER_REPO="networkservicemeshci"
+            # Limit the number of tags to remove so it doesn't take much time of every CI run
+            tags=$(MIN_AGE_DAYS=14 .circleci/dockerhub-repo-tags $CONTAINER_REPO/nsmd) || true
+            REPO=$CONTAINER_REPO TAGS="$tags" IMAGES=$(make docker-list) .circleci/dockerhub-image-remove
+
 # workflows
 workflows:
   version: 2
   build-and-test:
     jobs:
-      - test-sanity-check
-      - test-static-code-analysis:
-          name: "test-static-code-analysis"
-          requires:
-            - test-sanity-check
-# build
-      - build-containers:
-          requires:
-            - test-sanity-check
-
-# Integration testing
-      - integration-tests:
-          name: "test-integration"
-          requires:
-            - build-containers
-# helm
-      - test-helm-charts:
-          name: "test-helm-charts"
-          requires:
-            - test-sanity-check
-
-# push
-      - docker-push-tag:
-          tag: "master"
-          requires:
-            - test-integration
-          filters:
-            branches:
-              only: master
+      - cleanup-images
