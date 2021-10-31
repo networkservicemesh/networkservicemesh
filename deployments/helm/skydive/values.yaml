@@ -3,6 +3,12 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
+registry: docker.io
+org: matrohon
+tag: latest
+
+insecure: false
+
 # The type for monitoring services, i.e. Skydive
 # May be set to valid Kubernetes ServiceTypes values--ClusterIP, NodePort, LoadBalancer, ExternalName
 monSvcType: ClusterIP
