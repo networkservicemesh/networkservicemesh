@@ -186,7 +186,7 @@ func (w *Workspace) isConnectionAlive(ctx context.Context, timeout time.Duration
 	span := spanhelper.CopySpan(timeoutCtx, spanhelper.GetSpanHelper(ctx), "check-nse-alive")
 	defer span.Finish()
 
-	nseConn, err := tools.DialContextUnix(timeoutCtx, w.NsmClientSocket())
+	nseConn, err := tools.DialContextUnix(timeoutCtx, w.NsmClientSocket(), grpc.WithBlock())
 	if err != nil {
 		span.LogObject("alive", false)
 		return false

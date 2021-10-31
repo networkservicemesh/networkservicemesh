@@ -480,7 +480,7 @@ func StartNSMServer(ctx context.Context, model model.Model, manager nsm.NetworkS
 	}
 	go func() {
 		if err := nsm.registerServer.Serve(nsm.registerSock); err != nil {
-			span.Logger().Fatalf("failed to start NSM grpc server")
+			span.Logger().Fatalf("failed to start NSM grpc server: %v", err)
 		}
 	}()
 	endpoints, err := setLocalNSM(span.Context(), model, nsm.serviceRegistry)
