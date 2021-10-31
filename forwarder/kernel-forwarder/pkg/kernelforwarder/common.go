@@ -36,6 +36,7 @@ type LinkData struct {
 	tempName  string // Used in case src and dst name are the same causing the VETH creation to fail
 	ip        string
 	routes    []*connectioncontext.Route
+	gwIP      string
 	neighbors []*connectioncontext.IpNeighbor
 }
 
@@ -48,9 +49,11 @@ func SetupInterface(ifaceName, tempName string, conn *connection.Connection, isD
 	if isDst {
 		link.ip = conn.GetContext().GetIpContext().GetDstIpAddr()
 		link.routes = conn.GetContext().GetIpContext().GetSrcRoutes()
+		link.gwIP = conn.GetContext().GetIpContext().GetSrcIpAddr()
 	} else {
 		link.ip = conn.GetContext().GetIpContext().GetSrcIpAddr()
 		link.routes = conn.GetContext().GetIpContext().GetDstRoutes()
+		link.gwIP = conn.GetContext().GetIpContext().GetDstIpAddr()
 	}
 
 	/* Get namespace handler - source */
@@ -205,8 +208,14 @@ func setupLink(l netlink.Link, link *LinkData) error {
 		logrus.Errorf("common: failed to bring %q up: %v", link.name, err)
 		return err
 	}
+	/* Parse the GW IP address */
+	gwAddr, err := netlink.ParseAddr(link.gwIP)
+	if err != nil {
+		logrus.Errorf("common: failed to parse gw IP %s: %v", link.gwIP, err)
+		return err
+	}
 	/* Add routes */
-	if err = addRoutes(l, addr, link.routes); err != nil {
+	if err = addRoutes(l, addr, gwAddr, link.routes); err != nil {
 		logrus.Error("common: failed adding routes:", err)
 		return err
 	}
@@ -219,7 +228,7 @@ func setupLink(l netlink.Link, link *LinkData) error {
 }
 
 // addRoutes adds routes
-func addRoutes(link netlink.Link, addr *netlink.Addr, routes []*connectioncontext.Route) error {
+func addRoutes(link netlink.Link, addr, gwAddr *netlink.Addr, routes []*connectioncontext.Route) error {
 	for _, route := range routes {
 		_, routeNet, err := net.ParseCIDR(route.GetPrefix())
 		if err != nil {
@@ -233,6 +242,7 @@ func addRoutes(link netlink.Link, addr *netlink.Addr, routes []*connectioncontex
 				Mask: routeNet.Mask,
 			},
 			Src: addr.IP,
+			Gw:  gwAddr.IP,
 		}
 		if err = netlink.RouteAdd(&route); err != nil {
 			logrus.Error("common: failed adding routes:", err)
