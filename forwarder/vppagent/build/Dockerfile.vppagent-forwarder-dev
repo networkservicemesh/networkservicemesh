@@ -26,7 +26,7 @@ RUN apt-get update && apt-get install -y zip python python-cffi python-enum34 py
   && rm *.deb
 
 RUN rm /opt/vpp-agent/dev/etcd.conf; echo 'Endpoint: "localhost:9111"' > /opt/vpp-agent/dev/grpc.conf;echo "disabled: true" > /opt/vpp-agent/dev/telemetry.conf
-COPY forwarder/vppagent/conf/vpp/startup.conf /etc/vpp/vpp.conf
+COPY forwarder/vppagent/conf/vpp/run-vpp.sh /etc/vpp/run-vpp.sh
 COPY forwarder/vppagent/conf/supervisord/supervisord.conf /opt/vpp-agent/dev/supervisor.conf
 
 FROM golang:${GO_VERSION}-alpine as build_vpp

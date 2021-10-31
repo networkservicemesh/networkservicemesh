@@ -35,6 +35,8 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
+            - name: NSM_ADDITIONAL_VPP_CONF
+              value: {{ (index .Values $fp).additionalVppConf | default "" | quote }}
           volumeMounts:
             - name: workspace
               mountPath: /var/lib/networkservicemesh/

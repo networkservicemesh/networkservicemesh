@@ -33,7 +33,7 @@ go-vppagent-forwarder-build: go-%-build:
 docker-vppagent-forwarder-prepare: docker-%-prepare: go-%-build
 	$(info Preparing files for docker...)
 	$(call docker_prepare, $(BIN_DIR)/$*, \
-		forwarder/vppagent/conf/vpp/startup.conf \
+		forwarder/vppagent/conf/vpp/run-vpp.sh \
 		forwarder/vppagent/conf/supervisord/supervisord.conf \
 		forwarder/vppagent/conf/supervisord/telemetry.conf \
 		forwarder/vppagent/conf/supervisord/govpp.conf)
